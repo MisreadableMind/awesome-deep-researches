@@ -19,7 +19,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | ACH / Fedwire / CHIPS: US domestic rails | | 🗓️ Planned |
 | Real-Time Payments: FedNow, UPI, PIX, Faster Payments | | 🗓️ Planned |
 | [Mobile Wallets: Apple Pay, Google Pay internals](payment-systems/mobile-wallets/) | 13 | ✅ Done |
-| Buy Now Pay Later: Klarna, Affirm underwriting | | 🗓️ Planned |
+| [Buy Now Pay Later: Klarna, Affirm underwriting](payment-systems/buy-now-pay-later/) | 13 | ✅ Done |
 | Cross-border Remittance: Wise, Western Union | | 🗓️ Planned |
 
 ### 🏦 [`banking-infrastructure/`](banking-infrastructure/) — How banks work internally
@@ -98,7 +98,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| OAuth 2.0 / OpenID Connect: grant flows, tokens, PKCE | | 🗓️ Planned |
+| [OAuth 2.0 / OpenID Connect: grant flows, tokens, PKCE](auth-and-identity/oauth2-and-openid-connect/) | 14 | ✅ Done |
 | PKI & Certificates: CA hierarchy, X.509, certificate transparency | | 🗓️ Planned |
 | SAML & SSO: federation, assertions, service providers | | 🗓️ Planned |
 | Passkeys / WebAuthn / FIDO2: challenge-response, attestation | | 🗓️ Planned |
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       3 researches (38 diagrams)
-Planned:   48 researches
+Done:       5 researches (65 diagrams)
+Planned:   46 researches
 Categories: 10
 ```
 
