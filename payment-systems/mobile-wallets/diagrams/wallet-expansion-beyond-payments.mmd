@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    subgraph CURRENT["Current Wallet Capabilities -- 2025"]
+        PAY["Contactless Payments<br/>NFC tap-to-pay<br/>In-app and web payments"]
+        TRANSIT["Transit Passes<br/>Express Transit mode<br/>30+ systems globally<br/>Open-loop contactless"]
+        LOYALTY["Loyalty and Rewards<br/>Store cards, coupons<br/>Auto-apply at checkout"]
+        TICKETS["Tickets and Passes<br/>Boarding passes<br/>Event tickets, movie tickets"]
+    end
+
+    subgraph EMERGING["Emerging Capabilities -- 2024 to 2026"]
+        ID["Digital Identity<br/>Driver's license -- ISO 18013-5<br/>State ID, student ID<br/>Selective disclosure"]
+        KEYS["Digital Keys<br/>Car keys -- BMW, Hyundai<br/>Home keys -- smart locks<br/>Hotel keys -- Hyatt, Hilton<br/>Corporate badges"]
+        HEALTH["Health Records<br/>Vaccination cards<br/>Insurance cards<br/>SMART Health Cards"]
+        P2P["P2P Transfers<br/>Apple Pay Cash<br/>Google Pay Send"]
+    end
+
+    subgraph FUTURE["Future Directions"]
+        TAP_TERMINAL["Tap to Pay<br/>Phone-as-terminal<br/>No POS hardware needed<br/>iPhone XS+, Android"]
+        UWB["UWB Payments<br/>Ultra-Wideband ranging<br/>Walk up and pay<br/>No tap needed"]
+        CBDC["CBDC Integration<br/>Digital Euro, e-CNY<br/>Central bank currency<br/>in wallet apps"]
+        SUPER["Super-App Evolution<br/>Payments + social + commerce<br/>China and India model<br/>WeChat Pay, PhonePe"]
+        BIO_CARD["Biometric Cards<br/>Fingerprint on plastic card<br/>Competes with mobile wallet<br/>security advantage"]
+    end
+
+    PAY --> TAP_TERMINAL
+    PAY --> UWB
+    PAY --> CBDC
+    TRANSIT --> UWB
+    ID --> SUPER
+    KEYS --> UWB
+
+    style PAY fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style TRANSIT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ID fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style KEYS fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style TAP_TERMINAL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style UWB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CBDC fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SUPER fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style BIO_CARD fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style CURRENT fill:#fafafa,stroke:#9e9e9e
+    style EMERGING fill:#fafafa,stroke:#9e9e9e
+    style FUTURE fill:#fafafa,stroke:#9e9e9e

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Raj as Raj<br/>Galaxy S24
+    participant HCE as Google Pay<br/>HCE Service
+    participant Cloud as Google Cloud<br/>Pay Backend
+    participant Terminal as PAX Terminal<br/>Bengaluru Shop
+    participant Acquirer as Acquirer<br/>Processor
+    participant Visa as VisaNet<br/>plus VTS
+    participant HDFC as HDFC Bank<br/>Issuer
+
+    Note over Raj,HDFC: Raj pays INR 1,200 at a shop in Bengaluru
+
+    Note over HCE,Cloud: Pre-cached: batch of LUKs downloaded from cloud
+
+    Raj->>HCE: Unlock phone, open Google Wallet
+    HCE->>HCE: TEE verifies fingerprint<br/>via ARM TrustZone
+
+    Raj->>Terminal: Taps phone on PAX terminal
+    Terminal->>HCE: SELECT PPSE
+    HCE-->>Terminal: Available AIDs -- Visa
+    Terminal->>HCE: SELECT A0000000031010
+    Terminal->>HCE: GET PROCESSING OPTIONS<br/>Amount: INR 1,200
+    HCE->>HCE: Retrieve cached LUK<br/>Generate cryptogram<br/>Decrement LUK counter
+    HCE-->>Terminal: DPAN plus LUK-based cryptogram
+
+    Note over Raj,Terminal: NFC complete -- phone removed
+
+    Terminal->>Acquirer: ISO 8583 0100 auth request
+    Acquirer->>Visa: Route via token BIN
+    Visa->>Visa: VTS detokenizes DPAN<br/>Validates LUK cryptogram<br/>using master key in vault
+    Visa->>HDFC: Auth request with real PAN<br/>INR 1,200
+
+    HDFC->>HDFC: Check debit account balance<br/>INR 1,200 available<br/>Fraud checks pass
+    HDFC-->>Visa: Approved
+    Visa-->>Acquirer: Re-tokenized response
+    Acquirer-->>Terminal: Approved
+    Terminal-->>Raj: Receipt printed
+
+    Note over HCE,Cloud: If LUK batch running low
+    HCE->>Cloud: Request fresh LUKs
+    Cloud->>Cloud: Verify device attestation<br/>Play Integrity API check
+    Cloud-->>HCE: New LUK batch downloaded

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph TXN["Transaction: $47.50 at Whole Foods"]
+        MERCHANT["Merchant<br/>Whole Foods<br/>Receives: $46.60"]
+        ACQUIRER["Acquirer<br/>Worldpay<br/>Keeps markup: $0.14<br/>~0.30%"]
+        NETWORK["Card Network<br/>Visa<br/>Assessment fee: $0.07<br/>~0.14%"]
+        ISSUER["Issuer<br/>Chase Bank<br/>Interchange: $0.62<br/>~1.30%"]
+        APPLE_FEE["Apple<br/>Apple Pay fee: $0.07<br/>~0.15% of txn value<br/>Deducted from interchange"]
+    end
+
+    MERCHANT -->|"MDR ~1.89% = $0.90"| ACQUIRER
+    ACQUIRER -->|"Assessment ~0.14%"| NETWORK
+    ACQUIRER -->|"Interchange ~1.45%"| ISSUER
+    ISSUER -->|"0.15% of txn"| APPLE_FEE
+
+    subgraph COMPARE["Revenue Model Comparison"]
+        A_MODEL["Apple Pay<br/>~0.15% from issuer interchange<br/>Est. $1.5 to $2B annual revenue<br/>Banks pay because fraud drops"]
+        G_MODEL["Google Pay<br/>$0 from payments<br/>Value: ecosystem lock-in,<br/>data for ads, commerce enablement"]
+        S_MODEL["Samsung Pay<br/>$0 from payments<br/>Formerly: Samsung Rewards<br/>Now: declining, ceding to GWallet"]
+    end
+
+    subgraph WHY_BANKS_PAY["Why Banks Agreed to Pay Apple"]
+        W1["Fraud reduction<br/>Mobile wallet fraud: 0.01%<br/>vs mag stripe: 0.12%"]
+        W2["Increased card usage<br/>Top-of-wallet effect<br/>more transactions"]
+        W3["Premium customer retention<br/>iPhone users skew affluent<br/>table stakes to support"]
+        W4["Fear of disintermediation<br/>Apple could bypass banks<br/>if they refused"]
+    end
+
+    style MERCHANT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ISSUER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style APPLE_FEE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NETWORK fill:#1a237e,stroke:#1a237e,color:#fff
+    style A_MODEL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G_MODEL fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style S_MODEL fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style W1 fill:#e8f5e9,stroke:#2e7d32
+    style TXN fill:#fafafa,stroke:#9e9e9e
+    style COMPARE fill:#fafafa,stroke:#9e9e9e
+    style WHY_BANKS_PAY fill:#fafafa,stroke:#9e9e9e

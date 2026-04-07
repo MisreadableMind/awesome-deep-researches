@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    subgraph MST_FLOW["Samsung Pay MST Transaction -- Pre 2021"]
+        M1["User opens Samsung Pay<br/>Swipes up from bottom of screen"]
+        M2["Fingerprint or iris scan<br/>verified via TEE"]
+        M3["Samsung Knox validates<br/>device integrity"]
+        M4["eSE retrieves token<br/>generates dynamic cryptogram"]
+        M5["MST antenna activates<br/>Induction coil near phone bottom<br/>generates localized magnetic field"]
+        M6["Magnetic field emulates<br/>card swipe data pattern<br/>ISO 7813 Track 2 format:<br/>DPAN=EXPIRY+CRYPTOGRAM"]
+        M7["Terminal magnetic stripe reader<br/>captures signal as card swipe<br/>No NFC required"]
+        M8["Standard auth flow<br/>Acquirer to Network to Issuer"]
+        M9["Transaction approved<br/>Works at 90%+ of terminals<br/>including non-NFC terminals"]
+    end
+
+    subgraph NFC_FLOW["Samsung Pay NFC Transaction -- All Versions"]
+        N1["User opens Samsung Pay"]
+        N2["Biometric authentication"]
+        N3["eSE generates cryptogram"]
+        N4["NFC Card Emulation mode<br/>Standard EMV contactless"]
+        N5["Terminal receives DPAN<br/>plus cryptogram via NFC"]
+    end
+
+    subgraph SUNSET["MST Sunset -- 2021"]
+        S1["Galaxy S21 -- February 2021<br/>MST hardware removed"]
+        S2["Reason 1: NFC terminals now<br/>at 80%+ of US merchants"]
+        S3["Reason 2: MST antenna adds<br/>cost and takes space"]
+        S4["Reason 3: Magnetic stripe<br/>is inherently less secure"]
+        S5["Samsung Pay becomes<br/>NFC-only -- similar to Google Pay"]
+    end
+
+    M1 --> M2 --> M3 --> M4 --> M5 --> M6 --> M7 --> M8 --> M9
+    N1 --> N2 --> N3 --> N4 --> N5
+    S1 --> S2
+    S1 --> S3
+    S1 --> S4
+    S2 --> S5
+    S3 --> S5
+    S4 --> S5
+
+    style M5 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style M6 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style M9 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style N4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S1 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style S5 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MST_FLOW fill:#fafafa,stroke:#9e9e9e
+    style NFC_FLOW fill:#fafafa,stroke:#9e9e9e
+    style SUNSET fill:#fafafa,stroke:#9e9e9e

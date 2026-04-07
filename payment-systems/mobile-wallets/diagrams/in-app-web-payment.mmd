@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant User as User<br/>Phone or Browser
+    participant App as Merchant App<br/>or Website
+    participant Wallet as Wallet SDK<br/>PassKit or GPay API
+    participant SE as SE or HCE<br/>Credential Store
+    participant Server as Merchant<br/>Server
+    participant PSP as Payment Processor<br/>Stripe, Adyen, etc.
+    participant Network as Card Network<br/>plus TSP
+    participant Issuer as Issuing<br/>Bank
+
+    Note over User,Issuer: In-App and Web Payment Flow
+
+    alt In-App Payment
+        App->>Wallet: PKPaymentAuthorizationViewController<br/>or PaymentsClient.loadPaymentData
+    else Web Payment
+        App->>Wallet: Apple Pay JS API<br/>or Google Pay API button click
+    end
+
+    Wallet->>User: Display payment sheet<br/>Card, amount, merchant name<br/>OS-controlled -- cannot be spoofed
+
+    User->>SE: Authenticate with biometrics<br/>Face ID, fingerprint, or device PIN
+    SE->>SE: Generate cryptogram<br/>using in-app domain keys<br/>DPAN plus one-time token
+
+    SE-->>Wallet: Encrypted payment token
+    Wallet-->>App: Return token to callback
+
+    App->>Server: Send encrypted payment token<br/>via HTTPS
+
+    Server->>PSP: Submit token for processing<br/>PSP decrypts if needed
+    PSP->>Network: DPAN plus cryptogram<br/>Standard network auth
+
+    Network->>Network: TSP detokenizes DPAN<br/>Validates cryptogram<br/>Checks domain -- in-app
+
+    Network->>Issuer: Auth request with real PAN
+    Issuer->>Issuer: Standard authorization<br/>balance, fraud, limits
+
+    Issuer-->>Network: Approved
+    Network-->>PSP: Re-tokenized response
+    PSP-->>Server: Payment confirmed
+    Server-->>App: Order confirmed
+    App-->>User: Success screen
+
+    Note over User,Issuer: Merchant server never sees real PAN<br/>Only receives encrypted token

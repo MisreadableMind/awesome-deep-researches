@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Sarah as Sarah<br/>iPhone 15 Pro
+    participant SE as Secure Element<br/>and Secure Enclave
+    participant Terminal as Whole Foods<br/>NFC Terminal
+    participant Acquirer as Acquirer<br/>Processor
+    participant Visa as VisaNet<br/>plus VTS
+    participant Chase as Chase Bank<br/>Issuer
+
+    Note over Sarah,Chase: Sarah pays $47.50 at Whole Foods with Apple Pay
+
+    Sarah->>SE: Double-click side button<br/>Wallet app opens
+    Sarah->>SE: Face ID authentication
+    SE->>SE: Secure Enclave verifies face<br/>Sends auth token to embedded SE
+
+    Sarah->>Terminal: Holds iPhone near terminal
+    Terminal->>SE: SELECT PPSE
+    SE-->>Terminal: Available AIDs -- Visa
+    Terminal->>SE: SELECT A0000000031010
+    SE-->>Terminal: Visa applet selected
+    Terminal->>SE: GET PROCESSING OPTIONS<br/>Amount: $47.50, Currency: USD
+    SE->>SE: Generate ARQC cryptogram<br/>using DPAN key and ATC
+    SE-->>Terminal: DPAN plus cryptogram<br/>Real PAN never transmitted
+
+    Note over Sarah,Terminal: NFC complete in ~350ms -- phone can be removed
+
+    Terminal->>Acquirer: ISO 8583 0100 auth request<br/>DPAN plus cryptogram
+    Acquirer->>Visa: Route via token BIN range
+    Visa->>Visa: VTS detokenizes DPAN to real PAN<br/>Validates cryptogram via HSM<br/>Checks domain restriction -- NFC
+    Visa->>Chase: Auth request with real PAN<br/>$47.50 at Whole Foods
+
+    Chase->>Chase: Account active -- yes<br/>Available credit -- sufficient<br/>Fraud score -- low risk
+    Chase-->>Visa: Approved -- response code 00
+    Visa->>Visa: Re-tokenize -- replace PAN with DPAN
+    Visa-->>Acquirer: Approved response
+    Acquirer-->>Terminal: Approved
+    Terminal-->>Sarah: Checkmark and haptic feedback
+
+    Note over Sarah,Chase: Total time: approximately 2 seconds

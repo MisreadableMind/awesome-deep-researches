@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant User as User<br/>Mobile Device
+    participant SE as Secure Element<br/>or HCE Service
+    participant NFC as NFC Controller<br/>13.56 MHz
+    participant Terminal as POS Terminal<br/>NFC Reader
+    participant Acquirer as Acquirer<br/>Processor
+    participant Network as Card Network<br/>VisaNet or Banknet
+    participant TSP as TSP<br/>VTS or MDES
+    participant Issuer as Issuing<br/>Bank
+
+    Note over User,Issuer: In-Store NFC Transaction -- Detailed Timing
+
+    User->>SE: Authenticate -- biometric<br/>T+0ms
+    SE->>SE: Verify Face ID or fingerprint<br/>T+200ms
+
+    NFC->>Terminal: Phone enters RF field<br/>T+200ms
+    Terminal->>NFC: SELECT PPSE<br/>T+220ms
+    NFC->>SE: Route APDU
+    SE-->>NFC: AID list response
+    NFC-->>Terminal: Available payment AIDs
+
+    Terminal->>NFC: SELECT AID<br/>T+240ms
+    Terminal->>NFC: GET PROCESSING OPTIONS<br/>T+260ms
+    NFC->>SE: Forward GPO with amount
+    SE-->>NFC: AIP and AFL response
+
+    Terminal->>NFC: READ RECORD<br/>T+280ms
+    SE->>SE: Generate cryptogram<br/>ARQC from token key + ATC<br/>T+320ms
+    NFC-->>Terminal: DPAN + cryptogram + ATC<br/>T+350ms
+
+    Note over User,Terminal: NFC PHASE COMPLETE -- 350ms
+
+    Terminal->>Acquirer: ISO 8583 MTI 0100<br/>DPAN, amount, cryptogram<br/>T+450ms
+    Acquirer->>Network: Route via token BIN range<br/>T+500ms
+
+    Network->>TSP: Detokenize request<br/>T+700ms
+    TSP->>TSP: Map DPAN to real FPAN<br/>Validate cryptogram via HSM<br/>Check domain restriction
+    TSP-->>Network: Real FPAN + validation result<br/>T+850ms
+
+    Network->>Issuer: Auth request with real PAN<br/>T+900ms
+    Issuer->>Issuer: Balance check, fraud scoring<br/>velocity limits<br/>T+1200ms
+    Issuer-->>Network: Response code 00 -- Approved<br/>T+1400ms
+
+    Network->>TSP: Re-tokenize response
+    TSP-->>Network: Response with DPAN<br/>T+1500ms
+
+    Network-->>Acquirer: Approved<br/>T+1600ms
+    Acquirer-->>Terminal: Approved<br/>T+1700ms
+    Terminal-->>User: Display approved<br/>Haptic feedback<br/>T+1900ms
+
+    Note over User,Issuer: TOTAL: approximately 2 seconds
