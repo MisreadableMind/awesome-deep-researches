@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    START["Which auth approach<br/>should I use?"]
+
+    START -->|"Need user identity?"| Q_IDENTITY{"Need to know<br/>WHO the user is?"}
+    START -->|"Machine-to-machine only"| Q_M2M{"Internal or<br/>external API?"}
+
+    Q_IDENTITY -->|"Yes, user login"| Q_USERS{"What type<br/>of users?"}
+    Q_IDENTITY -->|"No, just permissions"| OAUTH_CC["OAuth 2.0<br/>Client Credentials<br/>Scoped access tokens"]
+
+    Q_USERS -->|"Consumers<br/>(B2C)"| OIDC["OpenID Connect<br/>+ OAuth 2.0<br/>Social login, JWTs, PKCE"]
+    Q_USERS -->|"Enterprise<br/>(B2B, SSO)"| Q_ENTERPRISE{"Existing enterprise<br/>infrastructure?"}
+
+    Q_ENTERPRISE -->|"Legacy / ADFS /<br/>On-prem IdP"| SAML["SAML 2.0<br/>XML assertions<br/>Enterprise SSO"]
+    Q_ENTERPRISE -->|"Modern / cloud<br/>or new build"| OIDC_ENT["OpenID Connect<br/>for enterprise SSO<br/>Lighter than SAML"]
+
+    Q_M2M -->|"Internal service<br/>mesh"| Q_INTERNAL{"Need fine-grained<br/>authorization?"}
+    Q_M2M -->|"External partner<br/>API"| OAUTH_CC
+
+    Q_INTERNAL -->|"Yes"| MTLS["mTLS<br/>Mutual TLS certificates<br/>Zero-trust service mesh"]
+    Q_INTERNAL -->|"Simple access"| API_KEY["API Keys<br/>Simple, static credentials<br/>Rate limiting by key"]
+
+    subgraph COMPARISON["Quick Comparison"]
+        C_OIDC["OAuth 2.0 + OIDC<br/>Format: JSON / JWT<br/>Transport: HTTP redirects<br/>Best for: web, mobile, API<br/>Complexity: moderate"]
+        C_SAML["SAML 2.0<br/>Format: XML<br/>Transport: POST bindings<br/>Best for: enterprise SSO<br/>Complexity: high"]
+        C_API["API Keys<br/>Format: opaque string<br/>Transport: header or query<br/>Best for: simple APIs<br/>Complexity: low"]
+        C_MTLS["mTLS<br/>Format: X.509 certificates<br/>Transport: TLS handshake<br/>Best for: service mesh<br/>Complexity: high"]
+    end
+
+    style START fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Q_IDENTITY fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Q_USERS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Q_ENTERPRISE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Q_M2M fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Q_INTERNAL fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OIDC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style OIDC_ENT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SAML fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style OAUTH_CC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style MTLS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style API_KEY fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style C_OIDC fill:#e8f5e9,stroke:#2e7d32
+    style C_SAML fill:#f3e5f5,stroke:#6a1b9a
+    style C_API fill:#ffebee,stroke:#c62828
+    style C_MTLS fill:#e3f2fd,stroke:#1565c0
+    style COMPARISON fill:#fafafa,stroke:#9e9e9e

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant App as Public Client<br/>(SPA or Mobile App)
+    participant Browser as User's Browser
+    participant AS as Authorization Server
+
+    Note over App,AS: PKCE Deep Dive - Proof Key for Code Exchange (RFC 7636)
+
+    rect rgb(232, 245, 233)
+        Note over App: Step 1: Generate PKCE Parameters
+        App->>App: code_verifier = random(43-128 chars)<br/>Allowed: [A-Z] [a-z] [0-9] - . _ ~<br/>Example: dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
+        App->>App: code_challenge = BASE64URL(SHA256(code_verifier))<br/>= BASE64URL(SHA256("dBjftJeZ4CVP-mB92..."))<br/>= E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
+        App->>App: Store code_verifier in memory<br/>(never sent to authorization endpoint)
+    end
+
+    rect rgb(255, 243, 224)
+        Note over App,AS: Step 2: Authorization Request (front-channel)
+        App->>Browser: Redirect with code_challenge
+        Note right of App: GET /authorize?<br/>response_type=code<br/>&code_challenge=E9Melhoa2OwvFrEMTJguCH...<br/>&code_challenge_method=S256
+        Browser->>AS: Authorization request
+        AS->>AS: Store code_challenge with auth code
+        AS->>Browser: Redirect with authorization code
+        Browser->>App: Deliver authorization code
+    end
+
+    rect rgb(243, 229, 245)
+        Note over App,AS: Step 3: Token Exchange (back-channel)
+        App->>AS: POST /token with code_verifier
+        Note right of App: grant_type=authorization_code<br/>&code=SplxlOBeZQQYbYS6WxSbIA<br/>&code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
+
+        rect rgb(255, 235, 238)
+            Note over AS: Step 4: Server Verification
+            AS->>AS: Compute SHA256(code_verifier)<br/>= SHA256("dBjftJeZ4CVP-mB92...")<br/>= E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
+            AS->>AS: Compare with stored code_challenge<br/>E9Melhoa... == E9Melhoa... ? YES
+        end
+
+        AS-->>App: Issue tokens (access_token + id_token)
+    end
+
+    Note over App,AS: WHY THIS WORKS: An attacker who intercepts the auth code<br/>cannot exchange it without the code_verifier,<br/>which was never transmitted over the front-channel

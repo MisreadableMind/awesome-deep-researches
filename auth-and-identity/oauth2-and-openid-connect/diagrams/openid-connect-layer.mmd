@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    subgraph OIDC_LAYER["OpenID Connect Layer (Identity)"]
+        ID_TOKEN["ID Token (JWT)<br/>WHO the user is<br/>sub, name, email, picture<br/>iss, aud, exp, iat, nonce"]
+        USERINFO_EP["UserInfo Endpoint<br/>GET /userinfo<br/>Returns additional claims"]
+        DISCOVERY["Discovery Document<br/>GET /.well-known/openid-configuration<br/>Lists all endpoints and capabilities"]
+        JWKS["JWKS Endpoint<br/>GET /jwks<br/>Public keys for token verification"]
+        SCOPES_OIDC["OIDC Scopes<br/>openid, profile, email, address, phone"]
+    end
+
+    subgraph OAUTH2_LAYER["OAuth 2.0 Layer (Authorization)"]
+        ACCESS_TOKEN["Access Token<br/>WHAT the client can do<br/>Scoped permissions"]
+        REFRESH_TOKEN["Refresh Token<br/>Get new access tokens<br/>without re-authorization"]
+        AUTH_EP["Authorization Endpoint<br/>GET /authorize<br/>User consent and login"]
+        TOKEN_EP["Token Endpoint<br/>POST /token<br/>Exchange code for tokens"]
+        SCOPES_OAUTH["OAuth Scopes<br/>Custom: read, write, delete, admin"]
+    end
+
+    subgraph HTTP_LAYER["HTTP / TLS Transport"]
+        REDIRECT["HTTP Redirects (302)<br/>Front-channel communication"]
+        POST_REQ["HTTPS POST<br/>Back-channel communication"]
+        BEARER["Bearer Token Header<br/>Authorization: Bearer xxx"]
+    end
+
+    ID_TOKEN -->|"signed JWT"| JWKS
+    USERINFO_EP -->|"authorized by"| ACCESS_TOKEN
+    DISCOVERY -->|"describes"| AUTH_EP
+    DISCOVERY -->|"describes"| TOKEN_EP
+    DISCOVERY -->|"describes"| USERINFO_EP
+    DISCOVERY -->|"describes"| JWKS
+
+    OIDC_LAYER -->|"built on top of"| OAUTH2_LAYER
+    OAUTH2_LAYER -->|"transported over"| HTTP_LAYER
+
+    AUTH_EP -->|"front-channel"| REDIRECT
+    TOKEN_EP -->|"back-channel"| POST_REQ
+    ACCESS_TOKEN -->|"presented as"| BEARER
+
+    style ID_TOKEN fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style USERINFO_EP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style DISCOVERY fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style JWKS fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style SCOPES_OIDC fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style ACCESS_TOKEN fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style REFRESH_TOKEN fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AUTH_EP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style TOKEN_EP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SCOPES_OAUTH fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style REDIRECT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style POST_REQ fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style BEARER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style OIDC_LAYER fill:#fafafa,stroke:#9e9e9e
+    style OAUTH2_LAYER fill:#fafafa,stroke:#9e9e9e
+    style HTTP_LAYER fill:#fafafa,stroke:#9e9e9e
