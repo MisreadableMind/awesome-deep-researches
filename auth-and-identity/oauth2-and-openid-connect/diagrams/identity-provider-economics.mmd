@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph COMMERCIAL["Commercial IDaaS (Identity-as-a-Service)"]
+        AUTH0["Auth0 (Okta)<br/>Free: 25K MAU<br/>Pro: $35/mo + per-MAU<br/>Enterprise: custom pricing"]
+        OKTA["Okta Workforce<br/>SSO: $2/user/mo<br/>MFA: $3/user/mo<br/>Lifecycle: $4/user/mo"]
+        COGNITO["AWS Cognito<br/>Free: 50K MAU<br/>Then: $0.0055/MAU<br/>SAML federation: $0.015/MAU"]
+        FIREBASE["Firebase Auth<br/>Free: 50K MAU (phone: 10K)<br/>Then: $0.0055/MAU<br/>No SLA on free tier"]
+        ENTRA["Microsoft Entra ID<br/>Free: basic SSO<br/>P1: $6/user/mo<br/>P2: $9/user/mo"]
+        CLERK["Clerk<br/>Free: 10K MAU<br/>Pro: $25/mo + $0.02/MAU<br/>Focus on developer UX"]
+    end
+
+    subgraph OPEN_SOURCE["Open-Source / Self-Hosted"]
+        KEYCLOAK["Keycloak<br/>Red Hat sponsored<br/>Full OIDC, SAML, LDAP<br/>Cost: infrastructure only"]
+        ORY["Ory (Hydra + Kratos)<br/>Headless, API-first<br/>Cloud or self-hosted<br/>Go-based, lightweight"]
+        AUTHENTIK["Authentik<br/>Python-based<br/>Modern UI, flows engine<br/>Growing community"]
+        ZITADEL["Zitadel<br/>Go-based, cloud-native<br/>Built-in multi-tenancy<br/>Event-sourced"]
+    end
+
+    subgraph SOCIAL["Social Login Providers (Free to RPs)"]
+        GOOGLE_IDP["Google<br/>Free OIDC provider<br/>Monetization: ecosystem lock-in<br/>Ads data, workspace upsell"]
+        APPLE_IDP["Apple<br/>Free Sign in with Apple<br/>Monetization: privacy as feature<br/>Hardware ecosystem moat"]
+        FB_IDP["Facebook / Meta<br/>Free Facebook Login<br/>Monetization: social graph data<br/>Ad targeting signals"]
+        GITHUB_IDP["GitHub<br/>Free OAuth provider<br/>Monetization: developer ecosystem<br/>Copilot, Actions upsell"]
+    end
+
+    subgraph DECISION["Build vs Buy Decision Factors"]
+        D1["Team size less than 5 devs?<br/>USE MANAGED SERVICE"]
+        D2["Regulated industry (FAPI, HIPAA)?<br/>USE CERTIFIED PROVIDER"]
+        D3["Need full control + on-prem?<br/>USE OPEN-SOURCE"]
+        D4["Budget near zero?<br/>USE SOCIAL LOGIN + FREE TIER"]
+    end
+
+    style AUTH0 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style OKTA fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style COGNITO fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FIREBASE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ENTRA fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CLERK fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style KEYCLOAK fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ORY fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AUTHENTIK fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ZITADEL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style GOOGLE_IDP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style APPLE_IDP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style FB_IDP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style GITHUB_IDP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style D1 fill:#fff3e0,stroke:#e65100
+    style D2 fill:#ffebee,stroke:#c62828
+    style D3 fill:#e8f5e9,stroke:#2e7d32
+    style D4 fill:#e3f2fd,stroke:#1565c0
+    style COMMERCIAL fill:#fafafa,stroke:#9e9e9e
+    style OPEN_SOURCE fill:#fafafa,stroke:#9e9e9e
+    style SOCIAL fill:#fafafa,stroke:#9e9e9e
+    style DECISION fill:#fafafa,stroke:#9e9e9e

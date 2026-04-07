@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph ERA1["2007-2010"]
+        OAUTH1["OAuth 1.0<br/>RFC 5849 (2010)<br/>Cryptographic signatures<br/>Complex, secure<br/>No browser-only support"]
+    end
+
+    subgraph ERA2["2010-2012"]
+        OAUTH2["OAuth 2.0<br/>RFC 6749 + 6750 (2012)<br/>Bearer tokens over TLS<br/>Multiple grant types<br/>Extensible framework"]
+    end
+
+    subgraph ERA3["2014-2017"]
+        OIDC["OpenID Connect 1.0<br/>(2014)<br/>Identity layer on OAuth 2.0<br/>ID Tokens (JWT)<br/>UserInfo, Discovery"]
+        PKCE_RFC["PKCE<br/>RFC 7636 (2015)<br/>Protection for public clients"]
+    end
+
+    subgraph ERA4["2019-2025"]
+        OAUTH21["OAuth 2.1<br/>(Draft, expected 2025)<br/>PKCE required for all<br/>Implicit removed<br/>ROPC removed<br/>Refresh token rotation"]
+        DPOP["DPoP<br/>RFC 9449 (2023)<br/>Proof-of-possession tokens<br/>Bound to client key pair"]
+        RAR["RAR<br/>RFC 9396 (2022)<br/>Rich authorization requests<br/>Structured, typed permissions"]
+        PAR["PAR<br/>RFC 9126 (2021)<br/>Pushed authorization requests<br/>Request sent via back-channel"]
+    end
+
+    subgraph ERA5["Future"]
+        GNAP["GNAP<br/>(Grant Negotiation and<br/>Authorization Protocol)<br/>Clean-sheet redesign<br/>Not backwards compatible<br/>Interaction-based model<br/>No redirect requirement"]
+        PASSKEYS["Passkeys + OIDC<br/>WebAuthn integration<br/>Passwordless flows<br/>Phishing-resistant auth"]
+    end
+
+    OAUTH1 -->|"simplified signatures<br/>added bearer tokens"| OAUTH2
+    OAUTH2 -->|"added identity layer"| OIDC
+    OAUTH2 -->|"added public client security"| PKCE_RFC
+    OAUTH2 -->|"consolidation"| OAUTH21
+    PKCE_RFC -->|"made mandatory"| OAUTH21
+    OIDC -->|"continued evolution"| OAUTH21
+    OAUTH21 -->|"proof-of-possession"| DPOP
+    OAUTH21 -->|"richer permissions"| RAR
+    OAUTH21 -->|"back-channel requests"| PAR
+    OAUTH2 -->|"clean break redesign"| GNAP
+    OIDC -->|"passwordless future"| PASSKEYS
+
+    style OAUTH1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OAUTH2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style OIDC fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style PKCE_RFC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style OAUTH21 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style DPOP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style RAR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PAR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style GNAP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style PASSKEYS fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style ERA1 fill:#fafafa,stroke:#9e9e9e
+    style ERA2 fill:#fafafa,stroke:#9e9e9e
+    style ERA3 fill:#fafafa,stroke:#9e9e9e
+    style ERA4 fill:#fafafa,stroke:#9e9e9e
+    style ERA5 fill:#fafafa,stroke:#9e9e9e

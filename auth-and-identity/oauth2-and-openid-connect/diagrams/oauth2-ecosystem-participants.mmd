@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph OAUTH2_ROLES["OAuth 2.0 Roles (RFC 6749)"]
+        RO["Resource Owner<br/>The user who owns the data<br/>e.g. Sarah with a Google account"]
+        CLIENT["Client<br/>The app requesting access<br/>e.g. Spotify web app"]
+        AS["Authorization Server<br/>Issues tokens after consent<br/>e.g. accounts.google.com"]
+        RS["Resource Server<br/>Hosts protected resources<br/>e.g. Google Photos API"]
+    end
+
+    subgraph OIDC_ADDITIONS["OpenID Connect Additions"]
+        IDP["Identity Provider (IdP)<br/>AS + identity claims<br/>e.g. Google as OIDC Provider"]
+        RP["Relying Party (RP)<br/>Client that needs identity<br/>e.g. Spotify wanting user profile"]
+        USERINFO["UserInfo Endpoint<br/>Returns identity claims<br/>name, email, picture"]
+    end
+
+    subgraph CLIENT_TYPES["Client Types"]
+        CONF["Confidential Client<br/>Can keep a secret<br/>Server-side web app"]
+        PUB["Public Client<br/>Cannot keep a secret<br/>SPA, mobile app, CLI"]
+    end
+
+    RO -->|"grants consent"| AS
+    CLIENT -->|"requests authorization"| AS
+    AS -->|"issues access_token"| CLIENT
+    CLIENT -->|"presents access_token"| RS
+    RS -->|"returns protected data"| CLIENT
+
+    AS -.->|"OIDC extends"| IDP
+    CLIENT -.->|"OIDC role"| RP
+    IDP -->|"issues id_token"| RP
+    RP -->|"fetches claims"| USERINFO
+
+    CLIENT -.->|"can be"| CONF
+    CLIENT -.->|"can be"| PUB
+
+    style RO fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CLIENT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AS fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style RS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style IDP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style RP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style USERINFO fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CONF fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PUB fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style OAUTH2_ROLES fill:#fafafa,stroke:#9e9e9e
+    style OIDC_ADDITIONS fill:#fafafa,stroke:#9e9e9e
+    style CLIENT_TYPES fill:#fafafa,stroke:#9e9e9e

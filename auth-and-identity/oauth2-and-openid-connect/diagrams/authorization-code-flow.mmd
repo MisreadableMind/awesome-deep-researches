@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant User as Resource Owner<br/>(User's Browser)
+    participant Client as Client Application<br/>(e.g. Spotify)
+    participant AS as Authorization Server<br/>(e.g. Google)
+    participant RS as Resource Server<br/>(e.g. Google API)
+
+    Note over User,RS: Authorization Code Flow with PKCE (RFC 6749 + RFC 7636)
+
+    User->>Client: Click "Sign in with Google"
+
+    rect rgb(232, 245, 233)
+        Note over Client: PKCE Setup
+        Client->>Client: Generate code_verifier (random 43-128 chars)<br/>code_challenge = BASE64URL(SHA256(code_verifier))
+    end
+
+    Client->>User: 302 Redirect to Authorization Endpoint
+    Note right of Client: GET /authorize?<br/>response_type=code<br/>&client_id=spotify_abc<br/>&redirect_uri=https://spotify.com/callback<br/>&scope=openid profile email<br/>&state=xyzRandom123<br/>&code_challenge=E9Melhoa2OwvFrEMTJguCH...<br/>&code_challenge_method=S256
+
+    User->>AS: Browser follows redirect
+    AS->>User: Show login + consent screen
+    User->>AS: Enter credentials + approve scopes
+
+    rect rgb(227, 242, 253)
+        Note over AS: Authorization Server validates credentials
+        AS->>AS: Generate authorization_code<br/>Bind to client_id, redirect_uri, code_challenge
+    end
+
+    AS->>User: 302 Redirect to redirect_uri
+    Note right of AS: 302 Location: https://spotify.com/callback?<br/>code=SplxlOBeZQQYbYS6WxSbIA<br/>&state=xyzRandom123
+
+    User->>Client: Browser follows redirect with code
+
+    rect rgb(243, 229, 245)
+        Note over Client,AS: Back-channel (server-to-server, not visible to browser)
+        Client->>AS: POST /token<br/>grant_type=authorization_code<br/>&code=SplxlOBeZQQYbYS6WxSbIA<br/>&redirect_uri=https://spotify.com/callback<br/>&client_id=spotify_abc<br/>&code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
+
+        AS->>AS: Verify code not expired or reused<br/>Verify redirect_uri matches<br/>Verify SHA256(code_verifier) == code_challenge
+        AS-->>Client: 200 OK with tokens
+        Note right of AS: access_token: eyJhbGciOiJS...<br/>token_type: Bearer<br/>expires_in: 3600<br/>refresh_token: tGzv3JOkF0XG5Qx2TlKWIA<br/>id_token: eyJhbGciOiJSUzI1NiJ9...
+    end
+
+    Client->>RS: GET /userinfo<br/>Authorization: Bearer eyJhbGciOiJS...
+    RS-->>Client: 200 OK with user profile data
+
+    Note over User,RS: User is now authenticated and authorized

@@ -1,0 +1,67 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph MERCHANT_FEES["Merchant Fees (Primary Revenue)"]
+        MDR["Merchant Discount Rate (MDR)<br/>3% to 8% of order value<br/>Average: ~5-6% for BNPL<br/>vs ~2.5% for card processing"]
+        MDR_WHY["Why merchants pay 2-3x more:<br/>1. Higher conversion (20-30% lift)<br/>2. Higher AOV (40-50% increase)<br/>3. Lower cart abandonment<br/>4. Younger demographic acquisition"]
+    end
+
+    subgraph CONSUMER_FEES["Consumer Fees (Secondary Revenue)"]
+        LATE["Late Fees<br/>$7 per missed payment (Klarna)<br/>$8 capped at 25% of order (Afterpay)<br/>$0 late fees (Affirm)"]
+        INTEREST["Interest on Longer Loans<br/>0% to 36% APR<br/>Affirm: avg ~18% on financing<br/>Klarna: up to 24.99% on financing"]
+        REACTIVATION["Account / Reactivation Fees<br/>Some providers charge for<br/>reactivating paused accounts"]
+    end
+
+    subgraph OTHER_REVENUE["Other Revenue Streams"]
+        LEAD_GEN["Lead Generation / Referral<br/>Klarna app: 150M+ users<br/>Shopping features drive traffic<br/>to merchants (cost-per-click)"]
+        VIRTUAL_CARDS["Virtual Card Interchange<br/>Ghost cards earn interchange<br/>when used at non-integrated merchants"]
+        DATA["Data / Advertising<br/>Klarna Creator / Ads platform<br/>Monetizes shopping intent data"]
+        SUBSCRIPTION["Subscription Services<br/>Klarna Plus: $7.99/mo<br/>Premium features, cashback"]
+    end
+
+    subgraph UNIT_ECONOMICS["Unit Economics (Typical Pay in 4)"]
+        EXAMPLE["$200 Order Example"]
+        REV["Revenue: $12.00<br/>(6% MDR)"]
+        FUNDING_COST["Funding Cost: -$1.50<br/>(SOFR + spread, ~6 weeks)"]
+        CREDIT_LOSS["Credit Loss: -$2.00<br/>(~1-2% loss rate)"]
+        OPS["Operations: -$1.50<br/>(underwriting, servicing, support)"]
+        PROFIT["Gross Profit: ~$7.00<br/>(~3.5% of GMV)"]
+    end
+
+    EXAMPLE --> REV
+    REV --> FUNDING_COST
+    FUNDING_COST --> CREDIT_LOSS
+    CREDIT_LOSS --> OPS
+    OPS --> PROFIT
+
+    subgraph COMPARISON["MDR Comparison"]
+        BNPL_MDR["BNPL: 3-8%<br/>Average ~5-6%"]
+        CARD_MDR["Credit Card: 1.5-3.5%<br/>Average ~2.5%"]
+        DEBIT_MDR["Debit Card: 0.5-1.5%<br/>Average ~1.0%"]
+        ACH_MDR["ACH: $0.25-$1.50<br/>Flat fee"]
+    end
+
+    style MDR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MDR_WHY fill:#e8f5e9,stroke:#2e7d32
+    style LATE fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style INTEREST fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style REACTIVATION fill:#fff3e0,stroke:#e65100
+    style LEAD_GEN fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style VIRTUAL_CARDS fill:#f3e5f5,stroke:#6a1b9a
+    style DATA fill:#f3e5f5,stroke:#6a1b9a
+    style SUBSCRIPTION fill:#f3e5f5,stroke:#6a1b9a
+    style EXAMPLE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style REV fill:#e8f5e9,stroke:#2e7d32
+    style FUNDING_COST fill:#ffebee,stroke:#c62828
+    style CREDIT_LOSS fill:#ffebee,stroke:#c62828
+    style OPS fill:#ffebee,stroke:#c62828
+    style PROFIT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style BNPL_MDR fill:#fff3e0,stroke:#e65100
+    style CARD_MDR fill:#e3f2fd,stroke:#1565c0
+    style DEBIT_MDR fill:#e8f5e9,stroke:#2e7d32
+    style ACH_MDR fill:#e8f5e9,stroke:#2e7d32
+    style MERCHANT_FEES fill:#fafafa,stroke:#9e9e9e
+    style CONSUMER_FEES fill:#fafafa,stroke:#9e9e9e
+    style OTHER_REVENUE fill:#fafafa,stroke:#9e9e9e
+    style UNIT_ECONOMICS fill:#fafafa,stroke:#9e9e9e
+    style COMPARISON fill:#fafafa,stroke:#9e9e9e

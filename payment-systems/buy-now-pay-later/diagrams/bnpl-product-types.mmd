@@ -1,0 +1,72 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    BNPL["Buy Now Pay Later<br/>Product Types"]
+
+    BNPL --> PAY4["Pay in 4<br/>(Short-term, interest-free)"]
+    BNPL --> PAYAFTER["Pay After Delivery<br/>(Invoice-based)"]
+    BNPL --> INSTALLMENT["Installment Loans<br/>(Longer-term, may carry APR)"]
+    BNPL --> VIRTUAL["Virtual Card<br/>(BNPL anywhere)"]
+
+    subgraph PAY4_DETAIL["Pay in 4 Details"]
+        P4_HOW["4 equal payments<br/>every 2 weeks"]
+        P4_APR["0% APR<br/>Interest-free"]
+        P4_RANGE["$35 to $1,500<br/>typical range"]
+        P4_LATE["Late fee: $7 per<br/>missed payment (capped)"]
+        P4_WHO["Klarna, Afterpay,<br/>Zip, PayPal Pay in 4"]
+    end
+
+    subgraph PAYAFTER_DETAIL["Pay After Delivery Details"]
+        PA_HOW["Full payment due<br/>14-30 days after delivery"]
+        PA_APR["0% if paid on time<br/>Late fees otherwise"]
+        PA_RANGE["No set limit<br/>order-dependent"]
+        PA_WHO["Klarna Pay Later,<br/>Billie (B2B)"]
+    end
+
+    subgraph INSTALLMENT_DETAIL["Installment Loan Details"]
+        IL_HOW["3 to 60 monthly payments<br/>fixed schedule"]
+        IL_APR["0% to 36% APR<br/>depends on credit + merchant promo"]
+        IL_RANGE["$50 to $20,000+"]
+        IL_CREDIT["Hard credit pull<br/>may be required"]
+        IL_WHO["Affirm, Klarna Financing,<br/>Citizens Pay"]
+    end
+
+    subgraph VIRTUAL_DETAIL["Virtual Card Details"]
+        VC_HOW["One-time-use Visa/MC number<br/>generated at checkout"]
+        VC_APR["Follows Pay in 4 or<br/>installment terms"]
+        VC_WHERE["Usable at any merchant<br/>not just BNPL-integrated ones"]
+        VC_WHO["Klarna Ghost Card,<br/>Zip Anywhere,<br/>Affirm virtual card"]
+    end
+
+    PAY4 --> PAY4_DETAIL
+    PAYAFTER --> PAYAFTER_DETAIL
+    INSTALLMENT --> INSTALLMENT_DETAIL
+    VIRTUAL --> VIRTUAL_DETAIL
+
+    style BNPL fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PAY4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PAYAFTER fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style INSTALLMENT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style VIRTUAL fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P4_HOW fill:#e8f5e9,stroke:#2e7d32
+    style P4_APR fill:#e8f5e9,stroke:#2e7d32
+    style P4_RANGE fill:#e8f5e9,stroke:#2e7d32
+    style P4_LATE fill:#ffebee,stroke:#c62828
+    style P4_WHO fill:#e8f5e9,stroke:#2e7d32
+    style PA_HOW fill:#f3e5f5,stroke:#6a1b9a
+    style PA_APR fill:#f3e5f5,stroke:#6a1b9a
+    style PA_RANGE fill:#f3e5f5,stroke:#6a1b9a
+    style PA_WHO fill:#f3e5f5,stroke:#6a1b9a
+    style IL_HOW fill:#fff3e0,stroke:#e65100
+    style IL_APR fill:#fff3e0,stroke:#e65100
+    style IL_RANGE fill:#fff3e0,stroke:#e65100
+    style IL_CREDIT fill:#ffebee,stroke:#c62828
+    style IL_WHO fill:#fff3e0,stroke:#e65100
+    style VC_HOW fill:#e3f2fd,stroke:#1565c0
+    style VC_APR fill:#e3f2fd,stroke:#1565c0
+    style VC_WHERE fill:#e3f2fd,stroke:#1565c0
+    style VC_WHO fill:#e3f2fd,stroke:#1565c0
+    style PAY4_DETAIL fill:#fafafa,stroke:#9e9e9e
+    style PAYAFTER_DETAIL fill:#fafafa,stroke:#9e9e9e
+    style INSTALLMENT_DETAIL fill:#fafafa,stroke:#9e9e9e
+    style VIRTUAL_DETAIL fill:#fafafa,stroke:#9e9e9e
