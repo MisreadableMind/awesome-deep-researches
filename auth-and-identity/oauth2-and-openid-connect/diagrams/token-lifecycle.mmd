@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    subgraph ISSUANCE["Token Issuance"]
+        AUTH["User authorizes<br/>at /authorize"]
+        EXCHANGE["Client exchanges code<br/>at POST /token"]
+    end
+
+    AUTH --> EXCHANGE
+
+    EXCHANGE --> AT["Access Token Issued<br/>Short-lived (5 min - 1 hour)<br/>JWT or opaque string"]
+    EXCHANGE --> RT["Refresh Token Issued<br/>Long-lived (days - months)<br/>Opaque string, stored server-side"]
+    EXCHANGE --> IDT["ID Token Issued<br/>(OIDC only)<br/>JWT with identity claims"]
+
+    subgraph ACCESS_LIFECYCLE["Access Token Lifecycle"]
+        AT --> AT_ACTIVE["ACTIVE<br/>Token is valid<br/>Presented in Authorization header"]
+        AT_ACTIVE -->|"exp time reached"| AT_EXPIRED["EXPIRED<br/>Resource server rejects<br/>with 401 Unauthorized"]
+        AT_ACTIVE -->|"POST /revoke"| AT_REVOKED["REVOKED<br/>Explicitly invalidated<br/>(if token introspection is used)"]
+        AT_ACTIVE -->|"POST /introspect"| AT_INTRO["INTROSPECTED<br/>Resource server checks<br/>active: true/false"]
+    end
+
+    subgraph REFRESH_LIFECYCLE["Refresh Token Lifecycle"]
+        RT --> RT_STORED["STORED<br/>Kept securely by client<br/>Never sent to resource server"]
+        RT_STORED -->|"access token expires"| RT_USED["USED at POST /token<br/>grant_type=refresh_token<br/>Returns new access token"]
+        RT_USED -->|"rotation enabled"| RT_ROTATED["ROTATED<br/>Old refresh token invalidated<br/>New refresh token issued"]
+        RT_STORED -->|"user revokes access"| RT_REVOKED["REVOKED<br/>All associated tokens<br/>become invalid"]
+        RT_STORED -->|"max lifetime reached"| RT_EXPIRED["EXPIRED<br/>User must re-authorize"]
+    end
+
+    AT_EXPIRED -->|"use refresh token"| RT_USED
+    RT_USED --> AT
+
+    style AUTH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style EXCHANGE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RT fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style IDT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style AT_ACTIVE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AT_EXPIRED fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style AT_REVOKED fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style AT_INTRO fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RT_STORED fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style RT_USED fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RT_ROTATED fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style RT_REVOKED fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style RT_EXPIRED fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style ISSUANCE fill:#fafafa,stroke:#9e9e9e
+    style ACCESS_LIFECYCLE fill:#fafafa,stroke:#9e9e9e
+    style REFRESH_LIFECYCLE fill:#fafafa,stroke:#9e9e9e

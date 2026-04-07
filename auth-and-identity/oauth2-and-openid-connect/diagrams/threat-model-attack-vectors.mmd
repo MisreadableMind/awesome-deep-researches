@@ -1,0 +1,68 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph ATTACKS["Attack Vectors (Red)"]
+        A1["Authorization Code<br/>Interception<br/>Attacker intercepts code<br/>via malicious app or proxy"]
+        A2["CSRF on Redirect<br/>Attacker crafts link with<br/>their own auth code<br/>to link victim to attacker account"]
+        A3["Redirect URI<br/>Manipulation<br/>Open redirect or<br/>subdomain takeover"]
+        A4["Token Theft via XSS<br/>Malicious script extracts<br/>tokens from localStorage<br/>or JavaScript variables"]
+        A5["Refresh Token Theft<br/>Stolen from device<br/>or compromised database"]
+        A6["Mix-Up Attack<br/>Attacker confuses client<br/>about which AS issued<br/>the authorization response"]
+        A7["Token Replay<br/>Stolen access token<br/>reused from another<br/>client or context"]
+        A8["Clickjacking<br/>Consent screen loaded<br/>in invisible iframe<br/>user clicks unknowingly"]
+    end
+
+    subgraph DEFENSES["Defenses (Green)"]
+        D1["PKCE (RFC 7636)<br/>code_verifier/challenge<br/>binds code to requester"]
+        D2["State Parameter<br/>Unguessable random value<br/>verified on callback"]
+        D3["Strict Redirect URI<br/>Exact string match<br/>No wildcards, no open redirects"]
+        D4["HttpOnly Cookies + BFF<br/>Backend-for-Frontend pattern<br/>Tokens never in browser JS"]
+        D5["Refresh Token Rotation<br/>One-time-use refresh tokens<br/>Detect reuse, revoke family"]
+        D6["Issuer Validation<br/>Check iss claim matches<br/>expected authorization server"]
+        D7["DPoP (RFC 9449)<br/>Proof-of-possession<br/>Token bound to client key"]
+        D8["X-Frame-Options /<br/>frame-ancestors CSP<br/>Prevent iframe embedding"]
+    end
+
+    A1 -->|"defended by"| D1
+    A2 -->|"defended by"| D2
+    A3 -->|"defended by"| D3
+    A4 -->|"defended by"| D4
+    A5 -->|"defended by"| D5
+    A6 -->|"defended by"| D6
+    A7 -->|"defended by"| D7
+    A8 -->|"defended by"| D8
+
+    subgraph BEST_PRACTICES["Security Best Practices Summary"]
+        BP1["Always use PKCE<br/>(even for confidential clients)"]
+        BP2["Always validate state<br/>and nonce parameters"]
+        BP3["Use exact redirect URI matching<br/>Register all URIs at client registration"]
+        BP4["Store tokens in httpOnly cookies<br/>or use BFF pattern for SPAs"]
+        BP5["Enable refresh token rotation<br/>Set reasonable expiration times"]
+        BP6["Validate all JWT claims<br/>iss, aud, exp, nbf, nonce"]
+    end
+
+    style A1 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A2 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A3 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A4 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A5 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A6 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A7 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style A8 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style D1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D6 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D7 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D8 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style BP1 fill:#e3f2fd,stroke:#1565c0
+    style BP2 fill:#e3f2fd,stroke:#1565c0
+    style BP3 fill:#e3f2fd,stroke:#1565c0
+    style BP4 fill:#e3f2fd,stroke:#1565c0
+    style BP5 fill:#e3f2fd,stroke:#1565c0
+    style BP6 fill:#e3f2fd,stroke:#1565c0
+    style ATTACKS fill:#fafafa,stroke:#c62828
+    style DEFENSES fill:#fafafa,stroke:#2e7d32
+    style BEST_PRACTICES fill:#fafafa,stroke:#1565c0

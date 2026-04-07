@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#ffebee'}}}%%
+
+sequenceDiagram
+    participant User as User's Browser
+    participant SPA as Single-Page App<br/>(JavaScript Client)
+    participant AS as Authorization Server
+
+    Note over User,AS: Implicit Flow (RFC 6749 Section 4.2)<br/>DEPRECATED - Do NOT use in new applications
+
+    rect rgb(255, 235, 238)
+        Note over SPA,AS: The Problem: Token exposed in URL fragment
+        SPA->>User: Redirect to Authorization Server
+        Note right of SPA: GET /authorize?<br/>response_type=token<br/>&client_id=spa_abc<br/>&redirect_uri=https://app.example.com/callback<br/>&scope=openid profile<br/>&state=abc123
+
+        User->>AS: Browser follows redirect
+        AS->>User: Login + consent screen
+        User->>AS: Approve
+
+        AS->>User: 302 Redirect with token IN FRAGMENT
+        Note right of AS: 302 Location:<br/>https://app.example.com/callback<br/>#access_token=eyJhbGciOiJS...<br/>&token_type=Bearer<br/>&expires_in=3600<br/>&state=abc123
+    end
+
+    User->>SPA: Browser loads callback page<br/>Fragment is NOT sent to server<br/>JavaScript extracts token from URL
+
+    rect rgb(255, 235, 238)
+        Note over User,AS: SECURITY VULNERABILITIES
+        Note over User: 1. Token in browser history<br/>URL fragment is visible in history
+        Note over User: 2. Token in Referer header<br/>Leaked to third-party scripts on the page
+        Note over User: 3. No client authentication<br/>Any app can use the same client_id
+        Note over User: 4. No PKCE protection<br/>Code interception attacks possible
+        Note over User: 5. Token replay<br/>No binding between token and client
+        Note over User: 6. No refresh token<br/>User must re-authorize when token expires
+    end
+
+    Note over User,AS: REPLACEMENT: Use Authorization Code + PKCE instead<br/>OAuth 2.1 formally removes the Implicit Grant

@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    ORDER["Order Placed<br/>$200.00<br/>Apr 7, 2026"]
+
+    ORDER --> P1["Payment 1<br/>$50.00<br/>Apr 7 (today)<br/>Charged immediately"]
+    P1 --> P2["Payment 2<br/>$50.00<br/>Apr 21 (+2 weeks)<br/>Auto-charged"]
+    P2 --> P3["Payment 3<br/>$50.00<br/>May 5 (+4 weeks)<br/>Auto-charged"]
+    P3 --> P4["Payment 4<br/>$50.00<br/>May 19 (+6 weeks)<br/>Auto-charged"]
+    P4 --> DONE["Fully Paid<br/>$200.00 total<br/>$0 interest<br/>$0 fees"]
+
+    subgraph MISSED["If Payment Missed"]
+        MISS["Missed Payment"]
+        GRACE["Grace period<br/>1-7 days depending<br/>on provider"]
+        LATE_FEE["Late fee applied<br/>Klarna: $7 per missed<br/>Afterpay: $8 (capped at 25%)<br/>Affirm: $0 (no late fees)"]
+        PAUSE["Account paused<br/>No new BNPL purchases<br/>until caught up"]
+        COLLECTIONS["Sent to collections<br/>After 90-120 days<br/>May report to credit bureaus"]
+    end
+
+    MISS --> GRACE
+    GRACE --> LATE_FEE
+    LATE_FEE --> PAUSE
+    PAUSE --> COLLECTIONS
+
+    style ORDER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DONE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MISS fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style GRACE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LATE_FEE fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style PAUSE fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style COLLECTIONS fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style MISSED fill:#fafafa,stroke:#c62828

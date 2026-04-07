@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    ORIGINATED["Loans Originated<br/>100,000 orders<br/>$20M total GMV<br/>Average order: $200"]
+
+    ORIGINATED --> PERFORMING["Performing Loans<br/>~92-95% of originations<br/>Payments on schedule"]
+    ORIGINATED --> DPD1["1-30 Days Past Due<br/>~3-5% of originations<br/>SMS/email reminders sent"]
+
+    DPD1 --> CURED1["Cured<br/>~60% of DPD1 pay within 30 days"]
+    DPD1 --> DPD30["31-60 Days Past Due<br/>~1.5-2% of originations<br/>Account paused, phone calls"]
+
+    DPD30 --> CURED2["Cured<br/>~40% of DPD30 pay"]
+    DPD30 --> DPD60["61-90 Days Past Due<br/>~0.8-1.2% of originations<br/>Formal demand letter"]
+
+    DPD60 --> CURED3["Cured<br/>~20% of DPD60 pay"]
+    DPD60 --> DPD90["91-120 Days Past Due<br/>~0.5-0.8% of originations<br/>Pre-charge-off"]
+
+    DPD90 --> CHARGEOFF["Charge-Off<br/>~120-180 days past due<br/>0.3-0.6% of originations<br/>Written off as loss"]
+
+    CHARGEOFF --> INTERNAL_COLLECT["Internal Collections<br/>Attempt to recover<br/>Recovery rate: 10-15%"]
+    CHARGEOFF --> SOLD["Sold to Debt Buyer<br/>At 5-15 cents on the dollar<br/>e.g. Encore Capital, PRA Group"]
+
+    subgraph LOSS_RATES["Industry Loss Rates (2024-2025)"]
+        L_PAY4["Pay in 4 (short-term)<br/>Net loss rate: 1-3%<br/>Low per-loan but high volume"]
+        L_INSTALL["Installment Loans (longer-term)<br/>Net loss rate: 3-8%<br/>Higher amounts, longer exposure"]
+        L_COMPARE["For comparison:<br/>Credit card net loss: 3-4%<br/>Subprime credit card: 8-12%"]
+    end
+
+    subgraph PROVIDER_LOSSES["Provider-Specific (FY 2024)"]
+        K_LOSS["Klarna<br/>Credit loss rate: ~2.1%<br/>Improved from 2.6% in 2023"]
+        A_LOSS["Affirm<br/>Net charge-off rate: ~4.5%<br/>Includes longer-term loans"]
+        AP_LOSS["Afterpay<br/>Net loss rate: ~1.8%<br/>Short-term Pay in 4 focus"]
+    end
+
+    style ORIGINATED fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PERFORMING fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DPD1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DPD30 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DPD60 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style DPD90 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style CHARGEOFF fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style CURED1 fill:#e8f5e9,stroke:#2e7d32
+    style CURED2 fill:#e8f5e9,stroke:#2e7d32
+    style CURED3 fill:#e8f5e9,stroke:#2e7d32
+    style INTERNAL_COLLECT fill:#fff3e0,stroke:#e65100
+    style SOLD fill:#ffebee,stroke:#c62828
+    style L_PAY4 fill:#e8f5e9,stroke:#2e7d32
+    style L_INSTALL fill:#fff3e0,stroke:#e65100
+    style L_COMPARE fill:#e3f2fd,stroke:#1565c0
+    style K_LOSS fill:#f3e5f5,stroke:#6a1b9a
+    style A_LOSS fill:#f3e5f5,stroke:#6a1b9a
+    style AP_LOSS fill:#f3e5f5,stroke:#6a1b9a
+    style LOSS_RATES fill:#fafafa,stroke:#9e9e9e
+    style PROVIDER_LOSSES fill:#fafafa,stroke:#9e9e9e

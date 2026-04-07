@@ -1,0 +1,66 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph JWT["JSON Web Token (RFC 7519)"]
+        direction LR
+        HEADER["HEADER<br/>(Base64URL encoded)<br/>eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9"]
+        DOT1["<b>.</b>"]
+        PAYLOAD["PAYLOAD<br/>(Base64URL encoded)<br/>eyJpc3MiOiJodHRwczovL2FjY291bnRz..."]
+        DOT2["<b>.</b>"]
+        SIGNATURE["SIGNATURE<br/>(Base64URL encoded)<br/>SflKxwRJSMeKKF2QT4fwpMeJf36POk6y..."]
+    end
+
+    subgraph HEADER_DECODED["Header (Decoded)"]
+        H_ALG["alg: RS256<br/>(signing algorithm)"]
+        H_TYP["typ: JWT"]
+        H_KID["kid: 2024-key-1<br/>(key ID for JWKS lookup)"]
+    end
+
+    subgraph PAYLOAD_DECODED["Payload (Decoded) - ID Token Claims"]
+        P_ISS["iss: https://accounts.google.com<br/>(issuer)"]
+        P_SUB["sub: 110248495921238986420<br/>(subject - unique user ID)"]
+        P_AUD["aud: spotify_abc.apps.google.com<br/>(audience - intended client)"]
+        P_EXP["exp: 1714000000<br/>(expiration time)"]
+        P_IAT["iat: 1713996400<br/>(issued at)"]
+        P_NONCE["nonce: n-0S6_WzA2Mj<br/>(replay protection)"]
+        P_NAME["name: Sarah Chen"]
+        P_EMAIL["email: sarah@gmail.com"]
+        P_PICTURE["picture: https://lh3.google.../photo.jpg"]
+    end
+
+    subgraph SIG_DETAILS["Signature Verification"]
+        SIG_ALGO["RS256 = RSASSA-PKCS1-v1_5<br/>using SHA-256"]
+        SIG_INPUT["input = base64url(header) + '.' +<br/>base64url(payload)"]
+        SIG_KEY["Verify with public key from<br/>JWKS endpoint (/.well-known/jwks.json)"]
+        SIG_CHECK["If signature valid:<br/>token has not been tampered with<br/>and was issued by the claimed issuer"]
+    end
+
+    HEADER --> HEADER_DECODED
+    PAYLOAD --> PAYLOAD_DECODED
+    SIGNATURE --> SIG_DETAILS
+
+    style HEADER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PAYLOAD fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style SIGNATURE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DOT1 fill:none,stroke:none
+    style DOT2 fill:none,stroke:none
+    style HEADER_DECODED fill:#fafafa,stroke:#1565c0
+    style PAYLOAD_DECODED fill:#fafafa,stroke:#6a1b9a
+    style SIG_DETAILS fill:#fafafa,stroke:#2e7d32
+    style JWT fill:#fafafa,stroke:#9e9e9e
+    style H_ALG fill:#e3f2fd,stroke:#1565c0
+    style H_TYP fill:#e3f2fd,stroke:#1565c0
+    style H_KID fill:#e3f2fd,stroke:#1565c0
+    style P_ISS fill:#f3e5f5,stroke:#6a1b9a
+    style P_SUB fill:#f3e5f5,stroke:#6a1b9a
+    style P_AUD fill:#f3e5f5,stroke:#6a1b9a
+    style P_EXP fill:#f3e5f5,stroke:#6a1b9a
+    style P_IAT fill:#f3e5f5,stroke:#6a1b9a
+    style P_NONCE fill:#f3e5f5,stroke:#6a1b9a
+    style P_NAME fill:#f3e5f5,stroke:#6a1b9a
+    style P_EMAIL fill:#f3e5f5,stroke:#6a1b9a
+    style P_PICTURE fill:#f3e5f5,stroke:#6a1b9a
+    style SIG_ALGO fill:#e8f5e9,stroke:#2e7d32
+    style SIG_INPUT fill:#e8f5e9,stroke:#2e7d32
+    style SIG_KEY fill:#e8f5e9,stroke:#2e7d32
+    style SIG_CHECK fill:#e8f5e9,stroke:#2e7d32

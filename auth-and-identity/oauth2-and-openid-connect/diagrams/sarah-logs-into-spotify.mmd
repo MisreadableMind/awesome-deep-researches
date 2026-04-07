@@ -1,0 +1,68 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Sarah as Sarah<br/>(Chrome Browser)
+    participant Spotify as Spotify<br/>(open.spotify.com)
+    participant Google as Google<br/>(accounts.google.com)
+    participant GApi as Google API<br/>(people.googleapis.com)
+
+    Note over Sarah,GApi: Real-world example: Sarah logs into Spotify using her Google account
+
+    Sarah->>Spotify: Clicks "Continue with Google"
+    Note right of Sarah: Sarah has never used Spotify before<br/>but has a Google account (sarah@gmail.com)
+
+    rect rgb(232, 245, 233)
+        Note over Spotify: Spotify generates PKCE and state
+        Spotify->>Spotify: code_verifier = random(43 chars)<br/>code_challenge = BASE64URL(SHA256(verifier))<br/>state = random(32 chars)<br/>nonce = random(32 chars)
+    end
+
+    Spotify->>Sarah: 302 Redirect
+    Note right of Spotify: Location: https://accounts.google.com/o/oauth2/v2/auth?<br/>client_id=spotify-web-abc123.apps.googleusercontent.com<br/>&redirect_uri=https://accounts.spotify.com/login/google/redirect<br/>&response_type=code<br/>&scope=openid email profile<br/>&state=k8j2m9x...<br/>&nonce=p3n7q...<br/>&code_challenge=E9Melh...<br/>&code_challenge_method=S256
+
+    Sarah->>Google: Browser follows redirect
+    Google->>Sarah: Google login page
+
+    rect rgb(227, 242, 253)
+        Note over Sarah,Google: Sarah authenticates with Google
+        Sarah->>Google: Enters sarah@gmail.com
+        Sarah->>Google: Enters password
+        Sarah->>Google: Completes 2FA (Google Authenticator)
+        Google->>Sarah: Shows consent screen
+        Note right of Google: "Spotify wants to:<br/>- See your email address<br/>- See your personal info (name, picture)"
+        Sarah->>Google: Clicks "Allow"
+    end
+
+    Google->>Sarah: 302 Redirect to Spotify callback
+    Note right of Google: Location: https://accounts.spotify.com/login/google/redirect?<br/>code=4/0AY0e-g7h...(long auth code)...<br/>&state=k8j2m9x...
+
+    Sarah->>Spotify: Browser delivers auth code
+
+    rect rgb(243, 229, 245)
+        Note over Spotify,Google: Back-channel token exchange (server-to-server)
+        Spotify->>Spotify: Verify state matches stored value
+        Spotify->>Google: POST https://oauth2.googleapis.com/token
+        Note right of Spotify: grant_type=authorization_code<br/>&code=4/0AY0e-g7h...<br/>&redirect_uri=https://accounts.spotify.com/login/google/redirect<br/>&client_id=spotify-web-abc123.apps.googleusercontent.com<br/>&client_secret=GOCSPX-...(server secret)...<br/>&code_verifier=dBjftJeZ4CVP...
+
+        Google->>Google: Validate code, PKCE, redirect_uri
+        Google-->>Spotify: 200 OK
+        Note right of Google: access_token: ya29.a0AX...<br/>expires_in: 3599<br/>scope: openid email profile<br/>token_type: Bearer<br/>id_token: eyJhbGciOiJSUzI1NiI...(JWT)...
+    end
+
+    rect rgb(255, 243, 224)
+        Note over Spotify: Spotify validates the ID token
+        Spotify->>Spotify: Decode JWT header, find kid<br/>Fetch Google JWKS from googleapis.com/oauth2/v3/certs<br/>Verify RS256 signature with Google public key<br/>Check iss == "https://accounts.google.com"<br/>Check aud == "spotify-web-abc123.apps.googleusercontent.com"<br/>Check exp > now<br/>Check nonce == stored nonce
+        Spotify->>Spotify: Extract claims from ID token:<br/>sub: "110248495921238986420"<br/>email: "sarah@gmail.com"<br/>name: "Sarah Chen"<br/>picture: "https://lh3.google.../photo.jpg"
+    end
+
+    Spotify->>GApi: GET /v1/people/me?personFields=names,emailAddresses<br/>Authorization: Bearer ya29.a0AX...
+    GApi-->>Spotify: Additional profile data
+
+    rect rgb(232, 245, 233)
+        Note over Spotify: Spotify creates a local account
+        Spotify->>Spotify: Check: does user with Google sub "11024..." exist?<br/>No - create new Spotify account<br/>Link Google identity to Spotify user ID<br/>Set Spotify session cookie
+    end
+
+    Spotify->>Sarah: 302 Redirect to Spotify dashboard<br/>Set-Cookie: sp_session=...
+    Sarah->>Spotify: Sarah is logged in and listening to music
+
+    Note over Sarah,GApi: Total time from click to music: approximately 8 seconds<br/>Spotify never saw Sarah's Google password

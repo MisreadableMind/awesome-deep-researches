@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph US["United States"]
+        CFPB["CFPB (2022-2025)<br/>Market investigation completed<br/>Proposed treating BNPL as credit cards<br/>Requires dispute rights, refund rights,<br/>billing statements"]
+        STATE_US["State Regulations<br/>California: DFPI licensing<br/>Some states classify BNPL as lending<br/>Patchwork of requirements"]
+        TILA["Truth in Lending Act (TILA)<br/>Applies to interest-bearing BNPL<br/>Pay in 4 often exempt<br/>(0% APR, < 4 installments)"]
+    end
+
+    subgraph UK["United Kingdom"]
+        FCA_UK["FCA Regulation (2025-2026)<br/>BNPL brought under FCA oversight<br/>Lenders must be FCA-authorized<br/>Affordability checks required<br/>Complaints to Financial Ombudsman"]
+        WOOLARD["Woolard Review (2021)<br/>Recommended BNPL regulation<br/>Found regulatory gap exploited<br/>by BNPL providers"]
+    end
+
+    subgraph EU["European Union"]
+        CCD["Consumer Credit Directive (2023 revision)<br/>BNPL classified as credit<br/>Full credit assessment required<br/>14-day withdrawal right<br/>Applies to all EU member states"]
+    end
+
+    subgraph AU["Australia"]
+        ASIC_AU["ASIC Review (2020-2025)<br/>BNPL currently exempt from<br/>National Credit Act<br/>Voluntary code of conduct<br/>Industry self-regulation (AFIA Code)"]
+        TREASURY_AU["Treasury Review (2024)<br/>Recommended regulatory framework<br/>Affordability tests proposed<br/>Likely to pass in 2025-2026"]
+    end
+
+    subgraph CREDIT_REPORTING["Credit Bureau Reporting"]
+        CR_YES["Providers that report:<br/>Affirm (positive + negative)<br/>Klarna (US, UK - since 2022)"]
+        CR_NO["Providers that do not report:<br/>Afterpay (Pay in 4)<br/>Zip (varies by market)"]
+        CR_IMPACT["Impact on consumers:<br/>Reporting builds credit history<br/>But missed payments hurt score<br/>Multiple BNPL = hard to track debt"]
+    end
+
+    style CFPB fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style STATE_US fill:#fff3e0,stroke:#e65100
+    style TILA fill:#e3f2fd,stroke:#1565c0
+    style FCA_UK fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style WOOLARD fill:#fff3e0,stroke:#e65100
+    style CCD fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style ASIC_AU fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style TREASURY_AU fill:#fff3e0,stroke:#e65100
+    style CR_YES fill:#e8f5e9,stroke:#2e7d32
+    style CR_NO fill:#ffebee,stroke:#c62828
+    style CR_IMPACT fill:#fff3e0,stroke:#e65100
+    style US fill:#fafafa,stroke:#9e9e9e
+    style UK fill:#fafafa,stroke:#9e9e9e
+    style EU fill:#fafafa,stroke:#9e9e9e
+    style AU fill:#fafafa,stroke:#9e9e9e
+    style CREDIT_REPORTING fill:#fafafa,stroke:#9e9e9e

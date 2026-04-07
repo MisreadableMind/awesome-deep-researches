@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Merchant as Merchant Server<br/>(e.g. Nike.com)
+    participant Frontend as Merchant Frontend<br/>(Checkout Page)
+    participant BNPL_SDK as BNPL Widget / SDK<br/>(e.g. Klarna.js)
+    participant BNPL_API as BNPL API<br/>(e.g. api.klarna.com)
+
+    Note over Merchant,BNPL_API: How merchants integrate BNPL at checkout
+
+    rect rgb(232, 245, 233)
+        Note over Merchant,BNPL_API: Step 1: Create Payment Session (server-side)
+        Merchant->>BNPL_API: POST /payments/v1/sessions
+        Note right of Merchant: Headers:<br/>Authorization: Basic base64(api_key)<br/>Content-Type: application/json<br/><br/>Body:<br/>purchase_country: "US"<br/>purchase_currency: "USD"<br/>order_amount: 20000 (cents)<br/>order_lines: [{name: "Air Max 90",...}]
+        BNPL_API-->>Merchant: 200 OK
+        Note right of BNPL_API: session_id: "kl-sess-abc123"<br/>client_token: "eyJhbGciOi..."<br/>payment_method_categories: [{<br/>  id: "pay_in_4",<br/>  name: "Pay in 4 installments"<br/>}]
+    end
+
+    Merchant->>Frontend: Pass client_token to frontend
+
+    rect rgb(227, 242, 253)
+        Note over Frontend,BNPL_SDK: Step 2: Render BNPL Widget (client-side)
+        Frontend->>BNPL_SDK: Klarna.Payments.init({client_token})
+        Frontend->>BNPL_SDK: Klarna.Payments.load({<br/>  container: "#klarna-container",<br/>  payment_method_category: "pay_in_4"<br/>})
+        BNPL_SDK-->>Frontend: Widget rendered in checkout page<br/>"4 interest-free payments of $50.00"
+    end
+
+    rect rgb(243, 229, 245)
+        Note over Frontend,BNPL_API: Step 3: Consumer Authorizes (client-side)
+        Frontend->>BNPL_SDK: Consumer clicks "Place Order"
+        BNPL_SDK->>BNPL_API: Authorize payment<br/>(consumer identity + soft credit check)
+        BNPL_API-->>BNPL_SDK: authorization_token: "auth-xyz789"
+        BNPL_SDK-->>Frontend: Authorization successful
+        Frontend->>Merchant: Send authorization_token to server
+    end
+
+    rect rgb(255, 243, 224)
+        Note over Merchant,BNPL_API: Step 4: Capture / Place Order (server-side)
+        Merchant->>BNPL_API: POST /payments/v1/authorizations/auth-xyz789/order
+        Note right of Merchant: order_amount: 20000<br/>order_lines: [{...}]<br/>merchant_reference: "NIKE-ORD-12345"
+        BNPL_API-->>Merchant: 200 OK
+        Note right of BNPL_API: order_id: "kl-ord-456"<br/>fraud_status: "ACCEPTED"<br/>Funds will settle to merchant in 1-3 days
+    end
+
+    Merchant->>Frontend: Order confirmed, show success page
+
+    Note over Merchant,BNPL_API: Alternative integrations:<br/>1. Shopify plugin (no-code, just enable in settings)<br/>2. Stripe integration (BNPL as payment method type)<br/>3. Adyen drop-in component<br/>4. Redirect flow (consumer completes on BNPL site)

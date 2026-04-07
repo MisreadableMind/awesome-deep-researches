@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant TV as Smart TV / CLI<br/>(Input-constrained device)
+    participant AS as Authorization Server<br/>(e.g. Google)
+    participant Phone as User's Phone<br/>(or any browser)
+
+    Note over TV,Phone: Device Authorization Grant (RFC 8628)<br/>For devices without a browser or limited input
+
+    rect rgb(232, 245, 233)
+        Note over TV,AS: Step 1: Device requests a code pair
+        TV->>AS: POST /device/code<br/>client_id=tv_app_123<br/>&scope=openid profile
+        AS-->>TV: 200 OK
+        Note right of AS: device_code: GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNh<br/>user_code: WDJB-MJHT<br/>verification_uri: https://google.com/device<br/>verification_uri_complete: https://google.com/device?user_code=WDJB-MJHT<br/>expires_in: 1800<br/>interval: 5
+    end
+
+    rect rgb(255, 243, 224)
+        Note over TV,Phone: Step 2: Device displays code, user authorizes on phone
+        TV->>TV: Display on screen:<br/>"Go to google.com/device<br/>and enter code: WDJB-MJHT"
+
+        Phone->>AS: User navigates to verification_uri
+        AS->>Phone: Show code entry form
+        Phone->>AS: User enters WDJB-MJHT
+        AS->>Phone: Show consent screen
+        Phone->>AS: User approves access
+    end
+
+    rect rgb(243, 229, 245)
+        Note over TV,AS: Step 3: Device polls for token (every 5 seconds)
+        TV->>AS: POST /token<br/>grant_type=urn:ietf:params:oauth:grant-type:device_code<br/>&device_code=GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNh<br/>&client_id=tv_app_123
+        AS-->>TV: 400 authorization_pending
+
+        TV->>AS: POST /token (poll again after interval)
+        AS-->>TV: 400 authorization_pending
+
+        Note over Phone: User completes authorization on phone
+
+        TV->>AS: POST /token (poll again)
+        AS-->>TV: 200 OK
+        Note right of AS: access_token: eyJhbGciOiJS...<br/>refresh_token: tGzv3JOkF0XG5Qx2TlKWIA<br/>id_token: eyJhbGciOiJSUzI1NiJ9...<br/>expires_in: 3600
+    end
+
+    Note over TV,Phone: Device is now authenticated<br/>Common uses: Smart TVs, game consoles, CLI tools (e.g. gh auth login)

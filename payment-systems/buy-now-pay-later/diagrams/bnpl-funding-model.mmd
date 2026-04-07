@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph ORIGINATION["Loan Origination"]
+        CONSUMER["Consumer<br/>Approved for $200<br/>Pay in 4"]
+        BANK_PARTNER["Bank Partner<br/>(WebBank or Cross River)<br/>Originates the loan<br/>for regulatory compliance"]
+        BNPL["BNPL Provider<br/>(Klarna / Affirm)<br/>Purchases loan from bank<br/>within 1-2 business days"]
+    end
+
+    subgraph FUNDING_SOURCES["How BNPL Providers Fund Loans"]
+        EQUITY["Equity Capital<br/>VC / IPO proceeds<br/>Used for initial growth<br/>Most expensive source"]
+        WAREHOUSE["Warehouse Credit Facilities<br/>$500M - $4B revolving lines<br/>From Goldman Sachs, JPMorgan,<br/>Credit Suisse<br/>Cost: SOFR + 150-300 bps"]
+        SECURITIZATION["Asset-Backed Securitization (ABS)<br/>Pool thousands of loans<br/>Sell tranches to investors<br/>Cost: SOFR + 80-200 bps<br/>Cheapest funding source"]
+        FORWARD_FLOW["Forward Flow Agreements<br/>Pre-committed buyer purchases<br/>loans at agreed terms<br/>Provides funding certainty"]
+    end
+
+    subgraph ABS_STRUCTURE["ABS Tranche Structure"]
+        SENIOR["Senior Tranche (AAA/AA)<br/>~70-80% of pool<br/>Lowest yield, first paid<br/>Pension funds, insurance cos"]
+        MEZZ["Mezzanine Tranche (A/BBB)<br/>~10-15% of pool<br/>Medium yield, medium risk<br/>Hedge funds, asset managers"]
+        EQUITY_TRANCHE["Equity / First-Loss Tranche<br/>~5-10% of pool<br/>Highest yield, absorbs losses first<br/>Often retained by BNPL provider"]
+    end
+
+    CONSUMER -->|"borrows $200"| BANK_PARTNER
+    BANK_PARTNER -->|"sells loan"| BNPL
+    BNPL -->|"funds from"| EQUITY
+    BNPL -->|"funds from"| WAREHOUSE
+    BNPL -->|"securitizes into"| SECURITIZATION
+    BNPL -->|"sells via"| FORWARD_FLOW
+    SECURITIZATION --> SENIOR
+    SECURITIZATION --> MEZZ
+    SECURITIZATION --> EQUITY_TRANCHE
+
+    subgraph SCALE["Funding Scale (2024-2025)"]
+        K_FUND["Klarna: ~$10B+ in<br/>warehouse facilities<br/>Multiple ABS issuances"]
+        A_FUND["Affirm: ~$8B in<br/>funding capacity<br/>Regularly issues ABS"]
+        AF_FUND["Afterpay: Funded by<br/>Block (Square) balance sheet<br/>+ warehouse lines"]
+    end
+
+    style CONSUMER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style BANK_PARTNER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BNPL fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style EQUITY fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style WAREHOUSE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SECURITIZATION fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FORWARD_FLOW fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SENIOR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MEZZ fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style EQUITY_TRANCHE fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style K_FUND fill:#f3e5f5,stroke:#6a1b9a
+    style A_FUND fill:#f3e5f5,stroke:#6a1b9a
+    style AF_FUND fill:#f3e5f5,stroke:#6a1b9a
+    style ORIGINATION fill:#fafafa,stroke:#9e9e9e
+    style FUNDING_SOURCES fill:#fafafa,stroke:#9e9e9e
+    style ABS_STRUCTURE fill:#fafafa,stroke:#9e9e9e
+    style SCALE fill:#fafafa,stroke:#9e9e9e
