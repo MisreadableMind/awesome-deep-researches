@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    subgraph TSP_SYSTEM["Token Service Provider -- VTS and MDES"]
+        subgraph VAULT["Token Vault -- HSM Protected"]
+            V1["Token Mapping<br/>DPAN 4895xxxx <-> FPAN 4532xxxx"]
+            V2["Token Metadata<br/>Requestor ID: Apple<br/>Domain: NFC In-Store<br/>Device ID: iPhone-SE-xxx<br/>Status: Active"]
+            V3["Cryptographic Keys<br/>Token master key<br/>LUK derivation keys<br/>Stored in HSMs"]
+        end
+
+        subgraph LIFECYCLE["Token Lifecycle"]
+            L1["Provisioning<br/>Token created, keys generated<br/>Stored in SE or HCE"]
+            L2["Activation<br/>ID and V complete<br/>Token usable for payments"]
+            L3["Suspension<br/>Temporarily disabled<br/>Phone lost or fraud alert"]
+            L4["Resumption<br/>Re-enabled after review<br/>Phone found, alert cleared"]
+            L5["Deactivation<br/>Permanently disabled<br/>Card cancelled or device wiped"]
+            L6["Token Update<br/>Card reissued with new PAN<br/>DPAN updated in vault<br/>No change needed on device"]
+        end
+
+        subgraph DOMAINS["Domain Restriction"]
+            D1["In-Store NFC<br/>Token valid only at<br/>physical NFC terminals<br/>Bound to device SE"]
+            D2["In-App<br/>Token valid only within<br/>specific mobile apps<br/>Bound to Token Requestor"]
+            D3["E-Commerce<br/>Token valid only for<br/>online card-not-present<br/>Merchant-specific"]
+            D4["IoT<br/>Token valid for<br/>wearables, cars<br/>Bound to IoT hardware"]
+        end
+    end
+
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L2
+    L2 --> L5
+    L2 --> L6
+
+    style V1 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style V3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L5 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style L6 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style D2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style D3 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style D4 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style TSP_SYSTEM fill:#fafafa,stroke:#9e9e9e
+    style VAULT fill:#f5f5f5,stroke:#bdbdbd
+    style LIFECYCLE fill:#f5f5f5,stroke:#bdbdbd
+    style DOMAINS fill:#f5f5f5,stroke:#bdbdbd

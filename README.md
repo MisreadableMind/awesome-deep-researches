@@ -18,7 +18,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | [Visa & Mastercard](payment-systems/visa-and-mastercard/) | 13 | ✅ Done |
 | ACH / Fedwire / CHIPS: US domestic rails | | 🗓️ Planned |
 | Real-Time Payments: FedNow, UPI, PIX, Faster Payments | | 🗓️ Planned |
-| Mobile Wallets: Apple Pay, Google Pay internals | | 🗓️ Planned |
+| [Mobile Wallets: Apple Pay, Google Pay internals](payment-systems/mobile-wallets/) | 13 | ✅ Done |
 | Buy Now Pay Later: Klarna, Affirm underwriting | | 🗓️ Planned |
 | Cross-border Remittance: Wise, Western Union | | 🗓️ Planned |
 
@@ -117,10 +117,12 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 Got a system you wish had a deep dive? **[Open an issue](../../issues/new)** and tell us!
 
-> 💡 *"I spent 3 hours trying to understand how X works and all I found were surface-level blog posts"*
-> You, probably. That's exactly why we built this.
+> 💡 *"I just mass-burned 5 hours of LLM token limits on a deep research... only to wonder if someone already did the exact same thing."*
+> — You, probably. That's exactly why this repo exists.
 
-Vote on existing requests with 👍, we research the most requested topics first.
+Before you burn tokens and hit rate limits, check here first — and if your topic isn't covered yet, request it so nobody else has to duplicate the effort.
+
+Vote on existing requests with 👍 — we research the most requested topics first.
 
 ---
 
@@ -194,14 +196,14 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       2 researches (25 diagrams)
-Planned:   49 researches
+Done:       3 researches (38 diagrams)
+Planned:   48 researches
 Categories: 10
 ```
 
 ## ⭐ Star this repo
 
-If this saved you from reading 47 blog posts to understand one system, star it so others can find it too.
+If your coding agent used this as context, or it saved you compute and $ on deep research — star the repo so others can find it too.
 
 ## 📄 License
 

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph APPLE["Apple Pay"]
+        A1["Security: Hardware SE<br/>Secure Enclave + eSE"]
+        A2["Token Storage: On-device SE<br/>Keys never leave chip"]
+        A3["Offline: Full support<br/>SE has permanent keys"]
+        A4["NFC Control: Apple exclusive<br/>Opening in EU per DMA"]
+        A5["Revenue: 0.15% from banks"]
+        A6["Users: 535M+ active"]
+        A7["Market: 92% US mobile wallet"]
+    end
+
+    subgraph GOOGLE["Google Pay / Wallet"]
+        G1["Security: HCE Software<br/>TEE for biometrics"]
+        G2["Token Storage: Cloud-based<br/>LUKs cached on device"]
+        G3["Offline: Limited<br/>Needs LUK replenishment"]
+        G4["NFC Control: Open<br/>Any Android NFC app"]
+        G5["Revenue: $0 from payments"]
+        G6["Users: 420M+ active"]
+        G7["Market: 6% US mobile wallet"]
+    end
+
+    subgraph SAMSUNG["Samsung Pay"]
+        S1["Security: eSE + Knox<br/>Hardware SE on device"]
+        S2["Token Storage: On-device eSE<br/>Similar to Apple approach"]
+        S3["Offline: Full support<br/>eSE has permanent keys"]
+        S4["MST: Removed 2021<br/>Was unique differentiator"]
+        S5["Revenue: Rewards -- ended<br/>Partnerships"]
+        S6["Users: 51M+ active"]
+        S7["Market: 2% US mobile wallet<br/>Declining share"]
+    end
+
+    style A1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A6 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A7 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style G4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S4 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style S7 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style APPLE fill:#fafafa,stroke:#9e9e9e
+    style GOOGLE fill:#fafafa,stroke:#9e9e9e
+    style SAMSUNG fill:#fafafa,stroke:#9e9e9e

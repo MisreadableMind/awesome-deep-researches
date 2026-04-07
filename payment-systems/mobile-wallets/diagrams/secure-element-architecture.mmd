@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    subgraph APPLE["Apple Pay -- Hardware SE + Secure Enclave"]
+        A1["Application Processor<br/>Wallet app UI<br/>Card selection, display"]
+        A2["Secure Enclave -- sepOS<br/>Face ID and Touch ID matching<br/>Key management<br/>Auth state control"]
+        A3["Embedded SE -- NXP chip<br/>DPAN storage<br/>Token crypto keys<br/>Cryptogram generation<br/>NFC card emulation applet"]
+        A4["NFC Controller<br/>13.56 MHz antenna"]
+        A1 -->|"user interaction"| A2
+        A2 -->|"auth signal"| A3
+        A3 -->|"APDU responses"| A4
+    end
+
+    subgraph GOOGLE["Google Pay -- HCE Software Emulation"]
+        G1["Application Processor<br/>Google Pay app<br/>HCE Service"]
+        G2["TEE -- ARM TrustZone<br/>Biometric matching<br/>Device attestation"]
+        G3["Cloud Backend<br/>Master token keys<br/>LUK generation<br/>Device verification"]
+        G4["NFC Controller<br/>Routes APDUs to HCE app<br/>not hardware SE"]
+        G2 -->|"auth result"| G1
+        G3 -->|"LUK batch download"| G1
+        G1 -->|"cryptogram from LUK"| G4
+    end
+
+    subgraph SAMSUNG["Samsung Pay -- eSE + Knox"]
+        S1["Application Processor<br/>Samsung Pay app"]
+        S2["Samsung Knox<br/>Kernel-level security<br/>Container isolation<br/>Runtime protection"]
+        S3["Embedded SE<br/>Samsung Semiconductor or NXP<br/>Token and key storage<br/>Cryptogram generation"]
+        S4["NFC Controller<br/>plus MST Antenna -- pre 2021"]
+        S2 -->|"integrity check"| S1
+        S1 -->|"auth signal"| S3
+        S3 -->|"payment data"| S4
+    end
+
+    style A2 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style A3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style G1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style G3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S2 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style S3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style APPLE fill:#fafafa,stroke:#9e9e9e
+    style GOOGLE fill:#fafafa,stroke:#9e9e9e
+    style SAMSUNG fill:#fafafa,stroke:#9e9e9e
