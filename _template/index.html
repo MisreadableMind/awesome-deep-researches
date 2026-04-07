@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}} — Deep Research</title>
+  <style>
+    /* ============================================================
+       CSS Variables — Theme System
+       ============================================================ */
+    :root {
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      --max-width: 860px;
+      --sidebar-width: 260px;
+      --transition: 0.2s ease;
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-code: #f1f3f5;
+      --bg-sidebar: #fafafa;
+      --bg-highlight: #fff9db;
+      --text: #212529;
+      --text-secondary: #495057;
+      --text-muted: #868e96;
+      --border: #dee2e6;
+      --border-light: #e9ecef;
+      --accent: #1971c2;
+      --accent-light: #d0ebff;
+      --link: #1971c2;
+      --shadow: rgba(0, 0, 0, 0.06);
+      --table-stripe: #f8f9fa;
+      --search-bg: #ffffff;
+      --mark-bg: #fff3bf;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1a1b1e;
+      --bg-secondary: #25262b;
+      --bg-code: #2c2e33;
+      --bg-sidebar: #141517;
+      --bg-highlight: #3d3200;
+      --text: #c1c2c5;
+      --text-secondary: #909296;
+      --text-muted: #5c5f66;
+      --border: #373a40;
+      --border-light: #2c2e33;
+      --accent: #4dabf7;
+      --accent-light: #1b3a5c;
+      --link: #74c0fc;
+      --shadow: rgba(0, 0, 0, 0.3);
+      --table-stripe: #25262b;
+      --search-bg: #25262b;
+      --mark-bg: #5c4a00;
+    }
+
+    /* ============================================================
+       Reset & Base
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      font-size: 17px;
+      scroll-behavior: smooth;
+      scroll-padding-top: 2rem;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-serif);
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.7;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ============================================================
+       Layout
+       ============================================================ */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar / TOC */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-light);
+      padding: 1.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      z-index: 100;
+      transition: transform var(--transition), background var(--transition);
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .sidebar-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 0.3rem 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: 4px;
+      transition: all var(--transition);
+      line-height: 1.4;
+    }
+
+    .sidebar nav a:hover {
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .sidebar nav a.active {
+      color: var(--accent);
+      font-weight: 600;
+      background: var(--accent-light);
+    }
+
+    .sidebar nav a.depth-2 { padding-left: 1.2rem; font-size: 0.78rem; }
+    .sidebar nav a.depth-3 { padding-left: 2rem; font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Collapsible TOC groups */
+    .toc-group { overflow: hidden; }
+    .toc-group .toc-children {
+      overflow: hidden;
+      max-height: 500px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+      opacity: 1;
+    }
+    .toc-group.collapsed .toc-children {
+      max-height: 0;
+      opacity: 0;
+    }
+    .sidebar nav a.depth-2.toc-toggle {
+      position: relative;
+      padding-right: 1.5rem;
+    }
+    .sidebar nav a.depth-2.toc-toggle::after {
+      content: '';
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      width: 0.35rem;
+      height: 0.35rem;
+      border-right: 1.5px solid var(--text-muted);
+      border-bottom: 1.5px solid var(--text-muted);
+      transform: translateY(-50%) rotate(45deg);
+      transition: transform 0.2s ease;
+    }
+    .toc-group.collapsed a.depth-2.toc-toggle::after {
+      transform: translateY(-30%) rotate(-45deg);
+    }
+
+    /* Main Content */
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      max-width: calc(var(--max-width) + 4rem);
+      padding: 2rem 2rem 6rem;
+    }
+
+    /* ============================================================
+       Controls Bar
+       ============================================================ */
+    .controls {
+      position: fixed;
+      top: 0;
+      left: var(--sidebar-width);
+      right: 0;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      transition: background var(--transition);
+    }
+
+    .controls .spacer { flex: 1; }
+
+    /* Search */
+    .search-box {
+      position: relative;
+    }
+
+    .search-box input {
+      width: 240px;
+      padding: 0.35rem 0.7rem 0.35rem 2rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      background: var(--search-bg);
+      color: var(--text);
+      transition: all var(--transition);
+      font-family: var(--font-sans);
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+      width: 320px;
+    }
+
+    .search-box::before {
+      content: '\1F50D';
+      position: absolute;
+      left: 0.6rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+      opacity: 0.5;
+    }
+
+    .search-results-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      min-width: 60px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-family: var(--font-sans);
+      transition: all var(--transition);
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ============================================================
+       Typography
+       ============================================================ */
+    .content { margin-top: 3rem; }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-sans);
+      line-height: 1.3;
+      margin-top: 2.5rem;
+      margin-bottom: 0.8rem;
+      color: var(--text);
+    }
+
+    h1 { font-size: 2.2rem; margin-top: 0; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); }
+    h2 { font-size: 1.6rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border-light); }
+    h3 { font-size: 1.25rem; }
+    h4 { font-size: 1.05rem; }
+
+    p { margin: 0 0 1rem; }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    strong { font-weight: 700; }
+
+    blockquote {
+      margin: 1.5rem 0;
+      padding: 0.8rem 1.2rem;
+      border-left: 4px solid var(--accent);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border-radius: 0 6px 6px 0;
+    }
+
+    blockquote p:last-child { margin-bottom: 0; }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 2.5rem 0;
+    }
+
+    /* Code */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--bg-code);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--bg-code);
+      padding: 1.2rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      border: 1px solid var(--border-light);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    tr:nth-child(even) { background: var(--table-stripe); }
+
+    /* Lists */
+    ul, ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+    li { margin-bottom: 0.3rem; }
+
+    /* ============================================================
+       Collapsible Sections (H2-based)
+       ============================================================ */
+    .section-collapsible {
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .section-collapsible h2 {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 2rem;
+      transition: color var(--transition);
+    }
+
+    .section-collapsible h2:hover {
+      color: var(--accent);
+    }
+
+    .section-collapsible h2::after {
+      content: '';
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0.5rem;
+      height: 0.5rem;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      transform: translateY(-50%) rotate(45deg);
+      transition: transform 0.25s ease;
+    }
+
+    .section-collapsible.collapsed h2::after {
+      transform: translateY(-30%) rotate(-45deg);
+    }
+
+    .section-body {
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+      opacity: 1;
+    }
+
+    .section-collapsible.collapsed .section-body {
+      max-height: 0 !important;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    /* Legacy details/summary support */
+    details {
+      margin: 1rem 0;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    summary {
+      padding: 0.8rem 1rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--bg-secondary);
+      transition: background var(--transition);
+      list-style: none;
+    }
+
+    summary::before {
+      content: '\25B6';
+      display: inline-block;
+      margin-right: 0.5rem;
+      font-size: 0.7rem;
+      transition: transform var(--transition);
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    details > :not(summary) {
+      padding: 0 1rem;
+    }
+
+    /* ============================================================
+       Reading Progress Bar
+       ============================================================ */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      background: var(--accent);
+      z-index: 200;
+      transition: width 0.1s linear;
+    }
+
+    /* ============================================================
+       Back to Top Button
+       ============================================================ */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 4rem;
+      z-index: 110;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease, background var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .back-to-top:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* ============================================================
+       Diagrams
+       ============================================================ */
+    .diagram-container {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      overflow: auto;
+      cursor: grab;
+      position: relative;
+    }
+
+    .diagram-container.zoomed {
+      cursor: zoom-out;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 200;
+      margin: 0;
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    .diagram-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .diagram-container.zoomed svg {
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+
+    .diagram-caption {
+      text-align: center;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .diagram-zoom-hint {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-light);
+    }
+
+    /* ============================================================
+       Search Highlighting
+       ============================================================ */
+    mark {
+      background: var(--mark-bg);
+      color: var(--text);
+      padding: 0.1em 0.2em;
+      border-radius: 2px;
+    }
+
+    mark.current {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ============================================================
+       Mobile Sidebar Toggle
+       ============================================================ */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 110;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px var(--shadow);
+      }
+      .main {
+        margin-left: 0;
+        padding: 1rem 1.2rem 4rem;
+      }
+      .controls {
+        left: 0;
+      }
+      .sidebar-toggle {
+        display: block;
+      }
+      .search-box input { width: 160px; }
+      .search-box input:focus { width: 200px; }
+    }
+
+    /* ============================================================
+       Print Styles
+       ============================================================ */
+    @media print {
+      .sidebar, .controls, .sidebar-toggle, .diagram-zoom-hint, .progress-bar, .back-to-top { display: none !important; }
+
+      .section-collapsible.collapsed .section-body {
+        max-height: none !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+      }
+
+      .main {
+        margin-left: 0;
+        max-width: 100%;
+        padding: 0;
+      }
+
+      body {
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #000;
+        background: #fff;
+      }
+
+      h1 { font-size: 22pt; }
+      h2 { font-size: 16pt; page-break-after: avoid; }
+      h3 { font-size: 13pt; page-break-after: avoid; }
+
+      h2, h3, h4 { page-break-after: avoid; }
+      table, pre, .diagram-container { page-break-inside: avoid; }
+
+      a { color: #000; text-decoration: none; }
+      a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #555;
+      }
+
+      pre {
+        border: 1px solid #ccc;
+        background: #f9f9f9;
+      }
+
+      blockquote { border-left: 3px solid #000; }
+
+      .diagram-container {
+        background: #f9f9f9;
+        border: 1px solid #ccc;
+      }
+
+      details { border: 1px solid #ccc; }
+      details[open] > summary { border-bottom: 1px solid #ccc; }
+
+      /* Force page breaks before major sections */
+      h2 { page-break-before: auto; }
+
+      @page {
+        margin: 2cm;
+        size: A4;
+      }
+
+      @page :first {
+        margin-top: 4cm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Reading progress bar -->
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- Back to top -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">&uarr;</button>
+
+  <!-- ============================================================
+       Sidebar / Table of Contents
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2 class="sidebar-title">Contents</h2>
+    </div>
+    <nav id="toc">
+      <!-- Auto-generated from headings -->
+    </nav>
+  </aside>
+
+  <!-- Sidebar toggle (mobile) -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle table of contents">
+    &#9776;
+  </button>
+
+  <!-- ============================================================
+       Controls Bar
+       ============================================================ -->
+  <div class="controls">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search in document... (Ctrl+F)" />
+    </div>
+    <span class="search-results-count" id="searchCount"></span>
+    <div class="spacer"></div>
+    <button class="btn" id="expandAll" title="Expand all sections">Expand All</button>
+    <button class="btn" id="collapseAll" title="Collapse all sections">Collapse All</button>
+    <button class="btn" id="copyPage" title="Copy page as Markdown">Copy Markdown</button>
+    <button class="btn" id="themeToggle">Dark</button>
+    <button class="btn" onclick="window.print()">Print</button>
+  </div>
+
+  <!-- ============================================================
+       Main Content
+       ============================================================ -->
+  <div class="main">
+    <div class="content" id="content">
+
+      <!--
+        ==========================================================
+        PASTE YOUR RESEARCH CONTENT HERE AS HTML
+
+        Convert markdown to HTML using any converter.
+        Wrap diagrams in:
+          <div class="diagram-container" onclick="toggleZoom(this)">
+            <span class="diagram-zoom-hint">Click to zoom</span>
+            <img src="diagrams/diagram-name.svg" alt="Description" />
+            <p class="diagram-caption">Figure 1: Description</p>
+          </div>
+
+        Wrap optional sections in:
+          <details>
+            <summary>Section Title</summary>
+            <p>Content here...</p>
+          </details>
+        ==========================================================
+      -->
+
+      <h1>{{TITLE}}: Complete Technical Deep Dive</h1>
+
+      <p><em>
+        Part of <a href="https://github.com/user/awesome-deep-researches">awesome-deep-researches</a>
+      </em></p>
+
+      <!-- CONTENT GOES HERE -->
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+     JavaScript
+     ============================================================ -->
+  <script>
+    // ---- Table of Contents Generator ----
+    function buildTOC() {
+      const content = document.getElementById('content');
+      const toc = document.getElementById('toc');
+      const headings = content.querySelectorAll('h1, h2, h3');
+
+      let currentGroup = null;
+      let currentChildren = null;
+
+      headings.forEach((h, i) => {
+        if (!h.id) h.id = 'heading-' + i;
+        const level = parseInt(h.tagName[1]);
+
+        const a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent;
+        a.dataset.target = h.id;
+        if (level >= 2) a.classList.add('depth-' + level);
+
+        if (level <= 2) {
+          // Start a new TOC group for H1/H2
+          const group = document.createElement('div');
+          group.className = 'toc-group';
+          const children = document.createElement('div');
+          children.className = 'toc-children';
+
+          if (level === 2) a.classList.add('toc-toggle');
+
+          // Click H2 TOC link to toggle its children (use local vars, not closure over let)
+          a.addEventListener('click', () => {
+            if (children.children.length > 0) {
+              group.classList.toggle('collapsed');
+            }
+          });
+
+          group.appendChild(a);
+          group.appendChild(children);
+          toc.appendChild(group);
+
+          currentGroup = group;
+          currentChildren = children;
+        } else if (level === 3 && currentChildren) {
+          // H3 goes into current group's children
+          currentChildren.appendChild(a);
+        } else {
+          toc.appendChild(a);
+        }
+      });
+    }
+
+    // ---- Active TOC Tracking ----
+    function setupScrollSpy() {
+      const headings = document.querySelectorAll('#content h1, #content h2, #content h3');
+      const tocLinks = document.querySelectorAll('#toc a');
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            tocLinks.forEach(a => a.classList.remove('active'));
+            const active = document.querySelector(`#toc a[data-target="${entry.target.id}"]`);
+            if (active) {
+              active.classList.add('active');
+              active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }
+        });
+      }, { rootMargin: '-80px 0px -70% 0px' });
+
+      headings.forEach(h => observer.observe(h));
+    }
+
+    // ---- Theme Toggle ----
+    function setupTheme() {
+      const btn = document.getElementById('themeToggle');
+      const saved = localStorage.getItem('research-theme');
+      if (saved) document.documentElement.dataset.theme = saved;
+      updateThemeButton();
+
+      btn.addEventListener('click', () => {
+        const current = document.documentElement.dataset.theme;
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('research-theme', next);
+        updateThemeButton();
+      });
+    }
+
+    function updateThemeButton() {
+      const btn = document.getElementById('themeToggle');
+      btn.textContent = document.documentElement.dataset.theme === 'dark' ? 'Light' : 'Dark';
+    }
+
+    // ---- In-Document Search ----
+    function setupSearch() {
+      const input = document.getElementById('searchInput');
+      const countEl = document.getElementById('searchCount');
+      const content = document.getElementById('content');
+      let marks = [];
+      let currentIndex = -1;
+
+      // Ctrl+F override
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+          e.preventDefault();
+          input.focus();
+          input.select();
+        }
+        if (e.key === 'Escape') {
+          clearSearch();
+          input.blur();
+        }
+        if (e.key === 'Enter' && document.activeElement === input) {
+          navigateSearch(e.shiftKey ? -1 : 1);
+        }
+      });
+
+      input.addEventListener('input', () => {
+        clearMarks();
+        const query = input.value.trim();
+        if (query.length < 2) {
+          countEl.textContent = '';
+          return;
+        }
+        highlightMatches(query);
+        countEl.textContent = marks.length > 0
+          ? `${currentIndex + 1}/${marks.length}`
+          : 'No results';
+      });
+
+      function highlightMatches(query) {
+        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+        const ranges = [];
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+
+        while (walker.nextNode()) {
+          const node = walker.currentNode;
+          if (node.parentElement.closest('script, style, mark')) continue;
+          let match;
+          while ((match = regex.exec(node.textContent)) !== null) {
+            const range = document.createRange();
+            range.setStart(node, match.index);
+            range.setEnd(node, match.index + match[0].length);
+            ranges.push(range);
+          }
+        }
+
+        ranges.forEach(range => {
+          const mark = document.createElement('mark');
+          range.surroundContents(mark);
+          marks.push(mark);
+        });
+
+        if (marks.length > 0) {
+          currentIndex = 0;
+          marks[0].classList.add('current');
+          marks[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+
+      function navigateSearch(direction) {
+        if (marks.length === 0) return;
+        marks[currentIndex].classList.remove('current');
+        currentIndex = (currentIndex + direction + marks.length) % marks.length;
+        marks[currentIndex].classList.add('current');
+        marks[currentIndex].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        countEl.textContent = `${currentIndex + 1}/${marks.length}`;
+      }
+
+      function clearMarks() {
+        marks.forEach(mark => {
+          const parent = mark.parentNode;
+          parent.replaceChild(document.createTextNode(mark.textContent), mark);
+          parent.normalize();
+        });
+        marks = [];
+        currentIndex = -1;
+      }
+
+      function clearSearch() {
+        input.value = '';
+        clearMarks();
+        countEl.textContent = '';
+      }
+    }
+
+    // ---- Diagram Zoom ----
+    function toggleZoom(el) {
+      el.classList.toggle('zoomed');
+      if (el.classList.contains('zoomed')) {
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            el.classList.remove('zoomed');
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
+      }
+    }
+
+    // ---- Wrap H2 Sections for Collapse ----
+    function wrapSections() {
+      const content = document.getElementById('content');
+      const h2s = content.querySelectorAll('h2');
+
+      h2s.forEach(h2 => {
+        // Collect all siblings between this H2 and the next H2 (or end)
+        const bodyElements = [];
+        let sibling = h2.nextElementSibling;
+        while (sibling && sibling.tagName !== 'H2' && sibling.tagName !== 'H1') {
+          bodyElements.push(sibling);
+          sibling = sibling.nextElementSibling;
+        }
+
+        if (bodyElements.length === 0) return;
+
+        // Create wrapper section
+        const section = document.createElement('div');
+        section.className = 'section-collapsible';
+
+        // Create body container
+        const body = document.createElement('div');
+        body.className = 'section-body';
+
+        // Insert section before the H2
+        h2.parentNode.insertBefore(section, h2);
+
+        // Move H2 into section
+        section.appendChild(h2);
+
+        // Move body elements into body container
+        bodyElements.forEach(el => body.appendChild(el));
+        section.appendChild(body);
+
+        // Set natural max-height for animation
+        requestAnimationFrame(() => {
+          body.style.maxHeight = body.scrollHeight + 'px';
+        });
+
+        // Click to toggle
+        h2.addEventListener('click', (e) => {
+          e.preventDefault();
+          section.classList.toggle('collapsed');
+          if (!section.classList.contains('collapsed')) {
+            body.style.maxHeight = body.scrollHeight + 'px';
+          }
+        });
+      });
+    }
+
+    // ---- Expand / Collapse All ----
+    function setupExpandCollapse() {
+      document.getElementById('expandAll').addEventListener('click', () => {
+        // Content sections
+        document.querySelectorAll('.section-collapsible').forEach(s => {
+          s.classList.remove('collapsed');
+          const body = s.querySelector('.section-body');
+          if (body) body.style.maxHeight = body.scrollHeight + 'px';
+        });
+        document.querySelectorAll('details').forEach(d => d.open = true);
+        // TOC groups
+        document.querySelectorAll('.toc-group').forEach(g => g.classList.remove('collapsed'));
+      });
+      document.getElementById('collapseAll').addEventListener('click', () => {
+        // Content sections
+        document.querySelectorAll('.section-collapsible').forEach(s => {
+          s.classList.add('collapsed');
+        });
+        document.querySelectorAll('details').forEach(d => d.open = false);
+        // TOC groups
+        document.querySelectorAll('.toc-group').forEach(g => {
+          if (g.querySelector('.toc-children').children.length > 0) {
+            g.classList.add('collapsed');
+          }
+        });
+      });
+    }
+
+    // ---- Reading Progress Bar ----
+    function setupProgress() {
+      const bar = document.getElementById('progressBar');
+      window.addEventListener('scroll', () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        bar.style.width = progress + '%';
+      }, { passive: true });
+    }
+
+    // ---- Back to Top ----
+    function setupBackToTop() {
+      const btn = document.getElementById('backToTop');
+      window.addEventListener('scroll', () => {
+        btn.classList.toggle('visible', window.scrollY > 400);
+      }, { passive: true });
+      btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // ---- Copy as Markdown ----
+    function setupCopyPage() {
+      const btn = document.getElementById('copyPage');
+      btn.addEventListener('click', async () => {
+        // Grab embedded markdown source if available, otherwise fall back to innerText
+        const mdEl = document.getElementById('markdownSource');
+        const text = mdEl ? mdEl.textContent : document.getElementById('content').innerText;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy Markdown'; }, 2000);
+        } catch {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy Markdown'; }, 2000);
+        }
+      });
+    }
+
+    // ---- Mobile Sidebar Toggle ----
+    function setupSidebarToggle() {
+      const btn = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('sidebar');
+      btn.addEventListener('click', () => sidebar.classList.toggle('open'));
+      document.addEventListener('click', (e) => {
+        if (!sidebar.contains(e.target) && e.target !== btn) {
+          sidebar.classList.remove('open');
+        }
+      });
+    }
+
+    // ---- Init ----
+    document.addEventListener('DOMContentLoaded', () => {
+      wrapSections();
+      buildTOC();
+      setupScrollSpy();
+      setupTheme();
+      setupSearch();
+      setupExpandCollapse();
+      setupCopyPage();
+      setupSidebarToggle();
+      setupProgress();
+      setupBackToTop();
+    });
+  </script>
+</body>
+</html>
