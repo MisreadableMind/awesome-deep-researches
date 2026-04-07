@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Botnet as DDoS Botnet<br/>100K+ devices
+    participant BGP as BGP / Anycast<br/>Route Distribution
+    participant PoP1 as CDN PoP 1<br/>New York
+    participant PoP2 as CDN PoP 2<br/>London
+    participant PoP3 as CDN PoP 3<br/>Tokyo
+    participant XDP1 as XDP/eBPF<br/>Kernel Filtering
+    participant L7 as L7 Analysis<br/>WAF + Bot Detection
+    participant Origin as Origin Server
+
+    Note over Botnet,Origin: Volumetric DDoS Attack - 5 Tbps UDP Flood
+
+    Botnet->>BGP: 5 Tbps attack traffic<br/>targeting 104.16.132.229
+
+    Note over BGP: Anycast distributes attack<br/>across ALL PoPs automatically
+
+    BGP->>PoP1: ~1.7 Tbps (US sources)
+    BGP->>PoP2: ~2.0 Tbps (EU sources)
+    BGP->>PoP3: ~1.3 Tbps (APAC sources)
+
+    Note over PoP1,PoP3: Each PoP handles a fraction<br/>No single PoP overwhelmed
+
+    PoP1->>XDP1: Packets enter kernel
+    Note over XDP1: XDP processes at line rate<br/>BEFORE kernel network stack<br/>- IP reputation check<br/>- Rate limiting<br/>- Protocol validation<br/>- Pattern matching
+
+    XDP1->>XDP1: Drop 99.5% attack packets<br/>(malformed UDP, known bad IPs,<br/>rate limit exceeded)
+
+    XDP1->>L7: 0.5% passes to L7<br/>(potential legitimate traffic)
+
+    L7->>L7: Analyze HTTP requests:<br/>- JS challenge for new IPs<br/>- JA3 fingerprint check<br/>- Behavioral analysis<br/>- Rate limiting per session
+
+    L7->>Origin: Clean traffic only<br/>(~0.1% of original volume)
+
+    Origin-->>L7: Normal response
+    L7-->>PoP1: Response
+    PoP1-->>BGP: Serve to legitimate users
+
+    Note over Botnet,Origin: Attack absorbed. Origin never saw attack traffic.<br/>Legitimate users experienced no downtime.

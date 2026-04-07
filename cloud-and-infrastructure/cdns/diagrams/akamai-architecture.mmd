@@ -1,0 +1,105 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph USER_SIDE["End User"]
+        USER["End User Browser"]
+    end
+
+    subgraph DNS_SYSTEM["Akamai DNS Routing System"]
+        AUTH_DNS["Akamai Authoritative DNS<br/>Anycast-served"]
+        MAPPING["Mapping System<br/>Real-time internet<br/>measurement engine<br/>Billions of probes/day"]
+        RUM["RUM Beacon Data<br/>Real User Monitoring<br/>from JS snippets"]
+    end
+
+    subgraph EDGE_TIER["Tier 1: Edge Servers (Ghost)<br/>Embedded Inside ISP Networks"]
+        E1["Edge Server<br/>ISP: Comcast<br/>US East"]
+        E2["Edge Server<br/>ISP: NTT<br/>Japan"]
+        E3["Edge Server<br/>ISP: Deutsche Telekom<br/>Germany"]
+    end
+
+    subgraph PARENT_TIER["Tier 2: Parent Servers<br/>Regional Data Centers"]
+        P1["Parent Server<br/>Ashburn, VA"]
+        P2["Parent Server<br/>Tokyo"]
+        P3["Parent Server<br/>Frankfurt"]
+    end
+
+    subgraph PEER_TIER["Tier 2.5: Peer Servers<br/>Lateral Cache Check"]
+        PEER["Peer Cache Check<br/>Check neighboring caches<br/>before origin fetch"]
+    end
+
+    subgraph ORIGIN_PATH["Origin Fetch Path"]
+        SUREROUTE["SureRoute<br/>Optimized origin path<br/>via virtual midpoints"]
+        NETSTORAGE["NetStorage<br/>Akamai-hosted origin<br/>storage (optional)"]
+        ORIGIN["Customer Origin<br/>Server"]
+    end
+
+    subgraph SECURITY["Security Products"]
+        PROLEXIC["Prolexic<br/>DDoS Scrubbing<br/>20+ Tbps capacity"]
+        AAP["App and API Protector<br/>WAF + Bot Management"]
+        EAA["Enterprise App Access<br/>Zero Trust proxy"]
+    end
+
+    subgraph COMPUTE_LAYER["Edge Compute"]
+        EW["EdgeWorkers<br/>JavaScript at edge"]
+        EKV["EdgeKV<br/>Key-value storage"]
+        LINODE["Linode Cloud<br/>Full cloud compute<br/>(acquired 2022)"]
+    end
+
+    USER -->|"DNS query"| AUTH_DNS
+    MAPPING -->|"routing decision"| AUTH_DNS
+    RUM -->|"performance data"| MAPPING
+    AUTH_DNS -->|"returns optimal<br/>edge server IP"| USER
+
+    USER -->|"HTTP request"| E1
+    USER -->|"HTTP request"| E2
+    USER -->|"HTTP request"| E3
+
+    E1 -->|"L1 MISS"| P1
+    E2 -->|"L1 MISS"| P2
+    E3 -->|"L1 MISS"| P3
+
+    P1 -->|"L2 MISS"| PEER
+    P2 -->|"L2 MISS"| PEER
+    P3 -->|"L2 MISS"| PEER
+
+    PEER -->|"all caches MISS"| SUREROUTE
+    SUREROUTE -->|"optimized path"| ORIGIN
+    SUREROUTE -.->|"alternative"| NETSTORAGE
+
+    PROLEXIC -.->|"DDoS scrubbing"| E1
+    PROLEXIC -.->|"DDoS scrubbing"| E2
+    AAP -.->|"WAF at edge"| E1
+    EAA -.->|"Zero Trust"| E1
+
+    E1 -.->|"edge compute"| EW
+    EW -.->|"storage"| EKV
+    LINODE -.->|"full cloud"| ORIGIN
+
+    style USER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AUTH_DNS fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    style MAPPING fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    style RUM fill:#fff8e1,stroke:#f57f17
+    style E1 fill:#bbdefb,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#bbdefb,stroke:#1565c0,stroke-width:2px
+    style E3 fill:#bbdefb,stroke:#1565c0,stroke-width:2px
+    style P1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PEER fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style SUREROUTE fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style NETSTORAGE fill:#fff3e0,stroke:#e65100
+    style ORIGIN fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    style PROLEXIC fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style AAP fill:#ffcdd2,stroke:#c62828
+    style EAA fill:#ffcdd2,stroke:#c62828
+    style EW fill:#e8eaf6,stroke:#283593,stroke-width:2px
+    style EKV fill:#e8eaf6,stroke:#283593
+    style LINODE fill:#e8eaf6,stroke:#283593
+    style USER_SIDE fill:#fafafa,stroke:#9e9e9e
+    style DNS_SYSTEM fill:#fafafa,stroke:#9e9e9e
+    style EDGE_TIER fill:#fafafa,stroke:#9e9e9e
+    style PARENT_TIER fill:#fafafa,stroke:#9e9e9e
+    style PEER_TIER fill:#fafafa,stroke:#9e9e9e
+    style ORIGIN_PATH fill:#fafafa,stroke:#9e9e9e
+    style SECURITY fill:#fafafa,stroke:#9e9e9e
+    style COMPUTE_LAYER fill:#fafafa,stroke:#9e9e9e

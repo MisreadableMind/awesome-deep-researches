@@ -1,0 +1,80 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> CacheMiss: First request<br/>for this URL
+
+    CacheMiss: Cache MISS
+    note right of CacheMiss
+        Edge has no copy.
+        Fetch from origin.
+    end note
+
+    CacheMiss --> FetchOrigin: Forward to origin<br/>(or mid-tier)
+
+    FetchOrigin: Fetch from Origin
+    note right of FetchOrigin
+        Origin responds with:
+        - Content body
+        - Cache-Control headers
+        - ETag / Last-Modified
+    end note
+
+    FetchOrigin --> StoreInCache: Origin returns 200 OK<br/>with cacheable headers
+
+    StoreInCache: Store in Cache
+    note right of StoreInCache
+        Cache stores:
+        - Response body
+        - Headers
+        - TTL from s-maxage
+        - ETag for revalidation
+    end note
+
+    StoreInCache --> Fresh: TTL timer starts
+
+    Fresh: FRESH (Cache HIT)
+    note right of Fresh
+        Age < max-age/s-maxage
+        Serve immediately.
+        No origin contact.
+    end note
+
+    Fresh --> Fresh: More requests<br/>(served from cache)
+    Fresh --> Stale: TTL expires<br/>(age > s-maxage)
+
+    Stale: STALE
+    note right of Stale
+        Content past TTL.
+        Behavior depends on
+        Cache-Control directives.
+    end note
+
+    Stale --> ServeStaleRevalidate: stale-while-revalidate<br/>Serve stale, revalidate async
+    Stale --> Revalidate: must-revalidate<br/>or no SWR directive
+    Stale --> ServeStaleOnError: Origin returns 5xx<br/>+ stale-if-error set
+
+    ServeStaleRevalidate: Serve Stale + Async Revalidate
+    ServeStaleRevalidate --> Revalidate: Background revalidation
+
+    Revalidate: Conditional Request
+    note right of Revalidate
+        If-None-Match: "etag"
+        If-Modified-Since: date
+    end note
+
+    Revalidate --> Fresh: Origin returns 304<br/>Not Modified<br/>(TTL refreshed)
+    Revalidate --> StoreInCache: Origin returns 200<br/>New content<br/>(replace cached copy)
+
+    ServeStaleOnError: Serve Stale on Error
+    note right of ServeStaleOnError
+        Origin is down or 5xx.
+        Serve stale content
+        for up to N seconds.
+    end note
+    ServeStaleOnError --> Stale: Continue serving stale
+
+    Fresh --> Purged: Explicit purge<br/>(API call)
+    Stale --> Purged: Explicit purge
+
+    Purged: PURGED / Evicted
+    Purged --> CacheMiss: Next request<br/>triggers new fetch

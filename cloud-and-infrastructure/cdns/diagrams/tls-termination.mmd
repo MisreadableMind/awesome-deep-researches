@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Browser as Browser
+    participant Edge as CDN Edge<br/>TLS Termination
+    participant Origin as Origin Server
+
+    Note over Browser,Origin: Mode 1: Full (Strict) - Best Security
+
+    Browser->>Edge: ClientHello (TLS 1.3)
+    Edge-->>Browser: ServerHello + CDN Certificate<br/>(issued by Let's Encrypt or DigiCert)
+    Browser->>Edge: Finished (encrypted tunnel established)
+    Note over Browser,Edge: HTTPS connection to CDN
+
+    Edge->>Origin: ClientHello (TLS 1.2/1.3)
+    Origin-->>Edge: ServerHello + Origin Certificate<br/>(must be valid CA-signed cert)
+    Edge->>Edge: Validate origin certificate chain
+    Edge->>Origin: Finished
+    Note over Edge,Origin: HTTPS connection to origin<br/>Certificate VERIFIED
+
+    Note over Browser,Origin: Mode 2: Flexible - Lowest Security
+
+    Browser->>Edge: TLS 1.3 Handshake
+    Edge-->>Browser: CDN Certificate
+    Note over Browser,Edge: HTTPS to CDN
+
+    Edge->>Origin: HTTP (plaintext, port 80)
+    Note over Edge,Origin: NO encryption to origin<br/>Data exposed between CDN and origin
+
+    Note over Browser,Origin: Mode 3: Keyless SSL - Maximum Control
+
+    Browser->>Edge: ClientHello
+    Edge->>Edge: Need private key<br/>for ServerHello signature
+    Edge->>Origin: Sign this handshake data<br/>(key server at customer premises)
+    Origin->>Origin: Sign with private key<br/>(key never leaves customer HSM)
+    Origin-->>Edge: Signed handshake data
+    Edge-->>Browser: ServerHello + Certificate<br/>(signed by customer's key)
+    Note over Edge: CDN never possesses<br/>the private key

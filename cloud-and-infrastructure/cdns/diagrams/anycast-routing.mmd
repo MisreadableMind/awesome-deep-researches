@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph USERS["Users Around the World"]
+        U_NY["User in New York"]
+        U_LON["User in London"]
+        U_TOK["User in Tokyo"]
+        U_SYD["User in Sydney"]
+    end
+
+    subgraph ISPs["ISP Routers - BGP Path Selection"]
+        ISP_US["US ISP Router<br/>BGP: shortest AS path<br/>to 1.1.1.1 = NYC PoP"]
+        ISP_EU["EU ISP Router<br/>BGP: shortest AS path<br/>to 1.1.1.1 = London PoP"]
+        ISP_JP["JP ISP Router<br/>BGP: shortest AS path<br/>to 1.1.1.1 = Tokyo PoP"]
+        ISP_AU["AU ISP Router<br/>BGP: shortest AS path<br/>to 1.1.1.1 = Sydney PoP"]
+    end
+
+    subgraph ANYCAST_POPS["All PoPs Announce Same IP: 1.1.1.0/24 via BGP"]
+        POP_NYC["Cloudflare NYC<br/>IP: 1.1.1.1<br/>BGP: announces 1.1.1.0/24"]
+        POP_LON["Cloudflare London<br/>IP: 1.1.1.1<br/>BGP: announces 1.1.1.0/24"]
+        POP_TOK["Cloudflare Tokyo<br/>IP: 1.1.1.1<br/>BGP: announces 1.1.1.0/24"]
+        POP_SYD["Cloudflare Sydney<br/>IP: 1.1.1.1<br/>BGP: announces 1.1.1.0/24"]
+    end
+
+    U_NY -->|"packet to 1.1.1.1"| ISP_US
+    U_LON -->|"packet to 1.1.1.1"| ISP_EU
+    U_TOK -->|"packet to 1.1.1.1"| ISP_JP
+    U_SYD -->|"packet to 1.1.1.1"| ISP_AU
+
+    ISP_US -->|"4ms RTT"| POP_NYC
+    ISP_EU -->|"3ms RTT"| POP_LON
+    ISP_JP -->|"5ms RTT"| POP_TOK
+    ISP_AU -->|"8ms RTT"| POP_SYD
+
+    POP_NYC -.->|"BGP announces<br/>1.1.1.0/24"| ISP_US
+    POP_LON -.->|"BGP announces<br/>1.1.1.0/24"| ISP_EU
+    POP_TOK -.->|"BGP announces<br/>1.1.1.0/24"| ISP_JP
+    POP_SYD -.->|"BGP announces<br/>1.1.1.0/24"| ISP_AU
+
+    style U_NY fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style U_LON fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style U_TOK fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style U_SYD fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ISP_US fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style ISP_EU fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style ISP_JP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style ISP_AU fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style POP_NYC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style POP_LON fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style POP_TOK fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style POP_SYD fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style USERS fill:#fafafa,stroke:#9e9e9e
+    style ISPs fill:#fafafa,stroke:#9e9e9e
+    style ANYCAST_POPS fill:#fafafa,stroke:#9e9e9e
