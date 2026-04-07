@@ -1,0 +1,71 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Sarah as Sarah<br/>(iPhone, Safari)
+    participant Nike as Nike.com<br/>(Merchant)
+    participant Klarna as Klarna<br/>(BNPL Provider)
+    participant WebBank as WebBank<br/>(Loan Originator)
+    participant Chase as Chase Bank<br/>(Sarah's debit card issuer)
+
+    Note over Sarah,Chase: Real-world example: Sarah buys $200 sneakers on Nike.com using Klarna Pay in 4
+
+    Sarah->>Nike: Browses Nike.com, adds Air Max 90 ($200) to cart
+    Sarah->>Nike: Clicks "Checkout"
+    Nike->>Sarah: Checkout page shows: Card, PayPal, Klarna, Affirm
+
+    Sarah->>Nike: Selects "Klarna - 4 interest-free payments of $50"
+    Nike->>Klarna: API call: create_session<br/>merchant_id: nike_us_001<br/>order_total: $200.00<br/>items: [{name: "Air Max 90", qty: 1, price: $200}]
+
+    rect rgb(232, 245, 233)
+        Note over Klarna: Klarna widget opens in Sarah's browser
+        Klarna->>Sarah: "Enter your email and phone number"
+        Sarah->>Klarna: sarah@gmail.com, +1-555-0123
+        Klarna->>Sarah: "Enter the 6-digit code we texted you"
+        Sarah->>Klarna: 482917
+    end
+
+    rect rgb(227, 242, 253)
+        Note over Klarna,WebBank: Underwriting decision (1.8 seconds)
+        Klarna->>Klarna: Soft credit pull (TransUnion)<br/>Score: 720 - good
+        Klarna->>Klarna: Internal history check<br/>Sarah used Klarna 3x before, all paid on time
+        Klarna->>Klarna: Fraud signals: known device, US IP,<br/>email age > 5 years, phone verified
+        Klarna->>Klarna: Affordability: $200 order, no existing<br/>Klarna balances, low risk
+        Klarna->>WebBank: Originate loan: $200, 0% APR,<br/>4 biweekly installments, borrower: Sarah
+        WebBank-->>Klarna: Loan originated, ID: WB-2026-04-07-98234
+        WebBank-->>Klarna: Klarna purchases loan from WebBank<br/>(assignment agreement)
+    end
+
+    Klarna-->>Sarah: "Approved! Your payment plan:"
+    Note right of Klarna: Payment 1: $50.00 - Today (Apr 7)<br/>Payment 2: $50.00 - Apr 21<br/>Payment 3: $50.00 - May 5<br/>Payment 4: $50.00 - May 19
+
+    Sarah->>Klarna: Confirms plan, selects Chase debit card on file
+    Klarna-->>Nike: Order authorized, capture approved
+
+    rect rgb(243, 229, 245)
+        Note over Nike,Klarna: Klarna pays Nike
+        Klarna->>Nike: Settles $188.00 to Nike<br/>($200 minus 6% MDR = $12 fee)
+        Nike->>Sarah: "Order confirmed! Shipping in 2-3 days"
+    end
+
+    rect rgb(255, 243, 224)
+        Note over Klarna,Chase: First installment charged immediately
+        Klarna->>Chase: Charge $50.00 to Sarah's debit card<br/>ending in 4829
+        Chase-->>Klarna: Approved
+        Klarna->>Sarah: "Payment 1 of 4: $50.00 charged"
+    end
+
+    Note over Sarah,Chase: 2 weeks later (Apr 21)
+    Klarna->>Chase: Auto-charge $50.00 (payment 2 of 4)
+    Chase-->>Klarna: Approved
+    Klarna->>Sarah: Push notification: "Payment 2 of 4 complete"
+
+    Note over Sarah,Chase: 4 weeks later (May 5)
+    Klarna->>Chase: Auto-charge $50.00 (payment 3 of 4)
+    Chase-->>Klarna: Approved
+
+    Note over Sarah,Chase: 6 weeks later (May 19)
+    Klarna->>Chase: Auto-charge $50.00 (payment 4 of 4)
+    Chase-->>Klarna: Approved
+    Klarna->>Sarah: "All done! $200 fully paid. No interest charged."
+
+    Note over Sarah,Chase: Total cost to Sarah: $200.00 (0% interest)<br/>Total cost to Nike: $12.00 (6% MDR)<br/>Klarna revenue: $12.00 MDR - funding cost - credit losses

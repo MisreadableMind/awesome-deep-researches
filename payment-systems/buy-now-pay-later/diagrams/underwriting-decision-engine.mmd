@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    START["Checkout Request<br/>Consumer selects BNPL<br/>Order: $200, Merchant: Nike"]
+
+    START --> IDENTITY["Identity Verification<br/>Email, phone, name, DOB<br/>Device fingerprint, IP geolocation"]
+
+    IDENTITY --> FRAUD{"Fraud Scoring<br/>ML model"}
+    FRAUD -->|"Score > 0.85<br/>High fraud risk"| DECLINE_FRAUD["DECLINE<br/>Suspected fraud<br/>Reason: risk signals"]
+    FRAUD -->|"Score < 0.85<br/>Acceptable"| CREDIT_CHECK
+
+    CREDIT_CHECK["Credit Check<br/>Soft pull (no hard inquiry)<br/>TransUnion, Experian, or Equifax"]
+
+    CREDIT_CHECK --> INTERNAL{"Internal History<br/>Check"}
+    INTERNAL -->|"Previous defaults<br/>or chargebacks"| DECLINE_HISTORY["DECLINE<br/>Poor repayment history"]
+    INTERNAL -->|"Good history<br/>or new customer"| AFFORD
+
+    AFFORD{"Affordability<br/>Assessment"}
+    AFFORD -->|"Existing BNPL balance<br/>too high"| DECLINE_AFFORD["DECLINE<br/>Over-committed<br/>Existing obligations too high"]
+    AFFORD -->|"Within limits"| RISK_TIER
+
+    RISK_TIER{"Risk Tier<br/>Assignment"}
+    RISK_TIER -->|"Tier 1: Excellent<br/>Score 750+, repeat customer"| APPROVE_T1["APPROVE<br/>Pay in 4 (0% APR)<br/>Up to $1,500 limit"]
+    RISK_TIER -->|"Tier 2: Good<br/>Score 650-749"| APPROVE_T2["APPROVE<br/>Pay in 4 (0% APR)<br/>Up to $500 limit"]
+    RISK_TIER -->|"Tier 3: Fair<br/>Score 550-649"| APPROVE_T3["APPROVE<br/>Pay in 4 (0% APR)<br/>Up to $250 limit<br/>OR installment loan with APR"]
+    RISK_TIER -->|"Tier 4: Poor<br/>Score < 550"| DECLINE_CREDIT["DECLINE<br/>Credit risk too high"]
+
+    APPROVE_T1 --> ORIGINATE["Loan Origination<br/>Via bank partner (WebBank)<br/>for regulatory compliance"]
+    APPROVE_T2 --> ORIGINATE
+    APPROVE_T3 --> ORIGINATE
+
+    ORIGINATE --> PRESENT["Present Payment Plan<br/>to Consumer<br/>4x $50 biweekly"]
+
+    Note1["Total decision time:<br/>0.5 to 2 seconds"]
+    Note2["Approval rates:<br/>Klarna: ~70-75%<br/>Affirm: ~65-70%<br/>Afterpay: ~75-80%"]
+
+    style START fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style IDENTITY fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style FRAUD fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CREDIT_CHECK fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style INTERNAL fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style AFFORD fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RISK_TIER fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style DECLINE_FRAUD fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style DECLINE_HISTORY fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style DECLINE_AFFORD fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style DECLINE_CREDIT fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style APPROVE_T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style APPROVE_T2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style APPROVE_T3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ORIGINATE fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style PRESENT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Note1 fill:#fff3e0,stroke:#e65100
+    style Note2 fill:#fff3e0,stroke:#e65100

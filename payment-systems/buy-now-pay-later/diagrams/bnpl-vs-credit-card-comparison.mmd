@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph BNPL_SIDE["Buy Now Pay Later"]
+        B1["Credit Check<br/>Soft pull only (Pay in 4)<br/>No impact on credit score"]
+        B2["Interest Rate<br/>0% APR for Pay in 4<br/>0-36% for installment loans"]
+        B3["Repayment<br/>Fixed schedule (4 or 6-12 payments)<br/>Auto-debit from card/bank"]
+        B4["Credit Limit<br/>Per-order approval<br/>$35 to $1,500 typical"]
+        B5["Late Fees<br/>$0-8 per missed payment<br/>Some providers charge $0"]
+        B6["Credit Reporting<br/>Varies by provider<br/>Some report, some do not"]
+        B7["Rewards<br/>Generally none<br/>(Klarna Vibe: limited cashback)"]
+        B8["Who Pays<br/>Merchant pays 3-8% MDR<br/>Consumer pays $0 if on time"]
+    end
+
+    subgraph CARD_SIDE["Traditional Credit Card"]
+        C1["Credit Check<br/>Hard pull required<br/>Impacts credit score"]
+        C2["Interest Rate<br/>0% intro APR (6-21 months)<br/>Then 18-30% APR"]
+        C3["Repayment<br/>Minimum payment (revolving)<br/>Easy to carry balance"]
+        C4["Credit Limit<br/>Ongoing line of credit<br/>$500 to $50,000+"]
+        C5["Late Fees<br/>$25-$41 per missed payment<br/>+ penalty APR up to 29.99%"]
+        C6["Credit Reporting<br/>Always reported<br/>Builds credit history"]
+        C7["Rewards<br/>1-5% cashback<br/>Points, miles, travel perks"]
+        C8["Who Pays<br/>Merchant pays 1.5-3.5% MDR<br/>Consumer pays interest if revolving"]
+    end
+
+    subgraph WINNER["Best For"]
+        W1["BNPL wins when:<br/>- Young consumer, thin credit file<br/>- Want 0% interest guaranteed<br/>- Specific purchase, fixed repayment<br/>- No credit score impact desired"]
+        W2["Credit card wins when:<br/>- Want rewards/cashback<br/>- Building credit history<br/>- Need ongoing credit line<br/>- Want purchase protection/disputes<br/>- Higher spending power needed"]
+    end
+
+    style B1 fill:#e8f5e9,stroke:#2e7d32
+    style B2 fill:#e8f5e9,stroke:#2e7d32
+    style B3 fill:#e3f2fd,stroke:#1565c0
+    style B4 fill:#fff3e0,stroke:#e65100
+    style B5 fill:#e8f5e9,stroke:#2e7d32
+    style B6 fill:#fff3e0,stroke:#e65100
+    style B7 fill:#ffebee,stroke:#c62828
+    style B8 fill:#fff3e0,stroke:#e65100
+    style C1 fill:#ffebee,stroke:#c62828
+    style C2 fill:#ffebee,stroke:#c62828
+    style C3 fill:#fff3e0,stroke:#e65100
+    style C4 fill:#e8f5e9,stroke:#2e7d32
+    style C5 fill:#ffebee,stroke:#c62828
+    style C6 fill:#e8f5e9,stroke:#2e7d32
+    style C7 fill:#e8f5e9,stroke:#2e7d32
+    style C8 fill:#e3f2fd,stroke:#1565c0
+    style W1 fill:#e8f5e9,stroke:#2e7d32
+    style W2 fill:#e3f2fd,stroke:#1565c0
+    style BNPL_SIDE fill:#fafafa,stroke:#9e9e9e
+    style CARD_SIDE fill:#fafafa,stroke:#9e9e9e
+    style WINNER fill:#fafafa,stroke:#9e9e9e

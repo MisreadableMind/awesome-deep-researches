@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Consumer as Consumer<br/>(Browser / App)
+    participant Merchant as Merchant<br/>(E-commerce Site)
+    participant BNPL as BNPL Provider<br/>(e.g. Klarna)
+    participant Bank as Issuing Bank Partner<br/>(e.g. WebBank)
+    participant Processor as Payment Processor<br/>(e.g. Stripe)
+
+    Note over Consumer,Processor: End-to-end BNPL Purchase Flow (Pay in 4)
+
+    Consumer->>Merchant: Adds items to cart ($200 sneakers)
+    Consumer->>Merchant: Proceeds to checkout
+    Merchant->>Merchant: Displays payment options:<br/>Credit card, PayPal, Klarna, Affirm
+
+    Consumer->>Merchant: Selects "Pay with Klarna"
+    Merchant->>BNPL: POST /api/v1/sessions<br/>order_amount: $200, items: [sneakers]
+
+    rect rgb(232, 245, 233)
+        Note over BNPL: Real-time Underwriting (< 2 seconds)
+        BNPL->>BNPL: Soft credit check (no hard pull)<br/>Check internal repayment history<br/>Verify identity (name, email, phone)<br/>Fraud scoring (device, IP, behavior)<br/>Affordability assessment
+        BNPL->>Bank: Loan origination request<br/>(regulatory compliance)
+        Bank-->>BNPL: Loan approved, originated
+    end
+
+    BNPL-->>Merchant: Session created, customer approved<br/>payment_plan: 4x $50.00
+
+    Merchant->>Consumer: Show payment plan:<br/>"4 payments of $50.00<br/>Due today, +2 weeks, +4 weeks, +6 weeks"
+    Consumer->>Merchant: Confirms order
+    Merchant->>BNPL: POST /api/v1/orders/capture
+
+    rect rgb(243, 229, 245)
+        Note over BNPL,Processor: Settlement
+        BNPL->>Processor: Pays merchant $200 minus MDR<br/>Merchant receives ~$188 (6% MDR)
+        Processor-->>Merchant: Funds settled (T+1 to T+3)
+    end
+
+    BNPL->>Consumer: Charges first installment: $50.00<br/>(via stored debit/credit card)
+
+    Note over Consumer,Processor: Consumer now has the product.<br/>BNPL has paid the merchant in full.<br/>Consumer owes BNPL 3 more payments.
+
+    loop Remaining 3 installments
+        BNPL->>Consumer: Auto-charge $50.00 every 2 weeks<br/>via stored payment method
+    end
+
+    Note over Consumer,Processor: If consumer misses a payment:<br/>Late fee ($7) or account paused/sent to collections
