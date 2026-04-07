@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant Browser as Browser
+    participant Resolver as DNS Resolver<br/>1.1.1.1
+    participant CDN_DNS as CDN Auth DNS<br/>Cloudflare NS
+    participant Edge as CDN Edge PoP<br/>Nearest via Anycast
+    participant Shield as Origin Shield<br/>Mid-Tier Cache
+    participant Origin as Origin Server
+
+    Note over Browser,Origin: Complete CDN Request Flow - Cache MISS then HIT
+
+    Browser->>Resolver: DNS query: www.example.com
+    Resolver->>CDN_DNS: Recursive query
+    CDN_DNS-->>Resolver: A: 104.16.132.229 (Anycast IP)<br/>TTL: 300s
+    Resolver-->>Browser: 104.16.132.229
+
+    Note over Browser,Edge: TCP + TLS 1.3 Handshake (1 RTT)
+    Browser->>Edge: SYN
+    Edge-->>Browser: SYN-ACK
+    Browser->>Edge: ACK + ClientHello
+    Edge-->>Browser: ServerHello + Cert + Finished
+    Browser->>Edge: Finished
+
+    Browser->>Edge: GET /images/hero.jpg HTTP/2<br/>Accept-Encoding: br, gzip
+
+    Note over Edge: Edge Processing Pipeline
+    Edge->>Edge: 1. DDoS check (XDP/eBPF)
+    Edge->>Edge: 2. WAF rules check
+    Edge->>Edge: 3. Bot score evaluation
+    Edge->>Edge: 4. Cache lookup: MISS
+
+    Edge->>Shield: GET /images/hero.jpg<br/>(persistent connection)
+    Shield->>Shield: Cache lookup: MISS
+
+    Shield->>Origin: GET /images/hero.jpg<br/>(persistent connection pool)
+    Origin-->>Shield: 200 OK<br/>Cache-Control: public, s-maxage=86400<br/>ETag: "a1b2c3"<br/>[245KB image]
+    Shield->>Shield: Store in shield cache
+
+    Shield-->>Edge: 200 OK + image
+    Edge->>Edge: Store in edge cache<br/>Compress with Brotli
+
+    Edge-->>Browser: HTTP/2 200 OK<br/>CF-Cache-Status: MISS<br/>Content-Encoding: br<br/>[compressed image]
+
+    Note over Browser,Origin: Second Request - Cache HIT (no origin contact)
+
+    Browser->>Edge: GET /images/hero.jpg HTTP/2
+    Edge->>Edge: Cache lookup: HIT<br/>Age: 3600s, fresh (< 86400s)
+    Edge-->>Browser: HTTP/2 200 OK<br/>CF-Cache-Status: HIT<br/>Age: 3600<br/>[cached image]
+
+    Note over Browser,Origin: Cache HIT served in ~5ms vs ~200ms for MISS

@@ -69,7 +69,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Topic | 📊 | Status |
 |-------|:-:|--------|
 | AWS / GCP / Azure Architecture: regions, AZs, control planes | | 🗓️ Planned |
-| CDNs: Cloudflare, Akamai caching, edge routing, Anycast | | 🗓️ Planned |
+| [CDNs: Cloudflare, Akamai caching, edge routing, Anycast](cloud-and-infrastructure/cdns/) | 13 | ✅ Done |
 | DNS: resolution chain, registrars, root servers | | 🗓️ Planned |
 | Container Orchestration: Kubernetes scheduler, etcd, kubelet | | 🗓️ Planned |
 | Load Balancing: L4 vs L7, health checks, algorithms | | 🗓️ Planned |
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       5 researches (65 diagrams)
-Planned:   46 researches
+Done:       6 researches (78 diagrams)
+Planned:   45 researches
 Categories: 10
 ```
 

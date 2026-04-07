@@ -1,0 +1,102 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph INTERNET["Internet"]
+        USER["End User"]
+        ATTACKER["DDoS Attacker"]
+    end
+
+    subgraph ANYCAST_LAYER["Anycast Layer - Same IP, Every PoP"]
+        BGP["BGP Anycast<br/>104.16.0.0/12<br/>Announced from 330+ cities"]
+    end
+
+    subgraph SINGLE_SERVER["Every Cloudflare Server (Identical Stack)"]
+        subgraph L4["Layer 4 Processing"]
+            XDP["XDP / eBPF<br/>Line-rate packet filtering<br/>DDoS: volumetric mitigation"]
+            UNIMOG["Unimog<br/>L4 Load Balancer<br/>Cross-PoP forwarding"]
+        end
+
+        subgraph L7["Layer 7 Processing"]
+            PINGORA["Pingora (Rust)<br/>HTTP Proxy<br/>Replaced NGINX"]
+            WAF_ENGINE["WAF Engine<br/>OWASP CRS + Custom Rules<br/>Wirefilter DSL"]
+            BOT["Bot Management<br/>JA3/JA4, JS challenges<br/>Turnstile"]
+            CACHE["Cache Layer<br/>SSD + RAM<br/>Custom eviction"]
+        end
+
+        subgraph COMPUTE["Edge Compute"]
+            WORKERS["Workers Runtime<br/>V8 Isolates<br/>Sub-ms cold start"]
+            KV["Workers KV<br/>Global key-value"]
+            R2_EDGE["R2 Storage<br/>S3-compatible<br/>Zero egress"]
+            D1["D1 Database<br/>SQLite at edge"]
+            DO["Durable Objects<br/>Stateful edge actors"]
+        end
+
+        subgraph SERVICES["Platform Services"]
+            DNS_AUTH["Authoritative DNS<br/>Fastest globally"]
+            DNS_RES["1.1.1.1 Resolver<br/>Privacy-focused"]
+            TUNNEL["Cloudflare Tunnel<br/>Secure origin connection"]
+            SPECTRUM_SVC["Spectrum<br/>L4 proxy (TCP/UDP)"]
+        end
+    end
+
+    subgraph CONFIG["Global Configuration"]
+        QUICKSILVER["Quicksilver<br/>Distributed KV<br/>Sub-5s global propagation<br/>200M+ changes/day"]
+    end
+
+    subgraph BACKBONE["Cloudflare Backbone"]
+        ARGO["Argo Smart Routing<br/>Optimized origin path<br/>~30% latency reduction"]
+    end
+
+    USER --> BGP
+    ATTACKER --> BGP
+    BGP --> XDP
+    XDP -->|"clean traffic"| UNIMOG
+    XDP -->|"drop attack traffic"| XDP
+    UNIMOG --> PINGORA
+    PINGORA --> WAF_ENGINE
+    WAF_ENGINE --> BOT
+    BOT --> CACHE
+    CACHE -->|"HIT"| PINGORA
+    CACHE -->|"MISS"| WORKERS
+    WORKERS --> KV
+    WORKERS --> R2_EDGE
+    WORKERS --> D1
+    WORKERS --> DO
+    CACHE -->|"MISS (no Worker)"| ARGO
+    ARGO -->|"via backbone"| TUNNEL
+
+    QUICKSILVER -.->|"push config"| SINGLE_SERVER
+
+    PINGORA --> DNS_AUTH
+    PINGORA --> DNS_RES
+    PINGORA --> SPECTRUM_SVC
+
+    style USER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ATTACKER fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style BGP fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    style XDP fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    style UNIMOG fill:#ffccbc,stroke:#bf360c,stroke-width:2px
+    style PINGORA fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style WAF_ENGINE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BOT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CACHE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style WORKERS fill:#e8eaf6,stroke:#283593,stroke-width:2px
+    style KV fill:#e8eaf6,stroke:#283593
+    style R2_EDGE fill:#e8eaf6,stroke:#283593
+    style D1 fill:#e8eaf6,stroke:#283593
+    style DO fill:#e8eaf6,stroke:#283593
+    style DNS_AUTH fill:#f3e5f5,stroke:#6a1b9a
+    style DNS_RES fill:#f3e5f5,stroke:#6a1b9a
+    style TUNNEL fill:#f3e5f5,stroke:#6a1b9a
+    style SPECTRUM_SVC fill:#f3e5f5,stroke:#6a1b9a
+    style QUICKSILVER fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ARGO fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style INTERNET fill:#fafafa,stroke:#9e9e9e
+    style ANYCAST_LAYER fill:#fafafa,stroke:#9e9e9e
+    style SINGLE_SERVER fill:#fafafa,stroke:#9e9e9e
+    style L4 fill:#fff8e1,stroke:#f57f17
+    style L7 fill:#e3f2fd,stroke:#1565c0
+    style COMPUTE fill:#e8eaf6,stroke:#283593
+    style SERVICES fill:#f3e5f5,stroke:#6a1b9a
+    style CONFIG fill:#fafafa,stroke:#9e9e9e
+    style BACKBONE fill:#fafafa,stroke:#9e9e9e
