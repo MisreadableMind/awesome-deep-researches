@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph TD
+    subgraph INSTITUTIONS["Financial Institutions"]
+        FI1["Bank / FI<br/>using Alliance Lite2<br/>Cloud-based, low volume"]
+        FI2["Bank / FI<br/>using Alliance Access<br/>On-premise, legacy"]
+        FI3["Bank / FI<br/>using Alliance Gateway<br/>SWIFTNet connector"]
+        FI4["Bank / FI<br/>using Alliance Messaging Hub<br/>Modern centralized platform"]
+    end
+
+    subgraph INTERFACES["Alliance Interface Layer"]
+        AL2["Alliance Lite2<br/>Cloud-based"]
+        AA["Alliance Access<br/>On-premise"]
+        AG["Alliance Gateway<br/>Communication gateway"]
+        AMH["Alliance Messaging Hub<br/>Centralized hub"]
+    end
+
+    FI1 --> AL2
+    FI2 --> AA
+    FI3 --> AG
+    FI4 --> AMH
+
+    subgraph SWIFTNET["SWIFTNet - Private IP Network"]
+        direction TB
+        PKI["PKI Security Layer<br/>Digital certificates, HSM,<br/>encryption, non-repudiation"]
+
+        subgraph SERVICES["Three Messaging Services"]
+            FIN["FIN<br/>Store-and-forward<br/>MT format messages<br/>Legacy, being phased out"]
+            IA["InterAct<br/>Real-time and store-and-forward<br/>MX / ISO 20022 XML<br/>Modern replacement for FIN"]
+            FA["FileAct<br/>Bulk file transfers<br/>Format-agnostic<br/>Batch payments, reports"]
+        end
+
+        PKI --- SERVICES
+    end
+
+    AL2 --> SWIFTNET
+    AA --> SWIFTNET
+    AG --> SWIFTNET
+    AMH --> SWIFTNET
+
+    subgraph OCS["Operating Centers"]
+        OC1["OPC Netherlands<br/>Primary EU center"]
+        OC2["OPC United States<br/>Primary US center"]
+        OC3["OPC Switzerland<br/>Disaster recovery"]
+    end
+
+    SWIFTNET --> OC1
+    SWIFTNET --> OC2
+    SWIFTNET --> OC3
+
+    style INSTITUTIONS fill:#fafafa,stroke:#bdbdbd,stroke-width:1px
+    style INTERFACES fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style SWIFTNET fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SERVICES fill:#bbdefb,stroke:#1976d2,stroke-width:1px
+    style OCS fill:#fff3e0,stroke:#e65100,stroke-width:2px

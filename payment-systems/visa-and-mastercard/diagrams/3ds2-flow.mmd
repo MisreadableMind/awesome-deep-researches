@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant CH as Cardholder<br/>Browser or App
+    participant MERCH as Merchant<br/>Server
+    participant TDS as 3DS Server<br/>Acquirer Side
+    participant DS as Directory Server<br/>Visa or Mastercard
+    participant ACS as Access Control Server<br/>Issuer Side
+
+    Note over CH,ACS: 3D Secure 2.0 - Risk-Based Authentication
+
+    CH->>MERCH: Enter card details and submit payment
+    MERCH->>TDS: Card data plus 130+ data elements<br/>Device info, browser data, transaction history,<br/>shipping address, account age
+
+    TDS->>DS: Authentication Request AReq<br/>with enriched data payload
+    DS->>DS: Identify issuer ACS from card range
+    DS->>ACS: Forward AReq to issuer
+
+    ACS->>ACS: Risk-Based Authentication engine<br/>Analyze device fingerprint,<br/>transaction patterns, geolocation,<br/>merchant risk, amount
+
+    alt Frictionless Flow - Low Risk Transaction
+        ACS-->>DS: Authentication Response ARes<br/>Status: Authenticated silently
+        DS-->>TDS: Forward ARes with proof
+        TDS-->>MERCH: Authentication successful<br/>ECI 05 for Visa, ECI 02 for MC
+        Note over CH,ACS: Liability shifts to Issuer<br/>Cardholder sees no challenge
+        MERCH->>MERCH: Proceed to authorization<br/>with authentication proof CAVV
+    else Challenge Flow - Higher Risk Transaction
+        ACS-->>DS: Authentication Response ARes<br/>Status: Challenge required
+        DS-->>TDS: Forward challenge request
+        TDS-->>MERCH: Render challenge iframe
+        MERCH-->>CH: Display challenge to cardholder
+        CH->>ACS: Complete challenge<br/>OTP, biometric, app approval, or push
+        ACS->>ACS: Verify challenge response
+        ACS-->>DS: Result Request RReq<br/>Challenge result
+        DS-->>TDS: Forward result
+        TDS-->>MERCH: Authentication result<br/>ECI 05 or 07 depending on outcome
+        Note over CH,ACS: Liability shifts to Issuer if authenticated
+        MERCH->>MERCH: Proceed to authorization with CAVV
+    end
+
+    Note over CH,ACS: After authentication, normal authorization flow proceeds<br/>CAVV included in auth request as proof of 3DS

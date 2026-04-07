@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#424242'}}}%%
+
+graph TD
+    subgraph PAYER_SIDE["Payer - Debtor Side"]
+        P["Payer - Debtor"]
+        PSP1["Payer PSP<br/>Payment Service Provider"]
+        VAL["Validation<br/>IBAN check, funds,<br/>AML screening"]
+    end
+
+    subgraph CLEARING["Clearing Layer"]
+        CSM["CSM - STEP2-T<br/>Pan-European ACH"]
+    end
+
+    subgraph SETTLEMENT["Settlement Layer"]
+        T2["T2 - RTGS / TIPS<br/>ECB Central Bank Money"]
+    end
+
+    subgraph PAYEE_SIDE["Payee - Creditor Side"]
+        PSP2["Payee PSP<br/>Payment Service Provider"]
+        PP["Payee - Creditor"]
+    end
+
+    P -->|"pain.001<br/>Payment Initiation"| PSP1
+    PSP1 -->|"Debit payer account"| VAL
+    VAL ==>|"pacs.008<br/>Credit Transfer"| CSM
+    CSM ==>|"pacs.008<br/>Routed to payee bank"| PSP2
+    CSM -->|"Settlement instructions"| T2
+    T2 -->|"Debit payer PSP account<br/>Credit payee PSP account"| CSM
+    PSP2 -->|"Credit account<br/>Full amount, no deductions"| PP
+
+    PSP1 -.->|"pain.002<br/>Status Report"| P
+    CSM -.->|"pacs.002<br/>Clearing Status"| PSP1
+    PSP2 -.->|"pacs.002<br/>Acceptance Status"| CSM
+
+    style PAYER_SIDE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PAYEE_SIDE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CLEARING fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SETTLEMENT fill:#fff3e0,stroke:#e65100,stroke-width:2px

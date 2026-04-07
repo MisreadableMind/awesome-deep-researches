@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph TD
+    subgraph GPI_TRACKER["SWIFT gpi Tracker - Central Cloud Database"]
+        TRACKER["gpi Tracker<br/>End-to-end visibility<br/>Tracks UETR across all hops"]
+    end
+
+    subgraph PAYMENT_CHAIN["Payment Journey with UETR Tracking"]
+        SENDER["Originator Bank<br/>Creates MT103 with UETR<br/>e.g. eb6305c9-1f7f-..."]
+        CORR1["Correspondent Bank 1<br/>Receives and forwards payment"]
+        CORR2["Correspondent Bank 2<br/>Receives and forwards payment"]
+        RECEIVER["Beneficiary Bank<br/>Credits beneficiary account"]
+    end
+
+    SENDER ==>|"MT103 with UETR<br/>Payment forwarded"| CORR1
+    CORR1 ==>|"MT202 with UETR<br/>Payment forwarded"| CORR2
+    CORR2 ==>|"Payment forwarded"| RECEIVER
+
+    SENDER -.->|"Update: Sent<br/>Time, amount, fees"| TRACKER
+    CORR1 -.->|"Update: Forwarded<br/>Time, fees deducted, FX rate"| TRACKER
+    CORR2 -.->|"Update: Forwarded<br/>Time, fees deducted"| TRACKER
+    RECEIVER -.->|"Update: Completed<br/>Beneficiary credited"| TRACKER
+
+    subgraph UETR["UETR - Unique End-to-End Transaction Reference"]
+        U1["36-character UUID<br/>Embedded in Block 3, Field 121"]
+        U2["Mandatory for all MT103<br/>since November 2018"]
+        U3["Like a courier tracking number<br/>for every payment"]
+    end
+
+    subgraph SLA["gpi SLA Obligations"]
+        SLA1["Same-day use of funds<br/>Credit beneficiary on day received"]
+        SLA2["Transparency of fees<br/>Report all deductions"]
+        SLA3["End-to-end tracking<br/>Update Tracker at each step"]
+        SLA4["Unaltered remittance info<br/>Pass through without modification"]
+    end
+
+    subgraph VISIBILITY["Who Can Track"]
+        V1["Originator Bank<br/>Full visibility"]
+        V2["Intermediary Banks<br/>Leg visibility"]
+        V3["Beneficiary Bank<br/>Full visibility"]
+        V4["Corporates via g4C<br/>Track through bank portal or API"]
+    end
+
+    TRACKER --- UETR
+    TRACKER --- SLA
+    TRACKER --- VISIBILITY
+
+    style GPI_TRACKER fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style PAYMENT_CHAIN fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style UETR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SLA fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style VISIBILITY fill:#bbdefb,stroke:#1976d2,stroke-width:1px

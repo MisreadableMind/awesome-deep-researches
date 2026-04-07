@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    subgraph GROSS["Without Netting - Gross Settlement"]
+        G1["Bank A cardholders spent<br/>USD 10M at Bank B merchants"]
+        G2["Bank B cardholders spent<br/>USD 8M at Bank A merchants"]
+        G3["Total transfers needed:<br/>USD 18M across 2 payments"]
+    end
+
+    subgraph NET_CALC["Network Netting Calculation"]
+        N1["Bank A owes Bank B: USD 10M"]
+        N2["Bank B owes Bank A: USD 8M"]
+        N3["Net position calculated:<br/>USD 10M minus USD 8M = USD 2M"]
+        N4["Result: Only USD 2M needs<br/>to move from Bank A to Bank B<br/>89% reduction in transfers"]
+    end
+
+    subgraph SETTLE["Settlement Process - via Settlement Bank"]
+        S1["Card network calculates<br/>net positions for ALL member<br/>banks simultaneously"]
+        S2["Net debtors fund their<br/>settlement account"]
+        S3["Settlement bank executes<br/>net transfers between members"]
+        S4["Net creditors receive<br/>funds in settlement account"]
+        S5["Acquirers disburse funds<br/>to merchant accounts<br/>minus MDR fees"]
+    end
+
+    subgraph EXAMPLE["Multi-Bank Netting Example"]
+        EX1["Bank A: net debtor USD 2M"]
+        EX2["Bank B: net creditor USD 3M"]
+        EX3["Bank C: net creditor USD 1M"]
+        EX4["Bank D: net debtor USD 2M"]
+        EX5["Total movement: USD 4M<br/>Instead of potentially<br/>USD 40M+ in gross transfers"]
+    end
+
+    G1 --> N1
+    G2 --> N2
+    N1 --> N3
+    N2 --> N3
+    N3 --> N4
+
+    S1 --> S2 --> S3 --> S4 --> S5
+
+    EX1 --> S3
+    EX4 --> S3
+    S3 --> EX2
+    S3 --> EX3
+
+    style N3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style N4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S1 fill:#1a237e,stroke:#1a237e,color:#fff
+    style S3 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style EX5 fill:#e8f5e9,stroke:#2e7d32
+    style GROSS fill:#ffebee,stroke:#c62828
+    style NET_CALC fill:#fafafa,stroke:#9e9e9e
+    style SETTLE fill:#fafafa,stroke:#9e9e9e
+    style EXAMPLE fill:#fafafa,stroke:#9e9e9e

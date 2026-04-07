@@ -1,0 +1,63 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    subgraph PHASE1["Phase 1 - Initial Dispute - Day 0 to 120"]
+        A["Cardholder contacts issuer<br/>Reports unauthorized charge,<br/>goods not received, or defect"]
+        B["Issuer evaluates claim<br/>Reviews transaction data,<br/>checks for prior resolution"]
+        C{"Valid dispute?"}
+        C1["Issuer provides provisional<br/>credit to cardholder"]
+        C2["Dispute rejected<br/>Cardholder informed"]
+    end
+
+    subgraph PHASE2["Phase 2 - Chargeback Filed - Day 1 to 30"]
+        D["Issuer files chargeback<br/>with reason code via network"]
+        E["Network routes chargeback<br/>to acquiring bank"]
+        F["Acquirer notifies merchant<br/>Merchant account debited<br/>for disputed amount plus fee"]
+    end
+
+    subgraph PHASE3["Phase 3 - Representment - Day 1 to 45"]
+        G{"Merchant responds?"}
+        H["Merchant submits representment<br/>with compelling evidence:<br/>signed receipt, delivery proof,<br/>AVS match, device fingerprint"]
+        I["Merchant accepts chargeback<br/>Funds returned to cardholder"]
+    end
+
+    subgraph PHASE4["Phase 4 - Review and Escalation"]
+        J["Issuer reviews evidence"]
+        K{"Issuer accepts<br/>representment?"}
+        L["Chargeback reversed<br/>Merchant re-credited"]
+        M["Pre-Arbitration filed<br/>Issuer challenges representment<br/>with additional evidence"]
+    end
+
+    subgraph PHASE5["Phase 5 - Arbitration - Final Decision"]
+        N["Network arbitration<br/>Visa or Mastercard reviews<br/>all evidence from both sides"]
+        O{"Network decision"}
+        P["Ruling favors merchant<br/>Chargeback reversed permanently"]
+        Q["Ruling favors cardholder<br/>Chargeback upheld<br/>Losing party pays arbitration fee<br/>USD 250 to USD 500"]
+    end
+
+    A --> B --> C
+    C -->|"Yes"| C1 --> D
+    C -->|"No"| C2
+
+    D --> E --> F --> G
+    G -->|"Yes, fights it"| H
+    G -->|"No, accepts loss"| I
+
+    H --> J --> K
+    K -->|"Yes"| L
+    K -->|"No"| M --> N --> O
+    O -->|"Merchant wins"| P
+    O -->|"Cardholder wins"| Q
+
+    style A fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style C1 fill:#e3f2fd,stroke:#1565c0
+    style L fill:#e8f5e9,stroke:#2e7d32
+    style P fill:#e8f5e9,stroke:#2e7d32
+    style Q fill:#ffebee,stroke:#c62828
+    style I fill:#ffebee,stroke:#c62828
+    style N fill:#1a237e,stroke:#1a237e,color:#fff
+    style PHASE1 fill:#fafafa,stroke:#9e9e9e
+    style PHASE2 fill:#fafafa,stroke:#9e9e9e
+    style PHASE3 fill:#fafafa,stroke:#9e9e9e
+    style PHASE4 fill:#fafafa,stroke:#9e9e9e
+    style PHASE5 fill:#fafafa,stroke:#9e9e9e

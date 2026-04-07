@@ -1,0 +1,63 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph TD
+    TITLE["Cross-Border EUR Payment:<br/>SEPA vs SWIFT"]
+
+    subgraph SEPA_PATH["SEPA Path"]
+        S1["Payer"]
+        S2["Payer PSP"]
+        S3["CSM - STEP2-T / TIPS"]
+        S4["Payee PSP"]
+        S5["Payee"]
+
+        S1 -->|"pain.001"| S2
+        S2 ==>|"pacs.008<br/>Direct routing"| S3
+        S3 ==>|"pacs.008"| S4
+        S4 -->|"Credit"| S5
+    end
+
+    subgraph SEPA_ATTR["SEPA Characteristics"]
+        SA1["1-2 hops only"]
+        SA2["EUR only"]
+        SA3["EUR 0-1 cost"]
+        SA4["D+1 or 9 seconds instant"]
+        SA5["ISO 20022 native"]
+        SA6["No intermediary fees"]
+        SA7["Full amount guaranteed"]
+    end
+
+    subgraph SWIFT_PATH["SWIFT Path"]
+        W1["Sender"]
+        W2["Sender Bank"]
+        W3["Correspondent 1"]
+        W4["Correspondent 2"]
+        W5["Receiver Bank"]
+        W6["Beneficiary"]
+
+        W1 -->|"Instruction"| W2
+        W2 -->|"MT103"| W3
+        W3 -->|"MT202"| W4
+        W4 -->|"Forward"| W5
+        W5 -->|"Credit"| W6
+    end
+
+    subgraph SWIFT_ATTR["SWIFT Characteristics"]
+        WA1["3-5 hops typical"]
+        WA2["Any currency worldwide"]
+        WA3["USD 30-500+ total cost"]
+        WA4["1-5 business days"]
+        WA5["MT or MX format"]
+        WA6["Each hop charges fees"]
+        WA7["Amount may be reduced"]
+    end
+
+    TITLE --- SEPA_PATH
+    TITLE --- SWIFT_PATH
+    SEPA_PATH --- SEPA_ATTR
+    SWIFT_PATH --- SWIFT_ATTR
+
+    style TITLE fill:#37474f,stroke:#263238,color:#ffffff,stroke-width:2px
+    style SEPA_PATH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SEPA_ATTR fill:#c8e6c9,stroke:#388e3c,stroke-width:1px
+    style SWIFT_PATH fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SWIFT_ATTR fill:#bbdefb,stroke:#1976d2,stroke-width:1px

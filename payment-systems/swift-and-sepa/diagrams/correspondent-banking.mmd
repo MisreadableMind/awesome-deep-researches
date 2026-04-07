@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph TD
+    subgraph NOSTRO_VOSTRO["Nostro-Vostro Account Relationship"]
+        direction LR
+        BANKA["Bank A<br/>Germany"]
+        ACCOUNT["USD Account<br/>held at Bank B"]
+        BANKB["Bank B<br/>United States"]
+
+        BANKA -->|"Sees as NOSTRO<br/>Our money held by you<br/>Asset on balance sheet"| ACCOUNT
+        BANKB -->|"Sees as VOSTRO<br/>Your money held by us<br/>Liability on balance sheet"| ACCOUNT
+    end
+
+    subgraph LORO["Third-Party View"]
+        BANKC["Bank C<br/>France"]
+        BANKC -.->|"Refers to this as LORO<br/>Their money held by you"| ACCOUNT
+    end
+
+    subgraph DIRECT["Direct Correspondent - Single Hop"]
+        direction LR
+        DA["Bank A<br/>Sender"]
+        DC["Correspondent Bank<br/>Holds nostro accounts<br/>for both banks"]
+        DB["Bank B<br/>Receiver"]
+
+        DA ==>|"1. SWIFT MT103"| DB
+        DA -->|"2. MT202 COV"| DC
+        DC -->|"3. Debit A nostro<br/>Credit B nostro"| DB
+    end
+
+    subgraph MULTI["Multi-Hop Chain - No Direct Relationship"]
+        direction LR
+        MA["Bank A<br/>Small bank<br/>Country X"]
+        MC1["Correspondent 1<br/>Regional bank<br/>Has nostro with A and C2"]
+        MC2["Correspondent 2<br/>Major global bank<br/>Has nostro with C1 and B"]
+        MB["Bank B<br/>Small bank<br/>Country Y"]
+
+        MA ==>|"Hop 1<br/>+ fees + time"| MC1
+        MC1 ==>|"Hop 2<br/>+ fees + time"| MC2
+        MC2 ==>|"Hop 3<br/>+ fees + time"| MB
+    end
+
+    style NOSTRO_VOSTRO fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style LORO fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style DIRECT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MULTI fill:#fff3e0,stroke:#e65100,stroke-width:2px

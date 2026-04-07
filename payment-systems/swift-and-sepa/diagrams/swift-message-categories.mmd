@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph LR
+    MT["SWIFT MT<br/>Message Types"]
+
+    MT --> MT0["MT0xx<br/>System Messages"]
+    MT --> MT1["MT1xx<br/>Customer Payments<br/>and Cheques"]
+    MT --> MT2["MT2xx<br/>Financial Institution<br/>Transfers"]
+    MT --> MT3["MT3xx<br/>Treasury Markets<br/>FX, Money Markets,<br/>Derivatives"]
+    MT --> MT4["MT4xx<br/>Collections and<br/>Cash Letters"]
+    MT --> MT5["MT5xx<br/>Securities<br/>Markets"]
+    MT --> MT6["MT6xx<br/>Precious Metals<br/>and Syndications"]
+    MT --> MT7["MT7xx<br/>Documentary Credits<br/>and Guarantees"]
+    MT --> MT8["MT8xx<br/>Travellers<br/>Cheques"]
+    MT --> MT9["MT9xx<br/>Cash Management<br/>and Status"]
+
+    MT1 --> MT103["MT103<br/>Customer Credit Transfer"]
+    MT1 --> MT101["MT101<br/>Request for Transfer"]
+    MT1 --> MT104["MT104<br/>Direct Debit"]
+
+    MT2 --> MT202["MT202<br/>FI Transfer"]
+    MT2 --> MT202C["MT202 COV<br/>Cover Payment"]
+
+    MT9 --> MT900["MT900<br/>Debit Confirmation"]
+    MT9 --> MT910["MT910<br/>Credit Confirmation"]
+    MT9 --> MT940["MT940<br/>End-of-Day Statement"]
+    MT9 --> MT942["MT942<br/>Intraday Report"]
+
+    style MT fill:#37474f,stroke:#263238,color:#ffffff,stroke-width:2px
+    style MT0 fill:#cfd8dc,stroke:#607d8b
+    style MT1 fill:#bbdefb,stroke:#1565c0
+    style MT2 fill:#bbdefb,stroke:#1565c0
+    style MT3 fill:#ffe0b2,stroke:#e65100
+    style MT4 fill:#d1c4e9,stroke:#4527a0
+    style MT5 fill:#f3e5f5,stroke:#6a1b9a
+    style MT6 fill:#fff9c4,stroke:#f9a825
+    style MT7 fill:#c8e6c9,stroke:#2e7d32
+    style MT8 fill:#ffccbc,stroke:#bf360c
+    style MT9 fill:#b2ebf2,stroke:#00838f

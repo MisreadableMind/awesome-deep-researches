@@ -1,0 +1,74 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    A["Card Inserted into Terminal<br/>Contact chip interface activated"]
+    B["Application Selection<br/>Terminal reads AIDs via PSE or AID list"]
+    C["Initiate Application Processing<br/>GET PROCESSING OPTIONS command"]
+    D["Read Application Data<br/>READ RECORD commands retrieve card data"]
+
+    subgraph ODA["Offline Data Authentication"]
+        E1["SDA - Static Data Authentication<br/>Verifies signed static data"]
+        E2["DDA - Dynamic Data Authentication<br/>Card generates unique signature"]
+        E3["CDA - Combined DDA with AC<br/>Strongest - combines auth with cryptogram"]
+    end
+
+    F{"Cardholder Verification Method"}
+    F1["Online PIN<br/>Encrypted PIN sent to issuer"]
+    F2["Offline PIN<br/>PIN verified by chip"]
+    F3["Signature<br/>Merchant verifies signature"]
+    F4["No CVM Required<br/>Below CVM limit"]
+
+    G["Terminal Risk Management<br/>Floor limit check, random selection,<br/>velocity check"]
+    H["Terminal Action Analysis<br/>Compare results to Terminal Action Codes"]
+
+    I{"Cryptogram Generation<br/>GENERATE AC Command"}
+    TC["TC - Transaction Certificate<br/>Offline Approved"]
+    ARQC["ARQC - Authorization Request Cryptogram<br/>Go Online for Authorization"]
+    AAC["AAC - Application Authentication Cryptogram<br/>Offline Declined"]
+
+    ONLINE["Online Authorization<br/>ARQC sent to issuer via network"]
+    ISSUER_RESP{"Issuer Response"}
+    APPROVE["Transaction Approved<br/>Issuer returns ARPC"]
+    DECLINE["Transaction Declined"]
+    COMPLETE["Transaction Complete"]
+
+    A --> B --> C --> D
+    D --> E1
+    D --> E2
+    D --> E3
+
+    E1 --> F
+    E2 --> F
+    E3 --> F
+
+    F --> F1
+    F --> F2
+    F --> F3
+    F --> F4
+
+    F1 --> G
+    F2 --> G
+    F3 --> G
+    F4 --> G
+
+    G --> H --> I
+
+    I -->|"Low risk offline"| TC
+    I -->|"Online required"| ARQC
+    I -->|"High risk offline"| AAC
+
+    TC --> COMPLETE
+    AAC --> DECLINE
+
+    ARQC --> ONLINE --> ISSUER_RESP
+    ISSUER_RESP -->|"Approved"| APPROVE --> COMPLETE
+    ISSUER_RESP -->|"Declined"| DECLINE
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style COMPLETE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DECLINE fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style ONLINE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style TC fill:#e8f5e9,stroke:#2e7d32
+    style AAC fill:#ffebee,stroke:#c62828
+    style ARQC fill:#fff3e0,stroke:#e65100
+    style ODA fill:#f3e5f5,stroke:#6a1b9a

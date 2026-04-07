@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    subgraph PROVISION["Part A - Token Provisioning - One-Time Setup"]
+        P1["User adds card to wallet<br/>Apple Pay, Google Pay, Samsung Pay"]
+        P2["Device captures PAN<br/>via camera or manual entry"]
+        P3["Wallet provider sends PAN<br/>to Token Service Provider"]
+        P4["TSP - Visa VTS or MC MDES<br/>Requests issuer approval"]
+        P5["Issuer performs ID and V<br/>May require additional verification<br/>via SMS, app push, or call"]
+        P6["TSP generates token<br/>Token mapped to PAN in Token Vault"]
+        P7["Token plus keys stored<br/>in device Secure Element"]
+    end
+
+    subgraph TRANSACTION["Part B - Token Transaction Flow"]
+        T1["User taps device at terminal<br/>Authenticates via Face ID or fingerprint"]
+        T2["Secure Element generates<br/>single-use dynamic cryptogram"]
+        T3["Terminal receives Token<br/>plus Cryptogram via NFC<br/>Real PAN never exposed"]
+        T4["Acquirer forwards Token<br/>plus Cryptogram to network"]
+        T5["Network de-tokenizes<br/>Token mapped back to real PAN<br/>via Token Vault lookup"]
+        T6["Issuer receives real PAN<br/>Validates cryptogram<br/>Authorizes transaction"]
+        T7["Response re-tokenized<br/>by network before returning"]
+        T8["Transaction approved<br/>Merchant sees only token<br/>PAN never leaves network"]
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+    T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7 --> T8
+
+    style P4 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style T5 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style T8 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P7 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PROVISION fill:#fafafa,stroke:#9e9e9e
+    style TRANSACTION fill:#fafafa,stroke:#9e9e9e

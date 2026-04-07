@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph TD
+    BIC["BIC / SWIFT Code<br/>DEUTDEFFXXX<br/>8 or 11 characters, ISO 9362"]
+
+    subgraph BREAKDOWN["BIC Structure Breakdown"]
+        direction LR
+
+        subgraph P1["Positions 1-4"]
+            BANK_CODE["DEUT<br/>Bank Code<br/>4 letters identifying<br/>the institution<br/>Deutsche Bank"]
+        end
+
+        subgraph P2["Positions 5-6"]
+            COUNTRY["DE<br/>Country Code<br/>ISO 3166-1 alpha-2<br/>Germany"]
+        end
+
+        subgraph P3["Positions 7-8"]
+            LOCATION["FF<br/>Location Code<br/>2 characters<br/>Frankfurt"]
+        end
+
+        subgraph P4["Positions 9-11"]
+            BRANCH["XXX<br/>Branch Code<br/>Optional, 3 characters<br/>XXX = Head Office"]
+        end
+    end
+
+    BIC --> BREAKDOWN
+
+    subgraph EXAMPLES["More Examples"]
+        EX1["CITIUS33XXX<br/>CITI = Citibank<br/>US = United States<br/>33 = New York<br/>XXX = Head Office"]
+        EX2["BSCHESMM<br/>BSCH = Banco Santander<br/>ES = Spain<br/>MM = Madrid<br/>No branch = Head Office"]
+        EX3["BOTKJPJTXXX<br/>BOTK = MUFG Bank<br/>JP = Japan<br/>JT = Tokyo<br/>XXX = Head Office"]
+    end
+
+    BREAKDOWN --- EXAMPLES
+
+    style BIC fill:#37474f,stroke:#263238,color:#ffffff,stroke-width:2px
+    style P1 fill:#bbdefb,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style P3 fill:#ffe0b2,stroke:#e65100,stroke-width:2px
+    style P4 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style EXAMPLES fill:#fafafa,stroke:#9e9e9e,stroke-width:1px
