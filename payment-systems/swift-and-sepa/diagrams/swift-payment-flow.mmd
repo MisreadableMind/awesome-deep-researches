@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph TD
+    subgraph SENDER["Sender Side"]
+        C1["Customer - Originator<br/>e.g. Maria in Madrid"]
+        SB["Sender Bank<br/>e.g. Banco Santander"]
+    end
+
+    subgraph SWIFT_NET["SWIFT Network - Secure Messaging"]
+        SN["SWIFTNet<br/>FIN / InterAct"]
+    end
+
+    subgraph CORRESPONDENT["Correspondent Banking Layer"]
+        CB["Correspondent Bank<br/>e.g. JPMorgan Chase NY"]
+        NA1["Nostro Account<br/>Sender Bank funds"]
+        NA2["Nostro Account<br/>Receiver Bank funds"]
+    end
+
+    subgraph SETTLE["Settlement System"]
+        SS["Fedwire / CHIPS / T2 / CHAPS<br/>Central Bank Money"]
+    end
+
+    subgraph RECEIVER["Receiver Side"]
+        RB["Receiver Bank<br/>e.g. MUFG Bank Tokyo"]
+        C2["Customer - Beneficiary<br/>e.g. Kenji in Tokyo"]
+    end
+
+    C1 -->|"Payment instruction"| SB
+
+    SB ==>|"MT103 - Customer Credit Transfer<br/>MESSAGE PATH"| SN
+    SN ==>|"MT103 delivered"| RB
+
+    SB -->|"MT202 COV - Cover Payment<br/>MESSAGE PATH"| SN
+    SN -->|"MT202 COV delivered"| CB
+
+    CB -.->|"Debit"| NA1
+    CB -.->|"Credit"| NA2
+    CB ==>|"MONEY PATH<br/>Settlement instruction"| SS
+    SS ==>|"Funds transferred<br/>in central bank money"| RB
+
+    RB -->|"Credit account"| C2
+
+    style SWIFT_NET fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SETTLE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CORRESPONDENT fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style SENDER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style RECEIVER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

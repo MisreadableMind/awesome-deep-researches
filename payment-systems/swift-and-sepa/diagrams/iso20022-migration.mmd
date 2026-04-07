@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#424242'}}}%%
+
+graph LR
+    subgraph LEGACY["Legacy MT Format - Being Phased Out"]
+        MT103["MT103<br/>Customer Credit Transfer"]
+        MT202["MT202<br/>FI Credit Transfer"]
+        MT202C["MT202 COV<br/>Cover Payment"]
+        MT900["MT900<br/>Debit Confirmation"]
+        MT910["MT910<br/>Credit Confirmation"]
+        MT940["MT940<br/>End-of-Day Statement"]
+        MT942["MT942<br/>Intraday Statement"]
+    end
+
+    subgraph MODERN["ISO 20022 MX Format"]
+        PACS008["pacs.008<br/>Customer Credit Transfer"]
+        PACS009["pacs.009<br/>FI Credit Transfer"]
+        PACS009C["pacs.009 cover<br/>Cover Payment"]
+        CAMT054D["camt.054<br/>Debit Notification"]
+        CAMT054C["camt.054<br/>Credit Notification"]
+        CAMT053["camt.053<br/>Bank-to-Customer Statement"]
+        CAMT052["camt.052<br/>Intraday Report"]
+    end
+
+    MT103 ==>|"Migrates to"| PACS008
+    MT202 ==>|"Migrates to"| PACS009
+    MT202C ==>|"Migrates to"| PACS009C
+    MT900 ==>|"Migrates to"| CAMT054D
+    MT910 ==>|"Migrates to"| CAMT054C
+    MT940 ==>|"Migrates to"| CAMT053
+    MT942 ==>|"Migrates to"| CAMT052
+
+    subgraph BENEFITS["Key Benefits of ISO 20022"]
+        B1["Rich structured data<br/>XML format"]
+        B2["Unicode support<br/>All languages"]
+        B3["9000+ char remittance<br/>vs 140 char in MT"]
+        B4["LEI and structured<br/>party identifiers"]
+        B5["Structured addresses<br/>Mandatory from Nov 2026"]
+        B6["Global interoperability<br/>SWIFT, SEPA, Fedwire, T2"]
+    end
+
+    MODERN --- BENEFITS
+
+    style LEGACY fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style MODERN fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style BENEFITS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

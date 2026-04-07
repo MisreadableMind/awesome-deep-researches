@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#424242'}}}%%
+
+graph TD
+    subgraph SETUP["Pre-requisite - Mandate"]
+        M1["Debtor signs mandate<br/>authorizing Creditor"]
+        M2["Mandate stored<br/>by Creditor"]
+        M1 --> M2
+    end
+
+    subgraph FLOW["SDD Core Payment Flow"]
+        PN["1. Pre-notification<br/>Creditor notifies Debtor<br/>at least 14 days before"]
+        CS["2. Collection Submission<br/>Creditor submits pain.008<br/>to Creditor PSP"]
+        CP["3. Creditor PSP Processing<br/>Validates instruction<br/>Forwards pacs.003 to CSM"]
+        CSM["4. CSM Clearing<br/>STEP2-T routes collection<br/>to Debtor PSP"]
+        DP["5. Debtor PSP Processing<br/>Checks account, funds,<br/>no opposition filed"]
+        DA["6. Debit Account<br/>Debtor account debited"]
+        SET["7. Settlement<br/>Via T2 in central bank money"]
+        CC["8. Creditor Credited<br/>Creditor PSP credits<br/>Creditor account on due date"]
+
+        PN --> CS
+        CS --> CP
+        CP --> CSM
+        CSM --> DP
+        DP --> DA
+        DA --> SET
+        SET --> CC
+    end
+
+    M2 --> PN
+
+    subgraph RTXN["R-Transactions - Exception Handling"]
+        REJ["Reject<br/>Before settlement<br/>Account closed, invalid IBAN"]
+        RET["Return<br/>After settlement<br/>Insufficient funds<br/>Within 5 TARGET days"]
+        REF["Refund<br/>Debtor requests<br/>Within 8 weeks authorized<br/>Within 13 months unauthorized"]
+        REV["Reversal<br/>Creditor-initiated<br/>Duplicate or error"]
+    end
+
+    DP -.->|"Cannot process"| REJ
+    DA -.->|"Post-debit issue"| RET
+    CC -.->|"Debtor disputes"| REF
+    CC -.->|"Creditor error"| REV
+
+    style SETUP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style FLOW fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style RTXN fill:#ffebee,stroke:#c62828,stroke-width:2px

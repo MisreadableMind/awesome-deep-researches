@@ -1,0 +1,23 @@
+{
+  "name": "awesome-deep-researches",
+  "version": "1.0.0",
+  "description": "Stop spending compute on something someone already researched. A collection of fundamental deep-dive researches on how technology and financial systems actually work.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MisreadableMind/awesome-deep-researches.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MisreadableMind/awesome-deep-researches/issues"
+  },
+  "homepage": "https://github.com/MisreadableMind/awesome-deep-researches#readme",
+  "dependencies": {
+    "marked": "^18.0.0"
+  }
+}

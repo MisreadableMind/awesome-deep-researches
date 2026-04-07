@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    subgraph NFC_FLOW["Contactless NFC Tap-to-Pay Flow - Under 500ms"]
+        A["Terminal activates<br/>RF field at 13.56 MHz"]
+        B["Card or device enters<br/>RF field range - 0 to 4 cm"]
+        C["PPSE Negotiation<br/>Terminal sends SELECT PPSE command<br/>Card responds with supported AIDs"]
+        D["Application Selection<br/>Terminal selects AID<br/>Visa: A0000000031010<br/>MC: A0000000041010"]
+        E["GET PROCESSING OPTIONS<br/>Terminal sends PDOL data<br/>Card returns AIP and AFL"]
+        F["Read Application Data<br/>Streamlined - only 2 to 4 APDUs<br/>vs 10+ for contact chip"]
+        G["Card Risk Management<br/>Check CVM limit and<br/>transaction counter"]
+        H{"CVM Required?"}
+        H1["No CVM needed<br/>Below contactless CVM limit"]
+        H2["Device CVM - CDCVM<br/>Face ID, fingerprint, or PIN<br/>already verified on device"]
+        I["Cryptogram Generation<br/>Card or SE generates<br/>unique dynamic cryptogram"]
+        J["Transaction Data Transmitted<br/>Token or PAN plus cryptogram<br/>sent to terminal via NFC"]
+        K["Online Authorization<br/>Standard network auth flow"]
+    end
+
+    subgraph COMPARE["Speed Comparison"]
+        S1["Contact Chip EMV<br/>Card must stay inserted<br/>3 to 5 seconds<br/>10+ APDU exchanges"]
+        S2["Contactless NFC<br/>Quick tap and go<br/>Under 500 milliseconds<br/>2 to 4 APDU exchanges"]
+        S3["Key Difference<br/>Contactless skips some<br/>offline data auth steps<br/>and uses streamlined flow"]
+    end
+
+    A --> B --> C --> D --> E --> F --> G --> H
+    H -->|"Below limit"| H1
+    H -->|"Above limit or device"| H2
+    H1 --> I
+    H2 --> I
+    I --> J --> K
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style I fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S1 fill:#ffebee,stroke:#c62828
+    style S2 fill:#e8f5e9,stroke:#2e7d32
+    style S3 fill:#fff3e0,stroke:#e65100
+    style NFC_FLOW fill:#fafafa,stroke:#9e9e9e
+    style COMPARE fill:#fafafa,stroke:#9e9e9e

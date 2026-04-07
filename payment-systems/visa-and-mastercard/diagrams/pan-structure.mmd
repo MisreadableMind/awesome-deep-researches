@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    subgraph PAN["16-Digit Card Number Structure - PAN"]
+        direction LR
+        FULL["Example: 4532 0151 2345 6789"]
+    end
+
+    subgraph SEGMENTS["PAN Segments Breakdown"]
+        SEG1["Digits 1 to 6-8<br/>IIN or BIN<br/>Issuer Identification Number<br/>Bank Identification Number"]
+        SEG2["Digits 7-9 to 15<br/>Individual Account Number<br/>Unique to each cardholder<br/>Assigned by issuing bank"]
+        SEG3["Digit 16<br/>Check Digit<br/>Calculated via Luhn algorithm<br/>Catches entry errors"]
+    end
+
+    subgraph MII["First Digit - Major Industry Identifier"]
+        M1["1, 2 = Airlines"]
+        M2["3 = Travel and Entertainment<br/>Amex: 34xx, 37xx<br/>Diners: 36xx"]
+        M3["4 = Visa<br/>All Visa cards start with 4"]
+        M4["5 = Mastercard<br/>Range: 5100-5599<br/>New range: 2221-2720"]
+        M5["6 = Discover and UnionPay<br/>Discover: 6011, 644-649, 65"]
+    end
+
+    subgraph BIN_EXAMPLES["BIN Examples"]
+        B1["4532 01xx = Visa issued by<br/>a specific bank branch"]
+        B2["5425 76xx = Mastercard World<br/>issued by specific issuer"]
+        B3["3782 82xx = American Express<br/>Centurion card"]
+    end
+
+    subgraph LUHN["Luhn Algorithm - Check Digit Validation"]
+        L1["Step 1: Double every second digit<br/>from right, subtract 9 if over 9"]
+        L2["Step 2: Sum all digits"]
+        L3["Step 3: Valid if sum mod 10 = 0"]
+        L4["Purpose: Catches single digit errors<br/>and most transposition errors"]
+    end
+
+    FULL --> SEG1
+    FULL --> SEG2
+    FULL --> SEG3
+
+    SEG1 --> MII
+    SEG3 --> LUHN
+
+    style FULL fill:#1a237e,stroke:#1a237e,color:#fff
+    style SEG1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SEG2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SEG3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M3 fill:#1a237e,stroke:#1a237e,color:#fff
+    style M4 fill:#ff6f00,stroke:#e65100,color:#fff
+    style PAN fill:#fafafa,stroke:#9e9e9e
+    style SEGMENTS fill:#fafafa,stroke:#9e9e9e
+    style MII fill:#fafafa,stroke:#9e9e9e
+    style BIN_EXAMPLES fill:#fafafa,stroke:#9e9e9e
+    style LUHN fill:#fafafa,stroke:#9e9e9e

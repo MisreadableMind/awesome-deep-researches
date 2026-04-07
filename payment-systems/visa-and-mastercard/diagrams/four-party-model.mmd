@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TD
+    subgraph NETWORK["Card Network - Visa or Mastercard"]
+        NET["Network Switch<br/>Routes messages, sets rules,<br/>manages interchange"]
+    end
+
+    CH["Cardholder<br/>Consumer with issued card"]
+    ISSUER["Issuing Bank<br/>Issues card, extends credit,<br/>approves or declines"]
+    MERCHANT["Merchant<br/>Accepts card payments"]
+    ACQUIRER["Acquiring Bank<br/>Processes merchant transactions,<br/>deposits funds"]
+
+    CH -->|"1. Presents card"| MERCHANT
+    MERCHANT -->|"2. Auth request"| ACQUIRER
+    ACQUIRER -->|"3. Routes via network"| NET
+    NET -->|"4. Forwards to issuer"| ISSUER
+    ISSUER -->|"5. Approve or Decline"| NET
+    NET -->|"6. Response routed back"| ACQUIRER
+    ACQUIRER -->|"7. Auth response"| MERCHANT
+    MERCHANT -->|"8. Receipt to customer"| CH
+
+    ACQUIRER -.->|"Interchange fee ~1.5-2.5%<br/>paid to Issuer"| ISSUER
+    MERCHANT -.->|"MDR ~2-3%<br/>paid to Acquirer"| ACQUIRER
+    ACQUIRER -.->|"Assessment fee ~0.13-0.15%"| NET
+    ISSUER -.->|"Assessment fee ~0.13-0.15%"| NET
+
+    style NETWORK fill:#1a237e,stroke:#1a237e,color:#fff
+    style NET fill:#1a237e,stroke:#1a237e,color:#fff
+    style ISSUER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ACQUIRER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MERCHANT fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart TD
+    subgraph ENROLL["Provisioning - Adding Card to Apple Pay"]
+        E1["User opens Wallet app<br/>Scans card or enters PAN manually"]
+        E2["Apple sends encrypted PAN<br/>to card network TSP"]
+        E3["TSP: Visa VTS or MC MDES<br/>Requests issuer approval<br/>via ID and V process"]
+        E4["Issuer may require<br/>additional verification:<br/>SMS code, bank app push,<br/>or customer service call"]
+        E5["Issuer approves tokenization"]
+        E6["TSP generates DAN<br/>Device Account Number<br/>A token mapped to real PAN"]
+        E7["DAN plus token keys<br/>provisioned into iPhone<br/>Secure Element chip"]
+        E8["Card appears in Wallet<br/>Ready for transactions"]
+    end
+
+    subgraph PAY["Transaction - Paying with Apple Pay"]
+        T1["User double-clicks side button<br/>or holds near terminal"]
+        T2["Face ID or Touch ID<br/>authenticates user on device"]
+        T3["Secure Element activated<br/>DAN retrieved from SE"]
+        T4["SE generates single-use<br/>dynamic security code<br/>using token cryptographic key"]
+        T5["NFC transmits to terminal:<br/>DAN plus dynamic cryptogram<br/>Real PAN never leaves device"]
+        T6["Acquirer sends DAN<br/>plus cryptogram to network"]
+        T7["Network de-tokenizes<br/>DAN mapped to real PAN<br/>Validates cryptogram"]
+        T8["Issuer receives real PAN<br/>Authorizes transaction<br/>using standard auth rules"]
+        T9["Response re-tokenized<br/>Sent back through network"]
+        T10["Terminal shows Approved<br/>Merchant only ever sees DAN"]
+    end
+
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6 --> E7 --> E8
+    T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7 --> T8 --> T9 --> T10
+
+    style E3 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style E7 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style T4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style T7 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style T10 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ENROLL fill:#fafafa,stroke:#9e9e9e
+    style PAY fill:#fafafa,stroke:#9e9e9e

@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0'}}}%%
+
+flowchart LR
+    subgraph PURCHASE["Transaction: USD 100.00 Purchase"]
+        CUST["Customer<br/>Pays USD 100.00"]
+        MERCH["Merchant<br/>Receives USD 97.71"]
+    end
+
+    subgraph MDR_SPLIT["MDR Breakdown: USD 2.29 total"]
+        IF["Interchange Fee<br/>USD 1.75 - 76.4% of MDR<br/>Set by card network"]
+        AF["Assessment Fee<br/>USD 0.14 - 6.1% of MDR<br/>Scheme or network fee"]
+        AM["Acquirer Markup<br/>USD 0.40 - 17.5% of MDR<br/>Processing margin"]
+    end
+
+    subgraph RECIPIENTS["Fee Recipients"]
+        ISSUER["Issuing Bank<br/>Receives USD 1.75<br/>Largest share - funds rewards"]
+        NETWORK["Card Network<br/>Visa or Mastercard<br/>Receives USD 0.14"]
+        ACQUIRER["Acquiring Bank<br/>Keeps USD 0.40"]
+    end
+
+    CUST -->|"Pays USD 100.00"| MERCH
+    MERCH ==>|"MDR: USD 2.29<br/>2.29% of sale"| ACQUIRER
+
+    ACQUIRER -->|"Interchange: USD 1.75"| ISSUER
+    ACQUIRER -->|"Assessment: USD 0.14"| NETWORK
+    ACQUIRER -.->|"Retains markup: USD 0.40"| AM
+
+    IF ---|"Largest component"| ISSUER
+    AF ---|"Network revenue"| NETWORK
+    AM ---|"Acquirer revenue"| ACQUIRER
+
+    style CUST fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MERCH fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ISSUER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style NETWORK fill:#1a237e,stroke:#1a237e,color:#fff
+    style ACQUIRER fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style IF fill:#e3f2fd,stroke:#1565c0
+    style AF fill:#ede7f6,stroke:#4527a0
+    style AM fill:#fce4ec,stroke:#880e4f

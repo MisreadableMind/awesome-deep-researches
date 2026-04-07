@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0', 'noteBkgColor': '#fff3e0'}}}%%
+
+sequenceDiagram
+    participant CARD as Card<br/>Chip or NFC
+    participant POS as POS Terminal
+    participant GW as Payment Gateway
+    participant ACQP as Acquirer Processor
+    participant SW as Network Switch<br/>VisaNet or Banknet
+    participant ISSP as Issuer Processor
+    participant ISS as Issuing Bank
+
+    Note over CARD,ISS: ISO 8583 Authorization Request - MTI 0100
+
+    CARD->>POS: Card data, cryptogram, AID
+    POS->>POS: Build ISO 8583 message<br/>MTI 0100 with PAN, amount,<br/>MCC, terminal ID, entry mode
+
+    POS->>GW: Authorization request over TLS
+    GW->>ACQP: Forward with gateway metadata
+
+    ACQP->>ACQP: Validate merchant ID<br/>Check merchant status<br/>Append acquirer BIN
+
+    ACQP->>SW: Route based on card BIN<br/>4xxx to VisaNet<br/>51-55xx to Banknet
+
+    SW->>SW: Validate message format<br/>Identify issuer from BIN table<br/>Run fraud scoring in under 1ms<br/>Append risk score to message
+
+    SW->>ISSP: Forward to issuer processor
+    ISSP->>ISS: Apply issuer decision rules
+
+    ISS->>ISS: Check account status<br/>Verify available balance or credit<br/>Run fraud models<br/>Check velocity limits<br/>Validate EMV cryptogram
+
+    Note over CARD,ISS: ISO 8583 Authorization Response - MTI 0110
+
+    ISS-->>ISSP: Decision plus response code<br/>Approval code if approved
+    ISSP-->>SW: Response with auth code
+    SW-->>SW: Log transaction<br/>Append network reference ID
+    SW-->>ACQP: Forward response
+    ACQP-->>GW: Response with auth code
+    GW-->>POS: Authorization result
+    POS-->>CARD: Display approved or declined
+
+    Note over CARD,ISS: Total round trip typically 1-3 seconds end to end

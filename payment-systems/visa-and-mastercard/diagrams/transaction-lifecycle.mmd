@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'actorBkg': '#e3f2fd', 'actorBorder': '#1565c0'}}}%%
+
+sequenceDiagram
+    participant CH as Cardholder
+    participant POS as POS Terminal
+    participant ACQ as Acquirer Processor
+    participant NET as Card Network<br/>VisaNet or Banknet
+    participant ISS as Issuing Bank
+
+    Note over CH,ISS: PHASE 1 - AUTHORIZATION - Real-time, 1-3 seconds
+
+    CH->>POS: Tap, insert, or swipe card
+    POS->>POS: Read card data via EMV, NFC, or magstripe
+    POS->>ACQ: ISO 8583 MTI 0100 Authorization Request
+    ACQ->>ACQ: Validate merchant, append acquirer data
+    ACQ->>NET: Route based on BIN prefix
+    NET->>NET: Format validation, fraud scoring
+    NET->>ISS: Forward authorization request
+    ISS->>ISS: Check funds, fraud rules, velocity limits
+    ISS-->>NET: Authorization Response - Approve or Decline
+    NET-->>ACQ: Forward response with auth code
+    ACQ-->>POS: Authorization response plus approval code
+    POS-->>CH: Display Approved or Declined, print receipt
+
+    Note over CH,ISS: PHASE 2 - CLEARING - Batch processing, end of day
+
+    POS->>ACQ: Batch file of all transactions for the day
+    ACQ->>NET: Submit clearing file - Visa TC05 or MC IPM
+    NET->>NET: Match auths to clearing records, calculate interchange
+    NET->>ISS: Deliver clearing records with interchange amounts
+
+    Note over CH,ISS: PHASE 3 - SETTLEMENT - T+1 or T+2 business days
+
+    ISS->>NET: Fund net settlement position
+    NET->>NET: Calculate net positions across all members
+    NET->>ACQ: Disburse net settlement amount
+    ACQ->>POS: Fund merchant account minus MDR fees
+    ISS->>CH: Post transaction to cardholder statement

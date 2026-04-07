@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#424242'}}}%%
+
+graph LR
+    subgraph TIMELINE["SCT Inst - 5-7-9 Second Processing Timeline"]
+        direction LR
+
+        T0["T+0s<br/>RECEIPT<br/>Payer PSP receives<br/>payment instruction"]
+
+        T5["T+5s MAX<br/>PSP PROCESSING<br/>Payer PSP validates,<br/>debits payer account,<br/>forwards to CSM"]
+
+        T7["T+7s MAX<br/>CSM CLEARING<br/>CSM clears payment,<br/>routes to Payee PSP,<br/>initiates settlement"]
+
+        T9["T+9s MAX<br/>BENEFICIARY CREDITED<br/>Payee PSP credits<br/>beneficiary account,<br/>confirmation sent back"]
+
+        T0 ==>|"0 to 5 seconds<br/>Payer PSP window"| T5
+        T5 ==>|"5 to 7 seconds<br/>CSM window"| T7
+        T7 ==>|"7 to 9 seconds<br/>Payee PSP window"| T9
+    end
+
+    subgraph DETAILS["Key Characteristics"]
+        D1["Available 24/7/365<br/>Including weekends and holidays"]
+        D2["Settlement in central bank money<br/>Via TIPS or RT1"]
+        D3["Maximum EUR 999,999,999.99<br/>Raised from EUR 100,000 in 2025"]
+        D4["Irrevocable once confirmed<br/>No recall mechanism"]
+        D5["Fees must not exceed<br/>standard SCT fees"]
+    end
+
+    TIMELINE --- DETAILS
+
+    style T0 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style T5 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T7 fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style T9 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TIMELINE fill:#fafafa,stroke:#bdbdbd,stroke-width:1px
+    style DETAILS fill:#fafafa,stroke:#9e9e9e,stroke-width:1px
