@@ -1,0 +1,62 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Customer[Customer<br/>Individual, Corporate,<br/>Correspondent Bank]
+
+    subgraph FI [Financial Institution]
+        BSAOfficer[BSA/AML Officer<br/>Program owner]
+        KYCTeam[KYC Team<br/>Onboarding, CDD, EDD]
+        AMLTeam[AML Investigators<br/>Alert review, SAR filing]
+        SanctionsTeam[Sanctions Team<br/>Screening, OFAC hits]
+        FIU_Internal[Financial Intelligence<br/>Unit - Internal]
+    end
+
+    subgraph RegTech [Technology Providers]
+        IVP[Identity Verification<br/>Jumio, Onfido, Socure]
+        TMS[Transaction Monitoring<br/>NICE Actimize, Verafin, SAS]
+        Screening[Screening Platform<br/>Refinitiv, Dow Jones]
+        Analytics[Blockchain Analytics<br/>Chainalysis, Elliptic]
+    end
+
+    subgraph Government [Government / Regulators]
+        FIU[FIU<br/>FinCEN, NCA, TRACFIN]
+        Regulators[Banking Regulators<br/>OCC, FDIC, FCA, BaFin]
+        OFAC_Gov[OFAC / Sanctions Authority<br/>EU Council, HMT]
+        LawEnforce[Law Enforcement<br/>FBI, IRS-CI, Europol]
+        FATF_Gov[FATF<br/>International standards]
+    end
+
+    subgraph DataProviders [Data Providers]
+        SanctionsLists[Sanctions Lists<br/>SDN, EU, UN]
+        PEPData[PEP Databases]
+        CreditBureau[Credit Bureaus<br/>Equifax, Experian]
+        CorpRegistry[Corporate Registries<br/>Beneficial ownership]
+    end
+
+    Customer -->|Opens account| KYCTeam
+    KYCTeam -->|Verifies via| IVP
+    KYCTeam -->|Screens via| Screening
+    KYCTeam -.Risk assessment.-> BSAOfficer
+
+    Customer -->|Transacts| TMS
+    TMS -->|Generates alerts| AMLTeam
+    AMLTeam -->|Files SARs| FIU
+    AMLTeam -->|Escalates| BSAOfficer
+
+    SanctionsTeam -->|Screens against| SanctionsLists
+    OFAC_Gov -->|Publishes lists| SanctionsLists
+
+    FIU -->|Intelligence| LawEnforce
+    Regulators -.Examines.-> BSAOfficer
+    FATF_Gov -.Sets standards.-> Regulators
+
+    Screening -.Pulls data.-> PEPData
+    IVP -.Verifies against.-> CreditBureau
+    KYCTeam -.Checks.-> CorpRegistry
+
+    Analytics -.Traces crypto.-> AMLTeam
+
+    style Customer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style BSAOfficer fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style FIU fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style FATF_Gov fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

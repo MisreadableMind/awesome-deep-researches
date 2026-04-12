@@ -1,0 +1,86 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Channels [Customer Channels]
+        Mobile[Mobile App]
+        Web[Web Banking]
+        Branch[Branch / In-Person]
+        API[API / Partner]
+    end
+
+    subgraph Identity [Identity Verification Layer]
+        DocVerify[Document Verification<br/>OCR, NFC, template match]
+        Biometric[Biometric Matching<br/>Facial recognition, liveness]
+        DBVerify[Database Verification<br/>Credit bureau, electoral, utility]
+    end
+
+    subgraph Core [Core Banking / Data Layer]
+        CBS[Core Banking System<br/>Customer master, accounts]
+        PaySys[Payment Systems<br/>Wire, ACH, card, SWIFT]
+        DataLake[Data Lake<br/>Unified customer + transaction data]
+    end
+
+    subgraph Compliance [Compliance Platform]
+        TMS[Transaction Monitoring<br/>NICE Actimize / Verafin / SAS]
+        ScreenPlatform[Screening Platform<br/>Refinitiv / Dow Jones]
+        CaseMS[Case Management<br/>Investigation workflow]
+        RiskEngine[Risk Scoring Engine<br/>Customer risk rating]
+        SARFiling[SAR / CTR Filing<br/>FinCEN BSA E-Filing]
+    end
+
+    subgraph External [External Data & Lists]
+        OFAC[OFAC SDN List]
+        EU_UN[EU / UN Sanctions]
+        PEP[PEP Databases]
+        AdverseMedia[Adverse Media Feeds]
+        CorpReg[Corporate Registries<br/>Beneficial ownership]
+        BlockchainAn[Blockchain Analytics<br/>Chainalysis, Elliptic]
+    end
+
+    subgraph ML [ML / Analytics Layer]
+        AlertScoring[Alert Scoring Model]
+        AnomalyDet[Anomaly Detection]
+        NetworkGraph[Network / Graph Analytics]
+        NLP[NLP / LLM<br/>Adverse media, SAR drafting]
+    end
+
+    subgraph Reporting [Reporting & Governance]
+        RegReport[Regulatory Reporting<br/>SARs, CTRs, 314a]
+        Dashboard[Dashboards & MI<br/>Alert volumes, STP rates]
+        Audit[Audit Trail<br/>Full investigation history]
+    end
+
+    Channels --> Identity
+    Identity --> CBS
+    CBS --> DataLake
+    PaySys --> DataLake
+
+    DataLake --> TMS
+    DataLake --> ScreenPlatform
+    DataLake --> RiskEngine
+
+    ScreenPlatform -.queries.-> OFAC
+    ScreenPlatform -.queries.-> EU_UN
+    ScreenPlatform -.queries.-> PEP
+    ScreenPlatform -.queries.-> AdverseMedia
+    Identity -.queries.-> CorpReg
+    TMS -.queries.-> BlockchainAn
+
+    TMS --> CaseMS
+    ScreenPlatform --> CaseMS
+    RiskEngine --> CaseMS
+    CaseMS --> SARFiling
+
+    TMS --> AlertScoring
+    TMS --> AnomalyDet
+    TMS --> NetworkGraph
+    AdverseMedia --> NLP
+    CaseMS --> NLP
+
+    SARFiling --> RegReport
+    CaseMS --> Dashboard
+    CaseMS --> Audit
+
+    style Compliance fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TMS fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style ML fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

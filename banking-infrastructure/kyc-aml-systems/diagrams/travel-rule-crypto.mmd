@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e1f5fe', 'primaryBorderColor': '#01579b', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Sender as Sender<br/>(Customer)
+    participant VASP_A as Originating VASP<br/>(e.g. Coinbase)
+    participant Protocol as Travel Rule Protocol<br/>(TRISA / Notabene / TRP)
+    participant VASP_B as Beneficiary VASP<br/>(e.g. Kraken)
+    participant Receiver as Receiver<br/>(Customer)
+    participant Blockchain as Blockchain<br/>(BTC / ETH / etc.)
+
+    Sender->>VASP_A: Initiate transfer of<br/>2 BTC to Receiver's address
+
+    Note over VASP_A: Transfer > threshold<br/>(1,000 USD in EU,<br/>3,000 USD in US)<br/>Travel Rule applies
+
+    VASP_A->>VASP_A: Collect originator info:<br/>Name, account/wallet,<br/>address, DOB, ID number
+
+    VASP_A->>VASP_A: Identify counterparty VASP<br/>(address attribution via<br/>Chainalysis / Elliptic)
+
+    VASP_A->>Protocol: Send Travel Rule message<br/>Originator: John Doe<br/>Account: 0xABC...<br/>Beneficiary: Jane Smith<br/>Amount: 2 BTC
+
+    Protocol->>VASP_B: Forward originator info
+
+    VASP_B->>VASP_B: Verify beneficiary:<br/>Jane Smith is our customer?<br/>Screen originator against<br/>sanctions lists
+
+    alt Screening clear
+        VASP_B-->>Protocol: ACCEPT
+        Protocol-->>VASP_A: Transfer approved
+
+        VASP_A->>Blockchain: Broadcast transaction
+        Blockchain-->>VASP_B: Transaction confirmed
+        VASP_B->>Receiver: Credit 2 BTC
+    end
+
+    alt Screening hit or rejected
+        VASP_B-->>Protocol: REJECT (reason)
+        Protocol-->>VASP_A: Transfer rejected
+        VASP_A-->>Sender: Transfer blocked
+    end
+
+    Note over VASP_A,VASP_B: Both VASPs must retain<br/>originator and beneficiary info<br/>for 5+ years
+
+    Note over Blockchain: Blockchain transaction is<br/>separate from Travel Rule<br/>message exchange.<br/>Travel Rule adds an<br/>off-chain compliance layer.

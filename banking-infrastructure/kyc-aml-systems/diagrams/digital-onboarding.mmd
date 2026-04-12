@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e1f5fe', 'primaryBorderColor': '#01579b', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant User as User (Mobile App)
+    participant App as App Frontend
+    participant IDV as Identity Verification<br/>(Jumio / Onfido / Socure)
+    participant Screen as Screening Platform
+    participant Risk as Risk Engine
+    participant CBS as Core Banking System
+    participant Analyst as KYC Analyst
+
+    User->>App: Enter personal details<br/>(name, DOB, address, SSN)
+    App->>IDV: Submit ID document image
+
+    IDV->>IDV: OCR extraction<br/>Template matching<br/>Security feature check<br/>NFC chip read (if passport)
+    IDV-->>App: Document verified
+
+    App->>User: Take selfie video
+    User->>App: Selfie captured
+    App->>IDV: Submit selfie
+
+    IDV->>IDV: Liveness detection<br/>(head turn, blink, 3D depth)<br/>Face match vs ID photo
+    IDV-->>App: Biometric matched (98.5% confidence)
+
+    App->>IDV: Request database verification
+    IDV->>IDV: Cross-reference:<br/>Credit bureau, electoral roll,<br/>utility records, SSA
+    IDV-->>App: Identity confirmed
+
+    App->>Screen: Screen against lists
+    Screen->>Screen: OFAC SDN<br/>EU / UN sanctions<br/>PEP databases<br/>Adverse media
+    Screen-->>App: CLEAR (no hits)
+
+    App->>Risk: Calculate risk score
+    Risk->>Risk: Geography: low<br/>Product: standard<br/>PEP: no<br/>Industry: salaried<br/>Score: LOW
+    Risk-->>App: Risk = LOW
+
+    alt Low risk - auto-approve
+        App->>CBS: Create account
+        CBS-->>App: Account number assigned
+        App-->>User: Account opened!<br/>< 5 minutes total
+    end
+
+    alt High risk or screening hit
+        App->>Analyst: Refer for manual review
+        Analyst->>Analyst: EDD investigation<br/>Source of wealth<br/>Additional documentation
+        Analyst-->>App: Approved / Declined
+    end
+
+    Note over User,CBS: STP rate target: 70-90%<br/>for low-risk retail customers

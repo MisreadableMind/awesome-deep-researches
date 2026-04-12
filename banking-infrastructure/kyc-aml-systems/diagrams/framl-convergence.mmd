@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Data [Shared Data Layer]
+        Transactions[All Transactions<br/>Wire, ACH, card, cash, crypto]
+        CustomerData[Customer Profiles<br/>KYC data, risk rating,<br/>behavioral history]
+        External[External Data<br/>Device, IP, geolocation,<br/>sanctions, PEP, credit]
+    end
+
+    subgraph Traditional [Traditional: Separate Silos]
+        direction LR
+        subgraph FraudSilo [Fraud Team]
+            FraudRules[Fraud Rules Engine<br/>Velocity checks,<br/>device anomaly]
+            FraudML[Fraud ML Models<br/>Real-time scoring]
+            FraudInv[Fraud Investigators]
+        end
+        subgraph AMLSilo [AML Team]
+            AMLRules[AML Rules Engine<br/>Structuring, layering,<br/>high-risk geo]
+            AMLML[AML ML Models<br/>Behavioral analytics]
+            AMLInv[AML Investigators]
+        end
+        Duplicate[Duplicate alerts<br/>Duplicate data<br/>Missed connections]
+    end
+
+    subgraph FRAML [FRAML: Converged Platform]
+        UnifiedEngine[Unified Detection Engine<br/>Fraud + AML rules and models<br/>in single platform]
+        SharedAlerts[Shared Alert Queue<br/>Deduplicated, prioritized]
+        UnifiedCase[Unified Case Management<br/>Full customer view]
+        SharedInv[Cross-trained Investigators<br/>Fraud + AML expertise]
+        SharedReport[Unified Reporting<br/>SARs + fraud reports]
+    end
+
+    Data --> Traditional
+    Data --> FRAML
+
+    FraudSilo -.No connection.-> AMLSilo
+
+    UnifiedEngine --> SharedAlerts
+    SharedAlerts --> UnifiedCase
+    UnifiedCase --> SharedInv
+    SharedInv --> SharedReport
+
+    style Traditional fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style FRAML fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style Duplicate fill:#ffcdd2,stroke:#b71c1c

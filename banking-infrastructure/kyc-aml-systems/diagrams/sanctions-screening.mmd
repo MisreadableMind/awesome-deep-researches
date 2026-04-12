@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffebee', 'primaryBorderColor': '#b71c1c', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Input[Input to Screen<br/>Customer name, aliases, DOB,<br/>nationality, address, BOs]
+
+    Input --> NameMatch[Name Matching Engine]
+
+    subgraph Algorithms [Matching Algorithms]
+        Exact[Exact Match]
+        Fuzzy[Fuzzy Match<br/>Jaro-Winkler,<br/>Levenshtein]
+        Phonetic[Phonetic Match<br/>Soundex, Metaphone]
+        Token[Token-Based<br/>Name token sets]
+        MLMatch[ML-Based Scoring<br/>Multi-feature matching]
+    end
+
+    NameMatch --> Algorithms
+
+    subgraph Lists [Sanctions & Watch Lists]
+        OFAC[OFAC SDN + Non-SDN]
+        EU[EU Consolidated List]
+        UN[UN Security Council]
+        HMT[HM Treasury UK]
+        Other[Other national lists<br/>Canada, Australia, etc.]
+        PEP[PEP Databases<br/>Refinitiv, Dow Jones]
+        Adverse[Adverse Media]
+    end
+
+    Algorithms -.Compared against.-> Lists
+
+    Algorithms --> Results{Match Results}
+
+    Results -->|No match| Clear[CLEAR<br/>No action needed]
+    Results -->|Potential match| Hit[POTENTIAL HIT<br/>Score above threshold]
+
+    Hit --> Analyst[Sanctions Analyst<br/>Reviews hit]
+
+    Analyst --> TrueMatch{True match?}
+    TrueMatch -->|No - different person| FalsePos[FALSE POSITIVE<br/>Document and close]
+    TrueMatch -->|Yes - sanctioned entity| TruePos[TRUE POSITIVE]
+
+    TruePos --> Block[BLOCK transaction<br/>or reject customer]
+    Block --> Report[Report to OFAC<br/>within 10 business days]
+    Block --> Freeze[Freeze funds<br/>if applicable]
+    Block --> Compliance[Notify BSA/AML Officer]
+
+    FalsePos --> Whitelist[Add to suppression list<br/>for future screening<br/>with documentation]
+
+    style Input fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style TruePos fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px
+    style Block fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Clear fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style FalsePos fill:#fff9c4,stroke:#f57f17

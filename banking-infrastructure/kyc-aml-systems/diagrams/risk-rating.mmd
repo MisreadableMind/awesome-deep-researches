@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#fff3e0', 'primaryBorderColor': '#e65100', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Customer[New or Existing Customer]
+
+    subgraph Factors [Risk Assessment Factors]
+        subgraph CustFactors [Customer Factors]
+            CustType[Customer type<br/>Individual, Corporate,<br/>Trust, Correspondent]
+            BOTransp[Beneficial ownership<br/>transparency]
+            Industry[Industry / Occupation<br/>Cash-intensive? Gambling?<br/>Crypto? Precious metals?]
+            SOW[Source of Wealth<br/>& Source of Funds]
+            PEP[PEP Status<br/>Foreign, Domestic,<br/>Family, Associate]
+            Adverse[Adverse Media<br/>Financial crime,<br/>corruption, fraud]
+        end
+
+        subgraph GeoFactors [Geographic Factors]
+            Residence[Country of<br/>residence / incorporation]
+            TxnCountry[Countries in<br/>transactions]
+            FATFStatus[FATF grey / black<br/>list status]
+            CPI[Corruption<br/>Perceptions Index]
+            Sanctions[Sanctions<br/>exposure]
+        end
+
+        subgraph ProdFactors [Product / Channel Factors]
+            AcctType[Account type<br/>Savings, Private banking,<br/>Correspondent]
+            Products[Products used<br/>Trade finance, FX,<br/>Securities]
+            Channel[Channel<br/>In-person, Online,<br/>Wire-heavy]
+            Volume[Expected transaction<br/>volume and value]
+        end
+    end
+
+    Customer --> Factors
+
+    Factors --> RiskEngine[Risk Scoring Engine<br/>Rules + ML model]
+
+    RiskEngine --> Low[LOW RISK<br/>SDD, review every 3-5 yrs]
+    RiskEngine --> Medium[MEDIUM RISK<br/>Standard CDD, review every 2-3 yrs]
+    RiskEngine --> High[HIGH RISK<br/>EDD required, annual review,<br/>senior management approval]
+    RiskEngine --> Prohibited[PROHIBITED<br/>Decline / exit<br/>Sanctioned, shell bank]
+
+    style Low fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style Medium fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style High fill:#ffe0b2,stroke:#e65100,stroke-width:2px
+    style Prohibited fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px
+    style RiskEngine fill:#e3f2fd,stroke:#0d47a1,stroke-width:3px
