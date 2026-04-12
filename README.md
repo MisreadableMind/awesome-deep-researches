@@ -29,7 +29,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Commercial Banks: fractional reserve, balance sheets, lending | | 🗓️ Planned |
 | Central Banking & Monetary Policy: Fed, ECB, rate mechanics | | 🗓️ Planned |
 | Core Banking Systems: Temenos, FIS, Mambu ledger architecture | | 🗓️ Planned |
-| KYC / AML Systems: identity verification, transaction monitoring | | 🗓️ Planned |
+| [KYC / AML Systems: identity verification, transaction monitoring](banking-infrastructure/kyc-aml-systems/) | 14 | ✅ Done |
 | Credit Scoring: FICO, credit bureaus, scoring models | | 🗓️ Planned |
 | Deposit Insurance: FDIC, DGS | | 🗓️ Planned |
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       7 researches (92 diagrams)
-Planned:   44 researches
+Done:       8 researches (106 diagrams)
+Planned:   43 researches
 Categories: 10
 ```
 
