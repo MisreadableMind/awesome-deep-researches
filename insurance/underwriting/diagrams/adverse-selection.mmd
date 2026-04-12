@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffebee', 'primaryBorderColor': '#b71c1c', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start[Insurer offers<br/>flat premium with<br/>no risk classification<br/>Premium = 1,000 USD]
+
+    Start --> Demand{Who shows up<br/>to buy?}
+
+    Demand -->|Expected loss 300| LowRisk[Low-risk applicant<br/>'This is overpriced for me'<br/>Declines to buy]
+    Demand -->|Expected loss 1,000| AvgRisk[Average-risk applicant<br/>'Price is about right'<br/>Buys]
+    Demand -->|Expected loss 2,500| HighRisk[High-risk applicant<br/>'This is a bargain!'<br/>Rushes to buy]
+
+    LowRisk --> PoolA[Pool composition shifts]
+    AvgRisk --> PoolA
+    HighRisk --> PoolA
+
+    PoolA --> Losses[Actual loss ratio<br/>exceeds 100%<br/>Insurer loses money]
+
+    Losses --> Response{Insurer response}
+
+    Response -->|Raise rates| RaiseRates[Rate increased<br/>to 1,500 USD]
+    RaiseRates --> Exit[Remaining average risks<br/>now consider it overpriced<br/>They exit]
+    Exit --> WorsePool[Pool now only highest risks]
+    WorsePool --> MoreLosses[Loss ratio worsens again]
+    MoreLosses --> Response
+
+    Response -->|Classify risks<br/>differently| Classify[Apply risk classification<br/>Low-risk: 400<br/>Average: 1,000<br/>High-risk: 2,500]
+    Classify --> Stable[Stable pool<br/>Each class pays fair price<br/>Adverse selection averted]
+
+    Response -->|Do nothing| Spiral[DEATH SPIRAL<br/>Pool collapses]
+
+    style Start fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style HighRisk fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style LowRisk fill:#c8e6c9,stroke:#1b5e20
+    style Spiral fill:#b71c1c,color:#fff,stroke:#b71c1c,stroke-width:3px
+    style Stable fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+    style Classify fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px

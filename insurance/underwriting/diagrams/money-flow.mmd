@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Insured[Insured]
+    Agent[Agent / Broker]
+    Insurer[Insurer]
+    Reinsurer[Reinsurer]
+    ReBroker[Reinsurance Broker]
+    Claimant[Claimant<br/>can be insured or third party]
+    Invest[Investment Portfolio]
+    Reg[State / Tax Authority]
+
+    Insured -->|Gross Premium| Agent
+    Agent -->|Net of commission| Insurer
+    Agent -.Commission 10-25%.-> Agent
+
+    Insurer -->|Premium taxes| Reg
+    Insurer -->|Ceded premium| ReBroker
+    ReBroker -->|Net of brokerage| Reinsurer
+    ReBroker -.Ceding commission.-> Insurer
+    ReBroker -.Brokerage fee.-> ReBroker
+
+    Insurer -->|Reserve / Float| Invest
+    Invest -.Investment income.-> Insurer
+
+    Insurer -->|Claim payment| Claimant
+    Reinsurer -->|Reinsurance recovery<br/>to primary insurer| Insurer
+    Insurer -.Retention kept.-> Insurer
+
+    Insurer -->|Profit commission<br/>if applicable| Agent
+
+    style Insured fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Insurer fill:#e3f2fd,stroke:#0d47a1,stroke-width:3px
+    style Reinsurer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Claimant fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Invest fill:#dcedc8,stroke:#33691e,stroke-width:2px

@@ -1,0 +1,62 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Insured[Insured / Policyholder<br/>Individual or business<br/>seeking coverage]
+
+    subgraph Distribution [Distribution Layer]
+        Agent[Captive Agent<br/>Represents one insurer]
+        IndAgent[Independent Agent<br/>Represents many insurers]
+        Broker[Broker<br/>Represents the insured]
+        MGA[MGA<br/>Delegated underwriting authority]
+    end
+
+    subgraph Carrier [Insurer / Carrier]
+        UW[Underwriter<br/>Selects and prices risks]
+        Actuary[Actuary<br/>Builds pricing and reserves]
+        Claims[Claims<br/>Pays losses]
+        Product[Product Mgmt<br/>Owns rating plan]
+        CUO[Chief Underwriting Officer]
+    end
+
+    subgraph Reinsurance [Reinsurance Layer]
+        ReBroker[Reinsurance Broker<br/>Guy Carpenter, Aon Re]
+        Reinsurer[Reinsurer<br/>Munich Re, Swiss Re, Hannover Re]
+        ILS[ILS Funds / Cat Bonds<br/>Alternative capital]
+    end
+
+    subgraph Regulators [Oversight]
+        Regulator[State Insurance Dept<br/>NAIC, PRA, BaFin, EIOPA]
+        Rating[Rating Agencies<br/>AM Best, S&P, Moody's]
+        TPA[TPA / Loss Adjuster<br/>Sedgwick, Crawford]
+    end
+
+    Insured -->|Seeks quote| Agent
+    Insured -->|Seeks quote| IndAgent
+    Insured -->|Large commercial| Broker
+
+    Agent -->|Submits| UW
+    IndAgent -->|Submits| UW
+    Broker -->|Submits| UW
+    Broker -->|Submits| MGA
+
+    MGA -->|Binds on behalf of| UW
+
+    UW <--> Actuary
+    UW <--> Product
+    UW --> CUO
+    Claims -.Loss data.-> UW
+
+    UW -->|Cedes risk via| ReBroker
+    ReBroker -->|Places with| Reinsurer
+    ReBroker -->|Places with| ILS
+
+    Regulator -.Supervises.-> UW
+    Regulator -.Supervises.-> Actuary
+    Rating -.Rates.-> CUO
+    Claims -->|Outsources to| TPA
+
+    style Insured fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style UW fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Actuary fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Reinsurer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Regulator fill:#ffebee,stroke:#b71c1c,stroke-width:2px

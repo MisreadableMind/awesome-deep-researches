@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f3e5f5', 'primaryBorderColor': '#4a148c', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Submission[New Submission]
+
+    subgraph DocIntel [Document Intelligence]
+        OCR[OCR / Layout Analysis]
+        LLM[LLM Extraction<br/>Fields from PDFs, emails]
+        Validation[Data Validation &<br/>Normalization]
+    end
+
+    subgraph Enrich [Enrichment Orchestration]
+        APIs[External API Calls<br/>LexisNexis, Cape, RMS,<br/>D&B, HazardHub]
+        Feat[Feature Engineering<br/>Derive rating features]
+    end
+
+    subgraph Models [Model Layer]
+        Triage[Triage Model<br/>GBM / XGBoost<br/>Likely to bind?<br/>Likely profitable?]
+        Risk[Risk Scoring<br/>Hazard + frequency +<br/>severity model]
+        Pricing[Pricing Model<br/>GLM / ML<br/>filed with regulator]
+        Fraud[Fraud Detection<br/>Anomaly detection<br/>Graph analytics]
+        CV[Computer Vision<br/>Property condition,<br/>damage assessment]
+    end
+
+    subgraph Governance [Model Governance]
+        Explain[Explainability<br/>SHAP / LIME]
+        Fairness[Fairness Testing<br/>CO SB21-169, NAIC]
+        Drift[Drift Monitoring]
+        Filing[Regulatory Filing]
+    end
+
+    subgraph Decision [Decision]
+        AutoAccept[Auto-accept<br/>Standard case]
+        AutoDecline[Auto-decline<br/>Outside appetite]
+        HumanReview[Human Underwriter<br/>Complex / referral]
+    end
+
+    Submission --> DocIntel
+    DocIntel --> Enrich
+    Enrich --> Models
+    Models --> Governance
+    Governance --> Decision
+
+    Triage --> AutoAccept
+    Triage --> HumanReview
+    Triage --> AutoDecline
+    Risk --> Pricing
+    Pricing --> HumanReview
+    Pricing --> AutoAccept
+    CV --> Risk
+    Fraud --> HumanReview
+
+    HumanReview -.Feedback.-> Models
+    AutoAccept -.Outcomes.-> Models
+
+    style Models fill:#e1bee7,stroke:#4a148c,stroke-width:3px
+    style Governance fill:#ffecb3,stroke:#e65100,stroke-width:2px
+    style HumanReview fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px

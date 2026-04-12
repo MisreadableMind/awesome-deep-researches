@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8eaf6', 'primaryBorderColor': '#283593', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Intake [Submission]
+        Acord[Acord Forms<br/>125, 140, 126,<br/>127, 130, 131]
+        SOV[Statement of Values]
+        LossRuns[Loss Runs]
+        Financials[Financial Statements]
+    end
+
+    subgraph Life [Life & Health Data]
+        MIB[MIB Medical<br/>Information Bureau]
+        Rx[Rx Histories<br/>IntelliScript]
+        Labs[Lab Results]
+        APS[Attending Physician<br/>Statements]
+        Wearables[Wearables<br/>Apple Watch, Oura]
+    end
+
+    subgraph PersonalLines [Personal Lines Data]
+        CLUE[LexisNexis C.L.U.E.<br/>Prior claims]
+        MVR[Motor Vehicle<br/>Record]
+        CreditScore[Insurance<br/>Credit Score]
+        Telematics[Telematics<br/>Cambridge, Octo]
+    end
+
+    subgraph Property [Property Data]
+        Cape[Cape Analytics /<br/>Betterview / EagleView<br/>Aerial imagery CV]
+        HazardHub[HazardHub /<br/>First Street<br/>Perils, flood, fire]
+        RMS[RMS / Verisk AIR<br/>Cat modeling]
+        IoT[IoT Sensors<br/>Roost, Notion, Ting]
+    end
+
+    subgraph Commercial [Commercial Data]
+        DnB[D&B Hoovers]
+        Experian[Experian Business]
+        Industry[Industry Codes<br/>NAICS, ISO, NCCI]
+        PublicRec[Public Records<br/>UCC, liens, court]
+        Cyber[Cyber Intel<br/>CyberCube, BitSight]
+    end
+
+    subgraph Regulatory [Regulatory / Fraud]
+        OFAC[OFAC Sanctions<br/>PEP Lists]
+        ClaimSearch[ISO ClaimSearch<br/>Industry claims]
+        FraudDB[Fraud Databases<br/>NICB, internal]
+    end
+
+    UW[Underwriting Workbench]
+
+    Intake --> UW
+    Life --> UW
+    PersonalLines --> UW
+    Property --> UW
+    Commercial --> UW
+    Regulatory --> UW
+
+    UW --> Decision[Accept / Classify / Price / Decline]
+
+    style UW fill:#e3f2fd,stroke:#0d47a1,stroke-width:3px
+    style Decision fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px

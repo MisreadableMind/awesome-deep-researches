@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Insured
+    participant Broker
+    participant Clearance as Clearance Desk
+    participant UW as Underwriter
+    participant Enrich as Data Enrichment
+    participant Rating as Rating Engine
+    participant Referral as Referral / Authority
+    participant PAS as Policy Admin System
+    participant Reinsurer
+
+    Insured->>Broker: Requests insurance
+    Broker->>Broker: Prepares Acord forms,<br/>loss runs, SOV, financials
+    Broker->>Clearance: Submits package
+    Clearance->>Clearance: Conflict check<br/>(same account in system?)
+    alt Duplicate
+        Clearance-->>Broker: Decline (already working)
+    else Clear
+        Clearance->>UW: Routed to line underwriter
+    end
+
+    UW->>UW: Triage<br/>(appetite, size, class)
+    alt Outside appetite
+        UW-->>Broker: Decline
+    else In appetite
+        UW->>Enrich: Pull third-party data
+        Enrich->>Enrich: LexisNexis, RMS,<br/>Cape Analytics, D&B,<br/>HazardHub, OFAC
+        Enrich-->>UW: Enriched submission
+    end
+
+    UW->>UW: Risk assessment<br/>(hazards, controls, financials)
+    UW->>Rating: Apply rating plan
+    Rating-->>UW: Technical premium
+
+    UW->>UW: Apply schedule credits/debits<br/>within authority
+
+    alt Over authority
+        UW->>Referral: Referral required
+        Referral-->>UW: Approved / modified / declined
+    end
+
+    alt Large risk / capacity needed
+        UW->>Reinsurer: Facultative placement
+        Reinsurer-->>UW: Terms
+    end
+
+    UW->>Broker: Quote issued<br/>(premium, limits, terms)
+    Broker->>Insured: Presents quote
+    Insured->>Broker: Accepts
+    Broker->>UW: Request to bind
+
+    UW->>PAS: Bind the risk
+    PAS->>PAS: Policy issued<br/>(declarations, forms, endorsements)
+    PAS-->>Broker: Policy document
+    PAS-->>Insured: Certificate / copy
+
+    Note over UW,PAS: Insurer is on risk from bind,<br/>even before policy is issued.

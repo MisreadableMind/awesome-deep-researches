@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f3e5f5', 'primaryBorderColor': '#4a148c', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Stack [Reinsurance Layering for a Property Cat Book]
+        direction BT
+
+        Primary[PRIMARY RETENTION<br/>Insurer keeps the first 50M<br/>per event]
+
+        Primary --> QS[QUOTA SHARE<br/>30% of book ceded proportionally<br/>Reinsurer shares 30% of every loss<br/>and 30% of every premium]
+
+        QS --> XL1[XL LAYER 1<br/>50M xs 50M<br/>Pays losses from 50-100M<br/>Purchased at 4-8% rate-on-line]
+
+        XL1 --> XL2[XL LAYER 2<br/>100M xs 100M<br/>Pays losses from 100-200M]
+
+        XL2 --> XL3[XL LAYER 3<br/>200M xs 200M<br/>Pays losses from 200-400M]
+
+        XL3 --> XL4[XL LAYER 4<br/>300M xs 400M<br/>Pays losses from 400-700M]
+
+        XL4 --> CatBond[CAT BOND LAYER<br/>300M xs 700M<br/>Triggered by parametric<br/>or indemnity trigger]
+
+        CatBond --> Retro[RETROCESSION<br/>Reinsurers buy their own coverage<br/>from retrocessionaires and<br/>ILS funds for top layers]
+    end
+
+    subgraph Counterparties [Counterparty Types]
+        Balance[Balance-sheet Reinsurers<br/>Munich Re, Swiss Re,<br/>Hannover Re, SCOR]
+        Lloyds[Lloyd's Syndicates]
+        Bermuda[Bermuda Reinsurers<br/>Arch, RenRe, Everest]
+        ILS[ILS Funds<br/>Nephila, Credit Suisse ILS,<br/>Leadenhall]
+        CatInvestors[Cat Bond Investors<br/>Pension funds, hedge funds]
+    end
+
+    QS -.placed with.-> Balance
+    XL1 -.placed with.-> Balance
+    XL1 -.placed with.-> Lloyds
+    XL2 -.placed with.-> Bermuda
+    XL3 -.placed with.-> Bermuda
+    XL3 -.placed with.-> ILS
+    XL4 -.placed with.-> ILS
+    CatBond -.bought by.-> CatInvestors
+    Retro -.placed with.-> ILS
+
+    style Primary fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style CatBond fill:#e1bee7,stroke:#4a148c,stroke-width:2px
+    style ILS fill:#e1bee7,stroke:#4a148c,stroke-width:2px

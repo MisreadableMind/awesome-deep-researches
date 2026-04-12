@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#fff3e0', 'primaryBorderColor': '#e65100', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Premium[Gross Written Premium<br/>1,000 USD]
+
+    Premium --> PurePrem[Pure Premium<br/>650 USD<br/>65%]
+    Premium --> LAE[Loss Adjustment Expense<br/>80 USD<br/>8%]
+    Premium --> Acquisition[Acquisition Costs]
+    Premium --> General[General Expenses<br/>50 USD<br/>5%]
+    Premium --> Taxes[Premium Taxes &<br/>Regulatory Fees<br/>25 USD<br/>2.5%]
+    Premium --> Profit[Profit & Contingency<br/>65 USD<br/>6.5%]
+
+    Acquisition --> Commission[Commission to<br/>Agents / Brokers<br/>100 USD<br/>10%]
+    Acquisition --> OtherAcq[Other Acquisition<br/>30 USD<br/>3%]
+
+    PurePrem --> ExpectedLoss{Expected Claims<br/>to Policyholders}
+    LAE --> ClaimsHandling{Claims Dept<br/>& Adjusters}
+
+    ExpectedLoss -.Subject to.-> Variance[Actual losses may vary<br/>from pure premium]
+    Variance -->|Favorable| Profit2[Underwriting profit<br/>above target]
+    Variance -->|Adverse| Loss2[Underwriting loss<br/>eats into surplus]
+
+    style Premium fill:#ffecb3,stroke:#e65100,stroke-width:3px
+    style PurePrem fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style Profit fill:#dcedc8,stroke:#33691e,stroke-width:2px
+    style Loss2 fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Commission fill:#ffe0b2,stroke:#e65100

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f1f8e9', 'primaryBorderColor': '#33691e', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Personal [Personal Lines]
+        Auto[Personal Auto<br/>99% automated<br/>Short tail<br/>GLM + ML + telematics]
+        Home[Homeowners<br/>90% automated<br/>Short-med tail<br/>Aerial imagery + cat models]
+    end
+
+    subgraph SmallComm [Small Commercial]
+        SmallBiz[Small Commercial<br/>70-90% automated<br/>Medium tail<br/>Rule-based + ML scoring]
+        WC[Workers Comp<br/>Class-code rating<br/>Long tail on severe<br/>Heavy loss control]
+    end
+
+    subgraph MiddleCom [Middle Market Commercial]
+        MMProp[Middle Market Property<br/>30-50% automated<br/>Judgment + rating plan<br/>Engineering reports]
+        MMCas[Middle Market Casualty<br/>Long tail<br/>Social inflation sensitive]
+    end
+
+    subgraph Large [Large Commercial & Specialty]
+        LargeComm[Large Commercial<br/>10-20% automated<br/>Broker-driven<br/>Judgment-heavy]
+        Specialty[Specialty<br/>Cyber, D&O, Marine,<br/>Energy, Aviation]
+        Life[Life Insurance<br/>Medical + AU<br/>Very long tail<br/>Mortality tables]
+    end
+
+    subgraph Re [Reinsurance]
+        Treaty[Treaty Reinsurance<br/>Portfolio-level<br/>Experience + exposure rating]
+        Fac[Facultative<br/>Individual risks<br/>Large or unusual]
+    end
+
+    Personal -.High volume.-> HighVol[Premium per policy: 500-5000 USD<br/>Automation: 90-99%<br/>Loss ratio volatility: Low]
+    SmallComm -.-> Med[Premium: 1k-25k<br/>Automation: 70-90%]
+    MiddleCom -.-> MidPrem[Premium: 25k-500k<br/>Automation: 30-50%]
+    Large -.-> LowPrem[Premium: 500k-50M+<br/>Automation: 10-20%<br/>Human judgment-central]
+    Re -.-> RePrem[Portfolio-level<br/>Specialized judgment<br/>Alternative capital]
+
+    style Personal fill:#c8e6c9,stroke:#1b5e20
+    style SmallComm fill:#fff9c4,stroke:#f57f17
+    style MiddleCom fill:#ffe0b2,stroke:#e65100
+    style Large fill:#ffccbc,stroke:#bf360c
+    style Re fill:#e1bee7,stroke:#4a148c
