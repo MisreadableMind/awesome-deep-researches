@@ -60,7 +60,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Insurance Underwriting: risk pools, premium pricing | | 🗓️ Planned |
+| [Insurance Underwriting: risk pools, premium pricing](insurance/underwriting/) | 14 | ✅ Done |
 | Reinsurance: Lloyd's, treaty vs facultative | | 🗓️ Planned |
 | Claims Processing: FNOL, adjustment, subrogation | | 🗓️ Planned |
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       6 researches (78 diagrams)
-Planned:   45 researches
+Done:       7 researches (92 diagrams)
+Planned:   44 researches
 Categories: 10
 ```
 
