@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f3e5f5', 'primaryBorderColor': '#4a148c', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Crime[Criminal Activity<br/>Drug trafficking,<br/>corruption, fraud,<br/>tax evasion]
+
+    subgraph Stage1 [Stage 1: PLACEMENT]
+        Cash[Cash deposits<br/>below 10K threshold]
+        Smurfing[Smurfing<br/>Multiple small deposits<br/>across branches]
+        CashBiz[Cash-intensive business<br/>Car wash, restaurant,<br/>casino]
+        Purchase[Purchase monetary<br/>instruments<br/>Money orders, cashier checks]
+    end
+
+    subgraph Stage2 [Stage 2: LAYERING]
+        Wire[Wire transfers<br/>Domestic and international]
+        Shell[Shell company<br/>transactions]
+        Trade[Trade-based laundering<br/>Over/under-invoicing]
+        RealEstate[Real estate<br/>purchases and sales]
+        Crypto[Cryptocurrency<br/>conversion and mixing]
+        Offshore[Offshore accounts<br/>Multiple jurisdictions]
+    end
+
+    subgraph Stage3 [Stage 3: INTEGRATION]
+        LegitBiz[Legitimate business<br/>investment]
+        Luxury[Luxury purchases<br/>Art, jewelry, yachts]
+        Loans[Back-to-back loans<br/>using laundered collateral]
+        Investment[Securities and<br/>fund investments]
+        CleanMoney[Money appears<br/>LEGITIMATE]
+    end
+
+    Crime -->|Dirty cash| Stage1
+    Stage1 -->|Funds in system| Stage2
+    Stage2 -->|Distance created| Stage3
+
+    subgraph Detection [Where AML Detects]
+        CTR_Det[CTRs catch<br/>large cash]
+        TM_Det[Transaction monitoring<br/>catches patterns]
+        Screen_Det[Screening catches<br/>known bad actors]
+        SAR_Det[SARs filed on<br/>suspicious activity]
+    end
+
+    Stage1 -.Detected by.-> CTR_Det
+    Stage2 -.Detected by.-> TM_Det
+    Stage1 -.Detected by.-> Screen_Det
+    Stage2 -.Detected by.-> SAR_Det
+    Stage3 -.Hardest to detect.-> SAR_Det
+
+    style Crime fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px
+    style CleanMoney fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+    style Stage1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Stage2 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style Stage3 fill:#f1f8e9,stroke:#33691e,stroke-width:2px

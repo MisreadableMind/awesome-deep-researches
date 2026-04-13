@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph InvestmentGrade["Investment Grade"]
+        AAA["Moody's: Aaa | S&P: AAA<br/>Highest quality<br/>Default rate: ~0%<br/>Spread: 30-50 bp"]
+        AA["Moody's: Aa1-Aa3 | S&P: AA+/AA/AA-<br/>High quality<br/>Default rate: 0.1%<br/>Spread: 50-80 bp"]
+        A["Moody's: A1-A3 | S&P: A+/A/A-<br/>Upper medium<br/>Default rate: 0.3%<br/>Spread: 80-130 bp"]
+        BBB["Moody's: Baa1-Baa3 | S&P: BBB+/BBB/BBB-<br/>Medium grade (lowest IG)<br/>Default rate: 1.5%<br/>Spread: 130-200 bp"]
+
+        AAA --> AA --> A --> BBB
+    end
+
+    CLIFF["THE IG/HY CLIFF<br/>Downgrade triggers forced selling<br/>by pension funds, insurance cos<br/>Price drops discontinuously"]
+
+    subgraph HighYield["High Yield (Junk)"]
+        BB["Moody's: Ba1-Ba3 | S&P: BB+/BB/BB-<br/>Speculative<br/>Default rate: 8%<br/>Spread: 200-350 bp"]
+        B["Moody's: B1-B3 | S&P: B+/B/B-<br/>Highly speculative<br/>Default rate: 20%<br/>Spread: 350-550 bp"]
+        CCC["Moody's: Caa-C | S&P: CCC-D<br/>Substantial risk / default<br/>Default rate: 45%+<br/>Spread: 600-1200 bp"]
+
+        BB --> B --> CCC
+    end
+
+    BBB -->|"Fallen Angel"| CLIFF
+    CLIFF -->|"Downgrade"| BB
+
+    BB -->|"Rising Star"| CLIFF
+    CLIFF -->|"Upgrade"| BBB
+
+    style InvestmentGrade fill:#38a169,color:#fff
+    style HighYield fill:#e53e3e,color:#fff
+    style CLIFF fill:#d69e2e,color:#000
+    style AAA fill:#276749,color:#fff
+    style AA fill:#2f855a,color:#fff
+    style A fill:#38a169,color:#fff
+    style BBB fill:#68d391,color:#000
+    style BB fill:#fc8181,color:#000
+    style B fill:#f56565,color:#fff
+    style CCC fill:#c53030,color:#fff

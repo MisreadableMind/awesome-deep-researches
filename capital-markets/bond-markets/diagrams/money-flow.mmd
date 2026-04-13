@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph PrimaryFlow["Primary Market Money Flow"]
+        INV_P["Investors<br/>Pay $1B face value"]
+        UW_P["Underwriters<br/>Collect 0.6% fee ($6M)"]
+        RA_P["Rating Agencies<br/>Collect ~$500K"]
+        LAW_P["Legal / Trustees<br/>Collect ~$500K"]
+        ISS_P["Issuer<br/>Receives ~$993M net"]
+
+        INV_P -->|"$1B"| UW_P
+        UW_P -->|"$993M"| ISS_P
+        ISS_P -->|"Rating fee"| RA_P
+        ISS_P -->|"Legal fees"| LAW_P
+    end
+
+    subgraph SecondaryFlow["Secondary Market Money Flow"]
+        BUYER["Buyer<br/>Pays dirty price<br/>(clean + accrued)"]
+        DEALER["Dealer<br/>Earns bid-ask spread<br/>(5-50 bp)"]
+        SELLER["Seller<br/>Receives bid price<br/>+ accrued interest"]
+        PLAT_S["Platform<br/>Per-trade fee<br/>(~$0.50-2.00 per $1M)"]
+
+        BUYER -->|"Ask price"| DEALER
+        DEALER -->|"Bid price"| SELLER
+        DEALER -->|"Platform fee"| PLAT_S
+    end
+
+    subgraph OngoingFlow["Ongoing Cash Flows"]
+        ISSUER["Issuer"]
+        PAYAGT["Paying Agent<br/>(Fed for Treasuries)"]
+        CUSTODIAN["Custodians<br/>BNY, State Street"]
+        HOLDERS["Bondholders"]
+
+        ISSUER -->|"Coupon funds"| PAYAGT
+        PAYAGT -->|"Distribute"| CUSTODIAN
+        CUSTODIAN -->|"Credit semi-annual<br/>coupon to accounts"| HOLDERS
+        ISSUER -->|"Principal at maturity"| PAYAGT
+    end
+
+    style PrimaryFlow fill:#2b6cb0,color:#fff
+    style SecondaryFlow fill:#38a169,color:#fff
+    style OngoingFlow fill:#d69e2e,color:#fff

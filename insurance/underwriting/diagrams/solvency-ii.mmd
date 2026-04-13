@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e0f2f1', 'primaryBorderColor': '#00695c', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    SII[Solvency II<br/>EU Risk-Based Capital Framework<br/>Effective 2016]
+
+    SII --> P1[PILLAR 1<br/>Quantitative Requirements]
+    SII --> P2[PILLAR 2<br/>Governance & Supervisory Review]
+    SII --> P3[PILLAR 3<br/>Reporting & Disclosure]
+
+    P1 --> TechProv[Technical Provisions<br/>Best estimate of liabilities<br/>plus risk margin]
+    P1 --> SCR[Solvency Capital Requirement<br/>99.5% 1-year VaR<br/>Standard formula or internal model]
+    P1 --> MCR[Minimum Capital Requirement<br/>Lower threshold<br/>triggers supervisory action]
+    P1 --> OwnFunds[Own Funds<br/>Tier 1, 2, 3 capital<br/>Must cover SCR]
+
+    P2 --> ORSA[ORSA<br/>Own Risk & Solvency Assessment<br/>Forward-looking risk review]
+    P2 --> Governance[Governance<br/>Risk management, actuarial,<br/>internal audit, compliance]
+    P2 --> FitProper[Fit & Proper<br/>Key function holders]
+
+    P3 --> SFCR[SFCR<br/>Solvency & Financial<br/>Condition Report<br/>Public annual disclosure]
+    P3 --> RSR[RSR<br/>Regular Supervisory Report<br/>Private to supervisor]
+    P3 --> QRT[QRTs<br/>Quantitative Reporting<br/>Templates quarterly/annual]
+
+    SCR --> StdFormula[Standard Formula<br/>Prescribed factors]
+    SCR --> Internal[Internal Model<br/>Company-built,<br/>regulator-approved]
+
+    Internal --> Approval[Multi-year approval process<br/>with national supervisor]
+
+    EIOPA[EIOPA<br/>Coordinates supervision]
+    NationalReg[National Regulators<br/>BaFin, ACPR, IVASS,<br/>Bank of Spain DGSFP]
+
+    EIOPA -.coordinates.-> NationalReg
+    NationalReg -.supervises.-> SII
+
+    style SII fill:#b2dfdb,stroke:#00695c,stroke-width:3px
+    style SCR fill:#ffecb3,stroke:#e65100,stroke-width:2px
+    style ORSA fill:#ffecb3,stroke:#e65100,stroke-width:2px
+    style SFCR fill:#ffecb3,stroke:#e65100,stroke-width:2px

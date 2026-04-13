@@ -65,7 +65,7 @@
     html {
       font-size: 17px;
       scroll-behavior: smooth;
-      scroll-padding-top: 2rem;
+      scroll-padding-top: 3.5rem;
     }
 
     body {
@@ -3535,6 +3535,33 @@ flowchart TD
      JavaScript
      ============================================================ -->
   <script>
+    // ---- Scroll to a heading, expanding its section if collapsed ----
+    function scrollToHeading(headingId) {
+      const heading = document.getElementById(headingId);
+      if (!heading) return;
+
+      // Expand the section if it is collapsed
+      const section = heading.closest('.section-collapsible');
+      if (section && section.classList.contains('collapsed')) {
+        section.classList.remove('collapsed');
+        const body = section.querySelector('.section-body');
+        if (body) body.style.maxHeight = body.scrollHeight + 'px';
+      }
+
+      // Also expand any parent collapsed section (for H3 inside an H2 section)
+      const parentSection = heading.closest('.section-body');
+      if (parentSection) {
+        const parentCollapsible = parentSection.closest('.section-collapsible');
+        if (parentCollapsible && parentCollapsible.classList.contains('collapsed')) {
+          parentCollapsible.classList.remove('collapsed');
+          parentSection.style.maxHeight = parentSection.scrollHeight + 'px';
+        }
+      }
+
+      // Smooth scroll to the heading
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     // ---- Table of Contents Generator ----
     function buildTOC() {
       const content = document.getElementById('content');
@@ -3554,6 +3581,15 @@ flowchart TD
         a.dataset.target = h.id;
         if (level >= 2) a.classList.add('depth-' + level);
 
+        // All TOC links scroll to their heading on click
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          scrollToHeading(h.id);
+          history.pushState(null, '', '#' + h.id);
+          // Close mobile sidebar if open
+          document.getElementById('sidebar').classList.remove('open');
+        });
+
         if (level <= 2) {
           // Start a new TOC group for H1/H2
           const group = document.createElement('div');
@@ -3562,13 +3598,6 @@ flowchart TD
           children.className = 'toc-children';
 
           if (level === 2) a.classList.add('toc-toggle');
-
-          // Click H2 TOC link to toggle its children (use local vars, not closure over let)
-          a.addEventListener('click', () => {
-            if (children.children.length > 0) {
-              group.classList.toggle('collapsed');
-            }
-          });
 
           group.appendChild(a);
           group.appendChild(children);
@@ -3871,6 +3900,15 @@ flowchart TD
       });
     }
 
+    // ---- Handle hash on load and popstate ----
+    function handleHash() {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        // Small delay to let layout settle
+        setTimeout(() => scrollToHeading(hash), 100);
+      }
+    }
+
     // ---- Init ----
     document.addEventListener('DOMContentLoaded', () => {
       wrapSections();
@@ -3883,7 +3921,10 @@ flowchart TD
       setupSidebarToggle();
       setupProgress();
       setupBackToTop();
+      handleHash();
     });
+
+    window.addEventListener('popstate', handleHash);
   </script>
 
   <!-- Mermaid.js for diagram rendering -->

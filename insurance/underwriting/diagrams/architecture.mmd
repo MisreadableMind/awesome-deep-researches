@@ -1,0 +1,83 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Intake [Submission Intake]
+        BrokerPortal[Broker Portal /<br/>Email Inbox]
+        AcordParser[Acord XML Parser /<br/>LLM Document Extraction]
+    end
+
+    subgraph Core [Core Insurance Platform]
+        PAS[Policy Administration System<br/>Guidewire / Duck Creek / Majesco]
+        Billing[Billing System]
+        ClaimsSys[Claims System]
+    end
+
+    subgraph UWLayer [Underwriting Layer]
+        Workbench[Underwriter Workbench<br/>Unified submission view]
+        Rating[Rating Engine<br/>Earnix / Akur8 / Guidewire]
+        RulesEng[Underwriting Rules Engine]
+        Triage[ML Triage Scoring]
+    end
+
+    subgraph DataLayer [Data Enrichment]
+        LN[LexisNexis<br/>C.L.U.E. / MVR / Attract]
+        MIB[MIB / Rx<br/>Life underwriting]
+        Verisk[Verisk / ISO<br/>Loss costs, RMS cat]
+        Imagery[Cape Analytics /<br/>Betterview / EagleView]
+        Hazard[HazardHub /<br/>First Street]
+        DB[D&B / Experian<br/>Business data]
+        Sanctions[OFAC / PEP<br/>Sanctions screening]
+    end
+
+    subgraph ReInsurance [Reinsurance]
+        CessionMgmt[Cession Management<br/>Sapiens / Guidewire]
+        TreatySys[Treaty Admin]
+    end
+
+    subgraph ML [ML Platform]
+        ModelServing[Model Serving<br/>SageMaker / Databricks]
+        FeatureStore[Feature Store]
+        Governance[Model Governance<br/>& Explainability]
+    end
+
+    subgraph Downstream [Reporting]
+        DataLake[Data Lake<br/>Underwriting data warehouse]
+        BI[BI / Dashboards]
+        RegRep[Regulatory Reporting<br/>Solvency II / RBC / IFRS17]
+    end
+
+    BrokerPortal --> AcordParser
+    AcordParser --> Workbench
+    Workbench --> PAS
+    Workbench <--> Rating
+    Workbench <--> RulesEng
+    Workbench --> Triage
+
+    Workbench -.calls.-> LN
+    Workbench -.calls.-> MIB
+    Workbench -.calls.-> Verisk
+    Workbench -.calls.-> Imagery
+    Workbench -.calls.-> Hazard
+    Workbench -.calls.-> DB
+    Workbench -.calls.-> Sanctions
+
+    Triage --> ModelServing
+    Rating -.may call.-> ModelServing
+    ModelServing <--> FeatureStore
+    ModelServing --> Governance
+
+    PAS --> Billing
+    PAS --> ClaimsSys
+    PAS --> CessionMgmt
+    CessionMgmt --> TreatySys
+
+    PAS --> DataLake
+    ClaimsSys --> DataLake
+    CessionMgmt --> DataLake
+    DataLake --> BI
+    DataLake --> RegRep
+
+    style PAS fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Workbench fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Rating fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ModelServing fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

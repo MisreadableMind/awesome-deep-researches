@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph TradingLayer["Trading Layer"]
+        BBG["Bloomberg Terminal<br/>RFQ, chat, pricing"]
+        TW["Tradeweb<br/>Treasuries, corporates, munis"]
+        MAX["MarketAxess<br/>Corporate bonds, EM"]
+        BT["BrokerTec (CME)<br/>Treasury CLOB"]
+        NFI["Nasdaq Fixed Income<br/>Treasury CLOB"]
+    end
+
+    subgraph Protocol["Protocol Layer"]
+        FIX["FIX Protocol 4.2/4.4<br/>QuoteRequest -> Quote -> Order -> Execution"]
+        API["REST/WebSocket APIs<br/>Real-time streaming prices"]
+        PROP["Proprietary binary<br/>Low-latency feeds"]
+    end
+
+    subgraph Reporting["Post-Trade Reporting"]
+        TRACE["FINRA TRACE<br/>Corporate & agency bonds"]
+        RTRS["MSRB RTRS<br/>Municipal bonds"]
+        BSDR["CFTC SDR<br/>Bond derivatives"]
+    end
+
+    subgraph Clearing["Clearing Layer"]
+        FICC["FICC (Gov Securities Div)<br/>US Treasuries, agencies"]
+        NSCC["NSCC<br/>Corporate bonds"]
+        LCH["LCH<br/>Euro-denominated bonds"]
+    end
+
+    subgraph Settlement["Settlement Layer"]
+        FW["Fedwire Securities<br/>Real-time gross settlement<br/>US Treasuries"]
+        DTC["DTC<br/>Book-entry settlement<br/>Corporate bonds"]
+        EC["Euroclear / Clearstream<br/>International bonds"]
+        T2S["TARGET2-Securities<br/>Euro bonds"]
+    end
+
+    subgraph Data["Market Data"]
+        BVAL["Bloomberg BVAL<br/>Evaluated pricing"]
+        ICE["ICE Pricing<br/>Reference data"]
+        REF["Reference Data<br/>CUSIP, ISIN, FIGI"]
+    end
+
+    TradingLayer -->|"FIX messages"| Protocol
+    Protocol -->|"Trade confirmations"| Reporting
+    Protocol -->|"Trade instructions"| Clearing
+    Clearing -->|"DVP instructions"| Settlement
+    Data -->|"Pricing feeds"| TradingLayer
+
+    style TradingLayer fill:#2b6cb0,color:#fff
+    style Protocol fill:#4299e1,color:#fff
+    style Reporting fill:#d69e2e,color:#fff
+    style Clearing fill:#e53e3e,color:#fff
+    style Settlement fill:#38a169,color:#fff
+    style Data fill:#805ad5,color:#fff

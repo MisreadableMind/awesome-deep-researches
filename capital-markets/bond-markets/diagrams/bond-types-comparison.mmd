@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Government["Government Bonds"]
+        G1["Yield: 3.5-4.5%"]
+        G2["Credit risk: Minimal"]
+        G3["Liquidity: Excellent"]
+        G4["Tax: State exempt (US)"]
+        G5["Maturity: 1M - 30Y"]
+        G6["Callable: No"]
+        G7["Use: Benchmark, safe haven"]
+    end
+
+    subgraph CorpIG["Corporate - Investment Grade"]
+        IG1["Yield: 4.5-6.0%"]
+        IG2["Credit risk: Low-Moderate"]
+        IG3["Liquidity: Moderate"]
+        IG4["Tax: Fully taxable"]
+        IG5["Maturity: 1-30Y"]
+        IG6["Callable: Often after 5-10Y"]
+        IG7["Use: Income, liability matching"]
+    end
+
+    subgraph CorpHY["Corporate - High Yield"]
+        HY1["Yield: 6.5-9.0%"]
+        HY2["Credit risk: Moderate-High"]
+        HY3["Liquidity: Lower"]
+        HY4["Tax: Fully taxable"]
+        HY5["Maturity: 3-10Y"]
+        HY6["Callable: Usually yes"]
+        HY7["Use: Total return, carry"]
+    end
+
+    subgraph Municipal["Municipal Bonds"]
+        M1["Yield: 3.0-4.5%<br/>(tax-equiv: 4.5-7.0%)"]
+        M2["Credit risk: Low (varies)"]
+        M3["Liquidity: Low"]
+        M4["Tax: Federal exempt"]
+        M5["Maturity: 1-40Y"]
+        M6["Callable: After 10Y typically"]
+        M7["Use: Tax-advantaged income"]
+    end
+
+    subgraph Choosing["When to Choose Each"]
+        CH1["Government: Safety, liquidity,<br/>benchmark hedging"]
+        CH2["Corp IG: Higher income,<br/>liability-matching for pensions"]
+        CH3["Corp HY: Total return,<br/>accept credit risk for yield"]
+        CH4["Municipal: High tax bracket<br/>investors seeking tax-free income"]
+    end
+
+    Government -.-> CH1
+    CorpIG -.-> CH2
+    CorpHY -.-> CH3
+    Municipal -.-> CH4
+
+    style Government fill:#2b6cb0,color:#fff
+    style CorpIG fill:#38a169,color:#fff
+    style CorpHY fill:#e53e3e,color:#fff
+    style Municipal fill:#805ad5,color:#fff
+    style Choosing fill:#2d3748,color:#fff

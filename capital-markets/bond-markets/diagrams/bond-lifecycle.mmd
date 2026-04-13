@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+sequenceDiagram
+    participant ISS as Issuer
+    participant UW as Underwriter /<br/>Primary Dealer
+    participant INV as Investor
+    participant CLEAR as Clearinghouse<br/>(FICC / DTC)
+    participant CUST as Custodian
+    participant PAY as Paying Agent
+
+    Note over ISS,PAY: PHASE 1 - ISSUANCE (Primary Market)
+    ISS->>UW: Mandate to issue / announce auction
+    UW->>INV: Market bond (roadshow / WI trading)
+    INV->>UW: Submit bids / IOIs
+    UW->>ISS: Determine pricing (stop yield / spread)
+    INV->>CLEAR: Settlement: cash delivered
+    CLEAR->>CUST: Securities delivered (DVP)
+    ISS-->>INV: Bond certificate (book-entry)
+
+    Note over ISS,PAY: PHASE 2 - COUPON PAYMENTS (Semi-annual)
+    loop Every 6 months
+        ISS->>PAY: Transfer coupon funds
+        PAY->>CUST: Distribute to holders of record
+        CUST->>INV: Credit coupon to investor account
+    end
+
+    Note over ISS,PAY: PHASE 3 - SECONDARY TRADING
+    INV->>UW: Request quote (RFQ)
+    UW->>INV: Bid price: 98.25
+    INV->>UW: Trade executed (sell at 98.25)
+    UW->>CLEAR: Report trade
+    CLEAR->>CUST: Settle T+1 (Treasuries) / T+2 (corporates)
+
+    Note over ISS,PAY: PHASE 4 - MATURITY / REDEMPTION
+    ISS->>PAY: Transfer principal + final coupon
+    PAY->>CUST: Distribute to final holders
+    CUST->>INV: Credit face value + final coupon
+    Note over ISS: Bond retired / cancelled

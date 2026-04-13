@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e0f2f1', 'primaryBorderColor': '#00695c', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Sender[Sender<br/>Customer of<br/>Respondent Bank]
+
+    subgraph Respondent [Respondent Bank<br/>Small bank in developing country]
+        RespKYC[KYC on Sender<br/>Quality varies]
+        RespAML[AML Monitoring<br/>Capacity varies]
+    end
+
+    subgraph Correspondent [Correspondent Bank<br/>Large global bank with USD access]
+        CorrDD[Due Diligence on<br/>Respondent Bank<br/>Section 312 PATRIOT Act]
+        CorrScreen[Transaction Screening<br/>OFAC, sanctions]
+        CorrTMS[Transaction Monitoring<br/>Nested accounts,<br/>pass-through activity]
+        CorrRisk[Respondent Risk Rating<br/>Jurisdiction, controls,<br/>regulatory environment]
+    end
+
+    subgraph Payment [Payment System]
+        SWIFT[SWIFT Network]
+        Fedwire[Fedwire / CHIPS<br/>USD settlement]
+    end
+
+    Beneficiary[Beneficiary<br/>Customer of<br/>receiving bank]
+
+    Sender -->|Wire instruction| Respondent
+    Respondent -->|SWIFT MT103<br/>via correspondent| Correspondent
+    Correspondent -->|USD clearing| Payment
+    Payment -->|Credit| Beneficiary
+
+    CorrDD -.Assesses.-> RespKYC
+    CorrDD -.Assesses.-> RespAML
+
+    subgraph Risks [AML Risks in Correspondent Banking]
+        Nested[Nested / Payable-Through<br/>Respondent's customers<br/>directly access correspondent]
+        Opacity[Opacity<br/>Correspondent cannot see<br/>respondent's end customers]
+        DeRisk[De-risking<br/>Correspondent exits relationship<br/>if AML risk too high]
+    end
+
+    Correspondent -.Exposed to.-> Risks
+
+    style Correspondent fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Respondent fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Risks fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px

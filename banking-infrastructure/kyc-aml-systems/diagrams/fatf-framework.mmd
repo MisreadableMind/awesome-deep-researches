@@ -1,0 +1,26 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#f3e5f5', 'primaryBorderColor': '#4a148c', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    FATF[FATF<br/>Financial Action Task Force<br/>Est. 1989, G7 Paris Summit]
+
+    FATF --> Recs[40 Recommendations<br/>International AML/CFT standard]
+    FATF --> Eval[Mutual Evaluations<br/>Peer review of member countries]
+    FATF --> Lists[Public Listings]
+
+    Recs --> R1_20[Recs 1-20<br/>AML/CFT Policies & Coordination<br/>Money laundering offenses<br/>Confiscation & provisional measures<br/>Customer due diligence<br/>Record keeping]
+    Recs --> R21_25[Recs 21-25<br/>Reporting suspicious transactions<br/>DNFBPs<br/>Higher-risk countries<br/>Transparency of legal persons]
+    Recs --> R26_35[Recs 26-35<br/>Regulation & supervision<br/>Operational & law enforcement<br/>FIU powers & functions]
+    Recs --> R36_40[Recs 36-40<br/>International cooperation<br/>Mutual legal assistance<br/>Extradition]
+
+    Eval --> TC[Technical Compliance<br/>Are the laws in place?<br/>Rated: C, LC, PC, NC]
+    Eval --> Effect[Effectiveness<br/>Do the laws actually work?<br/>11 Immediate Outcomes<br/>Rated: HE, SE, ME, LE]
+
+    Lists --> Grey[GREY LIST<br/>Jurisdictions Under<br/>Increased Monitoring<br/>~20 countries]
+    Lists --> Black[BLACK LIST<br/>High-Risk Jurisdictions<br/>Subject to Call for Action<br/>DPRK, Iran, Myanmar]
+
+    Grey --> Consequences1[Increased due diligence<br/>by banks worldwide<br/>Higher transaction costs<br/>Reduced correspondent banking]
+    Black --> Consequences2[Counter-measures required<br/>Enhanced scrutiny<br/>Potential prohibition<br/>of financial relationships]
+
+    style FATF fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Black fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px
+    style Grey fill:#fff9c4,stroke:#f57f17,stroke-width:2px

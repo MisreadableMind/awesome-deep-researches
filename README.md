@@ -29,7 +29,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Commercial Banks: fractional reserve, balance sheets, lending | | 🗓️ Planned |
 | Central Banking & Monetary Policy: Fed, ECB, rate mechanics | | 🗓️ Planned |
 | Core Banking Systems: Temenos, FIS, Mambu ledger architecture | | 🗓️ Planned |
-| KYC / AML Systems: identity verification, transaction monitoring | | 🗓️ Planned |
+| [KYC / AML Systems: identity verification, transaction monitoring](banking-infrastructure/kyc-aml-systems/) | 14 | ✅ Done |
 | Credit Scoring: FICO, credit bureaus, scoring models | | 🗓️ Planned |
 | Deposit Insurance: FDIC, DGS | | 🗓️ Planned |
 
@@ -40,7 +40,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Stock Exchanges: NYSE, NASDAQ order matching & order books | | 🗓️ Planned |
 | FIX Protocol & Trading Infrastructure | | 🗓️ Planned |
 | Clearing & Settlement: DTCC, CCP, T+1 | | 🗓️ Planned |
-| Bond Markets: government, corporate, yield curves | | 🗓️ Planned |
+| [Bond Markets: government, corporate, yield curves](capital-markets/bond-markets/) | 14 | ✅ Done |
 | Options & Derivatives: pricing, Greeks, exchange mechanics | | 🗓️ Planned |
 | High-Frequency Trading: co-location, market making, latency | | 🗓️ Planned |
 | Index Funds & ETFs: creation/redemption, tracking | | 🗓️ Planned |
@@ -60,7 +60,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Insurance Underwriting: risk pools, premium pricing | | 🗓️ Planned |
+| [Insurance Underwriting: risk pools, premium pricing](insurance/underwriting/) | 14 | ✅ Done |
 | Reinsurance: Lloyd's, treaty vs facultative | | 🗓️ Planned |
 | Claims Processing: FNOL, adjustment, subrogation | | 🗓️ Planned |
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       6 researches (78 diagrams)
-Planned:   45 researches
+Done:       9 researches (120 diagrams)
+Planned:   42 researches
 Categories: 10
 ```
 

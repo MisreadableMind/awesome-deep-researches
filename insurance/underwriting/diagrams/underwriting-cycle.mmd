@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e1f5fe', 'primaryBorderColor': '#01579b', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    direction LR
+    [*] --> Soft
+
+    Soft: SOFT MARKET
+    note right of Soft
+        - Plentiful capacity
+        - Rates declining
+        - Broad coverage
+        - Loose terms
+        - Combined ratio rising
+        - Underwriting discipline erodes
+    end note
+
+    Soft --> LossEvent: Catastrophe,<br/>adverse development,<br/>or capital exit
+
+    LossEvent: TRIGGERING EVENT
+    note right of LossEvent
+        - Hurricane / earthquake
+        - Social inflation surge
+        - Reinsurance market turn
+        - Investment losses
+    end note
+
+    LossEvent --> Hard: Surplus depleted,<br/>capacity contracts
+
+    Hard: HARD MARKET
+    note right of Hard
+        - Scarce capacity
+        - Rates rising sharply
+        - Tighter terms
+        - Higher deductibles
+        - Exclusions expanded
+        - Combined ratio improves
+    end note
+
+    Hard --> NewCapital: Profitability attracts<br/>new capital
+
+    NewCapital: RECOVERY
+    note right of NewCapital
+        - Primary insurers rebuild surplus
+        - New entrants form
+        - ILS and alt capital flows in
+        - Reinsurance capacity expands
+    end note
+
+    NewCapital --> Soft: Competition restored,<br/>rates begin declining
+
+    Hard --> Hard: Losses continue<br/>(extended hard cycle)
+    Soft --> Soft: Steady state<br/>(extended soft cycle)

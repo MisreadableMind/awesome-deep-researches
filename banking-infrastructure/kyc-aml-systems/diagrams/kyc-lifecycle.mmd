@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Customer
+    participant Onboarding as KYC Onboarding
+    participant IDV as Identity Verification
+    participant Screening as Sanctions/PEP Screening
+    participant Risk as Risk Engine
+    participant EDD as EDD Team
+    participant Monitoring as Ongoing Monitoring
+    participant Review as Periodic Review
+    participant Exit as Exit Decision
+
+    Customer->>Onboarding: Apply for account<br/>(name, DOB, address, ID)
+    Onboarding->>IDV: Verify identity
+    IDV->>IDV: Document check (OCR, NFC)<br/>Liveness + biometric match<br/>Database verification
+    IDV-->>Onboarding: Verified / Failed
+
+    Onboarding->>Screening: Screen name against lists
+    Screening->>Screening: OFAC SDN, EU, UN,<br/>PEP databases,<br/>adverse media
+    Screening-->>Onboarding: Clear / Hit
+
+    alt Screening hit
+        Onboarding->>EDD: Escalate for review
+        EDD-->>Onboarding: Cleared / Blocked
+    end
+
+    Onboarding->>Risk: Assess customer risk
+    Risk->>Risk: Score based on:<br/>geography, product, entity type,<br/>PEP status, industry, source of funds
+    Risk-->>Onboarding: Low / Medium / High
+
+    alt High risk
+        Onboarding->>EDD: Enhanced Due Diligence
+        EDD->>EDD: Source of wealth,<br/>source of funds,<br/>senior management approval
+        EDD-->>Onboarding: Approved / Declined
+    end
+
+    Onboarding-->>Customer: Account opened
+
+    Note over Monitoring: Continuous throughout relationship
+
+    loop Ongoing monitoring
+        Customer->>Monitoring: Transactions
+        Monitoring->>Monitoring: Transaction monitoring<br/>Sanctions rescreening<br/>Adverse media alerts
+    end
+
+    loop Periodic review (1-3-5 years based on risk)
+        Review->>Review: Refresh KYC data<br/>Rescreen<br/>Reassess risk rating
+        Review-->>Customer: Request updated docs if needed
+    end
+
+    alt Risk becomes unacceptable
+        Review->>Exit: Recommend exit
+        Exit->>Exit: Senior approval<br/>File SAR if needed<br/>Close account
+        Exit-->>Customer: Relationship terminated
+    end

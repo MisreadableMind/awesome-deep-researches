@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e0f2f1', 'primaryBorderColor': '#00695c', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Board[Board of Directors &<br/>Senior Management<br/>Sets risk appetite,<br/>oversees compliance program]
+
+    Board --> L1
+    Board --> L2
+    Board --> L3
+
+    subgraph L1 [1st Line: Business Units - OWNS RISK]
+        Bankers[Frontline Bankers<br/>& Relationship Managers]
+        Onboard[Onboarding Teams<br/>Customer-facing KYC]
+        Operations[Operations<br/>Transaction processing]
+        BizOwn[Business line ownership<br/>of customer risk]
+    end
+
+    subgraph L2 [2nd Line: Compliance & Risk - OVERSEES RISK]
+        BSA[BSA/AML Officer]
+        KYCPolicy[KYC/CDD Policy<br/>& Guidelines]
+        TMTeam[Transaction Monitoring<br/>& Investigation]
+        SanctTeam[Sanctions Screening<br/>& Compliance]
+        SARTeam[SAR Filing<br/>& Reporting]
+        Training[Training Program]
+        RiskAssess[Enterprise AML<br/>Risk Assessment]
+    end
+
+    subgraph L3 [3rd Line: Internal Audit - PROVIDES ASSURANCE]
+        IndTest[Independent Testing<br/>of BSA/AML program]
+        Findings[Findings &<br/>Recommendations]
+        RegPrep[Regulatory Exam<br/>Preparation]
+        BoardReport[Board Reporting<br/>on program effectiveness]
+    end
+
+    L1 -->|Reports suspicious<br/>activity to| L2
+    L2 -->|Policies and<br/>guidelines to| L1
+    L3 -.Tests.-> L1
+    L3 -.Tests.-> L2
+    L3 -.Reports to.-> Board
+
+    Regulators[Regulators<br/>OCC, FDIC, FCA<br/>Examine all three lines]
+    Regulators -.Examines.-> L1
+    Regulators -.Examines.-> L2
+    Regulators -.Examines.-> L3
+
+    style L1 fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Board fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Regulators fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px

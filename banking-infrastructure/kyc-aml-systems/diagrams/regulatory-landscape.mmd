@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8eaf6', 'primaryBorderColor': '#283593', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    FATF[FATF<br/>40 Recommendations<br/>Mutual evaluations<br/>Grey / Black lists]
+
+    subgraph US [United States]
+        FinCEN[FinCEN<br/>FIU, BSA admin,<br/>SARs, CTRs, CTA]
+        OCC[OCC<br/>National banks]
+        FDIC[FDIC<br/>State non-member banks]
+        Fed[Federal Reserve<br/>Bank holding companies]
+        SEC[SEC<br/>Broker-dealers]
+        OFAC_US[OFAC<br/>Sanctions admin]
+        StateDFS[State Regulators<br/>NY DFS, CA DFPI]
+    end
+
+    subgraph EU [European Union]
+        AMLA_EU[AMLA<br/>New EU AML Authority<br/>Frankfurt, 2024+]
+        EBA[EBA<br/>Banking guidelines]
+        NatFIU[National FIUs<br/>TRACFIN, FIU Germany,<br/>UIF Italy]
+        NatReg[National Regulators<br/>BaFin, ACPR, Banca d'Italia]
+    end
+
+    subgraph UK [United Kingdom]
+        FCA[FCA<br/>AML supervision<br/>of financial firms]
+        NCA[NCA / UKFIU<br/>FIU + investigations]
+        OFSI[OFSI<br/>Financial sanctions]
+        HMRC[HMRC<br/>MSBs, accountants,<br/>estate agents]
+    end
+
+    subgraph APAC [Asia-Pacific]
+        MAS[MAS<br/>Singapore]
+        HKMA[HKMA<br/>Hong Kong]
+        JFSA[FSA / JAFIC<br/>Japan]
+        AUSTRAC[AUSTRAC<br/>Australia]
+        RBI[RBI / FIU-IND<br/>India]
+    end
+
+    FATF -.Standards.-> US
+    FATF -.Standards.-> EU
+    FATF -.Standards.-> UK
+    FATF -.Standards.-> APAC
+    FATF -.Mutual evaluations.-> US
+    FATF -.Mutual evaluations.-> EU
+    FATF -.Mutual evaluations.-> UK
+    FATF -.Mutual evaluations.-> APAC
+
+    style FATF fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style FinCEN fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style AMLA_EU fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style FCA fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px

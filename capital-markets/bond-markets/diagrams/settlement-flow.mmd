@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+sequenceDiagram
+    participant BUYER as Buyer
+    participant BD as Buyer's Dealer
+    participant PLAT as Trading Platform
+    participant SD as Seller's Dealer
+    participant SELLER as Seller
+    participant TRACE as TRACE / RTRS
+    participant FICC as FICC / NSCC
+    participant FW as Fedwire / DTC
+    participant BCUST as Buyer's Custodian
+    participant SCUST as Seller's Custodian
+
+    Note over BUYER,SCUST: T+0: TRADE DAY
+
+    BUYER->>PLAT: RFQ for $5M face UST 10Y
+    PLAT->>SD: Broadcast RFQ to dealers
+    SD->>PLAT: Quote: Bid 98.25 / Ask 98.31
+    BUYER->>PLAT: Lift offer at 98.31
+    PLAT->>BD: Trade confirmed (buy side)
+    PLAT->>SD: Trade confirmed (sell side)
+    PLAT->>TRACE: Report trade within 15 min
+
+    Note over BUYER,SCUST: T+0: POST-TRADE PROCESSING
+
+    BD->>FICC: Submit trade details
+    SD->>FICC: Submit trade details
+    FICC->>FICC: Match and validate<br/>Calculate net obligations<br/>Novate (become counterparty)
+
+    Note over BUYER,SCUST: T+1: SETTLEMENT DAY
+
+    FICC->>FW: DVP instructions
+    FW->>SCUST: Debit securities from seller
+    FW->>BCUST: Credit securities to buyer
+    FW->>SCUST: Credit cash to seller
+    FW->>BCUST: Debit cash from buyer
+
+    BCUST->>BUYER: Confirm settlement
+    SCUST->>SELLER: Confirm settlement
+
+    Note over BUYER,SCUST: Settlement complete - DVP eliminates counterparty risk

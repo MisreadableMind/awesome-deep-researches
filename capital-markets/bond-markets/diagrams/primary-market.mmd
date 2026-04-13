@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph GovAuction["Government Bond Auction (Dutch)"]
+        A1["Treasury announces auction<br/>$42B 10-year note"] --> A2["When-issued trading begins<br/>Price discovery period"]
+        A2 --> A3["Auction day:<br/>Competitive + non-competitive bids"]
+        A3 --> A4["Bids ranked by yield<br/>Lowest yield = highest price first"]
+        A4 --> A5["Stop yield determined<br/>All winners pay same price"]
+        A5 --> A6["Settlement T+1<br/>via Fedwire Securities"]
+    end
+
+    subgraph CorpIssue["Corporate Bond Issuance (Book Building)"]
+        B1["Company selects underwriters<br/>(lead managers)"] --> B2["Roadshow to institutional<br/>investors (1-2 weeks)"]
+        B2 --> B3["Initial price talk<br/>e.g., 'T+150 area'"]
+        B3 --> B4["Order book builds<br/>IOIs from investors"]
+        B4 --> B5["Final pricing<br/>Spread tightens if demand strong"]
+        B5 --> B6["Allocation & settlement T+2<br/>via DTC"]
+    end
+
+    subgraph BidExample["Auction Bid Stack Example"]
+        C1["$12B at 4.20% - Accepted"]
+        C2["$15B at 4.22% - Accepted"]
+        C3["$10B at 4.24% - Accepted"]
+        C4["$5B at 4.25% - Partial fill"]
+        C5["$6B at 4.27% - Rejected"]
+        C1 --> C2 --> C3 --> C4 --> C5
+    end
+
+    style GovAuction fill:#2b6cb0,color:#fff
+    style CorpIssue fill:#38a169,color:#fff
+    style BidExample fill:#d69e2e,color:#fff

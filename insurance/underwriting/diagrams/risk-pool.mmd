@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e1f5fe', 'primaryBorderColor': '#01579b', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Pool [The Risk Pool]
+        direction TB
+        Premium[Premiums<br/>from policyholders]
+        Surplus[Surplus / Capital<br/>backs tail losses]
+        Losses[Losses<br/>paid to claimants]
+        Expenses[Expenses<br/>commission, ops, tax]
+        Invest[Investment Income<br/>from float]
+    end
+
+    P1[Policyholder 1<br/>Low risk]
+    P2[Policyholder 2<br/>Medium risk]
+    P3[Policyholder 3<br/>High risk]
+    PN[... Policyholder N]
+
+    C1[Claimant 1]
+    C2[Claimant 2]
+    CN[... Claimant M]
+
+    UW{Underwriter<br/>Gatekeeper}
+    Actuary{Actuary<br/>Pricing rule}
+    Adjuster{Adjuster<br/>Controls outflow}
+
+    P1 -->|Rejected| Decline[Declined]
+    P1 -->|Accepted at low price| UW
+    P2 -->|Accepted at medium price| UW
+    P3 -->|Accepted at high price with conditions| UW
+
+    UW --> Premium
+    PN --> UW
+    Actuary -.Sets price.-> UW
+
+    Premium --> Invest
+    Premium --> Losses
+    Premium --> Expenses
+    Surplus -.Backs.-> Losses
+
+    Losses -->|Via adjuster| C1
+    Losses -->|Via adjuster| C2
+    Losses -->|Via adjuster| CN
+
+    Adjuster -.Validates.-> Losses
+
+    Invest -.Funds tail losses.-> Surplus
+
+    style Pool fill:#f0f4c3,stroke:#33691e,stroke-width:3px
+    style UW fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Actuary fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Adjuster fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    style Decline fill:#ffcdd2,stroke:#b71c1c

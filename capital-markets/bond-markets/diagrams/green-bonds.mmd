@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Issuance["Green Bond Issuance Process"]
+        I1["Issuer identifies eligible<br/>green projects"]
+        I2["Obtain second-party opinion<br/>(Sustainalytics, Vigeo Eiris, ISS ESG)"]
+        I3["Establish Green Bond Framework<br/>aligned with ICMA Principles"]
+        I4["Issue bond with 'green' label<br/>proceeds ring-fenced"]
+        I5["Annual impact reporting<br/>to investors"]
+
+        I1 --> I2 --> I3 --> I4 --> I5
+    end
+
+    subgraph EligibleProjects["Eligible Green Projects"]
+        P1["Renewable energy<br/>Solar, wind, hydro"]
+        P2["Clean transportation<br/>Electric vehicles, rail"]
+        P3["Green buildings<br/>LEED / BREEAM certified"]
+        P4["Pollution prevention<br/>Waste management, recycling"]
+        P5["Biodiversity conservation<br/>Sustainable forestry, water"]
+    end
+
+    subgraph Frameworks["Governing Frameworks"]
+        F1["ICMA Green Bond Principles<br/>Voluntary, market standard"]
+        F2["EU Green Bond Standard<br/>Mandatory taxonomy alignment"]
+        F3["Climate Bonds Initiative<br/>Certification & verification"]
+        F4["China Green Bond Catalogue<br/>PBoC-endorsed standard"]
+    end
+
+    subgraph ESGFamily["The ESG Bond Family"]
+        E1["Green Bonds<br/>Environmental projects<br/>$4T+ cumulative"]
+        E2["Social Bonds<br/>Healthcare, education,<br/>affordable housing"]
+        E3["Sustainability Bonds<br/>Mix of green + social<br/>projects"]
+        E4["Sustainability-Linked Bonds<br/>Coupon tied to ESG targets<br/>(step-up if missed)"]
+    end
+
+    subgraph Greenium["The Greenium"]
+        G1["Green bonds trade 2-5 bp<br/>tighter than conventional"]
+        G2["Investors accept lower yield<br/>for green label"]
+        G3["Greenium has compressed<br/>as supply has grown"]
+    end
+
+    I4 --> EligibleProjects
+    Frameworks --> I3
+
+    style Issuance fill:#38a169,color:#fff
+    style EligibleProjects fill:#276749,color:#fff
+    style Frameworks fill:#2b6cb0,color:#fff
+    style ESGFamily fill:#805ad5,color:#fff
+    style Greenium fill:#d69e2e,color:#fff

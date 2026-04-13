@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f5e9', 'primaryBorderColor': '#2e7d32', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Sources [Transaction Sources]
+        Wire[Wire Transfers<br/>SWIFT, Fedwire, CHIPS]
+        ACH[ACH / Direct Debit]
+        Cash[Cash Deposits<br/>and Withdrawals]
+        Card[Card Transactions]
+        Internal[Internal Transfers]
+        Trade[Trade Finance]
+        Crypto[Crypto Transactions]
+    end
+
+    subgraph TMS [Transaction Monitoring System]
+        Ingest[Data Ingestion<br/>Normalize, enrich,<br/>link to customer profile]
+        Rules[Rules Engine<br/>Hundreds of scenarios:<br/>structuring, rapid movement,<br/>high-risk geography, etc.]
+        ML[ML Models<br/>Anomaly detection,<br/>network analysis,<br/>behavioral scoring]
+        AlertGen[Alert Generation]
+        Scoring[Alert Scoring &<br/>Prioritization]
+    end
+
+    subgraph Investigation [Investigation Workflow]
+        L1[L1 Triage<br/>Quick review,<br/>close obvious false positives]
+        L2[L2 Investigation<br/>Detailed review,<br/>gather additional data]
+        L3[L3 Senior Review<br/>Complex cases,<br/>SAR recommendation]
+        QA[Quality Assurance<br/>Review SAR drafts]
+    end
+
+    subgraph Outcomes [Outcomes]
+        FalsePos[False Positive<br/>Close alert<br/>~90-99% of alerts]
+        SAR[File SAR<br/>FinCEN Form 111<br/>within 30 days]
+        Escalate[Escalate to<br/>Law Enforcement<br/>or exit customer]
+        CTR_File[File CTR<br/>Cash > 10K USD<br/>automatic]
+    end
+
+    Sources --> Ingest
+    Ingest --> Rules
+    Ingest --> ML
+    Rules --> AlertGen
+    ML --> AlertGen
+    AlertGen --> Scoring
+    Scoring --> L1
+
+    L1 -->|Clear| FalsePos
+    L1 -->|Suspicious| L2
+    L2 -->|Clear| FalsePos
+    L2 -->|Suspicious| L3
+    L3 -->|File SAR| QA
+    QA --> SAR
+    L3 -->|Escalate| Escalate
+
+    Cash -->|Auto-report| CTR_File
+
+    SAR -->|Filed with| FinCEN[FinCEN / FIU]
+    CTR_File -->|Filed with| FinCEN
+
+    style TMS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SAR fill:#ffecb3,stroke:#e65100,stroke-width:3px
+    style FalsePos fill:#ffcdd2,stroke:#b71c1c
+    style FinCEN fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

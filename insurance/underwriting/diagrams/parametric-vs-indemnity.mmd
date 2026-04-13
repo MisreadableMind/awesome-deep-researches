@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e0f7fa', 'primaryBorderColor': '#006064', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Indemnity [Traditional Indemnity Insurance]
+        direction TB
+        I1[Loss occurs]
+        I2[Insured files claim<br/>with proof of loss]
+        I3[Adjuster investigates<br/>Site inspection<br/>Document review]
+        I4[Coverage analysis<br/>Is it within policy?<br/>Exclusions?<br/>Sublimits?]
+        I5[Loss amount calculated<br/>Depreciation, actual cash value,<br/>replacement cost]
+        I6[Negotiation &<br/>settlement]
+        I7[Payment<br/>Days to months or years]
+
+        I1 --> I2 --> I3 --> I4 --> I5 --> I6 --> I7
+    end
+
+    subgraph Parametric [Parametric Insurance]
+        direction TB
+        P1[Trigger event<br/>Cat 3 hurricane passes<br/>within 30 miles]
+        P2[Objective measurement<br/>From authoritative source:<br/>NOAA, USGS, weather station]
+        P3[Trigger check<br/>Did measurement meet<br/>predefined threshold?]
+        P4[Automatic payout<br/>Predefined amount<br/>No loss investigation]
+        P5[Payment<br/>Hours to days]
+
+        P1 --> P2 --> P3 --> P4 --> P5
+    end
+
+    subgraph Tradeoffs [Key Tradeoffs]
+        Basis[Basis Risk<br/>Parametric may pay<br/>without loss,<br/>or loss without payout]
+        Speed[Speed<br/>Parametric: Days<br/>Indemnity: Months]
+        Fit[Fit to loss<br/>Indemnity matches actual<br/>Parametric approximates]
+        LAE[Loss Adjustment Expense<br/>Parametric: Near zero<br/>Indemnity: 8-15% of premium]
+    end
+
+    Indemnity -.Slower, exact.-> Fit
+    Parametric -.Faster, approximate.-> Basis
+
+    style Indemnity fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Parametric fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style Tradeoffs fill:#e1f5fe,stroke:#01579b,stroke-width:2px
