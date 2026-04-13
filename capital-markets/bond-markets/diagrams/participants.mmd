@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Issuers["Issuers (Borrowers)"]
+        SOV["Sovereign Governments<br/>US Treasury, UK DMO, German Finanzagentur"]
+        CORP["Corporations<br/>Apple, JPMorgan, Toyota"]
+        MUNI["Municipalities<br/>States, cities, agencies"]
+        SUPRA["Supranationals<br/>World Bank, EIB, ADB"]
+    end
+
+    subgraph Intermediaries["Intermediaries"]
+        PD["Primary Dealers (24 US)<br/>Goldman, JPMorgan, Barclays"]
+        UW["Underwriters<br/>Investment banks"]
+        RA["Rating Agencies<br/>Moody's, S&P, Fitch"]
+    end
+
+    subgraph Investors["Investors (Lenders)"]
+        PENSION["Pension Funds"]
+        INSCO["Insurance Companies"]
+        AM["Asset Managers<br/>PIMCO, BlackRock, Vanguard"]
+        CB["Central Banks<br/>Fed, ECB, BoJ"]
+        HF["Hedge Funds"]
+        RETAIL["Retail Investors"]
+    end
+
+    subgraph Infrastructure["Market Infrastructure"]
+        PLAT["Trading Platforms<br/>Bloomberg, Tradeweb, MarketAxess"]
+        CLEAR["Clearinghouses<br/>FICC, NSCC"]
+        CUST["Custodians<br/>BNY Mellon, State Street"]
+        IDX["Index Providers<br/>Bloomberg Agg, ICE BofA"]
+    end
+
+    SOV -->|"Auction"| PD
+    CORP -->|"Book building"| UW
+    MUNI -->|"Negotiated/competitive"| UW
+    SUPRA -->|"Syndication"| UW
+
+    RA -->|"Rate"| CORP
+    RA -->|"Rate"| MUNI
+    RA -->|"Rate"| SUPRA
+
+    PD -->|"Distribute & make markets"| PLAT
+    UW -->|"Allocate"| AM
+    UW -->|"Allocate"| PENSION
+
+    PENSION -->|"Buy"| PLAT
+    INSCO -->|"Buy"| PLAT
+    AM -->|"Trade"| PLAT
+    CB -->|"Open market ops"| PD
+    HF -->|"Trade"| PLAT
+    RETAIL -->|"TreasuryDirect / broker"| PD
+
+    PLAT -->|"Submit trades"| CLEAR
+    CLEAR -->|"DVP settlement"| CUST
+    IDX -->|"Benchmark"| AM
+
+    style Issuers fill:#2b6cb0,color:#fff
+    style Intermediaries fill:#d69e2e,color:#fff
+    style Investors fill:#38a169,color:#fff
+    style Infrastructure fill:#805ad5,color:#fff

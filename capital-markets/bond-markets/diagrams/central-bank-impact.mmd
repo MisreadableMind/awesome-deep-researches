@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph QE["Quantitative Easing (QE) - Buying Bonds"]
+        QE1["Fed creates bank reserves<br/>(digital money)"]
+        QE2["Primary dealer sells<br/>Treasuries/MBS to Fed"]
+        QE3["Dealer has cash,<br/>buys more bonds"]
+        QE4["Investors receive cash,<br/>buy riskier assets"]
+        QE5["RESULT: Long-term yields fall<br/>Asset prices rise<br/>Lending increases"]
+
+        QE1 --> QE2 --> QE3 --> QE4 --> QE5
+    end
+
+    subgraph QT["Quantitative Tightening (QT) - Shrinking Balance Sheet"]
+        QT1["Bonds on Fed balance sheet<br/>mature"]
+        QT2["Fed does NOT reinvest<br/>the principal"]
+        QT3["Treasury must sell new bonds<br/>to private market"]
+        QT4["More supply = higher yields<br/>Less reserves in banking system"]
+        QT5["RESULT: Long-term yields rise<br/>Liquidity tightens"]
+
+        QT1 --> QT2 --> QT3 --> QT4 --> QT5
+    end
+
+    subgraph Scale["Scale of Central Bank Holdings (Peak)"]
+        FED["Federal Reserve<br/>$8.5T (2022)<br/>~30% of US Treasuries"]
+        ECB["ECB<br/>EUR 5.0T (2022)<br/>~35% of eurozone gov bonds"]
+        BOJ["Bank of Japan<br/>JPY 590T (2024)<br/>~50% of JGBs"]
+        BOE["Bank of England<br/>GBP 875B (2022)<br/>~35% of UK gilts"]
+    end
+
+    subgraph MarketImpact["Market Impact"]
+        MI1["Compressed term premium<br/>Flattened yield curve"]
+        MI2["Reduced bond supply<br/>for private investors"]
+        MI3["Pushed investors into<br/>riskier assets (reach for yield)"]
+        MI4["Created dependency -<br/>markets react to QE/QT signals"]
+    end
+
+    QE5 --> MarketImpact
+    QT5 --> MarketImpact
+
+    style QE fill:#38a169,color:#fff
+    style QT fill:#e53e3e,color:#fff
+    style Scale fill:#2b6cb0,color:#fff
+    style MarketImpact fill:#d69e2e,color:#fff

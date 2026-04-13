@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Traditional["Traditional OTC (Voice / Chat)"]
+        T1["Investor contacts dealer<br/>via Bloomberg chat / phone"]
+        T2["Dealer quotes bid/ask<br/>e.g., 98.25 / 98.31"]
+        T3["Investor hits bid (sells)<br/>or lifts offer (buys)"]
+        T4["Trade confirmed<br/>via MarkitWire / DTCC"]
+        T1 --> T2 --> T3 --> T4
+    end
+
+    subgraph RFQ["Electronic RFQ"]
+        R1["Investor sends RFQ<br/>to 3-5 dealers via platform"]
+        R2["Dealers respond with<br/>competing prices (30-60 sec)"]
+        R3["Investor selects<br/>best price"]
+        R4["Trade auto-reported<br/>to TRACE"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph CLOB["Central Limit Order Book"]
+        L1["Participants post<br/>bids and offers"]
+        L2["Matching engine<br/>price-time priority"]
+        L3["Auto-execution<br/>when orders cross"]
+        L4["Used for on-the-run<br/>Treasuries (BrokerTec)"]
+        L1 --> L2 --> L3 --> L4
+    end
+
+    subgraph AllToAll["All-to-All Trading"]
+        A1["Any participant can<br/>trade with any other"]
+        A2["No dealer required<br/>as intermediary"]
+        A3["MarketAxess Open Trading<br/>pioneered this model"]
+        A4["Pension fund trades<br/>directly with insurance co"]
+        A1 --> A2 --> A3 --> A4
+    end
+
+    T4 --> SETTLE["Settlement<br/>T+1 (Treasuries) / T+2 (Corporates)"]
+    R4 --> SETTLE
+    L4 --> SETTLE
+    A4 --> SETTLE
+
+    SETTLE --> FICC["FICC / DTC<br/>Clearing & DVP Settlement"]
+
+    style Traditional fill:#e53e3e,color:#fff
+    style RFQ fill:#2b6cb0,color:#fff
+    style CLOB fill:#38a169,color:#fff
+    style AllToAll fill:#805ad5,color:#fff
+    style SETTLE fill:#d69e2e,color:#fff
+    style FICC fill:#2d3748,color:#fff

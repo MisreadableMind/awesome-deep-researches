@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Relationship["Price-Yield Inverse Relationship"]
+        TITLE["10-Year Bond, 4% Coupon, $1,000 Face Value"]
+
+        Y3["Yield: 3.0%<br/>Price: $1,085<br/>GAIN +8.5%"]
+        Y35["Yield: 3.5%<br/>Price: $1,042<br/>GAIN +4.2%"]
+        Y4["Yield: 4.0%<br/>Price: $1,000<br/>PAR"]
+        Y45["Yield: 4.5%<br/>Price: $960<br/>LOSS -4.0%"]
+        Y5["Yield: 5.0%<br/>Price: $923<br/>LOSS -7.7%"]
+
+        TITLE --> Y3
+        TITLE --> Y35
+        TITLE --> Y4
+        TITLE --> Y45
+        TITLE --> Y5
+    end
+
+    subgraph Formula["Bond Price Formula"]
+        F1["Price = Sum of discounted cash flows"]
+        F2["P = Sigma[ C / (1+r)^t ] + FV / (1+r)^n"]
+        F3["When r goes UP<br/>denominators get LARGER<br/>price goes DOWN"]
+        F4["When r goes DOWN<br/>denominators get SMALLER<br/>price goes UP"]
+
+        F1 --> F2
+        F2 --> F3
+        F2 --> F4
+    end
+
+    subgraph Convexity["Convexity Effect"]
+        CV1["Rate drop of 1%<br/>Price gain: +8.5%"]
+        CV2["Rate rise of 1%<br/>Price loss: -7.7%"]
+        CV3["Asymmetry = CONVEXITY<br/>Gains > losses for<br/>equal rate changes"]
+        CV1 --> CV3
+        CV2 --> CV3
+    end
+
+    style Relationship fill:#2b6cb0,color:#fff
+    style Formula fill:#38a169,color:#fff
+    style Convexity fill:#d69e2e,color:#fff
+    style Y3 fill:#38a169,color:#fff
+    style Y35 fill:#68d391,color:#000
+    style Y4 fill:#ecc94b,color:#000
+    style Y45 fill:#fc8181,color:#000
+    style Y5 fill:#e53e3e,color:#fff

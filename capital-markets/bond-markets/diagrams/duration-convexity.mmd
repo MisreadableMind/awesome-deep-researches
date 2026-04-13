@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph DurationExplained["Duration: Interest Rate Sensitivity"]
+        D1["Duration = approximate % price change<br/>for a 1% change in yield"]
+        D2["Higher duration = MORE sensitive to rates"]
+
+        D3["30Y zero-coupon bond<br/>Duration: ~30 years<br/>Extremely sensitive"]
+        D4["30Y bond, 6% coupon<br/>Duration: ~15 years<br/>Coupons reduce sensitivity"]
+        D5["2Y Treasury note<br/>Duration: ~2 years<br/>Low sensitivity"]
+        D6["Floating rate note<br/>Duration: ~0<br/>Resets each period"]
+
+        D1 --> D2
+        D2 --> D3
+        D2 --> D4
+        D2 --> D5
+        D2 --> D6
+    end
+
+    subgraph DurationDrivers["What Drives Duration"]
+        DR1["Longer maturity<br/>= Higher duration"]
+        DR2["Lower coupon<br/>= Higher duration"]
+        DR3["Lower yield<br/>= Higher duration"]
+    end
+
+    subgraph ConvexityExplained["Convexity: The Curvature Effect"]
+        C1["Duration is a LINEAR approximation<br/>But the price-yield curve is CURVED"]
+        C2["Positive convexity:<br/>Gains from rate drops EXCEED<br/>losses from equal rate rises"]
+        C3["Example with Duration = 7:"]
+        C4["Rates drop 1%: +7.3% gain<br/>(more than duration predicts)"]
+        C5["Rates rise 1%: -6.7% loss<br/>(less than duration predicts)"]
+        C6["Investors PAY A PREMIUM<br/>for higher convexity"]
+
+        C1 --> C2 --> C3
+        C3 --> C4
+        C3 --> C5
+        C4 --> C6
+        C5 --> C6
+    end
+
+    subgraph PriceFormula["Price Change Formula"]
+        PF["dP/P = -Duration x dy<br/>+ (1/2) x Convexity x (dy)^2"]
+        PF1["First term: duration effect (linear)"]
+        PF2["Second term: convexity effect (always positive)"]
+        PF --> PF1
+        PF --> PF2
+    end
+
+    style DurationExplained fill:#2b6cb0,color:#fff
+    style DurationDrivers fill:#4299e1,color:#fff
+    style ConvexityExplained fill:#38a169,color:#fff
+    style PriceFormula fill:#d69e2e,color:#fff

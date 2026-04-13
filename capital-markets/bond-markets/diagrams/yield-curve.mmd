@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Normal["Normal Yield Curve (Expansion)"]
+        direction LR
+        N1["3M: 3.5%"] --> N2["2Y: 3.8%"]
+        N2 --> N3["5Y: 4.0%"]
+        N3 --> N4["10Y: 4.3%"]
+        N4 --> N5["30Y: 4.6%"]
+    end
+
+    subgraph Flat["Flat Yield Curve (Transition)"]
+        direction LR
+        F1["3M: 4.3%"] --> F2["2Y: 4.3%"]
+        F2 --> F3["5Y: 4.3%"]
+        F3 --> F4["10Y: 4.3%"]
+        F4 --> F5["30Y: 4.3%"]
+    end
+
+    subgraph Inverted["Inverted Yield Curve (Recession Signal)"]
+        direction LR
+        I1["3M: 5.3%"] --> I2["2Y: 4.8%"]
+        I2 --> I3["5Y: 4.4%"]
+        I3 --> I4["10Y: 4.2%"]
+        I4 --> I5["30Y: 4.3%"]
+    end
+
+    subgraph Signals["What the Curve Tells You"]
+        S1["Normal: Economy growing<br/>Higher term premium for<br/>longer lock-up periods"]
+        S2["Flat: Transition phase<br/>Market uncertain about<br/>future rate direction"]
+        S3["Inverted: Recession ahead<br/>Market expects rate cuts<br/>Every US recession since 1970<br/>preceded by inversion"]
+    end
+
+    Normal -.->|"Signals"| S1
+    Flat -.->|"Signals"| S2
+    Inverted -.->|"Signals"| S3
+
+    style Normal fill:#38a169,color:#fff
+    style Flat fill:#d69e2e,color:#fff
+    style Inverted fill:#e53e3e,color:#fff
+    style Signals fill:#2d3748,color:#fff
