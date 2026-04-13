@@ -40,7 +40,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Stock Exchanges: NYSE, NASDAQ order matching & order books | | 🗓️ Planned |
 | FIX Protocol & Trading Infrastructure | | 🗓️ Planned |
 | Clearing & Settlement: DTCC, CCP, T+1 | | 🗓️ Planned |
-| Bond Markets: government, corporate, yield curves | | 🗓️ Planned |
+| [Bond Markets: government, corporate, yield curves](capital-markets/bond-markets/) | 14 | ✅ Done |
 | Options & Derivatives: pricing, Greeks, exchange mechanics | | 🗓️ Planned |
 | High-Frequency Trading: co-location, market making, latency | | 🗓️ Planned |
 | Index Funds & ETFs: creation/redemption, tracking | | 🗓️ Planned |
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       8 researches (106 diagrams)
-Planned:   43 researches
+Done:       9 researches (120 diagrams)
+Planned:   42 researches
 Categories: 10
 ```
 

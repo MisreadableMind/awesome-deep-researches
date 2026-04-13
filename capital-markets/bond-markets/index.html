@@ -1,0 +1,4327 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bond Markets: Complete Technical Deep Dive — Deep Research</title>
+  <style>
+    /* ============================================================
+       CSS Variables — Theme System
+       ============================================================ */
+    :root {
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      --max-width: 860px;
+      --sidebar-width: 260px;
+      --transition: 0.2s ease;
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-code: #f1f3f5;
+      --bg-sidebar: #fafafa;
+      --bg-highlight: #fff9db;
+      --text: #212529;
+      --text-secondary: #495057;
+      --text-muted: #868e96;
+      --border: #dee2e6;
+      --border-light: #e9ecef;
+      --accent: #1971c2;
+      --accent-light: #d0ebff;
+      --link: #1971c2;
+      --shadow: rgba(0, 0, 0, 0.06);
+      --table-stripe: #f8f9fa;
+      --search-bg: #ffffff;
+      --mark-bg: #fff3bf;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1a1b1e;
+      --bg-secondary: #25262b;
+      --bg-code: #2c2e33;
+      --bg-sidebar: #141517;
+      --bg-highlight: #3d3200;
+      --text: #c1c2c5;
+      --text-secondary: #909296;
+      --text-muted: #5c5f66;
+      --border: #373a40;
+      --border-light: #2c2e33;
+      --accent: #4dabf7;
+      --accent-light: #1b3a5c;
+      --link: #74c0fc;
+      --shadow: rgba(0, 0, 0, 0.3);
+      --table-stripe: #25262b;
+      --search-bg: #25262b;
+      --mark-bg: #5c4a00;
+    }
+
+    /* ============================================================
+       Reset & Base
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      font-size: 17px;
+      scroll-behavior: smooth;
+      scroll-padding-top: 3.5rem;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-serif);
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.7;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ============================================================
+       Layout
+       ============================================================ */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar / TOC */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-light);
+      padding: 1.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      z-index: 100;
+      transition: transform var(--transition), background var(--transition);
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .sidebar-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 0.3rem 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: 4px;
+      transition: all var(--transition);
+      line-height: 1.4;
+    }
+
+    .sidebar nav a:hover {
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .sidebar nav a.active {
+      color: var(--accent);
+      font-weight: 600;
+      background: var(--accent-light);
+    }
+
+    .sidebar nav a.depth-2 { padding-left: 1.2rem; font-size: 0.78rem; }
+    .sidebar nav a.depth-3 { padding-left: 2rem; font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Collapsible TOC groups */
+    .toc-group { overflow: hidden; }
+    .toc-group .toc-children {
+      overflow: hidden;
+      max-height: 500px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+      opacity: 1;
+    }
+    .toc-group.collapsed .toc-children {
+      max-height: 0;
+      opacity: 0;
+    }
+    .sidebar nav a.depth-2.toc-toggle {
+      position: relative;
+      padding-right: 1.5rem;
+    }
+    .sidebar nav a.depth-2.toc-toggle::after {
+      content: '';
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      width: 0.35rem;
+      height: 0.35rem;
+      border-right: 1.5px solid var(--text-muted);
+      border-bottom: 1.5px solid var(--text-muted);
+      transform: translateY(-50%) rotate(45deg);
+      transition: transform 0.2s ease;
+    }
+    .toc-group.collapsed a.depth-2.toc-toggle::after {
+      transform: translateY(-30%) rotate(-45deg);
+    }
+
+    /* Main Content */
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      max-width: calc(var(--max-width) + 4rem);
+      padding: 2rem 2rem 6rem;
+    }
+
+    /* ============================================================
+       Controls Bar
+       ============================================================ */
+    .controls {
+      position: fixed;
+      top: 0;
+      left: var(--sidebar-width);
+      right: 0;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      transition: background var(--transition);
+    }
+
+    .controls .spacer { flex: 1; }
+
+    /* Search */
+    .search-box {
+      position: relative;
+    }
+
+    .search-box input {
+      width: 240px;
+      padding: 0.35rem 0.7rem 0.35rem 2rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      background: var(--search-bg);
+      color: var(--text);
+      transition: all var(--transition);
+      font-family: var(--font-sans);
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+      width: 320px;
+    }
+
+    .search-box::before {
+      content: '\1F50D';
+      position: absolute;
+      left: 0.6rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+      opacity: 0.5;
+    }
+
+    .search-results-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      min-width: 60px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-family: var(--font-sans);
+      transition: all var(--transition);
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ============================================================
+       Typography
+       ============================================================ */
+    .content { margin-top: 3rem; }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-sans);
+      line-height: 1.3;
+      margin-top: 2.5rem;
+      margin-bottom: 0.8rem;
+      color: var(--text);
+    }
+
+    h1 { font-size: 2.2rem; margin-top: 0; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); }
+    h2 { font-size: 1.6rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border-light); }
+    h3 { font-size: 1.25rem; }
+    h4 { font-size: 1.05rem; }
+
+    p { margin: 0 0 1rem; }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    strong { font-weight: 700; }
+
+    blockquote {
+      margin: 1.5rem 0;
+      padding: 0.8rem 1.2rem;
+      border-left: 4px solid var(--accent);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border-radius: 0 6px 6px 0;
+    }
+
+    blockquote p:last-child { margin-bottom: 0; }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 2.5rem 0;
+    }
+
+    /* Code */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--bg-code);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--bg-code);
+      padding: 1.2rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      border: 1px solid var(--border-light);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    tr:nth-child(even) { background: var(--table-stripe); }
+
+    /* Lists */
+    ul, ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+    li { margin-bottom: 0.3rem; }
+
+    /* ============================================================
+       Collapsible Sections (H2-based)
+       ============================================================ */
+    .section-collapsible {
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .section-collapsible h2 {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 2rem;
+      transition: color var(--transition);
+    }
+
+    .section-collapsible h2:hover {
+      color: var(--accent);
+    }
+
+    .section-collapsible h2::after {
+      content: '';
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0.5rem;
+      height: 0.5rem;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      transform: translateY(-50%) rotate(45deg);
+      transition: transform 0.25s ease;
+    }
+
+    .section-collapsible.collapsed h2::after {
+      transform: translateY(-30%) rotate(-45deg);
+    }
+
+    .section-body {
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+      opacity: 1;
+    }
+
+    .section-collapsible.collapsed .section-body {
+      max-height: 0 !important;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    /* Legacy details/summary support */
+    details {
+      margin: 1rem 0;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    summary {
+      padding: 0.8rem 1rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--bg-secondary);
+      transition: background var(--transition);
+      list-style: none;
+    }
+
+    summary::before {
+      content: '\25B6';
+      display: inline-block;
+      margin-right: 0.5rem;
+      font-size: 0.7rem;
+      transition: transform var(--transition);
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    details > :not(summary) {
+      padding: 0 1rem;
+    }
+
+    /* ============================================================
+       Reading Progress Bar
+       ============================================================ */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      background: var(--accent);
+      z-index: 200;
+      transition: width 0.1s linear;
+    }
+
+    /* ============================================================
+       Back to Top Button
+       ============================================================ */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 4rem;
+      z-index: 110;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease, background var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .back-to-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .back-to-top:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* ============================================================
+       Diagrams
+       ============================================================ */
+    .diagram-container {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      overflow: auto;
+      cursor: grab;
+      position: relative;
+    }
+
+    .diagram-container.zoomed {
+      cursor: zoom-out;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 200;
+      margin: 0;
+      border-radius: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    .diagram-container svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .diagram-container.zoomed svg {
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+
+    .diagram-caption {
+      text-align: center;
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .diagram-zoom-hint {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-light);
+    }
+
+    /* ============================================================
+       Search Highlighting
+       ============================================================ */
+    mark {
+      background: var(--mark-bg);
+      color: var(--text);
+      padding: 0.1em 0.2em;
+      border-radius: 2px;
+    }
+
+    mark.current {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ============================================================
+       Mobile Sidebar Toggle
+       ============================================================ */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 110;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px var(--shadow);
+      }
+      .main {
+        margin-left: 0;
+        padding: 1rem 1.2rem 4rem;
+      }
+      .controls {
+        left: 0;
+      }
+      .sidebar-toggle {
+        display: block;
+      }
+      .search-box input { width: 160px; }
+      .search-box input:focus { width: 200px; }
+    }
+
+    /* ============================================================
+       Print Styles
+       ============================================================ */
+    @media print {
+      .sidebar, .controls, .sidebar-toggle, .diagram-zoom-hint, .progress-bar, .back-to-top { display: none !important; }
+
+      .section-collapsible.collapsed .section-body {
+        max-height: none !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+      }
+
+      .main {
+        margin-left: 0;
+        max-width: 100%;
+        padding: 0;
+      }
+
+      body {
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #000;
+        background: #fff;
+      }
+
+      h1 { font-size: 22pt; }
+      h2 { font-size: 16pt; page-break-after: avoid; }
+      h3 { font-size: 13pt; page-break-after: avoid; }
+
+      h2, h3, h4 { page-break-after: avoid; }
+      table, pre, .diagram-container { page-break-inside: avoid; }
+
+      a { color: #000; text-decoration: none; }
+      a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #555;
+      }
+
+      pre {
+        border: 1px solid #ccc;
+        background: #f9f9f9;
+      }
+
+      blockquote { border-left: 3px solid #000; }
+
+      .diagram-container {
+        background: #f9f9f9;
+        border: 1px solid #ccc;
+      }
+
+      details { border: 1px solid #ccc; }
+      details[open] > summary { border-bottom: 1px solid #ccc; }
+
+      /* Force page breaks before major sections */
+      h2 { page-break-before: auto; }
+
+      @page {
+        margin: 2cm;
+        size: A4;
+      }
+
+      @page :first {
+        margin-top: 4cm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Reading progress bar -->
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- Back to top -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">&uarr;</button>
+
+  <!-- ============================================================
+       Sidebar / Table of Contents
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2 class="sidebar-title">Contents</h2>
+    </div>
+    <nav id="toc">
+      <!-- Auto-generated from headings -->
+    </nav>
+  </aside>
+
+  <!-- Sidebar toggle (mobile) -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle table of contents">
+    &#9776;
+  </button>
+
+  <!-- ============================================================
+       Controls Bar
+       ============================================================ -->
+  <div class="controls">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search in document... (Ctrl+F)" />
+    </div>
+    <span class="search-results-count" id="searchCount"></span>
+    <div class="spacer"></div>
+    <button class="btn" id="expandAll" title="Expand all sections">Expand All</button>
+    <button class="btn" id="collapseAll" title="Collapse all sections">Collapse All</button>
+    <button class="btn" id="copyPage" title="Copy page as Markdown">Copy Markdown</button>
+    <button class="btn" id="themeToggle">Dark</button>
+    <button class="btn" onclick="window.print()">Print</button>
+  </div>
+
+  <!-- ============================================================
+       Main Content
+       ============================================================ -->
+  <div class="main">
+    <div class="content" id="content">
+
+      <!--
+        ==========================================================
+        PASTE YOUR RESEARCH CONTENT HERE AS HTML
+
+        Convert markdown to HTML using any converter.
+        Wrap diagrams in:
+          <div class="diagram-container" onclick="toggleZoom(this)">
+            <span class="diagram-zoom-hint">Click to zoom</span>
+            <img src="diagrams/diagram-name.svg" alt="Description" />
+            <p class="diagram-caption">Figure 1: Description</p>
+          </div>
+
+        Wrap optional sections in:
+          <details>
+            <summary>Section Title</summary>
+            <p>Content here...</p>
+          </details>
+        ==========================================================
+      -->
+
+      <h1>Bond Markets: Complete Technical Deep Dive</h1>
+<hr>
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#1-history--overview">History &amp; Overview</a></li>
+<li><a href="#2-what-a-bond-actually-is-and-is-not">What a Bond Actually Is (and Is Not)</a></li>
+<li><a href="#3-key-participants--roles">Key Participants &amp; Roles</a></li>
+<li><a href="#4-how-it-works---step-by-step">How It Works - Step by Step</a></li>
+<li><a href="#5-technical-architecture">Technical Architecture</a></li>
+<li><a href="#6-money-flow--economics">Money Flow / Economics</a></li>
+<li><a href="#7-security--risk">Security &amp; Risk</a></li>
+<li><a href="#8-regulation--compliance">Regulation &amp; Compliance</a></li>
+<li><a href="#9-comparisons--alternatives">Comparisons &amp; Alternatives</a></li>
+<li><a href="#10-modern-developments">Modern Developments</a></li>
+<li><a href="#11-appendix">Appendix</a></li>
+<li><a href="#12-key-takeaways">Key Takeaways</a></li>
+</ol>
+<hr>
+<h2>1. History &amp; Overview</h2>
+<h3>The Oldest Financial Instrument</h3>
+<p>Bonds predate stocks by centuries. The concept of a fixed-income debt obligation is arguably the oldest financial instrument in human history, older than equity markets, insurance contracts, or paper currency.</p>
+<p><strong>Ancient origins.</strong> Mesopotamian clay tablets from 2400 BCE record debt contracts with fixed repayment terms and interest. Roman publicani issued bonds to finance public works. But the modern bond market traces directly to the Italian city-states of the 12th century, where Venice, Genoa, and Florence issued &quot;prestiti&quot; (forced loans) to finance wars. Venice&#39;s Monte Vecchio (1262) is often cited as the first government bond - citizens lent money to the republic and received transferable interest-bearing certificates.</p>
+<p><strong>Sovereign debt takes shape.</strong> The Dutch Republic refined the model in the 1600s with long-dated annuities and perpetual bonds. The Bank of England, founded in 1694, immediately issued government bonds to fund King William III&#39;s war with France - creating the British &quot;gilt&quot; market that still exists today. The term &quot;gilt-edged&quot; literally meant the certificates had gilded edges, signifying their safety.</p>
+<p><strong>The US Treasury market.</strong> Alexander Hamilton&#39;s consolidation of Revolutionary War debts in 1790 created the first US Treasury bonds and, with them, the foundation of American capital markets. Treasury securities have since become the most important benchmark in global finance - the risk-free rate against which virtually every other asset is priced.</p>
+<h3>Timeline</h3>
+<table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1262</td>
+<td>Venice issues Monte Vecchio - first transferable government bonds</td>
+</tr>
+<tr>
+<td>1694</td>
+<td>Bank of England founded, issues gilts to fund war</td>
+</tr>
+<tr>
+<td>1790</td>
+<td>Hamilton consolidates US war debts into Treasury bonds</td>
+</tr>
+<tr>
+<td>1843</td>
+<td>First US corporate bond (Baltimore &amp; Ohio Railroad)</td>
+</tr>
+<tr>
+<td>1909</td>
+<td>Moody&#39;s publishes first bond ratings</td>
+</tr>
+<tr>
+<td>1927</td>
+<td>S&amp;P begins systematic bond ratings</td>
+</tr>
+<tr>
+<td>1944</td>
+<td>Bretton Woods establishes USD as reserve currency, boosting Treasury demand</td>
+</tr>
+<tr>
+<td>1970</td>
+<td>GNMA issues first mortgage-backed security</td>
+</tr>
+<tr>
+<td>1971</td>
+<td>Nixon ends gold convertibility - floating rates transform bond markets</td>
+</tr>
+<tr>
+<td>1975</td>
+<td>SEC mandates credit ratings for capital requirements (NRSRO designation)</td>
+</tr>
+<tr>
+<td>1981</td>
+<td>First interest rate swap (IBM-World Bank)</td>
+</tr>
+<tr>
+<td>1986</td>
+<td>London Big Bang deregulates UK bond markets</td>
+</tr>
+<tr>
+<td>1997</td>
+<td>US Treasury launches TreasuryDirect for retail investors</td>
+</tr>
+<tr>
+<td>2000</td>
+<td>Electronic trading platforms emerge (TradeWeb, MarketAxess)</td>
+</tr>
+<tr>
+<td>2007-08</td>
+<td>Structured credit crisis - CDO/MBS meltdown triggers global financial crisis</td>
+</tr>
+<tr>
+<td>2012</td>
+<td>ECB&#39;s Draghi: &quot;whatever it takes&quot; - central bank bond buying era begins</td>
+</tr>
+<tr>
+<td>2014</td>
+<td>European government bonds trade at negative yields for first time</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>COVID response: Fed buys $4.5T in Treasuries and MBS</td>
+</tr>
+<tr>
+<td>2022</td>
+<td>Fastest rate hiking cycle in 40 years causes historic bond losses</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>US T+1 settlement begins for bonds</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>Global bond market exceeds $140 trillion</td>
+</tr>
+</tbody></table>
+<h3>Scale Today</h3>
+<p>The global bond market is <strong>larger than the global stock market</strong>. This surprises most people, but it makes sense - every government, every corporation, every municipality, and every securitization vehicle can issue debt.</p>
+<p><strong>Global fixed-income market: ~$140 trillion outstanding</strong> (2025)</p>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Outstanding</th>
+<th>Share</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Government bonds (sovereign)</td>
+<td>~$65T</td>
+<td>~46%</td>
+</tr>
+<tr>
+<td>Corporate bonds (investment grade)</td>
+<td>~$25T</td>
+<td>~18%</td>
+</tr>
+<tr>
+<td>Mortgage-backed / asset-backed</td>
+<td>~$15T</td>
+<td>~11%</td>
+</tr>
+<tr>
+<td>Corporate bonds (high yield)</td>
+<td>~$4T</td>
+<td>~3%</td>
+</tr>
+<tr>
+<td>Municipal bonds (US)</td>
+<td>~$4T</td>
+<td>~3%</td>
+</tr>
+<tr>
+<td>Supranational / agency</td>
+<td>~$10T</td>
+<td>~7%</td>
+</tr>
+<tr>
+<td>Other (EM local currency, inflation-linked)</td>
+<td>~$17T</td>
+<td>~12%</td>
+</tr>
+</tbody></table>
+<p><strong>US Treasury market alone: ~$27 trillion</strong> - the single largest and most liquid securities market on Earth. Average daily trading volume exceeds $800 billion.</p>
+<p>For context: the entire global stock market is roughly $110 trillion. The bond market is about 25% larger.</p>
+<hr>
+<h2>2. What a Bond Actually Is (and Is Not)</h2>
+<h3>The One-Sentence Definition</h3>
+<p>A bond is a securitized loan - the issuer borrows money from investors and promises to pay periodic interest (coupons) and return the principal (face value) at a specific future date (maturity).</p>
+<p>That&#39;s it. Everything else in bond markets - yield curves, duration, convexity, credit spreads, callable features - is just math and risk management built on top of this simple promise.</p>
+<h3>The Mental Model</h3>
+<p>Think of a bond as an IOU that you can sell to someone else.</p>
+<p>When you buy a newly issued 10-year Treasury bond with a 4% coupon and $1,000 face value, the US government promises you:</p>
+<ul>
+<li>$20 every six months (4% annual coupon, paid semi-annually) for 10 years</li>
+<li>$1,000 back at the end of 10 years</li>
+</ul>
+<p>You get 20 coupon payments of $20 each ($400 total) plus your $1,000 back. Total cash received: $1,400 over 10 years.</p>
+<p>But here is the critical insight - you do not have to hold the bond for 10 years. You can sell it to someone else tomorrow. And the price you get depends on what has happened to interest rates since you bought it.</p>
+<h3>What a Bond Is NOT</h3>
+<p><strong>A bond is not equity.</strong> Buying a bond does not give you ownership in the issuer. You are a creditor, not an owner. You have no voting rights, no claim on profits beyond your coupon, and no upside if the company triples in value. But you get paid before equity holders if things go wrong - bonds are senior to stock in bankruptcy.</p>
+<p><strong>A bond is not risk-free</strong> (usually). Only government bonds denominated in the issuer&#39;s own currency approach &quot;risk-free&quot; status, because the government can (theoretically) print money to pay you back. Corporate bonds carry credit risk. Even government bonds carry interest rate risk, inflation risk, and (for foreign-currency bonds) currency risk.</p>
+<p><strong>Bond prices and yields move in opposite directions.</strong> This is the single most important relationship in fixed income, and it confuses many newcomers. If you hold a bond paying 4% and new bonds start paying 5%, nobody will pay you full price for your 4% bond - its market price drops. Conversely, if new rates drop to 3%, your 4% bond becomes more valuable, and its price rises.</p>
+<h3>The Price-Yield Inverse Relationship</h3>
+<p>Why do prices and yields move inversely? Because a bond&#39;s price is the present value of its future cash flows, discounted at the prevailing market interest rate:</p>
+<pre><code>Bond Price = Sum of [ Coupon / (1 + r)^t ] + [ Face Value / (1 + r)^n ]</code></pre><p>Where:</p>
+<ul>
+<li><code>r</code> = market yield (discount rate)</li>
+<li><code>t</code> = period number for each coupon</li>
+<li><code>n</code> = total number of periods</li>
+</ul>
+<p>When <code>r</code> goes up, the denominators get larger, and the present value (price) goes down. When <code>r</code> goes down, the denominators get smaller, and the price goes up.</p>
+<p><strong>Concrete example.</strong> A 10-year bond with a 4% coupon and $1,000 face value:</p>
+<table>
+<thead>
+<tr>
+<th align="center">Market Yield</th>
+<th align="center">Bond Price</th>
+<th align="center">Gain/Loss</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">3%</td>
+<td align="center">$1,085.30</td>
+<td align="center">+8.5%</td>
+</tr>
+<tr>
+<td align="center">3.5%</td>
+<td align="center">$1,041.58</td>
+<td align="center">+4.2%</td>
+</tr>
+<tr>
+<td align="center">4%</td>
+<td align="center">$1,000.00</td>
+<td align="center">par</td>
+</tr>
+<tr>
+<td align="center">4.5%</td>
+<td align="center">$960.44</td>
+<td align="center">-4.0%</td>
+</tr>
+<tr>
+<td align="center">5%</td>
+<td align="center">$922.78</td>
+<td align="center">-7.7%</td>
+</tr>
+</tbody></table>
+<p>Notice the asymmetry: a 1% rate decline produces a bigger gain (+8.5%) than a 1% rate increase produces a loss (-7.7%). This asymmetry is called <strong>convexity</strong>, and it matters a lot for bond portfolio management.</p>
+<p><img src="diagrams/price-yield-relationship.svg" alt="Price-yield inverse relationship"></p>
+<hr>
+<h2>3. Key Participants &amp; Roles</h2>
+<h3>The Bond Market Ecosystem</h3>
+<table>
+<thead>
+<tr>
+<th>Participant</th>
+<th>Role</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Sovereign issuers</strong></td>
+<td>Borrow to fund government spending and deficits</td>
+<td>US Treasury, UK DMO, German Finanzagentur, Japan MoF</td>
+</tr>
+<tr>
+<td><strong>Corporate issuers</strong></td>
+<td>Borrow for operations, acquisitions, capital expenditure</td>
+<td>Apple, JPMorgan, Toyota, any company with investment-grade or high-yield debt</td>
+</tr>
+<tr>
+<td><strong>Municipal issuers</strong></td>
+<td>Borrow for infrastructure, schools, hospitals (US-specific tax advantages)</td>
+<td>City of New York, State of California, Port Authority</td>
+</tr>
+<tr>
+<td><strong>Supranational issuers</strong></td>
+<td>Borrow for development and policy programs</td>
+<td>World Bank, EIB, Asian Development Bank</td>
+</tr>
+<tr>
+<td><strong>Primary dealers</strong></td>
+<td>Underwrite new issues, make markets, bid at government auctions</td>
+<td>Goldman Sachs, JPMorgan, Barclays, Citigroup (24 US primary dealers)</td>
+</tr>
+<tr>
+<td><strong>Institutional investors</strong></td>
+<td>Buy and hold bonds for income and liability matching</td>
+<td>Pension funds, insurance companies, sovereign wealth funds</td>
+</tr>
+<tr>
+<td><strong>Asset managers</strong></td>
+<td>Build and manage bond portfolios for clients</td>
+<td>PIMCO, BlackRock, Vanguard</td>
+</tr>
+<tr>
+<td><strong>Central banks</strong></td>
+<td>Buy/sell government bonds for monetary policy (open market operations)</td>
+<td>Federal Reserve, ECB, Bank of Japan, Bank of England</td>
+</tr>
+<tr>
+<td><strong>Rating agencies</strong></td>
+<td>Assess credit quality and assign ratings</td>
+<td>Moody&#39;s, S&amp;P Global, Fitch</td>
+</tr>
+<tr>
+<td><strong>Trading platforms</strong></td>
+<td>Provide electronic venues for bond trading</td>
+<td>Bloomberg, Tradeweb, MarketAxess, BrokerTec</td>
+</tr>
+<tr>
+<td><strong>Clearinghouses</strong></td>
+<td>Guarantee and settle bond trades</td>
+<td>DTCC/FICC (US), Euroclear, Clearstream</td>
+</tr>
+<tr>
+<td><strong>Custodians</strong></td>
+<td>Hold securities on behalf of investors, process coupon payments</td>
+<td>BNY Mellon, State Street, Northern Trust</td>
+</tr>
+<tr>
+<td><strong>Index providers</strong></td>
+<td>Construct bond benchmarks for portfolio tracking</td>
+<td>Bloomberg (Barclays Agg), ICE BofA, FTSE Russell</td>
+</tr>
+<tr>
+<td><strong>Retail investors</strong></td>
+<td>Buy bonds directly (TreasuryDirect) or through funds</td>
+<td>Individual savers, retail brokerage customers</td>
+</tr>
+</tbody></table>
+<h3>Why Primary Dealers Matter</h3>
+<p>In the US Treasury market, <strong>primary dealers</strong> are the backbone of market functioning. These 24 firms (as of 2025) have a legal obligation to:</p>
+<ol>
+<li><strong>Bid at every Treasury auction</strong> - they must participate, ensuring the government can always sell its debt</li>
+<li><strong>Make markets</strong> - they quote two-way prices (bid and ask) to other market participants</li>
+<li><strong>Act as counterparties to the Fed</strong> - when the Federal Reserve conducts open market operations, it trades exclusively with primary dealers</li>
+</ol>
+<p>This creates a privileged but burdensome position. Primary dealers profit from the bid-ask spread and from their informational advantage (they see order flow), but they must absorb inventory risk when markets move against them.</p>
+<p><img src="diagrams/participants.svg" alt="Bond market participants and relationships"></p>
+<hr>
+<h2>4. How It Works - Step by Step</h2>
+<h3>Part A: Primary Market (New Issuance)</h3>
+<p>When a government or corporation needs to borrow money, it issues new bonds in the <strong>primary market</strong>. The process differs significantly between government and corporate bonds.</p>
+<h4>Government Bond Auction (US Treasury Example)</h4>
+<p><strong>Step 1: Announcement.</strong> The Treasury announces an upcoming auction. For a new 10-year note, the announcement comes roughly one week before the auction. It specifies the maturity date, coupon rate, and auction date. The Treasury follows a regular, predictable calendar - auctions happen on fixed schedules (e.g., 10-year notes are auctioned monthly).</p>
+<p><strong>Step 2: When-Issued Trading.</strong> Between announcement and auction, the bond trades on a &quot;when-issued&quot; (WI) basis. Dealers and investors trade forward contracts on the bond that has not yet been issued. This WI trading helps establish price discovery and gives the market a sense of where the auction will clear.</p>
+<p><strong>Step 3: Auction Day.</strong> The Treasury conducts a <strong>single-price (Dutch) auction</strong>:</p>
+<ul>
+<li><strong>Competitive bids</strong> come from primary dealers and large institutions. Each bid specifies a yield (or price) and an amount. &quot;I&#39;ll buy $500M at 4.25%.&quot;</li>
+<li><strong>Non-competitive bids</strong> come from smaller participants (including retail via TreasuryDirect). They accept whatever yield the auction determines. &quot;I&#39;ll buy $10,000 at whatever the clearing yield is.&quot;</li>
+</ul>
+<p><strong>Step 4: Determining the Stop.</strong> The Treasury accepts bids from lowest yield (highest price) upward until the full offering amount is filled. The highest accepted yield is called the &quot;stop&quot; or &quot;high yield.&quot; All winning bidders pay the same price (the price corresponding to the stop yield). This is the Dutch auction mechanism.</p>
+<p><strong>Example:</strong></p>
+<pre><code>10-Year Note Auction - $42 billion offering
+
+Competitive bids received:
+  $12B at 4.20%  &lt;- accepted
+  $15B at 4.22%  &lt;- accepted
+  $10B at 4.24%  &lt;- accepted
+  $8B  at 4.25%  &lt;- partially accepted ($5B fills the remaining)
+  $6B  at 4.27%  &lt;- rejected
+
+Non-competitive bids: $3B  &lt;- all accepted at clearing yield
+
+Stop yield: 4.25%
+All winners pay the price corresponding to 4.25%
+Bid-to-cover ratio: 51/42 = 1.21x (healthy demand)</code></pre><p><strong>Step 5: Settlement.</strong> The bonds settle T+1 (since 2023). The Treasury delivers securities to winning bidders via Fedwire Securities, and cash moves from buyers to the Treasury&#39;s account at the Federal Reserve.</p>
+<p><img src="diagrams/primary-market.svg" alt="Primary market issuance process"></p>
+<h4>Corporate Bond Issuance</h4>
+<p>Corporate bond issuance works differently - it resembles an IPO more than an auction.</p>
+<p><strong>Step 1: Mandate.</strong> The company selects lead underwriters (investment banks) who will manage the deal.</p>
+<p><strong>Step 2: Roadshow (optional).</strong> For large or debut issues, the company presents to institutional investors. The underwriters gauge demand and price sensitivity.</p>
+<p><strong>Step 3: Book Building.</strong> The underwriters announce indicative pricing (&quot;initial price talk&quot;) as a spread over the benchmark Treasury. For example, &quot;10-year at T+150&quot; means 150 basis points above the 10-year Treasury yield. Investors submit indications of interest (&quot;IOIs&quot;) - &quot;We&#39;ll take $50M at T+150 or tighter.&quot;</p>
+<p><strong>Step 4: Pricing.</strong> Based on the order book, underwriters set the final spread and allocate bonds. Strong demand means the spread tightens (lower cost for the issuer). Weak demand means it widens.</p>
+<p><strong>Step 5: Allocation &amp; Settlement.</strong> Underwriters allocate bonds to investors (large, long-term holders typically get priority). The deal settles T+2 for corporate bonds.</p>
+<h3>Part B: Secondary Market (Trading)</h3>
+<p>Once issued, bonds trade in the <strong>secondary market</strong> - this is where the vast majority of bond market activity occurs.</p>
+<h4>How Secondary Trading Works</h4>
+<p>Unlike stocks, most bonds do <strong>not</strong> trade on centralized exchanges. The bond market is primarily an <strong>over-the-counter (OTC) dealer market</strong>. This means:</p>
+<ol>
+<li><p><strong>An investor wants to sell.</strong> They contact one or more dealers (often via Bloomberg chat, phone, or electronic platform) and request a quote.</p>
+</li>
+<li><p><strong>Dealer quotes a price.</strong> The dealer provides a bid price (what they&#39;ll pay to buy the bond). The dealer may also quote an offer/ask price (what they&#39;ll sell the bond for). The difference is the <strong>bid-ask spread</strong> - the dealer&#39;s compensation.</p>
+</li>
+<li><p><strong>Trade execution.</strong> If the investor accepts, the trade executes. The dealer takes the bond onto their own balance sheet (inventory).</p>
+</li>
+<li><p><strong>Dealer finds the other side.</strong> The dealer may hold the bond briefly or immediately look for a buyer. They might execute a &quot;riskless principal&quot; trade where they already have a buyer lined up.</p>
+</li>
+<li><p><strong>Trade reporting.</strong> In the US, corporate and municipal bond trades must be reported to TRACE (Trade Reporting and Compliance Engine) within 15 minutes. Treasury trades are reported to FINRA.</p>
+</li>
+<li><p><strong>Clearing and settlement.</strong> The trade is submitted to the clearinghouse (FICC for Treasuries, NSCC for corporates). Settlement occurs on T+1 for Treasuries, T+2 for corporates.</p>
+</li>
+</ol>
+<h4>The Shift to Electronic Trading</h4>
+<p>The bond market has been migrating from phone-based trading to electronic platforms, but slowly:</p>
+<table>
+<thead>
+<tr>
+<th>Market</th>
+<th align="center">Electronic Share (2025)</th>
+<th>Trend</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>US Treasuries (on-the-run)</td>
+<td align="center">~70%</td>
+<td>High and rising</td>
+</tr>
+<tr>
+<td>US Treasuries (off-the-run)</td>
+<td align="center">~40%</td>
+<td>Growing</td>
+</tr>
+<tr>
+<td>Investment-grade corporate</td>
+<td align="center">~45%</td>
+<td>Growing fast</td>
+</tr>
+<tr>
+<td>High-yield corporate</td>
+<td align="center">~30%</td>
+<td>Growing</td>
+</tr>
+<tr>
+<td>Municipal bonds</td>
+<td align="center">~20%</td>
+<td>Slow growth</td>
+</tr>
+<tr>
+<td>Emerging market bonds</td>
+<td align="center">~15%</td>
+<td>Early stage</td>
+</tr>
+</tbody></table>
+<p><strong>On-the-run</strong> means the most recently issued bond of a given maturity - these are the most liquid. <strong>Off-the-run</strong> are older issues - less liquid, wider spreads.</p>
+<p>Electronic trading protocols include:</p>
+<ul>
+<li><strong>Request for Quote (RFQ):</strong> Investor sends a request to multiple dealers simultaneously. Dealers respond with prices. Most common for corporate bonds.</li>
+<li><strong>Central Limit Order Book (CLOB):</strong> Continuous matching of bids and offers, like a stock exchange. Used for on-the-run Treasuries (BrokerTec, Nasdaq Fixed Income).</li>
+<li><strong>All-to-All:</strong> Any participant can trade with any other participant, not just dealer-to-client. MarketAxess&#39;s Open Trading pioneered this.</li>
+<li><strong>Portfolio Trading:</strong> Trade an entire basket of bonds in one transaction. Growing rapidly since 2020.</li>
+</ul>
+<p><img src="diagrams/secondary-market.svg" alt="Secondary market trading flow"></p>
+<h3>Part C: Bond Lifecycle</h3>
+<p><img src="diagrams/bond-lifecycle.svg" alt="Complete bond lifecycle from issuance to maturity"></p>
+<hr>
+<h2>5. Technical Architecture</h2>
+<h3>Trading Infrastructure</h3>
+<p>The bond market&#39;s technical infrastructure is fragmented compared to equity markets, reflecting its OTC heritage.</p>
+<h4>Key Trading Platforms</h4>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Primary Use</th>
+<th>Protocol</th>
+<th align="center">Daily Volume</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bloomberg Terminal</td>
+<td>Price discovery, RFQ, chat-based trading</td>
+<td>FIX + proprietary</td>
+<td align="center">N/A (dominant)</td>
+</tr>
+<tr>
+<td>Tradeweb</td>
+<td>US Treasuries, corporates, munis, derivatives</td>
+<td>FIX 4.2/4.4</td>
+<td align="center">$1.5T+</td>
+</tr>
+<tr>
+<td>MarketAxess</td>
+<td>US corporate bonds, EM, Eurobonds</td>
+<td>FIX + REST API</td>
+<td align="center">$30B+</td>
+</tr>
+<tr>
+<td>BrokerTec (CME)</td>
+<td>US Treasury interdealer (CLOB)</td>
+<td>FIX/Binary</td>
+<td align="center">$200B+</td>
+</tr>
+<tr>
+<td>Nasdaq Fixed Income</td>
+<td>US Treasury interdealer</td>
+<td>Binary/FIX</td>
+<td align="center">$100B+</td>
+</tr>
+<tr>
+<td>ICE Bonds</td>
+<td>US corporate, municipal</td>
+<td>FIX</td>
+<td align="center">Growing</td>
+</tr>
+</tbody></table>
+<h4>Message Protocols</h4>
+<p><strong>FIX Protocol (Financial Information eXchange)</strong> is the lingua franca of bond trading. A typical RFQ message flow:</p>
+<pre><code>1. Investor -&gt; Platform: QuoteRequest (MsgType=R)
+   - SecurityID (CUSIP/ISIN)
+   - Side (Buy/Sell)
+   - OrderQty (face amount)
+   - QuoteReqID
+
+2. Platform -&gt; Dealers: QuoteRequest broadcast to selected dealers
+
+3. Dealer -&gt; Platform: Quote (MsgType=S)
+   - BidPx or OfferPx (clean price)
+   - BidYield or OfferYield
+   - ValidUntilTime (quote expiry, often 30-60 seconds)
+   - SettlDate
+
+4. Investor -&gt; Platform: NewOrderSingle (MsgType=D)
+   - Selects winning quote
+   - OrderQty, Price, Side
+
+5. Platform -&gt; Both: ExecutionReport (MsgType=8)
+   - Confirms trade execution
+   - ExecType=Fill</code></pre><h4>Security Identifiers</h4>
+<p>Bonds use multiple identification systems:</p>
+<table>
+<thead>
+<tr>
+<th>Identifier</th>
+<th>Format</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CUSIP</td>
+<td>9 characters (e.g., 912828ZT0)</td>
+<td>US and Canada</td>
+</tr>
+<tr>
+<td>ISIN</td>
+<td>12 characters (e.g., US912828ZT09)</td>
+<td>Global (wraps CUSIP)</td>
+</tr>
+<tr>
+<td>SEDOL</td>
+<td>7 characters</td>
+<td>UK and Ireland</td>
+</tr>
+<tr>
+<td>FIGI</td>
+<td>12 characters (e.g., BBG000BVPV84)</td>
+<td>Bloomberg global ID</td>
+</tr>
+<tr>
+<td>Ticker</td>
+<td>Variable (e.g., T 4.25 11/15/34)</td>
+<td>Bloomberg shorthand</td>
+</tr>
+</tbody></table>
+<p>A single bond can have all of these. The CUSIP (Committee on Uniform Securities Identification Procedures) is the primary identifier in US markets. ISINs wrap CUSIPs by prepending a country code and appending a check digit.</p>
+<h4>Settlement Infrastructure</h4>
+<p><strong>US Treasury Settlement - Fedwire Securities Service:</strong></p>
+<ul>
+<li>Operated by the Federal Reserve Banks</li>
+<li>Real-time gross settlement (RTGS) - each transaction settles individually</li>
+<li>Delivery versus payment (DVP) - securities and cash move simultaneously</li>
+<li>Operates 8:30 AM to 3:30 PM ET</li>
+<li>Handles ~$4 trillion in daily transfers</li>
+</ul>
+<p><strong>Corporate Bond Settlement - DTC (Depository Trust Company):</strong></p>
+<ul>
+<li>Part of DTCC</li>
+<li>Book-entry (dematerialized) - no physical certificates</li>
+<li>Net settlement - positions are netted at end of day</li>
+<li>CNS (Continuous Net Settlement) reduces the number of actual deliveries</li>
+</ul>
+<p><strong>European Settlement:</strong></p>
+<ul>
+<li>Euroclear (Brussels) and Clearstream (Luxembourg) are the two ICSDs (International Central Securities Depositories)</li>
+<li>TARGET2-Securities (T2S) is the ECB&#39;s platform for settling euro-denominated securities</li>
+</ul>
+<p><img src="diagrams/architecture.svg" alt="Bond market technical architecture"></p>
+<h3>Data Model</h3>
+<p>A bond in any trading system has these core attributes:</p>
+<pre><code>Bond {
+  // Identity
+  cusip: "912828ZT0"
+  isin: "US912828ZT09"
+  issuer: "United States Treasury"
+
+  // Terms
+  coupon_rate: 4.250%          // annual coupon rate
+  coupon_frequency: semi-annual // 2x per year
+  maturity_date: 2034-11-15
+  issue_date: 2024-11-15
+  face_value: 1000             // par amount
+  day_count_convention: "ACT/ACT"  // for Treasuries
+
+  // Features
+  callable: false
+  puttable: false
+  convertible: false
+  sinking_fund: false
+
+  // Classification
+  sector: "Government"
+  credit_rating: "Aaa/AA+"     // Moody's/S&P
+  currency: "USD"
+  country: "US"
+
+  // Market Data (changes in real-time)
+  bid_price: 98.25             // clean price (% of par)
+  ask_price: 98.28125
+  bid_yield: 4.415%
+  ask_yield: 4.412%
+  last_trade_price: 98.265625
+  accrued_interest: 1.73       // since last coupon
+  dirty_price: 99.995625       // clean + accrued
+}</code></pre><p><strong>Clean price vs. dirty price:</strong> The quoted price of a bond (the &quot;clean price&quot;) does not include accrued interest. But the actual amount a buyer pays is the &quot;dirty price&quot; (clean price + accrued interest since the last coupon date). This convention prevents the bond&#39;s quoted price from jumping on coupon payment dates.</p>
+<hr>
+<h2>6. Money Flow / Economics</h2>
+<h3>The Complete Cash Flow Picture</h3>
+<h4>Primary Market Economics</h4>
+<p>When a corporation issues bonds, money flows like this:</p>
+<pre><code>Investors pay $1 billion to buy the bonds
+  - Underwriting fee (spread):     -$6M    (0.6% for IG, 1-2% for HY)
+  - Legal/rating agency fees:      -$1M
+  - SEC registration:              -$0.2M
+  = Issuer receives:               ~$993M   (net proceeds)</code></pre><p>The underwriting spread is how investment banks earn money on new issues. For a typical investment-grade corporate bond, the &quot;gross spread&quot; is 50-75 basis points (0.50-0.75%). High-yield bonds cost more - 1.0-2.0%. Government bonds are cheaper because they auction directly.</p>
+<h4>Secondary Market Economics</h4>
+<p>In secondary trading, the <strong>bid-ask spread</strong> is the primary cost:</p>
+<table>
+<thead>
+<tr>
+<th>Bond Type</th>
+<th align="center">Typical Bid-Ask Spread</th>
+<th>What This Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>On-the-run US Treasury</td>
+<td align="center">0.5-1 bp (~$0.005 per $100)</td>
+<td>Extremely liquid</td>
+</tr>
+<tr>
+<td>Off-the-run US Treasury</td>
+<td align="center">1-3 bp</td>
+<td>Still very liquid</td>
+</tr>
+<tr>
+<td>Investment-grade corporate</td>
+<td align="center">5-15 bp</td>
+<td>Moderate cost</td>
+</tr>
+<tr>
+<td>High-yield corporate</td>
+<td align="center">25-75 bp</td>
+<td>Significant cost</td>
+</tr>
+<tr>
+<td>Municipal bonds</td>
+<td align="center">25-100 bp</td>
+<td>Illiquid, high cost</td>
+</tr>
+<tr>
+<td>Emerging market</td>
+<td align="center">20-100 bp</td>
+<td>Variable</td>
+</tr>
+</tbody></table>
+<p>A basis point (bp) is 0.01%. On $1 million face value of Treasuries, a 1 bp spread means $100 round-trip cost. On high-yield bonds, a 50 bp spread means $5,000 per million.</p>
+<h4>Coupon Payment Mechanics</h4>
+<p>Most bonds pay coupons <strong>semi-annually</strong> (every 6 months). The mechanics:</p>
+<ol>
+<li><strong>Record date</strong> - 15 days before the payment date. Whoever owns the bond on this date receives the coupon.</li>
+<li><strong>Payment date</strong> - the actual cash payment. For Treasuries, the paying agent is the Federal Reserve.</li>
+<li><strong>Ex-coupon date</strong> - typically 1 business day before record date. If you buy on or after this date, you do not get the upcoming coupon.</li>
+</ol>
+<p><strong>Day count conventions</strong> determine how accrued interest is calculated between coupon dates:</p>
+<table>
+<thead>
+<tr>
+<th>Convention</th>
+<th>Used By</th>
+<th>Calculation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ACT/ACT</td>
+<td>US Treasuries</td>
+<td>Actual days / actual days in period</td>
+</tr>
+<tr>
+<td>30/360</td>
+<td>US Corporate, Municipal</td>
+<td>Assumes 30-day months, 360-day year</td>
+</tr>
+<tr>
+<td>ACT/360</td>
+<td>Eurobonds, money market</td>
+<td>Actual days / 360</td>
+</tr>
+<tr>
+<td>ACT/365</td>
+<td>UK Gilts, some EM</td>
+<td>Actual days / 365</td>
+</tr>
+</tbody></table>
+<p>This matters more than you might think. The difference between ACT/ACT and 30/360 on a $10 million position over 3 months can be thousands of dollars.</p>
+<h4>Yield Calculations</h4>
+<p>There are multiple ways to measure a bond&#39;s return:</p>
+<p><strong>Current Yield</strong> - simplest, ignores time value:</p>
+<pre><code>Current Yield = Annual Coupon / Clean Price
+Example: $40 coupon / $950 price = 4.21%</code></pre><p><strong>Yield to Maturity (YTM)</strong> - the internal rate of return assuming you hold to maturity and reinvest coupons at the same rate. This is the standard yield measure:</p>
+<pre><code>Price = Sum[ C / (1+y/2)^t ] + FV / (1+y/2)^n
+
+Where:
+  C = semi-annual coupon ($20 for a 4% coupon)
+  y = annual YTM (solve for this)
+  FV = face value ($1,000)
+  n = number of semi-annual periods</code></pre><p>YTM cannot be solved algebraically - it requires iterative numerical methods (Newton-Raphson, bisection).</p>
+<p><strong>Yield to Call (YTC)</strong> - for callable bonds, the yield assuming the issuer calls (redeems early) at the first call date.</p>
+<p><strong>Yield to Worst (YTW)</strong> - the lowest of YTM, YTC for all call dates. This is the conservative measure institutional investors use.</p>
+<p><strong>Spread Measures:</strong></p>
+<ul>
+<li><strong>G-spread (Government spread):</strong> Yield minus interpolated Treasury yield at same maturity</li>
+<li><strong>Z-spread (Zero-volatility spread):</strong> Constant spread added to the entire Treasury spot curve to match the bond&#39;s price</li>
+<li><strong>OAS (Option-Adjusted Spread):</strong> Z-spread minus the value of embedded options (call, put). The &quot;true&quot; credit spread for bonds with options.</li>
+</ul>
+<p><img src="diagrams/money-flow.svg" alt="Money flow between bond market participants"></p>
+<hr>
+<h2>7. Security &amp; Risk</h2>
+<h3>The Six Risks of Bond Investing</h3>
+<h4>1. Interest Rate Risk (Market Risk)</h4>
+<p>The dominant risk for most bonds. When market yields rise, bond prices fall.</p>
+<p><strong>Duration</strong> quantifies this risk: it measures the approximate percentage price change for a 1% change in yield.</p>
+<pre><code>Modified Duration = Macaulay Duration / (1 + y/n)
+
+Approximate price change = -Duration x Change in yield x 100
+
+Example:
+  Duration = 7 years
+  Yield rises 1%
+  Price change = -7 x 0.01 x 100 = -7%</code></pre><p>A bond with 7-year duration loses about 7% of its value when yields rise 1%. This is why 2022 was catastrophic for bondholders - the Bloomberg US Aggregate Index lost 13%, its worst year ever, as the Fed raised rates from near zero to over 4%.</p>
+<p><strong>Duration depends on:</strong></p>
+<ul>
+<li><strong>Maturity:</strong> longer maturity = higher duration</li>
+<li><strong>Coupon:</strong> lower coupon = higher duration (you get less cash early, more weight on final payment)</li>
+<li><strong>Yield:</strong> lower yield = higher duration</li>
+</ul>
+<p>A 30-year zero-coupon bond has a duration of 30 years. A 30-year bond with a 6% coupon has a duration of about 15 years. The coupon payments effectively shorten the bond&#39;s interest rate sensitivity.</p>
+<p><strong>Convexity</strong> is the second-order effect - duration is a linear approximation, but the price-yield curve is actually curved. Positive convexity means the bond gains more when rates fall than it loses when rates rise (by the same amount). This is desirable, and investors pay a premium for it.</p>
+<p><img src="diagrams/duration-convexity.svg" alt="Duration and convexity explained"></p>
+<h4>2. Credit Risk (Default Risk)</h4>
+<p>The risk that the issuer cannot pay coupons or return principal. Rating agencies provide standardized credit assessments:</p>
+<table>
+<thead>
+<tr>
+<th>Moody&#39;s</th>
+<th>S&amp;P / Fitch</th>
+<th>Grade</th>
+<th>Meaning</th>
+<th align="center">Historical 10yr Default Rate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Aaa</td>
+<td>AAA</td>
+<td>Investment Grade</td>
+<td>Highest quality</td>
+<td align="center">0.0%</td>
+</tr>
+<tr>
+<td>Aa1-Aa3</td>
+<td>AA+/AA/AA-</td>
+<td>Investment Grade</td>
+<td>High quality</td>
+<td align="center">0.1%</td>
+</tr>
+<tr>
+<td>A1-A3</td>
+<td>A+/A/A-</td>
+<td>Investment Grade</td>
+<td>Upper medium</td>
+<td align="center">0.3%</td>
+</tr>
+<tr>
+<td>Baa1-Baa3</td>
+<td>BBB+/BBB/BBB-</td>
+<td>Investment Grade</td>
+<td>Medium (lowest IG)</td>
+<td align="center">1.5%</td>
+</tr>
+<tr>
+<td>Ba1-Ba3</td>
+<td>BB+/BB/BB-</td>
+<td>High Yield</td>
+<td>Speculative</td>
+<td align="center">8%</td>
+</tr>
+<tr>
+<td>B1-B3</td>
+<td>B+/B/B-</td>
+<td>High Yield</td>
+<td>Highly speculative</td>
+<td align="center">20%</td>
+</tr>
+<tr>
+<td>Caa-C</td>
+<td>CCC-D</td>
+<td>High Yield / Distressed</td>
+<td>Substantial risk/default</td>
+<td align="center">45%+</td>
+</tr>
+</tbody></table>
+<p>The <strong>BBB/Ba boundary</strong> (the line between investment grade and high yield) is enormously significant. Many institutional investors (pension funds, insurance companies) are prohibited from holding sub-investment-grade bonds. When a bond is downgraded from BBB- to BB+ (a &quot;fallen angel&quot;), forced selling by these institutions causes its price to plunge - often well beyond what the actual credit deterioration warrants.</p>
+<p><strong>Credit spreads</strong> are the additional yield investors demand above Treasuries to compensate for credit risk:</p>
+<table>
+<thead>
+<tr>
+<th>Rating</th>
+<th align="center">Typical Spread (2025)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AAA</td>
+<td align="center">30-50 bp</td>
+</tr>
+<tr>
+<td>AA</td>
+<td align="center">50-80 bp</td>
+</tr>
+<tr>
+<td>A</td>
+<td align="center">80-130 bp</td>
+</tr>
+<tr>
+<td>BBB</td>
+<td align="center">130-200 bp</td>
+</tr>
+<tr>
+<td>BB</td>
+<td align="center">200-350 bp</td>
+</tr>
+<tr>
+<td>B</td>
+<td align="center">350-550 bp</td>
+</tr>
+<tr>
+<td>CCC</td>
+<td align="center">600-1200 bp</td>
+</tr>
+</tbody></table>
+<p><img src="diagrams/credit-ratings.svg" alt="Credit rating scales comparison"></p>
+<h4>3. Liquidity Risk</h4>
+<p>The risk that you cannot sell a bond quickly at a fair price. The bond market is far less liquid than equities:</p>
+<ul>
+<li>There are over <strong>70,000 distinct corporate bond CUSIPs</strong> in the US market, versus ~4,000 listed stocks</li>
+<li>Most corporate bonds trade fewer than once per day</li>
+<li>A single issuer (like Apple) may have 50+ different bond issues outstanding</li>
+<li>During stress events, liquidity evaporates - dealers reduce inventory, bid-ask spreads blow out</li>
+</ul>
+<p><strong>Post-2008 regulation</strong> (Volcker Rule, Basel III leverage ratio) reduced dealer inventory capacity by approximately 75%. Dealers hold far less bond inventory than they did before the crisis, which has structural implications for liquidity during stress.</p>
+<h4>4. Inflation Risk</h4>
+<p>The risk that inflation erodes the real value of fixed coupon payments. A 4% coupon is worth less in real terms if inflation runs at 6%.</p>
+<p><strong>Treasury Inflation-Protected Securities (TIPS)</strong> address this: their principal adjusts with CPI, so both coupons and final repayment grow with inflation. The yield difference between a nominal Treasury and a TIPS of the same maturity is called the <strong>breakeven inflation rate</strong> - the market&#39;s implied inflation expectation.</p>
+<h4>5. Reinvestment Risk</h4>
+<p>The risk that when you receive coupon payments, you cannot reinvest them at the same yield. YTM assumes reinvestment at the YTM rate, which is rarely possible in practice. This risk is highest for high-coupon bonds in a falling-rate environment.</p>
+<h4>6. Call Risk (Prepayment Risk)</h4>
+<p>For callable bonds, the issuer can redeem early - typically when rates have fallen, which is exactly when you least want your high-coupon bond called away. You get your principal back but must reinvest at lower prevailing rates.</p>
+<p>Mortgage-backed securities have extreme call risk because homeowners can refinance at any time.</p>
+<hr>
+<h2>8. Regulation &amp; Compliance</h2>
+<h3>US Regulatory Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Regulator</th>
+<th>Jurisdiction</th>
+<th>Key Rules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SEC</strong></td>
+<td>Securities and Exchange Commission</td>
+<td>Securities Act of 1933 (new issues), Securities Exchange Act of 1934 (secondary trading)</td>
+</tr>
+<tr>
+<td><strong>FINRA</strong></td>
+<td>Self-regulatory organization for broker-dealers</td>
+<td>TRACE reporting, markup rules, suitability</td>
+</tr>
+<tr>
+<td><strong>MSRB</strong></td>
+<td>Municipal Securities Rulemaking Board</td>
+<td>Rule G-30 (fair pricing), Rule G-37 (pay-to-play), EMMA disclosure</td>
+</tr>
+<tr>
+<td><strong>Federal Reserve</strong></td>
+<td>Central bank</td>
+<td>Monetary policy, bank supervision, Fedwire</td>
+</tr>
+<tr>
+<td><strong>OCC</strong></td>
+<td>Office of the Comptroller of the Currency</td>
+<td>Bank bond portfolio supervision</td>
+</tr>
+<tr>
+<td><strong>Treasury Dept</strong></td>
+<td>Auction rules, TreasuryDirect</td>
+<td>Uniform Offering Circular</td>
+</tr>
+</tbody></table>
+<h3>Key Regulations</h3>
+<p><strong>TRACE (Trade Reporting and Compliance Engine).</strong> Since 2002, FINRA has required reporting of all OTC corporate and agency bond trades. Initially within 75 minutes, now within 15 minutes, with most reported within 10 seconds. TRACE brought revolutionary transparency to a previously opaque market. Before TRACE, investors had no way to know the last traded price of a corporate bond.</p>
+<p><strong>Regulation SHO.</strong> Short-selling rules for bonds. Less impactful than for equities because bond short-selling is typically done via repo (repurchase agreements) rather than traditional short sales.</p>
+<p><strong>Volcker Rule (2014).</strong> Prohibits banks from proprietary trading in most securities, including bonds. Banks can still market-make (hold inventory to facilitate client trades), but the line between market-making and prop trading is fuzzy. The practical effect: banks hold much less bond inventory, reducing market liquidity.</p>
+<p><strong>Basel III / IV Capital Requirements.</strong> Banks that hold bonds on their balance sheet must maintain capital reserves. Government bonds typically get 0% risk weight (treated as risk-free for capital purposes), while corporate bonds receive risk weights based on credit rating. This creates a structural incentive for banks to hold government bonds over corporate bonds.</p>
+<h3>European Regulatory Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Regulation</th>
+<th>Scope</th>
+<th>Key Requirements</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MiFID II / MiFIR</strong></td>
+<td>EU-wide securities regulation</td>
+<td>Pre- and post-trade transparency, best execution, systematic internalizer regime</td>
+</tr>
+<tr>
+<td><strong>CSDR</strong></td>
+<td>Central Securities Depositories Regulation</td>
+<td>Settlement discipline (penalties for fails), T+2 settlement</td>
+</tr>
+<tr>
+<td><strong>CRR/CRD</strong></td>
+<td>Capital Requirements Regulation</td>
+<td>Basel III implementation in EU, credit risk weights</td>
+</tr>
+<tr>
+<td><strong>EMIR</strong></td>
+<td>Derivatives (affects bond futures, swaps)</td>
+<td>Central clearing mandates, trade reporting</td>
+</tr>
+<tr>
+<td><strong>PRIIPs</strong></td>
+<td>Retail investor protection</td>
+<td>Key Information Documents for packaged investments</td>
+</tr>
+</tbody></table>
+<p><strong>MiFID II&#39;s impact on bonds</strong> has been significant. Since 2018, it requires:</p>
+<ul>
+<li>Post-trade transparency for virtually all bond trades (with deferrals for large/illiquid trades)</li>
+<li>Best execution obligations - firms must prove they got clients the best available price</li>
+<li>Research unbundling - asset managers must pay separately for research, not bundle it with trading commissions</li>
+</ul>
+<h3>Municipal Bond Regulation (US-Specific)</h3>
+<p>Municipal bonds have their own regulatory ecosystem because of their tax-exempt status:</p>
+<ul>
+<li><strong>Tax Reform Act of 1986</strong> - established rules for tax-exempt issuance, private activity bonds, and arbitrage rebate requirements</li>
+<li><strong>EMMA (Electronic Municipal Market Access)</strong> - MSRB&#39;s free disclosure platform where all muni bond documents, trades, and financials are published</li>
+<li><strong>SEC Rule 15c2-12</strong> - requires issuers to provide continuing disclosure (annual financial statements, event notices)</li>
+<li><strong>Rule G-37</strong> - prohibits &quot;pay-to-play&quot; where dealers who make political contributions are banned from underwriting that issuer&#39;s bonds</li>
+</ul>
+<hr>
+<h2>9. Comparisons &amp; Alternatives</h2>
+<h3>Government vs. Corporate vs. Municipal Bonds</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Government</th>
+<th>Corporate (IG)</th>
+<th>Corporate (HY)</th>
+<th>Municipal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Credit risk</td>
+<td>Minimal (own currency)</td>
+<td>Low to moderate</td>
+<td>Moderate to high</td>
+<td>Low (but varies)</td>
+</tr>
+<tr>
+<td>Yield (2025 range)</td>
+<td>3.5-4.5%</td>
+<td>4.5-6.0%</td>
+<td>6.5-9.0%</td>
+<td>3.0-4.5% (tax-equiv: 4.5-7.0%)</td>
+</tr>
+<tr>
+<td>Liquidity</td>
+<td>Excellent</td>
+<td>Moderate</td>
+<td>Lower</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>Tax treatment</td>
+<td>State tax exempt (US Treasuries)</td>
+<td>Fully taxable</td>
+<td>Fully taxable</td>
+<td>Federal tax exempt, often state too</td>
+</tr>
+<tr>
+<td>Typical maturity</td>
+<td>1 month - 30 years</td>
+<td>1 - 30 years</td>
+<td>3 - 10 years</td>
+<td>1 - 40 years</td>
+</tr>
+<tr>
+<td>Minimum investment</td>
+<td>$100 (TreasuryDirect)</td>
+<td>$1,000 - $5,000</td>
+<td>$1,000 - $5,000</td>
+<td>$5,000</td>
+</tr>
+<tr>
+<td>Call features</td>
+<td>Generally non-callable</td>
+<td>Often callable after 5-10 years</td>
+<td>Usually callable</td>
+<td>Typically callable after 10 years</td>
+</tr>
+<tr>
+<td>Recovery in default</td>
+<td>N/A (own currency)</td>
+<td>~40-50% for senior unsecured</td>
+<td>~30-40%</td>
+<td>~60-70% (revenue bonds)</td>
+</tr>
+<tr>
+<td>Who buys</td>
+<td>Everyone (benchmark asset)</td>
+<td>Insurance, pensions, mutual funds</td>
+<td>Hedge funds, HY mutual funds</td>
+<td>US tax-sensitive investors</td>
+</tr>
+</tbody></table>
+<h3>Fixed Rate vs. Floating Rate</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Fixed Rate</th>
+<th>Floating Rate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Coupon</td>
+<td>Constant (e.g., 5%)</td>
+<td>Resets periodically (e.g., SOFR + 150bp)</td>
+</tr>
+<tr>
+<td>Interest rate risk</td>
+<td>High (long duration)</td>
+<td>Minimal (~0 duration between resets)</td>
+</tr>
+<tr>
+<td>Price volatility</td>
+<td>High</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>Who benefits when rates rise</td>
+<td>Issuer (borrowed cheap)</td>
+<td>Investor (coupon rises)</td>
+</tr>
+<tr>
+<td>Typical maturity</td>
+<td>Any</td>
+<td>Usually shorter (2-7 years)</td>
+</tr>
+<tr>
+<td>Common issuers</td>
+<td>Governments, IG corporates</td>
+<td>Banks, leveraged loans, ABS</td>
+</tr>
+<tr>
+<td>Benchmark</td>
+<td>Treasury curve</td>
+<td>SOFR (was LIBOR pre-2023)</td>
+</tr>
+</tbody></table>
+<h3>Bonds vs. Other Fixed-Income Instruments</h3>
+<table>
+<thead>
+<tr>
+<th>Instrument</th>
+<th>How It Differs From Bonds</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Bank loans</strong></td>
+<td>Private, not securities. Floating rate. Senior secured. Traded in loan market, not bond market.</td>
+</tr>
+<tr>
+<td><strong>Money market instruments</strong></td>
+<td>Short-term (under 1 year). T-bills, commercial paper, repos. Quoted on discount yield basis.</td>
+</tr>
+<tr>
+<td><strong>Preferred stock</strong></td>
+<td>Equity, not debt. Dividends not legally obligated. Perpetual (no maturity). Junior to bonds in bankruptcy.</td>
+</tr>
+<tr>
+<td><strong>CDs (Certificates of Deposit)</strong></td>
+<td>Bank deposits, not securities. FDIC insured up to $250K. Less liquid.</td>
+</tr>
+<tr>
+<td><strong>Bond futures</strong></td>
+<td>Derivatives, not bonds. Standardized contracts. Cash or physical settlement. Used for hedging and speculation.</td>
+</tr>
+<tr>
+<td><strong>Interest rate swaps</strong></td>
+<td>Derivatives. Exchange fixed for floating payments. No principal exchange. Notional market ~$400T.</td>
+</tr>
+<tr>
+<td><strong>Credit default swaps (CDS)</strong></td>
+<td>Insurance-like derivative. Buyer pays spread, receives par in event of default. Can trade credit risk without owning the bond.</td>
+</tr>
+</tbody></table>
+<p><img src="diagrams/bond-types-comparison.svg" alt="Bond types comparison"></p>
+<hr>
+<h2>10. Modern Developments</h2>
+<h3>The Yield Curve: The Market&#39;s Crystal Ball</h3>
+<p>The <strong>yield curve</strong> plots yields across maturities for bonds of the same credit quality (typically Treasuries). Its shape tells you what the market expects about future interest rates and economic conditions.</p>
+<h4>Normal Yield Curve</h4>
+<p>Upward sloping - longer maturities yield more. This is the &quot;normal&quot; shape because investors demand more compensation for locking up money for longer periods (term premium).</p>
+<pre><code>5yr: 4.0%  |  10yr: 4.3%  |  30yr: 4.6%</code></pre><h4>Flat Yield Curve</h4>
+<p>Short and long rates are roughly equal. Often occurs during transitions between economic expansion and contraction.</p>
+<pre><code>5yr: 4.3%  |  10yr: 4.3%  |  30yr: 4.3%</code></pre><h4>Inverted Yield Curve</h4>
+<p>Short-term rates exceed long-term rates. Historically, a reliable recession predictor (every US recession since 1970 was preceded by an inversion of the 2yr/10yr spread). The curve was inverted from July 2022 through late 2024 - the longest sustained inversion in modern history.</p>
+<pre><code>2yr: 4.8%  |  5yr: 4.4%  |  10yr: 4.2%  |  30yr: 4.3%</code></pre><p><strong>Why inversion predicts recession:</strong> When the Fed raises short-term rates to fight inflation, the market prices in future rate cuts (expecting the economy to slow). Long rates drop below short rates because investors expect rates to be lower in the future.</p>
+<p><img src="diagrams/yield-curve.svg" alt="Yield curve shapes and interpretations"></p>
+<h3>Central Bank Bond Buying (QE/QT)</h3>
+<p>The most transformative development in bond markets since 2008 has been <strong>quantitative easing (QE)</strong> - central banks buying massive amounts of government (and sometimes corporate) bonds to push down long-term interest rates.</p>
+<p><strong>How QE works mechanically:</strong></p>
+<ol>
+<li>The Fed creates bank reserves (digital money) by crediting a primary dealer&#39;s reserve account</li>
+<li>The dealer delivers Treasury bonds to the Fed</li>
+<li>The dealer uses the cash to buy more bonds (or other assets) from other investors</li>
+<li>Those investors receive cash and redeploy it into riskier assets (corporate bonds, stocks, real estate)</li>
+<li>This &quot;portfolio rebalancing&quot; pushes down yields across the entire risk spectrum</li>
+</ol>
+<p><strong>The numbers are staggering:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Central Bank</th>
+<th align="center">Peak Bond Holdings</th>
+<th align="center">% of Government Debt</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Federal Reserve</td>
+<td align="center">$8.5T (2022)</td>
+<td align="center">~30% of Treasuries</td>
+</tr>
+<tr>
+<td>ECB</td>
+<td align="center">EUR 5.0T (2022)</td>
+<td align="center">~35% of eurozone gov bonds</td>
+</tr>
+<tr>
+<td>Bank of Japan</td>
+<td align="center">JPY 590T (2024)</td>
+<td align="center">~50% of JGBs</td>
+</tr>
+<tr>
+<td>Bank of England</td>
+<td align="center">GBP 875B (2022)</td>
+<td align="center">~35% of gilts</td>
+</tr>
+</tbody></table>
+<p><strong>Quantitative tightening (QT)</strong> is the reverse - the central bank lets bonds mature without reinvesting, shrinking its balance sheet. The Fed has been running QT since mid-2022, reducing holdings by ~$2 trillion through 2025.</p>
+<p><img src="diagrams/central-bank-impact.svg" alt="Central bank QE/QT mechanism"></p>
+<h3>Electronic Trading Revolution</h3>
+<p>Bond markets have traditionally lagged equities in electronic adoption, but the gap is closing fast:</p>
+<p><strong>Key trends (2020-2025):</strong></p>
+<ul>
+<li><strong>Portfolio trading</strong> has exploded. Instead of trading bonds one at a time, asset managers can trade entire baskets of 200+ bonds in a single transaction. ETF market makers pioneered this.</li>
+<li><strong>All-to-all trading</strong> breaks the dealer-centric model. On platforms like MarketAxess Open Trading, a pension fund can trade directly with an insurance company, with no dealer intermediating.</li>
+<li><strong>Algo trading</strong> in Treasuries now accounts for ~60% of central order book volume. High-frequency firms (Citadel Securities, Jane Street, Jump Trading) are major liquidity providers.</li>
+<li><strong>Data as a product.</strong> TRACE data, evaluated pricing services (Bloomberg BVAL, ICE, MarketAxess), and alternative data (satellite imagery for muni credit analysis) are reshaping how bonds are valued.</li>
+</ul>
+<h3>Green, Social, and Sustainability Bonds</h3>
+<p>The ESG bond market has grown from near zero to over <strong>$4 trillion cumulative issuance</strong> by 2025.</p>
+<p><strong>Green bonds</strong> fund environmentally beneficial projects (renewable energy, clean transport, green buildings). The issuer commits to using proceeds only for eligible green projects, verified by a third-party reviewer.</p>
+<p><strong>Key frameworks:</strong></p>
+<ul>
+<li>ICMA Green Bond Principles (voluntary guidelines)</li>
+<li>EU Green Bond Standard (mandatory taxonomy alignment for EU Green Bond label)</li>
+<li>Climate Bonds Initiative certification</li>
+</ul>
+<p><strong>The &quot;greenium&quot;:</strong> Green bonds often trade 2-5 basis points tighter (lower yield) than equivalent conventional bonds from the same issuer. Investors accept slightly lower returns for the green label, though the greenium has compressed as supply has grown.</p>
+<p><img src="diagrams/green-bonds.svg" alt="Green bond framework"></p>
+<h3>Tokenized Bonds and DLT</h3>
+<p>Blockchain-based bond issuance is moving from experiment to early production:</p>
+<ul>
+<li><strong>World Bank</strong> issued the first blockchain bond (&quot;bond-i&quot;) in 2018 on Ethereum</li>
+<li><strong>EIB</strong> has issued multiple digital bonds on Ethereum and other platforms</li>
+<li><strong>HSBC</strong> launched Orion, a tokenized bond platform</li>
+<li><strong>JP Morgan&#39;s Onyx</strong> facilitates intraday repo on permissioned blockchain</li>
+</ul>
+<p>Benefits of tokenized bonds: T+0 settlement, fractional ownership, 24/7 trading, automated coupon payments via smart contracts, reduced intermediaries.</p>
+<p>Current reality: volumes are tiny (under $10 billion total issued), regulatory clarity is incomplete, and institutional adoption is gradual. But the direction of travel is clear.</p>
+<hr>
+<h2>11. Appendix</h2>
+<h3>Key Terminology</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Accrued interest</strong></td>
+<td>Interest earned since the last coupon payment but not yet paid</td>
+</tr>
+<tr>
+<td><strong>Basis point (bp)</strong></td>
+<td>0.01% - one hundredth of a percentage point</td>
+</tr>
+<tr>
+<td><strong>Bearer bond</strong></td>
+<td>Bond where physical possession equals ownership (largely obsolete, banned in US since 1982)</td>
+</tr>
+<tr>
+<td><strong>Benchmark</strong></td>
+<td>The reference Treasury bond for a given maturity (on-the-run issue)</td>
+</tr>
+<tr>
+<td><strong>Book-entry</strong></td>
+<td>Bonds held electronically, no physical certificates</td>
+</tr>
+<tr>
+<td><strong>Callable</strong></td>
+<td>Issuer can redeem before maturity at a specified price</td>
+</tr>
+<tr>
+<td><strong>Carry</strong></td>
+<td>The return from holding a bond (coupon income minus financing cost)</td>
+</tr>
+<tr>
+<td><strong>Convexity</strong></td>
+<td>Measure of how duration changes as yields change (curvature of price-yield relationship)</td>
+</tr>
+<tr>
+<td><strong>Coupon</strong></td>
+<td>Periodic interest payment on a bond</td>
+</tr>
+<tr>
+<td><strong>Credit spread</strong></td>
+<td>Yield difference between a bond and a risk-free benchmark of same maturity</td>
+</tr>
+<tr>
+<td><strong>CUSIP</strong></td>
+<td>9-character alphanumeric identifier for US/Canadian securities</td>
+</tr>
+<tr>
+<td><strong>Dirty price</strong></td>
+<td>Clean price plus accrued interest (the actual settlement amount)</td>
+</tr>
+<tr>
+<td><strong>Duration</strong></td>
+<td>Measure of a bond&#39;s sensitivity to interest rate changes (approximate % price change per 1% yield change)</td>
+</tr>
+<tr>
+<td><strong>Fallen angel</strong></td>
+<td>Bond downgraded from investment grade to high yield</td>
+</tr>
+<tr>
+<td><strong>FICC</strong></td>
+<td>Fixed Income Clearing Corporation - clears US government securities</td>
+</tr>
+<tr>
+<td><strong>Gilt</strong></td>
+<td>UK government bond</td>
+</tr>
+<tr>
+<td><strong>High yield</strong></td>
+<td>Bonds rated below BBB-/Baa3 (also called &quot;junk bonds&quot;)</td>
+</tr>
+<tr>
+<td><strong>ISIN</strong></td>
+<td>International Securities Identification Number (12-character global ID)</td>
+</tr>
+<tr>
+<td><strong>JGB</strong></td>
+<td>Japanese Government Bond</td>
+</tr>
+<tr>
+<td><strong>Maturity</strong></td>
+<td>Date when the bond&#39;s principal (face value) is repaid</td>
+</tr>
+<tr>
+<td><strong>OAS</strong></td>
+<td>Option-Adjusted Spread - spread over Treasury curve after removing embedded option value</td>
+</tr>
+<tr>
+<td><strong>On-the-run</strong></td>
+<td>Most recently issued Treasury bond of a given maturity</td>
+</tr>
+<tr>
+<td><strong>Off-the-run</strong></td>
+<td>Previously issued Treasury bonds (less liquid, slightly cheaper)</td>
+</tr>
+<tr>
+<td><strong>Par</strong></td>
+<td>Face value, typically $1,000. A bond trading &quot;at par&quot; has a price of 100</td>
+</tr>
+<tr>
+<td><strong>Puttable</strong></td>
+<td>Investor can force early redemption at a specified price</td>
+</tr>
+<tr>
+<td><strong>Repo</strong></td>
+<td>Repurchase agreement - short-term collateralized borrowing using bonds</td>
+</tr>
+<tr>
+<td><strong>Rising star</strong></td>
+<td>Bond upgraded from high yield to investment grade</td>
+</tr>
+<tr>
+<td><strong>Roll down</strong></td>
+<td>Price appreciation as a bond ages and moves down the yield curve</td>
+</tr>
+<tr>
+<td><strong>SOFR</strong></td>
+<td>Secured Overnight Financing Rate - the primary USD floating rate benchmark (replaced LIBOR)</td>
+</tr>
+<tr>
+<td><strong>Strip</strong></td>
+<td>Zero-coupon bond created by separating a bond&#39;s coupon and principal payments</td>
+</tr>
+<tr>
+<td><strong>TIPS</strong></td>
+<td>Treasury Inflation-Protected Securities - principal adjusts with CPI</td>
+</tr>
+<tr>
+<td><strong>TRACE</strong></td>
+<td>Trade Reporting and Compliance Engine - FINRA system for reporting OTC bond trades</td>
+</tr>
+<tr>
+<td><strong>YTM</strong></td>
+<td>Yield to Maturity - the internal rate of return if held to maturity</td>
+</tr>
+<tr>
+<td><strong>YTW</strong></td>
+<td>Yield to Worst - the lowest yield across all possible call dates and maturity</td>
+</tr>
+<tr>
+<td><strong>Zero-coupon</strong></td>
+<td>Bond that pays no coupons, sold at a discount and redeemed at par</td>
+</tr>
+</tbody></table>
+<h3>Bond Math Quick Reference</h3>
+<p><strong>Price of a bond (semi-annual coupons):</strong></p>
+<pre><code>P = Sigma(t=1 to n) [ C/2 / (1 + y/2)^t ] + FV / (1 + y/2)^n
+
+Where:
+  P   = price
+  C   = annual coupon ($)
+  y   = yield to maturity (decimal)
+  FV  = face value
+  n   = number of semi-annual periods
+  t   = period number</code></pre><p><strong>Macaulay Duration:</strong></p>
+<pre><code>D = (1/P) * Sigma(t=1 to n) [ t * CF_t / (1 + y/2)^t ]
+
+Where:
+  CF_t = cash flow at time t (coupon or coupon + principal at maturity)</code></pre><p><strong>Modified Duration:</strong></p>
+<pre><code>D_mod = D_mac / (1 + y/n)
+
+Where n = number of coupon periods per year</code></pre><p><strong>Convexity:</strong></p>
+<pre><code>C = (1/P) * Sigma(t=1 to n) [ t*(t+1) * CF_t / (1+y/2)^(t+2) ]</code></pre><p><strong>Price change approximation using duration and convexity:</strong></p>
+<pre><code>dP/P = -D_mod * dy + (1/2) * Convexity * (dy)^2</code></pre><p><strong>Current Yield:</strong></p>
+<pre><code>CY = Annual Coupon / Clean Price</code></pre><p><strong>Discount (T-bill pricing):</strong></p>
+<pre><code>Price = Face Value * (1 - discount_rate * days_to_maturity / 360)</code></pre><h3>Architecture Diagrams</h3>
+<table>
+<thead>
+<tr>
+<th>Diagram</th>
+<th>Source</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Participants</td>
+<td><a href="diagrams/participants.mmd"><code>diagrams/participants.mmd</code></a></td>
+<td>Bond market ecosystem and actor relationships</td>
+</tr>
+<tr>
+<td>Bond Lifecycle</td>
+<td><a href="diagrams/bond-lifecycle.mmd"><code>diagrams/bond-lifecycle.mmd</code></a></td>
+<td>Complete lifecycle from issuance to maturity</td>
+</tr>
+<tr>
+<td>Primary Market</td>
+<td><a href="diagrams/primary-market.mmd"><code>diagrams/primary-market.mmd</code></a></td>
+<td>New issuance process (auction and book building)</td>
+</tr>
+<tr>
+<td>Secondary Market</td>
+<td><a href="diagrams/secondary-market.mmd"><code>diagrams/secondary-market.mmd</code></a></td>
+<td>Trading flow in OTC and electronic venues</td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td><a href="diagrams/architecture.mmd"><code>diagrams/architecture.mmd</code></a></td>
+<td>Trading infrastructure and system components</td>
+</tr>
+<tr>
+<td>Yield Curve</td>
+<td><a href="diagrams/yield-curve.mmd"><code>diagrams/yield-curve.mmd</code></a></td>
+<td>Yield curve shapes and interpretations</td>
+</tr>
+<tr>
+<td>Money Flow</td>
+<td><a href="diagrams/money-flow.mmd"><code>diagrams/money-flow.mmd</code></a></td>
+<td>Fee and payment relationships between participants</td>
+</tr>
+<tr>
+<td>Price-Yield Relationship</td>
+<td><a href="diagrams/price-yield-relationship.mmd"><code>diagrams/price-yield-relationship.mmd</code></a></td>
+<td>Inverse relationship between price and yield</td>
+</tr>
+<tr>
+<td>Credit Ratings</td>
+<td><a href="diagrams/credit-ratings.mmd"><code>diagrams/credit-ratings.mmd</code></a></td>
+<td>Rating agency scales and comparison</td>
+</tr>
+<tr>
+<td>Duration &amp; Convexity</td>
+<td><a href="diagrams/duration-convexity.mmd"><code>diagrams/duration-convexity.mmd</code></a></td>
+<td>Interest rate sensitivity visualization</td>
+</tr>
+<tr>
+<td>Bond Types Comparison</td>
+<td><a href="diagrams/bond-types-comparison.mmd"><code>diagrams/bond-types-comparison.mmd</code></a></td>
+<td>Government vs corporate vs municipal</td>
+</tr>
+<tr>
+<td>Settlement Flow</td>
+<td><a href="diagrams/settlement-flow.mmd"><code>diagrams/settlement-flow.mmd</code></a></td>
+<td>T+1 settlement process through FICC/DTC</td>
+</tr>
+<tr>
+<td>Central Bank Impact</td>
+<td><a href="diagrams/central-bank-impact.mmd"><code>diagrams/central-bank-impact.mmd</code></a></td>
+<td>QE/QT mechanism and market effects</td>
+</tr>
+<tr>
+<td>Green Bonds</td>
+<td><a href="diagrams/green-bonds.mmd"><code>diagrams/green-bonds.mmd</code></a></td>
+<td>ESG bond framework and verification process</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>12. Key Takeaways</h2>
+<ol>
+<li><p><strong>The bond market is bigger than the stock market.</strong> At ~$140 trillion globally, fixed income dwarfs equities. US Treasuries alone trade $800B+ daily. If you only understand equities, you are missing the larger half of capital markets.</p>
+</li>
+<li><p><strong>Price and yield move inversely - always.</strong> This is the fundamental law of fixed income. When rates rise, bond prices fall. Duration tells you how much. Convexity tells you how the sensitivity itself changes. Master these two concepts and you understand 80% of bond risk management.</p>
+</li>
+<li><p><strong>Bonds mostly trade OTC, not on exchanges.</strong> Unlike stocks, most bonds trade dealer-to-client in a decentralized market. There are 70,000+ distinct corporate bond CUSIPs, and most trade less than once per day. Liquidity is the defining challenge of bond markets.</p>
+</li>
+<li><p><strong>The yield curve is the market&#39;s most important signal.</strong> Its shape tells you what markets expect about future rates, inflation, and economic growth. An inverted curve has preceded every US recession since 1970. Central banks manipulate the short end; the market determines the long end.</p>
+</li>
+<li><p><strong>Credit ratings create structural cliffs.</strong> The BBB/BB boundary (investment grade / high yield) is not just a letter difference - it triggers forced selling by pension funds and insurance companies, creating discontinuous price behavior at the rating boundary.</p>
+</li>
+<li><p><strong>Central banks became the dominant bond buyer.</strong> Post-2008 QE programs saw the Fed, ECB, and BoJ collectively buy trillions in government bonds, compressing yields to historically low (even negative) levels. The unwinding of these positions (QT) is reshaping markets through 2025 and beyond.</p>
+</li>
+<li><p><strong>Settlement infrastructure is the plumbing that matters.</strong> Fedwire for Treasuries, DTC for corporates, Euroclear/Clearstream for international bonds. T+1 settlement is now standard in the US. DVP (delivery versus payment) eliminates settlement risk. Most people never think about plumbing until it breaks.</p>
+</li>
+<li><p><strong>Electronic trading is transforming the market, but slowly.</strong> On-the-run Treasuries are ~70% electronic, but municipal bonds are still mostly phone-traded. Portfolio trading, all-to-all protocols, and algorithmic market-making are the key trends pushing electronic adoption.</p>
+</li>
+<li><p><strong>Day count conventions and accrued interest are not trivial details.</strong> ACT/ACT vs. 30/360 creates real dollar differences. Clean vs. dirty price matters for settlement. Bond math is precise, and mistakes compound.</p>
+</li>
+<li><p><strong>Green bonds are a structural shift, not a fad.</strong> $4T+ cumulative issuance, growing regulatory mandates (EU Green Bond Standard), and investor demand are making ESG bonds a permanent part of the fixed-income landscape. The greenium may shrink, but the market will not.</p>
+</li>
+</ol>
+
+<h2 id="diagrams-gallery">Interactive Diagrams</h2>
+<p>Click any diagram to zoom. All diagrams are rendered live from Mermaid source files.</p>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph TradingLayer["Trading Layer"]
+        BBG["Bloomberg Terminal<br/>RFQ, chat, pricing"]
+        TW["Tradeweb<br/>Treasuries, corporates, munis"]
+        MAX["MarketAxess<br/>Corporate bonds, EM"]
+        BT["BrokerTec (CME)<br/>Treasury CLOB"]
+        NFI["Nasdaq Fixed Income<br/>Treasury CLOB"]
+    end
+
+    subgraph Protocol["Protocol Layer"]
+        FIX["FIX Protocol 4.2/4.4<br/>QuoteRequest -> Quote -> Order -> Execution"]
+        API["REST/WebSocket APIs<br/>Real-time streaming prices"]
+        PROP["Proprietary binary<br/>Low-latency feeds"]
+    end
+
+    subgraph Reporting["Post-Trade Reporting"]
+        TRACE["FINRA TRACE<br/>Corporate & agency bonds"]
+        RTRS["MSRB RTRS<br/>Municipal bonds"]
+        BSDR["CFTC SDR<br/>Bond derivatives"]
+    end
+
+    subgraph Clearing["Clearing Layer"]
+        FICC["FICC (Gov Securities Div)<br/>US Treasuries, agencies"]
+        NSCC["NSCC<br/>Corporate bonds"]
+        LCH["LCH<br/>Euro-denominated bonds"]
+    end
+
+    subgraph Settlement["Settlement Layer"]
+        FW["Fedwire Securities<br/>Real-time gross settlement<br/>US Treasuries"]
+        DTC["DTC<br/>Book-entry settlement<br/>Corporate bonds"]
+        EC["Euroclear / Clearstream<br/>International bonds"]
+        T2S["TARGET2-Securities<br/>Euro bonds"]
+    end
+
+    subgraph Data["Market Data"]
+        BVAL["Bloomberg BVAL<br/>Evaluated pricing"]
+        ICE["ICE Pricing<br/>Reference data"]
+        REF["Reference Data<br/>CUSIP, ISIN, FIGI"]
+    end
+
+    TradingLayer -->|"FIX messages"| Protocol
+    Protocol -->|"Trade confirmations"| Reporting
+    Protocol -->|"Trade instructions"| Clearing
+    Clearing -->|"DVP instructions"| Settlement
+    Data -->|"Pricing feeds"| TradingLayer
+
+    style TradingLayer fill:#2b6cb0,color:#fff
+    style Protocol fill:#4299e1,color:#fff
+    style Reporting fill:#d69e2e,color:#fff
+    style Clearing fill:#e53e3e,color:#fff
+    style Settlement fill:#38a169,color:#fff
+    style Data fill:#805ad5,color:#fff
+
+  </div>
+  <p class="diagram-caption">Architecture</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+sequenceDiagram
+    participant ISS as Issuer
+    participant UW as Underwriter /<br/>Primary Dealer
+    participant INV as Investor
+    participant CLEAR as Clearinghouse<br/>(FICC / DTC)
+    participant CUST as Custodian
+    participant PAY as Paying Agent
+
+    Note over ISS,PAY: PHASE 1 - ISSUANCE (Primary Market)
+    ISS->>UW: Mandate to issue / announce auction
+    UW->>INV: Market bond (roadshow / WI trading)
+    INV->>UW: Submit bids / IOIs
+    UW->>ISS: Determine pricing (stop yield / spread)
+    INV->>CLEAR: Settlement: cash delivered
+    CLEAR->>CUST: Securities delivered (DVP)
+    ISS-->>INV: Bond certificate (book-entry)
+
+    Note over ISS,PAY: PHASE 2 - COUPON PAYMENTS (Semi-annual)
+    loop Every 6 months
+        ISS->>PAY: Transfer coupon funds
+        PAY->>CUST: Distribute to holders of record
+        CUST->>INV: Credit coupon to investor account
+    end
+
+    Note over ISS,PAY: PHASE 3 - SECONDARY TRADING
+    INV->>UW: Request quote (RFQ)
+    UW->>INV: Bid price: 98.25
+    INV->>UW: Trade executed (sell at 98.25)
+    UW->>CLEAR: Report trade
+    CLEAR->>CUST: Settle T+1 (Treasuries) / T+2 (corporates)
+
+    Note over ISS,PAY: PHASE 4 - MATURITY / REDEMPTION
+    ISS->>PAY: Transfer principal + final coupon
+    PAY->>CUST: Distribute to final holders
+    CUST->>INV: Credit face value + final coupon
+    Note over ISS: Bond retired / cancelled
+
+  </div>
+  <p class="diagram-caption">Bond Lifecycle</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Government["Government Bonds"]
+        G1["Yield: 3.5-4.5%"]
+        G2["Credit risk: Minimal"]
+        G3["Liquidity: Excellent"]
+        G4["Tax: State exempt (US)"]
+        G5["Maturity: 1M - 30Y"]
+        G6["Callable: No"]
+        G7["Use: Benchmark, safe haven"]
+    end
+
+    subgraph CorpIG["Corporate - Investment Grade"]
+        IG1["Yield: 4.5-6.0%"]
+        IG2["Credit risk: Low-Moderate"]
+        IG3["Liquidity: Moderate"]
+        IG4["Tax: Fully taxable"]
+        IG5["Maturity: 1-30Y"]
+        IG6["Callable: Often after 5-10Y"]
+        IG7["Use: Income, liability matching"]
+    end
+
+    subgraph CorpHY["Corporate - High Yield"]
+        HY1["Yield: 6.5-9.0%"]
+        HY2["Credit risk: Moderate-High"]
+        HY3["Liquidity: Lower"]
+        HY4["Tax: Fully taxable"]
+        HY5["Maturity: 3-10Y"]
+        HY6["Callable: Usually yes"]
+        HY7["Use: Total return, carry"]
+    end
+
+    subgraph Municipal["Municipal Bonds"]
+        M1["Yield: 3.0-4.5%<br/>(tax-equiv: 4.5-7.0%)"]
+        M2["Credit risk: Low (varies)"]
+        M3["Liquidity: Low"]
+        M4["Tax: Federal exempt"]
+        M5["Maturity: 1-40Y"]
+        M6["Callable: After 10Y typically"]
+        M7["Use: Tax-advantaged income"]
+    end
+
+    subgraph Choosing["When to Choose Each"]
+        CH1["Government: Safety, liquidity,<br/>benchmark hedging"]
+        CH2["Corp IG: Higher income,<br/>liability-matching for pensions"]
+        CH3["Corp HY: Total return,<br/>accept credit risk for yield"]
+        CH4["Municipal: High tax bracket<br/>investors seeking tax-free income"]
+    end
+
+    Government -.-> CH1
+    CorpIG -.-> CH2
+    CorpHY -.-> CH3
+    Municipal -.-> CH4
+
+    style Government fill:#2b6cb0,color:#fff
+    style CorpIG fill:#38a169,color:#fff
+    style CorpHY fill:#e53e3e,color:#fff
+    style Municipal fill:#805ad5,color:#fff
+    style Choosing fill:#2d3748,color:#fff
+
+  </div>
+  <p class="diagram-caption">Bond Types Comparison</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph QE["Quantitative Easing (QE) - Buying Bonds"]
+        QE1["Fed creates bank reserves<br/>(digital money)"]
+        QE2["Primary dealer sells<br/>Treasuries/MBS to Fed"]
+        QE3["Dealer has cash,<br/>buys more bonds"]
+        QE4["Investors receive cash,<br/>buy riskier assets"]
+        QE5["RESULT: Long-term yields fall<br/>Asset prices rise<br/>Lending increases"]
+
+        QE1 --> QE2 --> QE3 --> QE4 --> QE5
+    end
+
+    subgraph QT["Quantitative Tightening (QT) - Shrinking Balance Sheet"]
+        QT1["Bonds on Fed balance sheet<br/>mature"]
+        QT2["Fed does NOT reinvest<br/>the principal"]
+        QT3["Treasury must sell new bonds<br/>to private market"]
+        QT4["More supply = higher yields<br/>Less reserves in banking system"]
+        QT5["RESULT: Long-term yields rise<br/>Liquidity tightens"]
+
+        QT1 --> QT2 --> QT3 --> QT4 --> QT5
+    end
+
+    subgraph Scale["Scale of Central Bank Holdings (Peak)"]
+        FED["Federal Reserve<br/>$8.5T (2022)<br/>~30% of US Treasuries"]
+        ECB["ECB<br/>EUR 5.0T (2022)<br/>~35% of eurozone gov bonds"]
+        BOJ["Bank of Japan<br/>JPY 590T (2024)<br/>~50% of JGBs"]
+        BOE["Bank of England<br/>GBP 875B (2022)<br/>~35% of UK gilts"]
+    end
+
+    subgraph MarketImpact["Market Impact"]
+        MI1["Compressed term premium<br/>Flattened yield curve"]
+        MI2["Reduced bond supply<br/>for private investors"]
+        MI3["Pushed investors into<br/>riskier assets (reach for yield)"]
+        MI4["Created dependency -<br/>markets react to QE/QT signals"]
+    end
+
+    QE5 --> MarketImpact
+    QT5 --> MarketImpact
+
+    style QE fill:#38a169,color:#fff
+    style QT fill:#e53e3e,color:#fff
+    style Scale fill:#2b6cb0,color:#fff
+    style MarketImpact fill:#d69e2e,color:#fff
+
+  </div>
+  <p class="diagram-caption">Central Bank Impact</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph InvestmentGrade["Investment Grade"]
+        AAA["Moody's: Aaa | S&P: AAA<br/>Highest quality<br/>Default rate: ~0%<br/>Spread: 30-50 bp"]
+        AA["Moody's: Aa1-Aa3 | S&P: AA+/AA/AA-<br/>High quality<br/>Default rate: 0.1%<br/>Spread: 50-80 bp"]
+        A["Moody's: A1-A3 | S&P: A+/A/A-<br/>Upper medium<br/>Default rate: 0.3%<br/>Spread: 80-130 bp"]
+        BBB["Moody's: Baa1-Baa3 | S&P: BBB+/BBB/BBB-<br/>Medium grade (lowest IG)<br/>Default rate: 1.5%<br/>Spread: 130-200 bp"]
+
+        AAA --> AA --> A --> BBB
+    end
+
+    CLIFF["THE IG/HY CLIFF<br/>Downgrade triggers forced selling<br/>by pension funds, insurance cos<br/>Price drops discontinuously"]
+
+    subgraph HighYield["High Yield (Junk)"]
+        BB["Moody's: Ba1-Ba3 | S&P: BB+/BB/BB-<br/>Speculative<br/>Default rate: 8%<br/>Spread: 200-350 bp"]
+        B["Moody's: B1-B3 | S&P: B+/B/B-<br/>Highly speculative<br/>Default rate: 20%<br/>Spread: 350-550 bp"]
+        CCC["Moody's: Caa-C | S&P: CCC-D<br/>Substantial risk / default<br/>Default rate: 45%+<br/>Spread: 600-1200 bp"]
+
+        BB --> B --> CCC
+    end
+
+    BBB -->|"Fallen Angel"| CLIFF
+    CLIFF -->|"Downgrade"| BB
+
+    BB -->|"Rising Star"| CLIFF
+    CLIFF -->|"Upgrade"| BBB
+
+    style InvestmentGrade fill:#38a169,color:#fff
+    style HighYield fill:#e53e3e,color:#fff
+    style CLIFF fill:#d69e2e,color:#000
+    style AAA fill:#276749,color:#fff
+    style AA fill:#2f855a,color:#fff
+    style A fill:#38a169,color:#fff
+    style BBB fill:#68d391,color:#000
+    style BB fill:#fc8181,color:#000
+    style B fill:#f56565,color:#fff
+    style CCC fill:#c53030,color:#fff
+
+  </div>
+  <p class="diagram-caption">Credit Ratings</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph DurationExplained["Duration: Interest Rate Sensitivity"]
+        D1["Duration = approximate % price change<br/>for a 1% change in yield"]
+        D2["Higher duration = MORE sensitive to rates"]
+
+        D3["30Y zero-coupon bond<br/>Duration: ~30 years<br/>Extremely sensitive"]
+        D4["30Y bond, 6% coupon<br/>Duration: ~15 years<br/>Coupons reduce sensitivity"]
+        D5["2Y Treasury note<br/>Duration: ~2 years<br/>Low sensitivity"]
+        D6["Floating rate note<br/>Duration: ~0<br/>Resets each period"]
+
+        D1 --> D2
+        D2 --> D3
+        D2 --> D4
+        D2 --> D5
+        D2 --> D6
+    end
+
+    subgraph DurationDrivers["What Drives Duration"]
+        DR1["Longer maturity<br/>= Higher duration"]
+        DR2["Lower coupon<br/>= Higher duration"]
+        DR3["Lower yield<br/>= Higher duration"]
+    end
+
+    subgraph ConvexityExplained["Convexity: The Curvature Effect"]
+        C1["Duration is a LINEAR approximation<br/>But the price-yield curve is CURVED"]
+        C2["Positive convexity:<br/>Gains from rate drops EXCEED<br/>losses from equal rate rises"]
+        C3["Example with Duration = 7:"]
+        C4["Rates drop 1%: +7.3% gain<br/>(more than duration predicts)"]
+        C5["Rates rise 1%: -6.7% loss<br/>(less than duration predicts)"]
+        C6["Investors PAY A PREMIUM<br/>for higher convexity"]
+
+        C1 --> C2 --> C3
+        C3 --> C4
+        C3 --> C5
+        C4 --> C6
+        C5 --> C6
+    end
+
+    subgraph PriceFormula["Price Change Formula"]
+        PF["dP/P = -Duration x dy<br/>+ (1/2) x Convexity x (dy)^2"]
+        PF1["First term: duration effect (linear)"]
+        PF2["Second term: convexity effect (always positive)"]
+        PF --> PF1
+        PF --> PF2
+    end
+
+    style DurationExplained fill:#2b6cb0,color:#fff
+    style DurationDrivers fill:#4299e1,color:#fff
+    style ConvexityExplained fill:#38a169,color:#fff
+    style PriceFormula fill:#d69e2e,color:#fff
+
+  </div>
+  <p class="diagram-caption">Duration Convexity</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Issuance["Green Bond Issuance Process"]
+        I1["Issuer identifies eligible<br/>green projects"]
+        I2["Obtain second-party opinion<br/>(Sustainalytics, Vigeo Eiris, ISS ESG)"]
+        I3["Establish Green Bond Framework<br/>aligned with ICMA Principles"]
+        I4["Issue bond with 'green' label<br/>proceeds ring-fenced"]
+        I5["Annual impact reporting<br/>to investors"]
+
+        I1 --> I2 --> I3 --> I4 --> I5
+    end
+
+    subgraph EligibleProjects["Eligible Green Projects"]
+        P1["Renewable energy<br/>Solar, wind, hydro"]
+        P2["Clean transportation<br/>Electric vehicles, rail"]
+        P3["Green buildings<br/>LEED / BREEAM certified"]
+        P4["Pollution prevention<br/>Waste management, recycling"]
+        P5["Biodiversity conservation<br/>Sustainable forestry, water"]
+    end
+
+    subgraph Frameworks["Governing Frameworks"]
+        F1["ICMA Green Bond Principles<br/>Voluntary, market standard"]
+        F2["EU Green Bond Standard<br/>Mandatory taxonomy alignment"]
+        F3["Climate Bonds Initiative<br/>Certification & verification"]
+        F4["China Green Bond Catalogue<br/>PBoC-endorsed standard"]
+    end
+
+    subgraph ESGFamily["The ESG Bond Family"]
+        E1["Green Bonds<br/>Environmental projects<br/>$4T+ cumulative"]
+        E2["Social Bonds<br/>Healthcare, education,<br/>affordable housing"]
+        E3["Sustainability Bonds<br/>Mix of green + social<br/>projects"]
+        E4["Sustainability-Linked Bonds<br/>Coupon tied to ESG targets<br/>(step-up if missed)"]
+    end
+
+    subgraph Greenium["The Greenium"]
+        G1["Green bonds trade 2-5 bp<br/>tighter than conventional"]
+        G2["Investors accept lower yield<br/>for green label"]
+        G3["Greenium has compressed<br/>as supply has grown"]
+    end
+
+    I4 --> EligibleProjects
+    Frameworks --> I3
+
+    style Issuance fill:#38a169,color:#fff
+    style EligibleProjects fill:#276749,color:#fff
+    style Frameworks fill:#2b6cb0,color:#fff
+    style ESGFamily fill:#805ad5,color:#fff
+    style Greenium fill:#d69e2e,color:#fff
+
+  </div>
+  <p class="diagram-caption">Green Bonds</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph PrimaryFlow["Primary Market Money Flow"]
+        INV_P["Investors<br/>Pay $1B face value"]
+        UW_P["Underwriters<br/>Collect 0.6% fee ($6M)"]
+        RA_P["Rating Agencies<br/>Collect ~$500K"]
+        LAW_P["Legal / Trustees<br/>Collect ~$500K"]
+        ISS_P["Issuer<br/>Receives ~$993M net"]
+
+        INV_P -->|"$1B"| UW_P
+        UW_P -->|"$993M"| ISS_P
+        ISS_P -->|"Rating fee"| RA_P
+        ISS_P -->|"Legal fees"| LAW_P
+    end
+
+    subgraph SecondaryFlow["Secondary Market Money Flow"]
+        BUYER["Buyer<br/>Pays dirty price<br/>(clean + accrued)"]
+        DEALER["Dealer<br/>Earns bid-ask spread<br/>(5-50 bp)"]
+        SELLER["Seller<br/>Receives bid price<br/>+ accrued interest"]
+        PLAT_S["Platform<br/>Per-trade fee<br/>(~$0.50-2.00 per $1M)"]
+
+        BUYER -->|"Ask price"| DEALER
+        DEALER -->|"Bid price"| SELLER
+        DEALER -->|"Platform fee"| PLAT_S
+    end
+
+    subgraph OngoingFlow["Ongoing Cash Flows"]
+        ISSUER["Issuer"]
+        PAYAGT["Paying Agent<br/>(Fed for Treasuries)"]
+        CUSTODIAN["Custodians<br/>BNY, State Street"]
+        HOLDERS["Bondholders"]
+
+        ISSUER -->|"Coupon funds"| PAYAGT
+        PAYAGT -->|"Distribute"| CUSTODIAN
+        CUSTODIAN -->|"Credit semi-annual<br/>coupon to accounts"| HOLDERS
+        ISSUER -->|"Principal at maturity"| PAYAGT
+    end
+
+    style PrimaryFlow fill:#2b6cb0,color:#fff
+    style SecondaryFlow fill:#38a169,color:#fff
+    style OngoingFlow fill:#d69e2e,color:#fff
+
+  </div>
+  <p class="diagram-caption">Money Flow</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Issuers["Issuers (Borrowers)"]
+        SOV["Sovereign Governments<br/>US Treasury, UK DMO, German Finanzagentur"]
+        CORP["Corporations<br/>Apple, JPMorgan, Toyota"]
+        MUNI["Municipalities<br/>States, cities, agencies"]
+        SUPRA["Supranationals<br/>World Bank, EIB, ADB"]
+    end
+
+    subgraph Intermediaries["Intermediaries"]
+        PD["Primary Dealers (24 US)<br/>Goldman, JPMorgan, Barclays"]
+        UW["Underwriters<br/>Investment banks"]
+        RA["Rating Agencies<br/>Moody's, S&P, Fitch"]
+    end
+
+    subgraph Investors["Investors (Lenders)"]
+        PENSION["Pension Funds"]
+        INSCO["Insurance Companies"]
+        AM["Asset Managers<br/>PIMCO, BlackRock, Vanguard"]
+        CB["Central Banks<br/>Fed, ECB, BoJ"]
+        HF["Hedge Funds"]
+        RETAIL["Retail Investors"]
+    end
+
+    subgraph Infrastructure["Market Infrastructure"]
+        PLAT["Trading Platforms<br/>Bloomberg, Tradeweb, MarketAxess"]
+        CLEAR["Clearinghouses<br/>FICC, NSCC"]
+        CUST["Custodians<br/>BNY Mellon, State Street"]
+        IDX["Index Providers<br/>Bloomberg Agg, ICE BofA"]
+    end
+
+    SOV -->|"Auction"| PD
+    CORP -->|"Book building"| UW
+    MUNI -->|"Negotiated/competitive"| UW
+    SUPRA -->|"Syndication"| UW
+
+    RA -->|"Rate"| CORP
+    RA -->|"Rate"| MUNI
+    RA -->|"Rate"| SUPRA
+
+    PD -->|"Distribute & make markets"| PLAT
+    UW -->|"Allocate"| AM
+    UW -->|"Allocate"| PENSION
+
+    PENSION -->|"Buy"| PLAT
+    INSCO -->|"Buy"| PLAT
+    AM -->|"Trade"| PLAT
+    CB -->|"Open market ops"| PD
+    HF -->|"Trade"| PLAT
+    RETAIL -->|"TreasuryDirect / broker"| PD
+
+    PLAT -->|"Submit trades"| CLEAR
+    CLEAR -->|"DVP settlement"| CUST
+    IDX -->|"Benchmark"| AM
+
+    style Issuers fill:#2b6cb0,color:#fff
+    style Intermediaries fill:#d69e2e,color:#fff
+    style Investors fill:#38a169,color:#fff
+    style Infrastructure fill:#805ad5,color:#fff
+
+  </div>
+  <p class="diagram-caption">Participants</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Relationship["Price-Yield Inverse Relationship"]
+        TITLE["10-Year Bond, 4% Coupon, $1,000 Face Value"]
+
+        Y3["Yield: 3.0%<br/>Price: $1,085<br/>GAIN +8.5%"]
+        Y35["Yield: 3.5%<br/>Price: $1,042<br/>GAIN +4.2%"]
+        Y4["Yield: 4.0%<br/>Price: $1,000<br/>PAR"]
+        Y45["Yield: 4.5%<br/>Price: $960<br/>LOSS -4.0%"]
+        Y5["Yield: 5.0%<br/>Price: $923<br/>LOSS -7.7%"]
+
+        TITLE --> Y3
+        TITLE --> Y35
+        TITLE --> Y4
+        TITLE --> Y45
+        TITLE --> Y5
+    end
+
+    subgraph Formula["Bond Price Formula"]
+        F1["Price = Sum of discounted cash flows"]
+        F2["P = Sigma[ C / (1+r)^t ] + FV / (1+r)^n"]
+        F3["When r goes UP<br/>denominators get LARGER<br/>price goes DOWN"]
+        F4["When r goes DOWN<br/>denominators get SMALLER<br/>price goes UP"]
+
+        F1 --> F2
+        F2 --> F3
+        F2 --> F4
+    end
+
+    subgraph Convexity["Convexity Effect"]
+        CV1["Rate drop of 1%<br/>Price gain: +8.5%"]
+        CV2["Rate rise of 1%<br/>Price loss: -7.7%"]
+        CV3["Asymmetry = CONVEXITY<br/>Gains > losses for<br/>equal rate changes"]
+        CV1 --> CV3
+        CV2 --> CV3
+    end
+
+    style Relationship fill:#2b6cb0,color:#fff
+    style Formula fill:#38a169,color:#fff
+    style Convexity fill:#d69e2e,color:#fff
+    style Y3 fill:#38a169,color:#fff
+    style Y35 fill:#68d391,color:#000
+    style Y4 fill:#ecc94b,color:#000
+    style Y45 fill:#fc8181,color:#000
+    style Y5 fill:#e53e3e,color:#fff
+
+  </div>
+  <p class="diagram-caption">Price Yield Relationship</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph GovAuction["Government Bond Auction (Dutch)"]
+        A1["Treasury announces auction<br/>$42B 10-year note"] --> A2["When-issued trading begins<br/>Price discovery period"]
+        A2 --> A3["Auction day:<br/>Competitive + non-competitive bids"]
+        A3 --> A4["Bids ranked by yield<br/>Lowest yield = highest price first"]
+        A4 --> A5["Stop yield determined<br/>All winners pay same price"]
+        A5 --> A6["Settlement T+1<br/>via Fedwire Securities"]
+    end
+
+    subgraph CorpIssue["Corporate Bond Issuance (Book Building)"]
+        B1["Company selects underwriters<br/>(lead managers)"] --> B2["Roadshow to institutional<br/>investors (1-2 weeks)"]
+        B2 --> B3["Initial price talk<br/>e.g., 'T+150 area'"]
+        B3 --> B4["Order book builds<br/>IOIs from investors"]
+        B4 --> B5["Final pricing<br/>Spread tightens if demand strong"]
+        B5 --> B6["Allocation & settlement T+2<br/>via DTC"]
+    end
+
+    subgraph BidExample["Auction Bid Stack Example"]
+        C1["$12B at 4.20% - Accepted"]
+        C2["$15B at 4.22% - Accepted"]
+        C3["$10B at 4.24% - Accepted"]
+        C4["$5B at 4.25% - Partial fill"]
+        C5["$6B at 4.27% - Rejected"]
+        C1 --> C2 --> C3 --> C4 --> C5
+    end
+
+    style GovAuction fill:#2b6cb0,color:#fff
+    style CorpIssue fill:#38a169,color:#fff
+    style BidExample fill:#d69e2e,color:#fff
+
+  </div>
+  <p class="diagram-caption">Primary Market</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Traditional["Traditional OTC (Voice / Chat)"]
+        T1["Investor contacts dealer<br/>via Bloomberg chat / phone"]
+        T2["Dealer quotes bid/ask<br/>e.g., 98.25 / 98.31"]
+        T3["Investor hits bid (sells)<br/>or lifts offer (buys)"]
+        T4["Trade confirmed<br/>via MarkitWire / DTCC"]
+        T1 --> T2 --> T3 --> T4
+    end
+
+    subgraph RFQ["Electronic RFQ"]
+        R1["Investor sends RFQ<br/>to 3-5 dealers via platform"]
+        R2["Dealers respond with<br/>competing prices (30-60 sec)"]
+        R3["Investor selects<br/>best price"]
+        R4["Trade auto-reported<br/>to TRACE"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph CLOB["Central Limit Order Book"]
+        L1["Participants post<br/>bids and offers"]
+        L2["Matching engine<br/>price-time priority"]
+        L3["Auto-execution<br/>when orders cross"]
+        L4["Used for on-the-run<br/>Treasuries (BrokerTec)"]
+        L1 --> L2 --> L3 --> L4
+    end
+
+    subgraph AllToAll["All-to-All Trading"]
+        A1["Any participant can<br/>trade with any other"]
+        A2["No dealer required<br/>as intermediary"]
+        A3["MarketAxess Open Trading<br/>pioneered this model"]
+        A4["Pension fund trades<br/>directly with insurance co"]
+        A1 --> A2 --> A3 --> A4
+    end
+
+    T4 --> SETTLE["Settlement<br/>T+1 (Treasuries) / T+2 (Corporates)"]
+    R4 --> SETTLE
+    L4 --> SETTLE
+    A4 --> SETTLE
+
+    SETTLE --> FICC["FICC / DTC<br/>Clearing & DVP Settlement"]
+
+    style Traditional fill:#e53e3e,color:#fff
+    style RFQ fill:#2b6cb0,color:#fff
+    style CLOB fill:#38a169,color:#fff
+    style AllToAll fill:#805ad5,color:#fff
+    style SETTLE fill:#d69e2e,color:#fff
+    style FICC fill:#2d3748,color:#fff
+
+  </div>
+  <p class="diagram-caption">Secondary Market</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+sequenceDiagram
+    participant BUYER as Buyer
+    participant BD as Buyer's Dealer
+    participant PLAT as Trading Platform
+    participant SD as Seller's Dealer
+    participant SELLER as Seller
+    participant TRACE as TRACE / RTRS
+    participant FICC as FICC / NSCC
+    participant FW as Fedwire / DTC
+    participant BCUST as Buyer's Custodian
+    participant SCUST as Seller's Custodian
+
+    Note over BUYER,SCUST: T+0: TRADE DAY
+
+    BUYER->>PLAT: RFQ for $5M face UST 10Y
+    PLAT->>SD: Broadcast RFQ to dealers
+    SD->>PLAT: Quote: Bid 98.25 / Ask 98.31
+    BUYER->>PLAT: Lift offer at 98.31
+    PLAT->>BD: Trade confirmed (buy side)
+    PLAT->>SD: Trade confirmed (sell side)
+    PLAT->>TRACE: Report trade within 15 min
+
+    Note over BUYER,SCUST: T+0: POST-TRADE PROCESSING
+
+    BD->>FICC: Submit trade details
+    SD->>FICC: Submit trade details
+    FICC->>FICC: Match and validate<br/>Calculate net obligations<br/>Novate (become counterparty)
+
+    Note over BUYER,SCUST: T+1: SETTLEMENT DAY
+
+    FICC->>FW: DVP instructions
+    FW->>SCUST: Debit securities from seller
+    FW->>BCUST: Credit securities to buyer
+    FW->>SCUST: Credit cash to seller
+    FW->>BCUST: Debit cash from buyer
+
+    BCUST->>BUYER: Confirm settlement
+    SCUST->>SELLER: Confirm settlement
+
+    Note over BUYER,SCUST: Settlement complete - DVP eliminates counterparty risk
+
+  </div>
+  <p class="diagram-caption">Settlement Flow</p>
+</div>
+
+<div class="diagram-container" onclick="toggleZoom(this)">
+  <span class="diagram-zoom-hint">Click to zoom</span>
+  <div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Normal["Normal Yield Curve (Expansion)"]
+        direction LR
+        N1["3M: 3.5%"] --> N2["2Y: 3.8%"]
+        N2 --> N3["5Y: 4.0%"]
+        N3 --> N4["10Y: 4.3%"]
+        N4 --> N5["30Y: 4.6%"]
+    end
+
+    subgraph Flat["Flat Yield Curve (Transition)"]
+        direction LR
+        F1["3M: 4.3%"] --> F2["2Y: 4.3%"]
+        F2 --> F3["5Y: 4.3%"]
+        F3 --> F4["10Y: 4.3%"]
+        F4 --> F5["30Y: 4.3%"]
+    end
+
+    subgraph Inverted["Inverted Yield Curve (Recession Signal)"]
+        direction LR
+        I1["3M: 5.3%"] --> I2["2Y: 4.8%"]
+        I2 --> I3["5Y: 4.4%"]
+        I3 --> I4["10Y: 4.2%"]
+        I4 --> I5["30Y: 4.3%"]
+    end
+
+    subgraph Signals["What the Curve Tells You"]
+        S1["Normal: Economy growing<br/>Higher term premium for<br/>longer lock-up periods"]
+        S2["Flat: Transition phase<br/>Market uncertain about<br/>future rate direction"]
+        S3["Inverted: Recession ahead<br/>Market expects rate cuts<br/>Every US recession since 1970<br/>preceded by inversion"]
+    end
+
+    Normal -.->|"Signals"| S1
+    Flat -.->|"Signals"| S2
+    Inverted -.->|"Signals"| S3
+
+    style Normal fill:#38a169,color:#fff
+    style Flat fill:#d69e2e,color:#fff
+    style Inverted fill:#e53e3e,color:#fff
+    style Signals fill:#2d3748,color:#fff
+
+  </div>
+  <p class="diagram-caption">Yield Curve</p>
+</div>
+
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+     JavaScript
+     ============================================================ -->
+  <script>
+    // ---- Scroll to a heading, expanding its section if collapsed ----
+    function scrollToHeading(headingId) {
+      const heading = document.getElementById(headingId);
+      if (!heading) return;
+
+      // Expand the section if it is collapsed
+      const section = heading.closest('.section-collapsible');
+      if (section && section.classList.contains('collapsed')) {
+        section.classList.remove('collapsed');
+        const body = section.querySelector('.section-body');
+        if (body) body.style.maxHeight = body.scrollHeight + 'px';
+      }
+
+      // Also expand any parent collapsed section (for H3 inside an H2 section)
+      const parentSection = heading.closest('.section-body');
+      if (parentSection) {
+        const parentCollapsible = parentSection.closest('.section-collapsible');
+        if (parentCollapsible && parentCollapsible.classList.contains('collapsed')) {
+          parentCollapsible.classList.remove('collapsed');
+          parentSection.style.maxHeight = parentSection.scrollHeight + 'px';
+        }
+      }
+
+      // Smooth scroll to the heading
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ---- Table of Contents Generator ----
+    function buildTOC() {
+      const content = document.getElementById('content');
+      const toc = document.getElementById('toc');
+      const headings = content.querySelectorAll('h1, h2, h3');
+
+      let currentGroup = null;
+      let currentChildren = null;
+
+      headings.forEach((h, i) => {
+        if (!h.id) h.id = 'heading-' + i;
+        const level = parseInt(h.tagName[1]);
+
+        const a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent;
+        a.dataset.target = h.id;
+        if (level >= 2) a.classList.add('depth-' + level);
+
+        // All TOC links scroll to their heading on click
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          scrollToHeading(h.id);
+          history.pushState(null, '', '#' + h.id);
+          // Close mobile sidebar if open
+          document.getElementById('sidebar').classList.remove('open');
+        });
+
+        if (level <= 2) {
+          // Start a new TOC group for H1/H2
+          const group = document.createElement('div');
+          group.className = 'toc-group';
+          const children = document.createElement('div');
+          children.className = 'toc-children';
+
+          if (level === 2) a.classList.add('toc-toggle');
+
+          group.appendChild(a);
+          group.appendChild(children);
+          toc.appendChild(group);
+
+          currentGroup = group;
+          currentChildren = children;
+        } else if (level === 3 && currentChildren) {
+          // H3 goes into current group's children
+          currentChildren.appendChild(a);
+        } else {
+          toc.appendChild(a);
+        }
+      });
+    }
+
+    // ---- Active TOC Tracking ----
+    function setupScrollSpy() {
+      const headings = document.querySelectorAll('#content h1, #content h2, #content h3');
+      const tocLinks = document.querySelectorAll('#toc a');
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            tocLinks.forEach(a => a.classList.remove('active'));
+            const active = document.querySelector(`#toc a[data-target="${entry.target.id}"]`);
+            if (active) {
+              active.classList.add('active');
+              active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }
+        });
+      }, { rootMargin: '-80px 0px -70% 0px' });
+
+      headings.forEach(h => observer.observe(h));
+    }
+
+    // ---- Theme Toggle ----
+    function setupTheme() {
+      const btn = document.getElementById('themeToggle');
+      const saved = localStorage.getItem('research-theme');
+      if (saved) document.documentElement.dataset.theme = saved;
+      updateThemeButton();
+
+      btn.addEventListener('click', () => {
+        const current = document.documentElement.dataset.theme;
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('research-theme', next);
+        updateThemeButton();
+      });
+    }
+
+    function updateThemeButton() {
+      const btn = document.getElementById('themeToggle');
+      btn.textContent = document.documentElement.dataset.theme === 'dark' ? 'Light' : 'Dark';
+    }
+
+    // ---- In-Document Search ----
+    function setupSearch() {
+      const input = document.getElementById('searchInput');
+      const countEl = document.getElementById('searchCount');
+      const content = document.getElementById('content');
+      let marks = [];
+      let currentIndex = -1;
+
+      // Ctrl+F override
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+          e.preventDefault();
+          input.focus();
+          input.select();
+        }
+        if (e.key === 'Escape') {
+          clearSearch();
+          input.blur();
+        }
+        if (e.key === 'Enter' && document.activeElement === input) {
+          navigateSearch(e.shiftKey ? -1 : 1);
+        }
+      });
+
+      input.addEventListener('input', () => {
+        clearMarks();
+        const query = input.value.trim();
+        if (query.length < 2) {
+          countEl.textContent = '';
+          return;
+        }
+        highlightMatches(query);
+        countEl.textContent = marks.length > 0
+          ? `${currentIndex + 1}/${marks.length}`
+          : 'No results';
+      });
+
+      function highlightMatches(query) {
+        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+        const ranges = [];
+        const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+
+        while (walker.nextNode()) {
+          const node = walker.currentNode;
+          if (node.parentElement.closest('script, style, mark')) continue;
+          let match;
+          while ((match = regex.exec(node.textContent)) !== null) {
+            const range = document.createRange();
+            range.setStart(node, match.index);
+            range.setEnd(node, match.index + match[0].length);
+            ranges.push(range);
+          }
+        }
+
+        ranges.forEach(range => {
+          const mark = document.createElement('mark');
+          range.surroundContents(mark);
+          marks.push(mark);
+        });
+
+        if (marks.length > 0) {
+          currentIndex = 0;
+          marks[0].classList.add('current');
+          marks[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+
+      function navigateSearch(direction) {
+        if (marks.length === 0) return;
+        marks[currentIndex].classList.remove('current');
+        currentIndex = (currentIndex + direction + marks.length) % marks.length;
+        marks[currentIndex].classList.add('current');
+        marks[currentIndex].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        countEl.textContent = `${currentIndex + 1}/${marks.length}`;
+      }
+
+      function clearMarks() {
+        marks.forEach(mark => {
+          const parent = mark.parentNode;
+          parent.replaceChild(document.createTextNode(mark.textContent), mark);
+          parent.normalize();
+        });
+        marks = [];
+        currentIndex = -1;
+      }
+
+      function clearSearch() {
+        input.value = '';
+        clearMarks();
+        countEl.textContent = '';
+      }
+    }
+
+    // ---- Diagram Zoom ----
+    function toggleZoom(el) {
+      el.classList.toggle('zoomed');
+      if (el.classList.contains('zoomed')) {
+        document.addEventListener('keydown', function escHandler(e) {
+          if (e.key === 'Escape') {
+            el.classList.remove('zoomed');
+            document.removeEventListener('keydown', escHandler);
+          }
+        });
+      }
+    }
+
+    // ---- Wrap H2 Sections for Collapse ----
+    function wrapSections() {
+      const content = document.getElementById('content');
+      const h2s = content.querySelectorAll('h2');
+
+      h2s.forEach(h2 => {
+        // Collect all siblings between this H2 and the next H2 (or end)
+        const bodyElements = [];
+        let sibling = h2.nextElementSibling;
+        while (sibling && sibling.tagName !== 'H2' && sibling.tagName !== 'H1') {
+          bodyElements.push(sibling);
+          sibling = sibling.nextElementSibling;
+        }
+
+        if (bodyElements.length === 0) return;
+
+        // Create wrapper section
+        const section = document.createElement('div');
+        section.className = 'section-collapsible';
+
+        // Create body container
+        const body = document.createElement('div');
+        body.className = 'section-body';
+
+        // Insert section before the H2
+        h2.parentNode.insertBefore(section, h2);
+
+        // Move H2 into section
+        section.appendChild(h2);
+
+        // Move body elements into body container
+        bodyElements.forEach(el => body.appendChild(el));
+        section.appendChild(body);
+
+        // Set natural max-height for animation
+        requestAnimationFrame(() => {
+          body.style.maxHeight = body.scrollHeight + 'px';
+        });
+
+        // Click to toggle
+        h2.addEventListener('click', (e) => {
+          e.preventDefault();
+          section.classList.toggle('collapsed');
+          if (!section.classList.contains('collapsed')) {
+            body.style.maxHeight = body.scrollHeight + 'px';
+          }
+        });
+      });
+    }
+
+    // ---- Expand / Collapse All ----
+    function setupExpandCollapse() {
+      document.getElementById('expandAll').addEventListener('click', () => {
+        // Content sections
+        document.querySelectorAll('.section-collapsible').forEach(s => {
+          s.classList.remove('collapsed');
+          const body = s.querySelector('.section-body');
+          if (body) body.style.maxHeight = body.scrollHeight + 'px';
+        });
+        document.querySelectorAll('details').forEach(d => d.open = true);
+        // TOC groups
+        document.querySelectorAll('.toc-group').forEach(g => g.classList.remove('collapsed'));
+      });
+      document.getElementById('collapseAll').addEventListener('click', () => {
+        // Content sections
+        document.querySelectorAll('.section-collapsible').forEach(s => {
+          s.classList.add('collapsed');
+        });
+        document.querySelectorAll('details').forEach(d => d.open = false);
+        // TOC groups
+        document.querySelectorAll('.toc-group').forEach(g => {
+          if (g.querySelector('.toc-children').children.length > 0) {
+            g.classList.add('collapsed');
+          }
+        });
+      });
+    }
+
+    // ---- Reading Progress Bar ----
+    function setupProgress() {
+      const bar = document.getElementById('progressBar');
+      window.addEventListener('scroll', () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        bar.style.width = progress + '%';
+      }, { passive: true });
+    }
+
+    // ---- Back to Top ----
+    function setupBackToTop() {
+      const btn = document.getElementById('backToTop');
+      window.addEventListener('scroll', () => {
+        btn.classList.toggle('visible', window.scrollY > 400);
+      }, { passive: true });
+      btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // ---- Copy as Markdown ----
+    function setupCopyPage() {
+      const btn = document.getElementById('copyPage');
+      btn.addEventListener('click', async () => {
+        // Grab embedded markdown source if available, otherwise fall back to innerText
+        const mdEl = document.getElementById('markdownSource');
+        const text = mdEl ? mdEl.textContent : document.getElementById('content').innerText;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy Markdown'; }, 2000);
+        } catch {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy Markdown'; }, 2000);
+        }
+      });
+    }
+
+    // ---- Mobile Sidebar Toggle ----
+    function setupSidebarToggle() {
+      const btn = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('sidebar');
+      btn.addEventListener('click', () => sidebar.classList.toggle('open'));
+      document.addEventListener('click', (e) => {
+        if (!sidebar.contains(e.target) && e.target !== btn) {
+          sidebar.classList.remove('open');
+        }
+      });
+    }
+
+    // ---- Handle hash on load and popstate ----
+    function handleHash() {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        // Small delay to let layout settle
+        setTimeout(() => scrollToHeading(hash), 100);
+      }
+    }
+
+    // ---- Init ----
+    document.addEventListener('DOMContentLoaded', () => {
+      wrapSections();
+      buildTOC();
+      setupScrollSpy();
+      setupTheme();
+      setupSearch();
+      setupExpandCollapse();
+      setupCopyPage();
+      setupSidebarToggle();
+      setupProgress();
+      setupBackToTop();
+      handleHash();
+    });
+
+    window.addEventListener('popstate', handleHash);
+  </script>
+
+  <!-- Mermaid.js for diagram rendering -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    // Detect theme and configure mermaid accordingly
+    function getMermaidTheme() {
+      return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'default';
+    }
+
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: getMermaidTheme(),
+      securityLevel: 'loose',
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      sequence: { useMaxWidth: true, wrap: true },
+    });
+
+    // Re-render mermaid when theme changes
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === 'data-theme') {
+          // Re-initialize mermaid with new theme
+          mermaid.initialize({ theme: getMermaidTheme() });
+          // Re-render all diagrams
+          document.querySelectorAll('.mermaid[data-processed]').forEach(el => {
+            el.removeAttribute('data-processed');
+            el.innerHTML = el.getAttribute('data-original') || el.innerHTML;
+          });
+          mermaid.run();
+        }
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true });
+
+    // Store original mermaid source for re-rendering
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-original', el.innerHTML);
+    });
+  </script>
+
+
+  <script type="text/markdown" id="markdownSource">
+# Bond Markets: Complete Technical Deep Dive
+
+---
+
+## Table of Contents
+
+1. [History & Overview](#1-history--overview)
+2. [What a Bond Actually Is (and Is Not)](#2-what-a-bond-actually-is-and-is-not)
+3. [Key Participants & Roles](#3-key-participants--roles)
+4. [How It Works - Step by Step](#4-how-it-works---step-by-step)
+5. [Technical Architecture](#5-technical-architecture)
+6. [Money Flow / Economics](#6-money-flow--economics)
+7. [Security & Risk](#7-security--risk)
+8. [Regulation & Compliance](#8-regulation--compliance)
+9. [Comparisons & Alternatives](#9-comparisons--alternatives)
+10. [Modern Developments](#10-modern-developments)
+11. [Appendix](#11-appendix)
+12. [Key Takeaways](#12-key-takeaways)
+
+---
+
+## 1. History & Overview
+
+### The Oldest Financial Instrument
+
+Bonds predate stocks by centuries. The concept of a fixed-income debt obligation is arguably the oldest financial instrument in human history, older than equity markets, insurance contracts, or paper currency.
+
+**Ancient origins.** Mesopotamian clay tablets from 2400 BCE record debt contracts with fixed repayment terms and interest. Roman publicani issued bonds to finance public works. But the modern bond market traces directly to the Italian city-states of the 12th century, where Venice, Genoa, and Florence issued "prestiti" (forced loans) to finance wars. Venice's Monte Vecchio (1262) is often cited as the first government bond - citizens lent money to the republic and received transferable interest-bearing certificates.
+
+**Sovereign debt takes shape.** The Dutch Republic refined the model in the 1600s with long-dated annuities and perpetual bonds. The Bank of England, founded in 1694, immediately issued government bonds to fund King William III's war with France - creating the British "gilt" market that still exists today. The term "gilt-edged" literally meant the certificates had gilded edges, signifying their safety.
+
+**The US Treasury market.** Alexander Hamilton's consolidation of Revolutionary War debts in 1790 created the first US Treasury bonds and, with them, the foundation of American capital markets. Treasury securities have since become the most important benchmark in global finance - the risk-free rate against which virtually every other asset is priced.
+
+### Timeline
+
+| Year | Event |
+|------|-------|
+| 1262 | Venice issues Monte Vecchio - first transferable government bonds |
+| 1694 | Bank of England founded, issues gilts to fund war |
+| 1790 | Hamilton consolidates US war debts into Treasury bonds |
+| 1843 | First US corporate bond (Baltimore & Ohio Railroad) |
+| 1909 | Moody's publishes first bond ratings |
+| 1927 | S&P begins systematic bond ratings |
+| 1944 | Bretton Woods establishes USD as reserve currency, boosting Treasury demand |
+| 1970 | GNMA issues first mortgage-backed security |
+| 1971 | Nixon ends gold convertibility - floating rates transform bond markets |
+| 1975 | SEC mandates credit ratings for capital requirements (NRSRO designation) |
+| 1981 | First interest rate swap (IBM-World Bank) |
+| 1986 | London Big Bang deregulates UK bond markets |
+| 1997 | US Treasury launches TreasuryDirect for retail investors |
+| 2000 | Electronic trading platforms emerge (TradeWeb, MarketAxess) |
+| 2007-08 | Structured credit crisis - CDO/MBS meltdown triggers global financial crisis |
+| 2012 | ECB's Draghi: "whatever it takes" - central bank bond buying era begins |
+| 2014 | European government bonds trade at negative yields for first time |
+| 2020 | COVID response: Fed buys $4.5T in Treasuries and MBS |
+| 2022 | Fastest rate hiking cycle in 40 years causes historic bond losses |
+| 2023 | US T+1 settlement begins for bonds |
+| 2025 | Global bond market exceeds $140 trillion |
+
+### Scale Today
+
+The global bond market is **larger than the global stock market**. This surprises most people, but it makes sense - every government, every corporation, every municipality, and every securitization vehicle can issue debt.
+
+**Global fixed-income market: ~$140 trillion outstanding** (2025)
+
+| Segment | Outstanding | Share |
+|---------|------------|-------|
+| Government bonds (sovereign) | ~$65T | ~46% |
+| Corporate bonds (investment grade) | ~$25T | ~18% |
+| Mortgage-backed / asset-backed | ~$15T | ~11% |
+| Corporate bonds (high yield) | ~$4T | ~3% |
+| Municipal bonds (US) | ~$4T | ~3% |
+| Supranational / agency | ~$10T | ~7% |
+| Other (EM local currency, inflation-linked) | ~$17T | ~12% |
+
+**US Treasury market alone: ~$27 trillion** - the single largest and most liquid securities market on Earth. Average daily trading volume exceeds $800 billion.
+
+For context: the entire global stock market is roughly $110 trillion. The bond market is about 25% larger.
+
+---
+
+## 2. What a Bond Actually Is (and Is Not)
+
+### The One-Sentence Definition
+
+A bond is a securitized loan - the issuer borrows money from investors and promises to pay periodic interest (coupons) and return the principal (face value) at a specific future date (maturity).
+
+That's it. Everything else in bond markets - yield curves, duration, convexity, credit spreads, callable features - is just math and risk management built on top of this simple promise.
+
+### The Mental Model
+
+Think of a bond as an IOU that you can sell to someone else.
+
+When you buy a newly issued 10-year Treasury bond with a 4% coupon and $1,000 face value, the US government promises you:
+- $20 every six months (4% annual coupon, paid semi-annually) for 10 years
+- $1,000 back at the end of 10 years
+
+You get 20 coupon payments of $20 each ($400 total) plus your $1,000 back. Total cash received: $1,400 over 10 years.
+
+But here is the critical insight - you do not have to hold the bond for 10 years. You can sell it to someone else tomorrow. And the price you get depends on what has happened to interest rates since you bought it.
+
+### What a Bond Is NOT
+
+**A bond is not equity.** Buying a bond does not give you ownership in the issuer. You are a creditor, not an owner. You have no voting rights, no claim on profits beyond your coupon, and no upside if the company triples in value. But you get paid before equity holders if things go wrong - bonds are senior to stock in bankruptcy.
+
+**A bond is not risk-free** (usually). Only government bonds denominated in the issuer's own currency approach "risk-free" status, because the government can (theoretically) print money to pay you back. Corporate bonds carry credit risk. Even government bonds carry interest rate risk, inflation risk, and (for foreign-currency bonds) currency risk.
+
+**Bond prices and yields move in opposite directions.** This is the single most important relationship in fixed income, and it confuses many newcomers. If you hold a bond paying 4% and new bonds start paying 5%, nobody will pay you full price for your 4% bond - its market price drops. Conversely, if new rates drop to 3%, your 4% bond becomes more valuable, and its price rises.
+
+### The Price-Yield Inverse Relationship
+
+Why do prices and yields move inversely? Because a bond's price is the present value of its future cash flows, discounted at the prevailing market interest rate:
+
+```
+Bond Price = Sum of [ Coupon / (1 + r)^t ] + [ Face Value / (1 + r)^n ]
+```
+
+Where:
+- `r` = market yield (discount rate)
+- `t` = period number for each coupon
+- `n` = total number of periods
+
+When `r` goes up, the denominators get larger, and the present value (price) goes down. When `r` goes down, the denominators get smaller, and the price goes up.
+
+**Concrete example.** A 10-year bond with a 4% coupon and $1,000 face value:
+
+| Market Yield | Bond Price | Gain/Loss |
+|:------------:|:----------:|:---------:|
+| 3% | $1,085.30 | +8.5% |
+| 3.5% | $1,041.58 | +4.2% |
+| 4% | $1,000.00 | par |
+| 4.5% | $960.44 | -4.0% |
+| 5% | $922.78 | -7.7% |
+
+Notice the asymmetry: a 1% rate decline produces a bigger gain (+8.5%) than a 1% rate increase produces a loss (-7.7%). This asymmetry is called **convexity**, and it matters a lot for bond portfolio management.
+
+![Price-yield inverse relationship](diagrams/price-yield-relationship.svg)
+
+---
+
+## 3. Key Participants & Roles
+
+### The Bond Market Ecosystem
+
+| Participant | Role | Examples |
+|-------------|------|----------|
+| **Sovereign issuers** | Borrow to fund government spending and deficits | US Treasury, UK DMO, German Finanzagentur, Japan MoF |
+| **Corporate issuers** | Borrow for operations, acquisitions, capital expenditure | Apple, JPMorgan, Toyota, any company with investment-grade or high-yield debt |
+| **Municipal issuers** | Borrow for infrastructure, schools, hospitals (US-specific tax advantages) | City of New York, State of California, Port Authority |
+| **Supranational issuers** | Borrow for development and policy programs | World Bank, EIB, Asian Development Bank |
+| **Primary dealers** | Underwrite new issues, make markets, bid at government auctions | Goldman Sachs, JPMorgan, Barclays, Citigroup (24 US primary dealers) |
+| **Institutional investors** | Buy and hold bonds for income and liability matching | Pension funds, insurance companies, sovereign wealth funds |
+| **Asset managers** | Build and manage bond portfolios for clients | PIMCO, BlackRock, Vanguard |
+| **Central banks** | Buy/sell government bonds for monetary policy (open market operations) | Federal Reserve, ECB, Bank of Japan, Bank of England |
+| **Rating agencies** | Assess credit quality and assign ratings | Moody's, S&P Global, Fitch |
+| **Trading platforms** | Provide electronic venues for bond trading | Bloomberg, Tradeweb, MarketAxess, BrokerTec |
+| **Clearinghouses** | Guarantee and settle bond trades | DTCC/FICC (US), Euroclear, Clearstream |
+| **Custodians** | Hold securities on behalf of investors, process coupon payments | BNY Mellon, State Street, Northern Trust |
+| **Index providers** | Construct bond benchmarks for portfolio tracking | Bloomberg (Barclays Agg), ICE BofA, FTSE Russell |
+| **Retail investors** | Buy bonds directly (TreasuryDirect) or through funds | Individual savers, retail brokerage customers |
+
+### Why Primary Dealers Matter
+
+In the US Treasury market, **primary dealers** are the backbone of market functioning. These 24 firms (as of 2025) have a legal obligation to:
+
+1. **Bid at every Treasury auction** - they must participate, ensuring the government can always sell its debt
+2. **Make markets** - they quote two-way prices (bid and ask) to other market participants
+3. **Act as counterparties to the Fed** - when the Federal Reserve conducts open market operations, it trades exclusively with primary dealers
+
+This creates a privileged but burdensome position. Primary dealers profit from the bid-ask spread and from their informational advantage (they see order flow), but they must absorb inventory risk when markets move against them.
+
+![Bond market participants and relationships](diagrams/participants.svg)
+
+---
+
+## 4. How It Works - Step by Step
+
+### Part A: Primary Market (New Issuance)
+
+When a government or corporation needs to borrow money, it issues new bonds in the **primary market**. The process differs significantly between government and corporate bonds.
+
+#### Government Bond Auction (US Treasury Example)
+
+**Step 1: Announcement.** The Treasury announces an upcoming auction. For a new 10-year note, the announcement comes roughly one week before the auction. It specifies the maturity date, coupon rate, and auction date. The Treasury follows a regular, predictable calendar - auctions happen on fixed schedules (e.g., 10-year notes are auctioned monthly).
+
+**Step 2: When-Issued Trading.** Between announcement and auction, the bond trades on a "when-issued" (WI) basis. Dealers and investors trade forward contracts on the bond that has not yet been issued. This WI trading helps establish price discovery and gives the market a sense of where the auction will clear.
+
+**Step 3: Auction Day.** The Treasury conducts a **single-price (Dutch) auction**:
+
+- **Competitive bids** come from primary dealers and large institutions. Each bid specifies a yield (or price) and an amount. "I'll buy $500M at 4.25%."
+- **Non-competitive bids** come from smaller participants (including retail via TreasuryDirect). They accept whatever yield the auction determines. "I'll buy $10,000 at whatever the clearing yield is."
+
+**Step 4: Determining the Stop.** The Treasury accepts bids from lowest yield (highest price) upward until the full offering amount is filled. The highest accepted yield is called the "stop" or "high yield." All winning bidders pay the same price (the price corresponding to the stop yield). This is the Dutch auction mechanism.
+
+**Example:**
+
+```
+10-Year Note Auction - $42 billion offering
+
+Competitive bids received:
+  $12B at 4.20%  &lt;- accepted
+  $15B at 4.22%  &lt;- accepted
+  $10B at 4.24%  &lt;- accepted
+  $8B  at 4.25%  &lt;- partially accepted ($5B fills the remaining)
+  $6B  at 4.27%  &lt;- rejected
+
+Non-competitive bids: $3B  &lt;- all accepted at clearing yield
+
+Stop yield: 4.25%
+All winners pay the price corresponding to 4.25%
+Bid-to-cover ratio: 51/42 = 1.21x (healthy demand)
+```
+
+**Step 5: Settlement.** The bonds settle T+1 (since 2023). The Treasury delivers securities to winning bidders via Fedwire Securities, and cash moves from buyers to the Treasury's account at the Federal Reserve.
+
+![Primary market issuance process](diagrams/primary-market.svg)
+
+#### Corporate Bond Issuance
+
+Corporate bond issuance works differently - it resembles an IPO more than an auction.
+
+**Step 1: Mandate.** The company selects lead underwriters (investment banks) who will manage the deal.
+
+**Step 2: Roadshow (optional).** For large or debut issues, the company presents to institutional investors. The underwriters gauge demand and price sensitivity.
+
+**Step 3: Book Building.** The underwriters announce indicative pricing ("initial price talk") as a spread over the benchmark Treasury. For example, "10-year at T+150" means 150 basis points above the 10-year Treasury yield. Investors submit indications of interest ("IOIs") - "We'll take $50M at T+150 or tighter."
+
+**Step 4: Pricing.** Based on the order book, underwriters set the final spread and allocate bonds. Strong demand means the spread tightens (lower cost for the issuer). Weak demand means it widens.
+
+**Step 5: Allocation & Settlement.** Underwriters allocate bonds to investors (large, long-term holders typically get priority). The deal settles T+2 for corporate bonds.
+
+### Part B: Secondary Market (Trading)
+
+Once issued, bonds trade in the **secondary market** - this is where the vast majority of bond market activity occurs.
+
+#### How Secondary Trading Works
+
+Unlike stocks, most bonds do **not** trade on centralized exchanges. The bond market is primarily an **over-the-counter (OTC) dealer market**. This means:
+
+1. **An investor wants to sell.** They contact one or more dealers (often via Bloomberg chat, phone, or electronic platform) and request a quote.
+
+2. **Dealer quotes a price.** The dealer provides a bid price (what they'll pay to buy the bond). The dealer may also quote an offer/ask price (what they'll sell the bond for). The difference is the **bid-ask spread** - the dealer's compensation.
+
+3. **Trade execution.** If the investor accepts, the trade executes. The dealer takes the bond onto their own balance sheet (inventory).
+
+4. **Dealer finds the other side.** The dealer may hold the bond briefly or immediately look for a buyer. They might execute a "riskless principal" trade where they already have a buyer lined up.
+
+5. **Trade reporting.** In the US, corporate and municipal bond trades must be reported to TRACE (Trade Reporting and Compliance Engine) within 15 minutes. Treasury trades are reported to FINRA.
+
+6. **Clearing and settlement.** The trade is submitted to the clearinghouse (FICC for Treasuries, NSCC for corporates). Settlement occurs on T+1 for Treasuries, T+2 for corporates.
+
+#### The Shift to Electronic Trading
+
+The bond market has been migrating from phone-based trading to electronic platforms, but slowly:
+
+| Market | Electronic Share (2025) | Trend |
+|--------|:----------------------:|-------|
+| US Treasuries (on-the-run) | ~70% | High and rising |
+| US Treasuries (off-the-run) | ~40% | Growing |
+| Investment-grade corporate | ~45% | Growing fast |
+| High-yield corporate | ~30% | Growing |
+| Municipal bonds | ~20% | Slow growth |
+| Emerging market bonds | ~15% | Early stage |
+
+**On-the-run** means the most recently issued bond of a given maturity - these are the most liquid. **Off-the-run** are older issues - less liquid, wider spreads.
+
+Electronic trading protocols include:
+- **Request for Quote (RFQ):** Investor sends a request to multiple dealers simultaneously. Dealers respond with prices. Most common for corporate bonds.
+- **Central Limit Order Book (CLOB):** Continuous matching of bids and offers, like a stock exchange. Used for on-the-run Treasuries (BrokerTec, Nasdaq Fixed Income).
+- **All-to-All:** Any participant can trade with any other participant, not just dealer-to-client. MarketAxess's Open Trading pioneered this.
+- **Portfolio Trading:** Trade an entire basket of bonds in one transaction. Growing rapidly since 2020.
+
+![Secondary market trading flow](diagrams/secondary-market.svg)
+
+### Part C: Bond Lifecycle
+
+![Complete bond lifecycle from issuance to maturity](diagrams/bond-lifecycle.svg)
+
+---
+
+## 5. Technical Architecture
+
+### Trading Infrastructure
+
+The bond market's technical infrastructure is fragmented compared to equity markets, reflecting its OTC heritage.
+
+#### Key Trading Platforms
+
+| Platform | Primary Use | Protocol | Daily Volume |
+|----------|------------|----------|:------------:|
+| Bloomberg Terminal | Price discovery, RFQ, chat-based trading | FIX + proprietary | N/A (dominant) |
+| Tradeweb | US Treasuries, corporates, munis, derivatives | FIX 4.2/4.4 | $1.5T+ |
+| MarketAxess | US corporate bonds, EM, Eurobonds | FIX + REST API | $30B+ |
+| BrokerTec (CME) | US Treasury interdealer (CLOB) | FIX/Binary | $200B+ |
+| Nasdaq Fixed Income | US Treasury interdealer | Binary/FIX | $100B+ |
+| ICE Bonds | US corporate, municipal | FIX | Growing |
+
+#### Message Protocols
+
+**FIX Protocol (Financial Information eXchange)** is the lingua franca of bond trading. A typical RFQ message flow:
+
+```
+1. Investor -&gt; Platform: QuoteRequest (MsgType=R)
+   - SecurityID (CUSIP/ISIN)
+   - Side (Buy/Sell)
+   - OrderQty (face amount)
+   - QuoteReqID
+
+2. Platform -&gt; Dealers: QuoteRequest broadcast to selected dealers
+
+3. Dealer -&gt; Platform: Quote (MsgType=S)
+   - BidPx or OfferPx (clean price)
+   - BidYield or OfferYield
+   - ValidUntilTime (quote expiry, often 30-60 seconds)
+   - SettlDate
+
+4. Investor -&gt; Platform: NewOrderSingle (MsgType=D)
+   - Selects winning quote
+   - OrderQty, Price, Side
+
+5. Platform -&gt; Both: ExecutionReport (MsgType=8)
+   - Confirms trade execution
+   - ExecType=Fill
+```
+
+#### Security Identifiers
+
+Bonds use multiple identification systems:
+
+| Identifier | Format | Usage |
+|------------|--------|-------|
+| CUSIP | 9 characters (e.g., 912828ZT0) | US and Canada |
+| ISIN | 12 characters (e.g., US912828ZT09) | Global (wraps CUSIP) |
+| SEDOL | 7 characters | UK and Ireland |
+| FIGI | 12 characters (e.g., BBG000BVPV84) | Bloomberg global ID |
+| Ticker | Variable (e.g., T 4.25 11/15/34) | Bloomberg shorthand |
+
+A single bond can have all of these. The CUSIP (Committee on Uniform Securities Identification Procedures) is the primary identifier in US markets. ISINs wrap CUSIPs by prepending a country code and appending a check digit.
+
+#### Settlement Infrastructure
+
+**US Treasury Settlement - Fedwire Securities Service:**
+- Operated by the Federal Reserve Banks
+- Real-time gross settlement (RTGS) - each transaction settles individually
+- Delivery versus payment (DVP) - securities and cash move simultaneously
+- Operates 8:30 AM to 3:30 PM ET
+- Handles ~$4 trillion in daily transfers
+
+**Corporate Bond Settlement - DTC (Depository Trust Company):**
+- Part of DTCC
+- Book-entry (dematerialized) - no physical certificates
+- Net settlement - positions are netted at end of day
+- CNS (Continuous Net Settlement) reduces the number of actual deliveries
+
+**European Settlement:**
+- Euroclear (Brussels) and Clearstream (Luxembourg) are the two ICSDs (International Central Securities Depositories)
+- TARGET2-Securities (T2S) is the ECB's platform for settling euro-denominated securities
+
+![Bond market technical architecture](diagrams/architecture.svg)
+
+### Data Model
+
+A bond in any trading system has these core attributes:
+
+```
+Bond {
+  // Identity
+  cusip: "912828ZT0"
+  isin: "US912828ZT09"
+  issuer: "United States Treasury"
+
+  // Terms
+  coupon_rate: 4.250%          // annual coupon rate
+  coupon_frequency: semi-annual // 2x per year
+  maturity_date: 2034-11-15
+  issue_date: 2024-11-15
+  face_value: 1000             // par amount
+  day_count_convention: "ACT/ACT"  // for Treasuries
+
+  // Features
+  callable: false
+  puttable: false
+  convertible: false
+  sinking_fund: false
+
+  // Classification
+  sector: "Government"
+  credit_rating: "Aaa/AA+"     // Moody's/S&P
+  currency: "USD"
+  country: "US"
+
+  // Market Data (changes in real-time)
+  bid_price: 98.25             // clean price (% of par)
+  ask_price: 98.28125
+  bid_yield: 4.415%
+  ask_yield: 4.412%
+  last_trade_price: 98.265625
+  accrued_interest: 1.73       // since last coupon
+  dirty_price: 99.995625       // clean + accrued
+}
+```
+
+**Clean price vs. dirty price:** The quoted price of a bond (the "clean price") does not include accrued interest. But the actual amount a buyer pays is the "dirty price" (clean price + accrued interest since the last coupon date). This convention prevents the bond's quoted price from jumping on coupon payment dates.
+
+---
+
+## 6. Money Flow / Economics
+
+### The Complete Cash Flow Picture
+
+#### Primary Market Economics
+
+When a corporation issues bonds, money flows like this:
+
+```
+Investors pay $1 billion to buy the bonds
+  - Underwriting fee (spread):     -$6M    (0.6% for IG, 1-2% for HY)
+  - Legal/rating agency fees:      -$1M
+  - SEC registration:              -$0.2M
+  = Issuer receives:               ~$993M   (net proceeds)
+```
+
+The underwriting spread is how investment banks earn money on new issues. For a typical investment-grade corporate bond, the "gross spread" is 50-75 basis points (0.50-0.75%). High-yield bonds cost more - 1.0-2.0%. Government bonds are cheaper because they auction directly.
+
+#### Secondary Market Economics
+
+In secondary trading, the **bid-ask spread** is the primary cost:
+
+| Bond Type | Typical Bid-Ask Spread | What This Means |
+|-----------|:---------------------:|-----------------|
+| On-the-run US Treasury | 0.5-1 bp (~$0.005 per $100) | Extremely liquid |
+| Off-the-run US Treasury | 1-3 bp | Still very liquid |
+| Investment-grade corporate | 5-15 bp | Moderate cost |
+| High-yield corporate | 25-75 bp | Significant cost |
+| Municipal bonds | 25-100 bp | Illiquid, high cost |
+| Emerging market | 20-100 bp | Variable |
+
+A basis point (bp) is 0.01%. On $1 million face value of Treasuries, a 1 bp spread means $100 round-trip cost. On high-yield bonds, a 50 bp spread means $5,000 per million.
+
+#### Coupon Payment Mechanics
+
+Most bonds pay coupons **semi-annually** (every 6 months). The mechanics:
+
+1. **Record date** - 15 days before the payment date. Whoever owns the bond on this date receives the coupon.
+2. **Payment date** - the actual cash payment. For Treasuries, the paying agent is the Federal Reserve.
+3. **Ex-coupon date** - typically 1 business day before record date. If you buy on or after this date, you do not get the upcoming coupon.
+
+**Day count conventions** determine how accrued interest is calculated between coupon dates:
+
+| Convention | Used By | Calculation |
+|------------|---------|-------------|
+| ACT/ACT | US Treasuries | Actual days / actual days in period |
+| 30/360 | US Corporate, Municipal | Assumes 30-day months, 360-day year |
+| ACT/360 | Eurobonds, money market | Actual days / 360 |
+| ACT/365 | UK Gilts, some EM | Actual days / 365 |
+
+This matters more than you might think. The difference between ACT/ACT and 30/360 on a $10 million position over 3 months can be thousands of dollars.
+
+#### Yield Calculations
+
+There are multiple ways to measure a bond's return:
+
+**Current Yield** - simplest, ignores time value:
+```
+Current Yield = Annual Coupon / Clean Price
+Example: $40 coupon / $950 price = 4.21%
+```
+
+**Yield to Maturity (YTM)** - the internal rate of return assuming you hold to maturity and reinvest coupons at the same rate. This is the standard yield measure:
+```
+Price = Sum[ C / (1+y/2)^t ] + FV / (1+y/2)^n
+
+Where:
+  C = semi-annual coupon ($20 for a 4% coupon)
+  y = annual YTM (solve for this)
+  FV = face value ($1,000)
+  n = number of semi-annual periods
+```
+
+YTM cannot be solved algebraically - it requires iterative numerical methods (Newton-Raphson, bisection).
+
+**Yield to Call (YTC)** - for callable bonds, the yield assuming the issuer calls (redeems early) at the first call date.
+
+**Yield to Worst (YTW)** - the lowest of YTM, YTC for all call dates. This is the conservative measure institutional investors use.
+
+**Spread Measures:**
+- **G-spread (Government spread):** Yield minus interpolated Treasury yield at same maturity
+- **Z-spread (Zero-volatility spread):** Constant spread added to the entire Treasury spot curve to match the bond's price
+- **OAS (Option-Adjusted Spread):** Z-spread minus the value of embedded options (call, put). The "true" credit spread for bonds with options.
+
+![Money flow between bond market participants](diagrams/money-flow.svg)
+
+---
+
+## 7. Security & Risk
+
+### The Six Risks of Bond Investing
+
+#### 1. Interest Rate Risk (Market Risk)
+
+The dominant risk for most bonds. When market yields rise, bond prices fall.
+
+**Duration** quantifies this risk: it measures the approximate percentage price change for a 1% change in yield.
+
+```
+Modified Duration = Macaulay Duration / (1 + y/n)
+
+Approximate price change = -Duration x Change in yield x 100
+
+Example:
+  Duration = 7 years
+  Yield rises 1%
+  Price change = -7 x 0.01 x 100 = -7%
+```
+
+A bond with 7-year duration loses about 7% of its value when yields rise 1%. This is why 2022 was catastrophic for bondholders - the Bloomberg US Aggregate Index lost 13%, its worst year ever, as the Fed raised rates from near zero to over 4%.
+
+**Duration depends on:**
+- **Maturity:** longer maturity = higher duration
+- **Coupon:** lower coupon = higher duration (you get less cash early, more weight on final payment)
+- **Yield:** lower yield = higher duration
+
+A 30-year zero-coupon bond has a duration of 30 years. A 30-year bond with a 6% coupon has a duration of about 15 years. The coupon payments effectively shorten the bond's interest rate sensitivity.
+
+**Convexity** is the second-order effect - duration is a linear approximation, but the price-yield curve is actually curved. Positive convexity means the bond gains more when rates fall than it loses when rates rise (by the same amount). This is desirable, and investors pay a premium for it.
+
+![Duration and convexity explained](diagrams/duration-convexity.svg)
+
+#### 2. Credit Risk (Default Risk)
+
+The risk that the issuer cannot pay coupons or return principal. Rating agencies provide standardized credit assessments:
+
+| Moody's | S&P / Fitch | Grade | Meaning | Historical 10yr Default Rate |
+|---------|-------------|-------|---------|:---:|
+| Aaa | AAA | Investment Grade | Highest quality | 0.0% |
+| Aa1-Aa3 | AA+/AA/AA- | Investment Grade | High quality | 0.1% |
+| A1-A3 | A+/A/A- | Investment Grade | Upper medium | 0.3% |
+| Baa1-Baa3 | BBB+/BBB/BBB- | Investment Grade | Medium (lowest IG) | 1.5% |
+| Ba1-Ba3 | BB+/BB/BB- | High Yield | Speculative | 8% |
+| B1-B3 | B+/B/B- | High Yield | Highly speculative | 20% |
+| Caa-C | CCC-D | High Yield / Distressed | Substantial risk/default | 45%+ |
+
+The **BBB/Ba boundary** (the line between investment grade and high yield) is enormously significant. Many institutional investors (pension funds, insurance companies) are prohibited from holding sub-investment-grade bonds. When a bond is downgraded from BBB- to BB+ (a "fallen angel"), forced selling by these institutions causes its price to plunge - often well beyond what the actual credit deterioration warrants.
+
+**Credit spreads** are the additional yield investors demand above Treasuries to compensate for credit risk:
+
+| Rating | Typical Spread (2025) |
+|--------|:--------------------:|
+| AAA | 30-50 bp |
+| AA | 50-80 bp |
+| A | 80-130 bp |
+| BBB | 130-200 bp |
+| BB | 200-350 bp |
+| B | 350-550 bp |
+| CCC | 600-1200 bp |
+
+![Credit rating scales comparison](diagrams/credit-ratings.svg)
+
+#### 3. Liquidity Risk
+
+The risk that you cannot sell a bond quickly at a fair price. The bond market is far less liquid than equities:
+
+- There are over **70,000 distinct corporate bond CUSIPs** in the US market, versus ~4,000 listed stocks
+- Most corporate bonds trade fewer than once per day
+- A single issuer (like Apple) may have 50+ different bond issues outstanding
+- During stress events, liquidity evaporates - dealers reduce inventory, bid-ask spreads blow out
+
+**Post-2008 regulation** (Volcker Rule, Basel III leverage ratio) reduced dealer inventory capacity by approximately 75%. Dealers hold far less bond inventory than they did before the crisis, which has structural implications for liquidity during stress.
+
+#### 4. Inflation Risk
+
+The risk that inflation erodes the real value of fixed coupon payments. A 4% coupon is worth less in real terms if inflation runs at 6%.
+
+**Treasury Inflation-Protected Securities (TIPS)** address this: their principal adjusts with CPI, so both coupons and final repayment grow with inflation. The yield difference between a nominal Treasury and a TIPS of the same maturity is called the **breakeven inflation rate** - the market's implied inflation expectation.
+
+#### 5. Reinvestment Risk
+
+The risk that when you receive coupon payments, you cannot reinvest them at the same yield. YTM assumes reinvestment at the YTM rate, which is rarely possible in practice. This risk is highest for high-coupon bonds in a falling-rate environment.
+
+#### 6. Call Risk (Prepayment Risk)
+
+For callable bonds, the issuer can redeem early - typically when rates have fallen, which is exactly when you least want your high-coupon bond called away. You get your principal back but must reinvest at lower prevailing rates.
+
+Mortgage-backed securities have extreme call risk because homeowners can refinance at any time.
+
+---
+
+## 8. Regulation & Compliance
+
+### US Regulatory Framework
+
+| Regulator | Jurisdiction | Key Rules |
+|-----------|-------------|-----------|
+| **SEC** | Securities and Exchange Commission | Securities Act of 1933 (new issues), Securities Exchange Act of 1934 (secondary trading) |
+| **FINRA** | Self-regulatory organization for broker-dealers | TRACE reporting, markup rules, suitability |
+| **MSRB** | Municipal Securities Rulemaking Board | Rule G-30 (fair pricing), Rule G-37 (pay-to-play), EMMA disclosure |
+| **Federal Reserve** | Central bank | Monetary policy, bank supervision, Fedwire |
+| **OCC** | Office of the Comptroller of the Currency | Bank bond portfolio supervision |
+| **Treasury Dept** | Auction rules, TreasuryDirect | Uniform Offering Circular |
+
+### Key Regulations
+
+**TRACE (Trade Reporting and Compliance Engine).** Since 2002, FINRA has required reporting of all OTC corporate and agency bond trades. Initially within 75 minutes, now within 15 minutes, with most reported within 10 seconds. TRACE brought revolutionary transparency to a previously opaque market. Before TRACE, investors had no way to know the last traded price of a corporate bond.
+
+**Regulation SHO.** Short-selling rules for bonds. Less impactful than for equities because bond short-selling is typically done via repo (repurchase agreements) rather than traditional short sales.
+
+**Volcker Rule (2014).** Prohibits banks from proprietary trading in most securities, including bonds. Banks can still market-make (hold inventory to facilitate client trades), but the line between market-making and prop trading is fuzzy. The practical effect: banks hold much less bond inventory, reducing market liquidity.
+
+**Basel III / IV Capital Requirements.** Banks that hold bonds on their balance sheet must maintain capital reserves. Government bonds typically get 0% risk weight (treated as risk-free for capital purposes), while corporate bonds receive risk weights based on credit rating. This creates a structural incentive for banks to hold government bonds over corporate bonds.
+
+### European Regulatory Framework
+
+| Regulation | Scope | Key Requirements |
+|------------|-------|-----------------|
+| **MiFID II / MiFIR** | EU-wide securities regulation | Pre- and post-trade transparency, best execution, systematic internalizer regime |
+| **CSDR** | Central Securities Depositories Regulation | Settlement discipline (penalties for fails), T+2 settlement |
+| **CRR/CRD** | Capital Requirements Regulation | Basel III implementation in EU, credit risk weights |
+| **EMIR** | Derivatives (affects bond futures, swaps) | Central clearing mandates, trade reporting |
+| **PRIIPs** | Retail investor protection | Key Information Documents for packaged investments |
+
+**MiFID II's impact on bonds** has been significant. Since 2018, it requires:
+- Post-trade transparency for virtually all bond trades (with deferrals for large/illiquid trades)
+- Best execution obligations - firms must prove they got clients the best available price
+- Research unbundling - asset managers must pay separately for research, not bundle it with trading commissions
+
+### Municipal Bond Regulation (US-Specific)
+
+Municipal bonds have their own regulatory ecosystem because of their tax-exempt status:
+
+- **Tax Reform Act of 1986** - established rules for tax-exempt issuance, private activity bonds, and arbitrage rebate requirements
+- **EMMA (Electronic Municipal Market Access)** - MSRB's free disclosure platform where all muni bond documents, trades, and financials are published
+- **SEC Rule 15c2-12** - requires issuers to provide continuing disclosure (annual financial statements, event notices)
+- **Rule G-37** - prohibits "pay-to-play" where dealers who make political contributions are banned from underwriting that issuer's bonds
+
+---
+
+## 9. Comparisons & Alternatives
+
+### Government vs. Corporate vs. Municipal Bonds
+
+| Feature | Government | Corporate (IG) | Corporate (HY) | Municipal |
+|---------|-----------|----------------|-----------------|-----------|
+| Credit risk | Minimal (own currency) | Low to moderate | Moderate to high | Low (but varies) |
+| Yield (2025 range) | 3.5-4.5% | 4.5-6.0% | 6.5-9.0% | 3.0-4.5% (tax-equiv: 4.5-7.0%) |
+| Liquidity | Excellent | Moderate | Lower | Low |
+| Tax treatment | State tax exempt (US Treasuries) | Fully taxable | Fully taxable | Federal tax exempt, often state too |
+| Typical maturity | 1 month - 30 years | 1 - 30 years | 3 - 10 years | 1 - 40 years |
+| Minimum investment | $100 (TreasuryDirect) | $1,000 - $5,000 | $1,000 - $5,000 | $5,000 |
+| Call features | Generally non-callable | Often callable after 5-10 years | Usually callable | Typically callable after 10 years |
+| Recovery in default | N/A (own currency) | ~40-50% for senior unsecured | ~30-40% | ~60-70% (revenue bonds) |
+| Who buys | Everyone (benchmark asset) | Insurance, pensions, mutual funds | Hedge funds, HY mutual funds | US tax-sensitive investors |
+
+### Fixed Rate vs. Floating Rate
+
+| Feature | Fixed Rate | Floating Rate |
+|---------|-----------|---------------|
+| Coupon | Constant (e.g., 5%) | Resets periodically (e.g., SOFR + 150bp) |
+| Interest rate risk | High (long duration) | Minimal (~0 duration between resets) |
+| Price volatility | High | Low |
+| Who benefits when rates rise | Issuer (borrowed cheap) | Investor (coupon rises) |
+| Typical maturity | Any | Usually shorter (2-7 years) |
+| Common issuers | Governments, IG corporates | Banks, leveraged loans, ABS |
+| Benchmark | Treasury curve | SOFR (was LIBOR pre-2023) |
+
+### Bonds vs. Other Fixed-Income Instruments
+
+| Instrument | How It Differs From Bonds |
+|------------|--------------------------|
+| **Bank loans** | Private, not securities. Floating rate. Senior secured. Traded in loan market, not bond market. |
+| **Money market instruments** | Short-term (under 1 year). T-bills, commercial paper, repos. Quoted on discount yield basis. |
+| **Preferred stock** | Equity, not debt. Dividends not legally obligated. Perpetual (no maturity). Junior to bonds in bankruptcy. |
+| **CDs (Certificates of Deposit)** | Bank deposits, not securities. FDIC insured up to $250K. Less liquid. |
+| **Bond futures** | Derivatives, not bonds. Standardized contracts. Cash or physical settlement. Used for hedging and speculation. |
+| **Interest rate swaps** | Derivatives. Exchange fixed for floating payments. No principal exchange. Notional market ~$400T. |
+| **Credit default swaps (CDS)** | Insurance-like derivative. Buyer pays spread, receives par in event of default. Can trade credit risk without owning the bond. |
+
+![Bond types comparison](diagrams/bond-types-comparison.svg)
+
+---
+
+## 10. Modern Developments
+
+### The Yield Curve: The Market's Crystal Ball
+
+The **yield curve** plots yields across maturities for bonds of the same credit quality (typically Treasuries). Its shape tells you what the market expects about future interest rates and economic conditions.
+
+#### Normal Yield Curve
+Upward sloping - longer maturities yield more. This is the "normal" shape because investors demand more compensation for locking up money for longer periods (term premium).
+
+```
+5yr: 4.0%  |  10yr: 4.3%  |  30yr: 4.6%
+```
+
+#### Flat Yield Curve
+Short and long rates are roughly equal. Often occurs during transitions between economic expansion and contraction.
+
+```
+5yr: 4.3%  |  10yr: 4.3%  |  30yr: 4.3%
+```
+
+#### Inverted Yield Curve
+Short-term rates exceed long-term rates. Historically, a reliable recession predictor (every US recession since 1970 was preceded by an inversion of the 2yr/10yr spread). The curve was inverted from July 2022 through late 2024 - the longest sustained inversion in modern history.
+
+```
+2yr: 4.8%  |  5yr: 4.4%  |  10yr: 4.2%  |  30yr: 4.3%
+```
+
+**Why inversion predicts recession:** When the Fed raises short-term rates to fight inflation, the market prices in future rate cuts (expecting the economy to slow). Long rates drop below short rates because investors expect rates to be lower in the future.
+
+![Yield curve shapes and interpretations](diagrams/yield-curve.svg)
+
+### Central Bank Bond Buying (QE/QT)
+
+The most transformative development in bond markets since 2008 has been **quantitative easing (QE)** - central banks buying massive amounts of government (and sometimes corporate) bonds to push down long-term interest rates.
+
+**How QE works mechanically:**
+
+1. The Fed creates bank reserves (digital money) by crediting a primary dealer's reserve account
+2. The dealer delivers Treasury bonds to the Fed
+3. The dealer uses the cash to buy more bonds (or other assets) from other investors
+4. Those investors receive cash and redeploy it into riskier assets (corporate bonds, stocks, real estate)
+5. This "portfolio rebalancing" pushes down yields across the entire risk spectrum
+
+**The numbers are staggering:**
+
+| Central Bank | Peak Bond Holdings | % of Government Debt |
+|-------------|:-----------------:|:-------------------:|
+| Federal Reserve | $8.5T (2022) | ~30% of Treasuries |
+| ECB | EUR 5.0T (2022) | ~35% of eurozone gov bonds |
+| Bank of Japan | JPY 590T (2024) | ~50% of JGBs |
+| Bank of England | GBP 875B (2022) | ~35% of gilts |
+
+**Quantitative tightening (QT)** is the reverse - the central bank lets bonds mature without reinvesting, shrinking its balance sheet. The Fed has been running QT since mid-2022, reducing holdings by ~$2 trillion through 2025.
+
+![Central bank QE/QT mechanism](diagrams/central-bank-impact.svg)
+
+### Electronic Trading Revolution
+
+Bond markets have traditionally lagged equities in electronic adoption, but the gap is closing fast:
+
+**Key trends (2020-2025):**
+
+- **Portfolio trading** has exploded. Instead of trading bonds one at a time, asset managers can trade entire baskets of 200+ bonds in a single transaction. ETF market makers pioneered this.
+- **All-to-all trading** breaks the dealer-centric model. On platforms like MarketAxess Open Trading, a pension fund can trade directly with an insurance company, with no dealer intermediating.
+- **Algo trading** in Treasuries now accounts for ~60% of central order book volume. High-frequency firms (Citadel Securities, Jane Street, Jump Trading) are major liquidity providers.
+- **Data as a product.** TRACE data, evaluated pricing services (Bloomberg BVAL, ICE, MarketAxess), and alternative data (satellite imagery for muni credit analysis) are reshaping how bonds are valued.
+
+### Green, Social, and Sustainability Bonds
+
+The ESG bond market has grown from near zero to over **$4 trillion cumulative issuance** by 2025.
+
+**Green bonds** fund environmentally beneficial projects (renewable energy, clean transport, green buildings). The issuer commits to using proceeds only for eligible green projects, verified by a third-party reviewer.
+
+**Key frameworks:**
+- ICMA Green Bond Principles (voluntary guidelines)
+- EU Green Bond Standard (mandatory taxonomy alignment for EU Green Bond label)
+- Climate Bonds Initiative certification
+
+**The "greenium":** Green bonds often trade 2-5 basis points tighter (lower yield) than equivalent conventional bonds from the same issuer. Investors accept slightly lower returns for the green label, though the greenium has compressed as supply has grown.
+
+![Green bond framework](diagrams/green-bonds.svg)
+
+### Tokenized Bonds and DLT
+
+Blockchain-based bond issuance is moving from experiment to early production:
+
+- **World Bank** issued the first blockchain bond ("bond-i") in 2018 on Ethereum
+- **EIB** has issued multiple digital bonds on Ethereum and other platforms
+- **HSBC** launched Orion, a tokenized bond platform
+- **JP Morgan's Onyx** facilitates intraday repo on permissioned blockchain
+
+Benefits of tokenized bonds: T+0 settlement, fractional ownership, 24/7 trading, automated coupon payments via smart contracts, reduced intermediaries.
+
+Current reality: volumes are tiny (under $10 billion total issued), regulatory clarity is incomplete, and institutional adoption is gradual. But the direction of travel is clear.
+
+---
+
+## 11. Appendix
+
+### Key Terminology
+
+| Term | Definition |
+|------|-----------|
+| **Accrued interest** | Interest earned since the last coupon payment but not yet paid |
+| **Basis point (bp)** | 0.01% - one hundredth of a percentage point |
+| **Bearer bond** | Bond where physical possession equals ownership (largely obsolete, banned in US since 1982) |
+| **Benchmark** | The reference Treasury bond for a given maturity (on-the-run issue) |
+| **Book-entry** | Bonds held electronically, no physical certificates |
+| **Callable** | Issuer can redeem before maturity at a specified price |
+| **Carry** | The return from holding a bond (coupon income minus financing cost) |
+| **Convexity** | Measure of how duration changes as yields change (curvature of price-yield relationship) |
+| **Coupon** | Periodic interest payment on a bond |
+| **Credit spread** | Yield difference between a bond and a risk-free benchmark of same maturity |
+| **CUSIP** | 9-character alphanumeric identifier for US/Canadian securities |
+| **Dirty price** | Clean price plus accrued interest (the actual settlement amount) |
+| **Duration** | Measure of a bond's sensitivity to interest rate changes (approximate % price change per 1% yield change) |
+| **Fallen angel** | Bond downgraded from investment grade to high yield |
+| **FICC** | Fixed Income Clearing Corporation - clears US government securities |
+| **Gilt** | UK government bond |
+| **High yield** | Bonds rated below BBB-/Baa3 (also called "junk bonds") |
+| **ISIN** | International Securities Identification Number (12-character global ID) |
+| **JGB** | Japanese Government Bond |
+| **Maturity** | Date when the bond's principal (face value) is repaid |
+| **OAS** | Option-Adjusted Spread - spread over Treasury curve after removing embedded option value |
+| **On-the-run** | Most recently issued Treasury bond of a given maturity |
+| **Off-the-run** | Previously issued Treasury bonds (less liquid, slightly cheaper) |
+| **Par** | Face value, typically $1,000. A bond trading "at par" has a price of 100 |
+| **Puttable** | Investor can force early redemption at a specified price |
+| **Repo** | Repurchase agreement - short-term collateralized borrowing using bonds |
+| **Rising star** | Bond upgraded from high yield to investment grade |
+| **Roll down** | Price appreciation as a bond ages and moves down the yield curve |
+| **SOFR** | Secured Overnight Financing Rate - the primary USD floating rate benchmark (replaced LIBOR) |
+| **Strip** | Zero-coupon bond created by separating a bond's coupon and principal payments |
+| **TIPS** | Treasury Inflation-Protected Securities - principal adjusts with CPI |
+| **TRACE** | Trade Reporting and Compliance Engine - FINRA system for reporting OTC bond trades |
+| **YTM** | Yield to Maturity - the internal rate of return if held to maturity |
+| **YTW** | Yield to Worst - the lowest yield across all possible call dates and maturity |
+| **Zero-coupon** | Bond that pays no coupons, sold at a discount and redeemed at par |
+
+### Bond Math Quick Reference
+
+**Price of a bond (semi-annual coupons):**
+```
+P = Sigma(t=1 to n) [ C/2 / (1 + y/2)^t ] + FV / (1 + y/2)^n
+
+Where:
+  P   = price
+  C   = annual coupon ($)
+  y   = yield to maturity (decimal)
+  FV  = face value
+  n   = number of semi-annual periods
+  t   = period number
+```
+
+**Macaulay Duration:**
+```
+D = (1/P) * Sigma(t=1 to n) [ t * CF_t / (1 + y/2)^t ]
+
+Where:
+  CF_t = cash flow at time t (coupon or coupon + principal at maturity)
+```
+
+**Modified Duration:**
+```
+D_mod = D_mac / (1 + y/n)
+
+Where n = number of coupon periods per year
+```
+
+**Convexity:**
+```
+C = (1/P) * Sigma(t=1 to n) [ t*(t+1) * CF_t / (1+y/2)^(t+2) ]
+```
+
+**Price change approximation using duration and convexity:**
+```
+dP/P = -D_mod * dy + (1/2) * Convexity * (dy)^2
+```
+
+**Current Yield:**
+```
+CY = Annual Coupon / Clean Price
+```
+
+**Discount (T-bill pricing):**
+```
+Price = Face Value * (1 - discount_rate * days_to_maturity / 360)
+```
+
+### Architecture Diagrams
+
+| Diagram | Source | Description |
+|---------|--------|-------------|
+| Participants | [`diagrams/participants.mmd`](diagrams/participants.mmd) | Bond market ecosystem and actor relationships |
+| Bond Lifecycle | [`diagrams/bond-lifecycle.mmd`](diagrams/bond-lifecycle.mmd) | Complete lifecycle from issuance to maturity |
+| Primary Market | [`diagrams/primary-market.mmd`](diagrams/primary-market.mmd) | New issuance process (auction and book building) |
+| Secondary Market | [`diagrams/secondary-market.mmd`](diagrams/secondary-market.mmd) | Trading flow in OTC and electronic venues |
+| Architecture | [`diagrams/architecture.mmd`](diagrams/architecture.mmd) | Trading infrastructure and system components |
+| Yield Curve | [`diagrams/yield-curve.mmd`](diagrams/yield-curve.mmd) | Yield curve shapes and interpretations |
+| Money Flow | [`diagrams/money-flow.mmd`](diagrams/money-flow.mmd) | Fee and payment relationships between participants |
+| Price-Yield Relationship | [`diagrams/price-yield-relationship.mmd`](diagrams/price-yield-relationship.mmd) | Inverse relationship between price and yield |
+| Credit Ratings | [`diagrams/credit-ratings.mmd`](diagrams/credit-ratings.mmd) | Rating agency scales and comparison |
+| Duration & Convexity | [`diagrams/duration-convexity.mmd`](diagrams/duration-convexity.mmd) | Interest rate sensitivity visualization |
+| Bond Types Comparison | [`diagrams/bond-types-comparison.mmd`](diagrams/bond-types-comparison.mmd) | Government vs corporate vs municipal |
+| Settlement Flow | [`diagrams/settlement-flow.mmd`](diagrams/settlement-flow.mmd) | T+1 settlement process through FICC/DTC |
+| Central Bank Impact | [`diagrams/central-bank-impact.mmd`](diagrams/central-bank-impact.mmd) | QE/QT mechanism and market effects |
+| Green Bonds | [`diagrams/green-bonds.mmd`](diagrams/green-bonds.mmd) | ESG bond framework and verification process |
+
+---
+
+## 12. Key Takeaways
+
+1. **The bond market is bigger than the stock market.** At ~$140 trillion globally, fixed income dwarfs equities. US Treasuries alone trade $800B+ daily. If you only understand equities, you are missing the larger half of capital markets.
+
+2. **Price and yield move inversely - always.** This is the fundamental law of fixed income. When rates rise, bond prices fall. Duration tells you how much. Convexity tells you how the sensitivity itself changes. Master these two concepts and you understand 80% of bond risk management.
+
+3. **Bonds mostly trade OTC, not on exchanges.** Unlike stocks, most bonds trade dealer-to-client in a decentralized market. There are 70,000+ distinct corporate bond CUSIPs, and most trade less than once per day. Liquidity is the defining challenge of bond markets.
+
+4. **The yield curve is the market's most important signal.** Its shape tells you what markets expect about future rates, inflation, and economic growth. An inverted curve has preceded every US recession since 1970. Central banks manipulate the short end; the market determines the long end.
+
+5. **Credit ratings create structural cliffs.** The BBB/BB boundary (investment grade / high yield) is not just a letter difference - it triggers forced selling by pension funds and insurance companies, creating discontinuous price behavior at the rating boundary.
+
+6. **Central banks became the dominant bond buyer.** Post-2008 QE programs saw the Fed, ECB, and BoJ collectively buy trillions in government bonds, compressing yields to historically low (even negative) levels. The unwinding of these positions (QT) is reshaping markets through 2025 and beyond.
+
+7. **Settlement infrastructure is the plumbing that matters.** Fedwire for Treasuries, DTC for corporates, Euroclear/Clearstream for international bonds. T+1 settlement is now standard in the US. DVP (delivery versus payment) eliminates settlement risk. Most people never think about plumbing until it breaks.
+
+8. **Electronic trading is transforming the market, but slowly.** On-the-run Treasuries are ~70% electronic, but municipal bonds are still mostly phone-traded. Portfolio trading, all-to-all protocols, and algorithmic market-making are the key trends pushing electronic adoption.
+
+9. **Day count conventions and accrued interest are not trivial details.** ACT/ACT vs. 30/360 creates real dollar differences. Clean vs. dirty price matters for settlement. Bond math is precise, and mistakes compound.
+
+10. **Green bonds are a structural shift, not a fad.** $4T+ cumulative issuance, growing regulatory mandates (EU Green Bond Standard), and investor demand are making ESG bonds a permanent part of the fixed-income landscape. The greenium may shrink, but the market will not.
+  </script>
+</body>
+</html>
