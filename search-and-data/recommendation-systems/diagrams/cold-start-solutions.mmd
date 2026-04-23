@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    COLD["Cold Start Problem<br/>Not enough interaction data"]
+
+    subgraph NewUser["New User (no history)"]
+        NU1["Popularity-Based<br/>Show trending/top items"]
+        NU2["Onboarding Survey<br/>Ask preferences explicitly"]
+        NU3["Demographic Priors<br/>Age, location, device defaults"]
+        NU4["Bandits / Explore-Exploit<br/>Thompson sampling, UCB<br/>Learn preferences fast"]
+        NU5["Transfer Learning<br/>Use cross-platform signals"]
+    end
+
+    subgraph NewItem["New Item (no interactions)"]
+        NI1["Content-Based Features<br/>Use metadata, text, images"]
+        NI2["Catalog Enrichment<br/>Map to known categories"]
+        NI3["Exploration Boost<br/>Inject into small % of traffic"]
+        NI4["Side Information<br/>Creator history, brand signals"]
+        NI5["Zero-Shot Embeddings<br/>LLM-generated descriptions to vectors"]
+    end
+
+    subgraph Hybrid["Hybrid Strategies"]
+        H1["Content + CF Blend<br/>Weight shifts as data grows"]
+        H2["Meta-Learning (MAML)<br/>Learn to adapt from few examples"]
+        H3["Contextual Bandits<br/>Optimize for information gain"]
+    end
+
+    COLD --> NewUser
+    COLD --> NewItem
+    NewUser --> Hybrid
+    NewItem --> Hybrid
+
+    style NewUser fill:#2b6cb0,color:#fff
+    style NewItem fill:#38a169,color:#fff
+    style Hybrid fill:#d69e2e,color:#fff
+    style COLD fill:#e53e3e,color:#fff

@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph UserTower["User Tower"]
+        UF["User Features<br/>user_id, age, country,<br/>device, session history"]
+        UE1["Embedding Layers<br/>Sparse features to dense"]
+        UH1["Hidden Layer 1<br/>ReLU, 512 units"]
+        UH2["Hidden Layer 2<br/>ReLU, 256 units"]
+        UVEC["User Embedding<br/>128-dim vector"]
+    end
+
+    subgraph ItemTower["Item Tower"]
+        IF["Item Features<br/>item_id, category, price,<br/>title embedding, popularity"]
+        IE1["Embedding Layers<br/>Sparse features to dense"]
+        IH1["Hidden Layer 1<br/>ReLU, 512 units"]
+        IH2["Hidden Layer 2<br/>ReLU, 256 units"]
+        IVEC["Item Embedding<br/>128-dim vector"]
+    end
+
+    UF --> UE1 --> UH1 --> UH2 --> UVEC
+    IF --> IE1 --> IH1 --> IH2 --> IVEC
+
+    subgraph Scoring["Scoring"]
+        DOT["Dot Product<br/>score = u_vec dot i_vec"]
+        SIGMOID["Sigmoid / Softmax<br/>P(click | user, item)"]
+    end
+
+    UVEC --> DOT
+    IVEC --> DOT
+    DOT --> SIGMOID
+
+    subgraph Serving["Serving Advantage"]
+        PRECOMP["Pre-compute all item embeddings<br/>Store in ANN index (FAISS, ScaNN)"]
+        ONLINE["At serving time:<br/>Compute user embedding once,<br/>ANN lookup in <10ms"]
+    end
+
+    SIGMOID --> Serving
+
+    style UserTower fill:#2b6cb0,color:#fff
+    style ItemTower fill:#38a169,color:#fff
+    style Scoring fill:#e53e3e,color:#fff
+    style Serving fill:#d69e2e,color:#fff

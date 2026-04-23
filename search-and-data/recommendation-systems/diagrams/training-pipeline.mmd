@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Collection["Event Collection"]
+        CLICK["Click Events<br/>Impressions, clicks, skips"]
+        PURCHASE["Conversions<br/>Purchases, sign-ups"]
+        DWELL["Engagement<br/>Dwell time, scroll depth"]
+        EXPLICIT["Explicit Feedback<br/>Ratings, likes, saves"]
+    end
+
+    subgraph Processing["Feature Processing"]
+        STREAM["Stream Processing<br/>Kafka + Flink / Spark"]
+        BATCH["Batch Processing<br/>Daily/hourly aggregations"]
+        FSTORE["Feature Store<br/>Versioned, point-in-time correct"]
+    end
+
+    subgraph Training["Model Training"]
+        SPLIT["Train/Validation/Test Split<br/>Time-based splits"]
+        TRAIN["Training Loop<br/>GPU cluster, distributed"]
+        HYPER["Hyperparameter Tuning<br/>Optuna, Ray Tune"]
+        VALID["Offline Evaluation<br/>NDCG, MAP, Recall@K"]
+    end
+
+    subgraph Deploy["Deployment"]
+        REGISTRY["Model Registry<br/>MLflow, Vertex AI"]
+        AB["A/B Test Config<br/>Traffic allocation"]
+        EXPORT["Export Embeddings<br/>Build ANN index"]
+        SERVE["Deploy to Serving<br/>Canary rollout"]
+    end
+
+    Collection --> STREAM --> FSTORE
+    Collection --> BATCH --> FSTORE
+    FSTORE --> SPLIT --> TRAIN --> HYPER --> VALID
+    VALID -->|"Metrics pass"| REGISTRY --> AB --> EXPORT --> SERVE
+    VALID -->|"Metrics fail"| TRAIN
+
+    style Collection fill:#805ad5,color:#fff
+    style Processing fill:#d69e2e,color:#fff
+    style Training fill:#2b6cb0,color:#fff
+    style Deploy fill:#38a169,color:#fff

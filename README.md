@@ -108,8 +108,8 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Topic | 📊 | Status |
 |-------|:-:|--------|
 | Elasticsearch / Lucene: inverted index, scoring, sharding | | 🗓️ Planned |
-| Recommendation Systems: collaborative filtering, embeddings | | 🗓️ Planned |
-| Data Warehouses: columnar storage, MPP, Snowflake/BigQuery | | 🗓️ Planned |
+| [Recommendation Systems: collaborative filtering, embeddings](search-and-data/recommendation-systems/) | 14 | ✅ Done |
+| [Data Warehouses: columnar storage, MPP, Snowflake/BigQuery](search-and-data/data-warehouses/) | 14 | ✅ Done |
 
 ---
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:       9 researches (120 diagrams)
-Planned:   42 researches
+Done:      11 researches (148 diagrams)
+Planned:   40 researches
 Categories: 10
 ```
 

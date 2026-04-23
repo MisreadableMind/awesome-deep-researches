@@ -1,0 +1,65 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph HNSW["HNSW Index Structure (Hierarchical Navigable Small World)"]
+        subgraph L2["Layer 2 (Fewest nodes, long-range links)"]
+            L2A["Node A"]
+            L2B["Node B"]
+            L2A ---|"Long-range link"| L2B
+        end
+
+        subgraph L1["Layer 1 (More nodes, medium links)"]
+            L1A["Node A"]
+            L1B["Node B"]
+            L1C["Node C"]
+            L1D["Node D"]
+            L1A --- L1B
+            L1B --- L1C
+            L1C --- L1D
+            L1A --- L1D
+        end
+
+        subgraph L0["Layer 0 (All nodes, short-range links)"]
+            L0A["Node A"]
+            L0B["Node B"]
+            L0C["Node C"]
+            L0D["Node D"]
+            L0E["Node E"]
+            L0F["Node F"]
+            L0G["Node G"]
+            L0H["Node H"]
+            L0A --- L0B
+            L0B --- L0C
+            L0C --- L0D
+            L0D --- L0E
+            L0E --- L0F
+            L0F --- L0G
+            L0G --- L0H
+            L0A --- L0D
+            L0B --- L0E
+        end
+    end
+
+    QUERY["Query Vector<br/>User embedding (128-dim)"]
+    ENTRY["Enter at Layer 2<br/>Greedy search to nearest"]
+
+    QUERY --> ENTRY --> L2
+    L2 -->|"Descend"| L1
+    L1 -->|"Descend"| L0
+
+    RESULT["Top-K Results<br/>K nearest neighbors<br/>Recall >95% in ~1ms"]
+    L0 --> RESULT
+
+    subgraph Compare["ANN Algorithm Comparison"]
+        LSH["LSH<br/>Hash-based partitioning<br/>Fast build, lower recall"]
+        IVFPQ["IVF-PQ<br/>Inverted file + product quantization<br/>Memory efficient"]
+        HNSWC["HNSW<br/>Graph-based traversal<br/>Best recall, more memory"]
+        SCANN["ScaNN (Google)<br/>Anisotropic quantization<br/>Best throughput"]
+    end
+
+    style HNSW fill:#2b6cb0,color:#fff
+    style L2 fill:#e53e3e,color:#fff
+    style L1 fill:#d69e2e,color:#fff
+    style L0 fill:#38a169,color:#fff
+    style Compare fill:#805ad5,color:#fff
+    style RESULT fill:#e53e3e,color:#fff

@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Sources["Data Sources"]
+        CLICKS["Clickstream<br/>Page views, scrolls, dwell time"]
+        ACTIONS["Explicit Signals<br/>Ratings, likes, purchases"]
+        PROFILE["User Profiles<br/>Demographics, preferences"]
+        CATALOG["Item Catalog<br/>Metadata, descriptions, images"]
+        CONTEXT["Context<br/>Time, device, location"]
+    end
+
+    subgraph Features["Feature Pipeline"]
+        COLLECT["Event Collection<br/>Kafka, Kinesis, Pub/Sub"]
+        STORE["Feature Store<br/>Feast, Tecton, Vertex AI"]
+        TRANSFORM["Feature Engineering<br/>Aggregations, embeddings"]
+    end
+
+    subgraph Training["Model Training"]
+        OFFLINE["Offline Training<br/>Batch on historical data"]
+        EVAL["Evaluation<br/>Precision, Recall, NDCG"]
+        REGISTRY["Model Registry<br/>MLflow, Vertex AI"]
+    end
+
+    subgraph Serving["Serving Layer"]
+        ANN["ANN Index<br/>FAISS, ScaNN, Milvus"]
+        RANK["Ranking Service<br/>Real-time scoring"]
+        RERANK["Re-ranking<br/>Business rules, diversity"]
+    end
+
+    subgraph Client["Client Applications"]
+        WEB["Web App<br/>Product pages, feeds"]
+        MOBILE["Mobile App<br/>Push notifications"]
+        EMAIL["Email / CRM<br/>Personalized campaigns"]
+        ADS["Ad Targeting<br/>Sponsored placements"]
+    end
+
+    Sources --> Features
+    Features --> Training
+    Training --> Serving
+    Serving --> Client
+
+    style Sources fill:#805ad5,color:#fff
+    style Features fill:#d69e2e,color:#fff
+    style Training fill:#2b6cb0,color:#fff
+    style Serving fill:#e53e3e,color:#fff
+    style Client fill:#38a169,color:#fff
