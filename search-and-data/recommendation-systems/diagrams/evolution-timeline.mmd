@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph LR
+    subgraph Gen1["Gen 1: Manual Curation<br/>Pre-1990s"]
+        direction TB
+        G1A["Expert editors pick content"]
+        G1B["Static bestseller lists"]
+        G1C["No personalization"]
+    end
+
+    subgraph Gen2["Gen 2: Collaborative Filtering<br/>1992-2005"]
+        direction TB
+        G2A["Tapestry (1992) - first CF"]
+        G2B["GroupLens (1994) - Usenet"]
+        G2C["Amazon item-based CF (1998)"]
+        G2D["Memory-based, sparse matrices"]
+    end
+
+    subgraph Gen3["Gen 3: Matrix Factorization<br/>2006-2014"]
+        direction TB
+        G3A["Netflix Prize (2006-2009)"]
+        G3B["SVD, ALS, SVD++"]
+        G3C["Latent factor models"]
+        G3D["Implicit feedback (Hu et al.)"]
+    end
+
+    subgraph Gen4["Gen 4: Deep Learning<br/>2015-2022"]
+        direction TB
+        G4A["YouTube DNN (2016)"]
+        G4B["Two-Tower, Wide and Deep"]
+        G4C["Transformers: SASRec, BERT4Rec"]
+        G4D["Billion-scale embeddings"]
+    end
+
+    subgraph Gen5["Gen 5: LLMs + GNNs<br/>2023-present"]
+        direction TB
+        G5A["LLM-based reasoning"]
+        G5B["PinSage, LightGCN"]
+        G5C["Multi-modal (text+image+audio)"]
+        G5D["On-device, federated training"]
+    end
+
+    Gen1 -->|"Automated matching"| Gen2
+    Gen2 -->|"Latent factors"| Gen3
+    Gen3 -->|"Neural networks"| Gen4
+    Gen4 -->|"Foundation models"| Gen5
+
+    style Gen1 fill:#e53e3e,color:#fff
+    style Gen2 fill:#d69e2e,color:#fff
+    style Gen3 fill:#2b6cb0,color:#fff
+    style Gen4 fill:#38a169,color:#fff
+    style Gen5 fill:#805ad5,color:#fff

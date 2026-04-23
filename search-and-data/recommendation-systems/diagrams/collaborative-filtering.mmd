@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    RM["User-Item Rating Matrix<br/>Sparse matrix of interactions"]
+
+    subgraph UserBased["User-Based CF"]
+        U1["Find Similar Users<br/>Cosine similarity, Pearson correlation"]
+        U2["Aggregate Their Ratings<br/>Weighted average of neighbor ratings"]
+        U3["Predict Missing Ratings<br/>Fill in unrated items"]
+    end
+
+    subgraph ItemBased["Item-Based CF"]
+        I1["Find Similar Items<br/>Co-occurrence in user histories"]
+        I2["Score Candidate Items<br/>Weighted by item similarity"]
+        I3["Rank and Recommend<br/>Top-N by predicted score"]
+    end
+
+    RM --> UserBased
+    RM --> ItemBased
+    U1 --> U2 --> U3
+    I1 --> I2 --> I3
+
+    U3 --> REC["Final Recommendations<br/>Top-N items for target user"]
+    I3 --> REC
+
+    style UserBased fill:#2b6cb0,color:#fff
+    style ItemBased fill:#38a169,color:#fff
+    style RM fill:#805ad5,color:#fff
+    style REC fill:#e53e3e,color:#fff

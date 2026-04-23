@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    R["R: User-Item Matrix<br/>m users x n items<br/>Sparse, ~99% missing"]
+
+    subgraph Decomposition["Matrix Decomposition"]
+        P["P: User Matrix<br/>m users x k latent factors<br/>Each row = user embedding"]
+        Q["Q: Item Matrix<br/>k latent factors x n items<br/>Each column = item embedding"]
+    end
+
+    subgraph Optimization["Optimization Loop"]
+        LOSS["Loss Function<br/>min sum(r_ui - p_u * q_i)^2<br/>+ lambda * (||p||^2 + ||q||^2)"]
+        ALS["ALS: Alternating Least Squares<br/>Fix P, solve Q. Fix Q, solve P."]
+        SGD["SGD: Stochastic Gradient Descent<br/>Update P and Q per observation"]
+        CONV["Convergence Check<br/>RMSE on validation set"]
+    end
+
+    subgraph Prediction["Prediction"]
+        DOT["r_hat = p_u dot q_i<br/>Dot product of user and item vectors"]
+        BIAS["+ global_bias + user_bias + item_bias<br/>SVD++ with bias terms"]
+        TOPN["Top-N Recommendations<br/>Highest predicted ratings"]
+    end
+
+    R --> Decomposition
+    P --> LOSS
+    Q --> LOSS
+    LOSS --> ALS
+    LOSS --> SGD
+    ALS --> CONV
+    SGD --> CONV
+    CONV -->|"Not converged"| LOSS
+    CONV -->|"Converged"| Prediction
+    DOT --> BIAS --> TOPN
+
+    style R fill:#805ad5,color:#fff
+    style Decomposition fill:#2b6cb0,color:#fff
+    style Optimization fill:#d69e2e,color:#fff
+    style Prediction fill:#38a169,color:#fff

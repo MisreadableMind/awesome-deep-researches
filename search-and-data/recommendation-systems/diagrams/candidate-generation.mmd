@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    CORPUS["Full Item Corpus<br/>10M+ items"]
+
+    subgraph Retrieval["Stage 1: Candidate Retrieval<br/>(~1000 candidates, <50ms)"]
+        ANN["ANN Retrieval<br/>Embedding similarity<br/>FAISS / ScaNN"]
+        POP["Popularity-Based<br/>Trending items<br/>by category"]
+        HIST["History-Based<br/>Similar to recently<br/>viewed / purchased"]
+        MERGE["Merge + Deduplicate<br/>~1000 candidates"]
+    end
+
+    subgraph Scoring["Stage 2: Ranking<br/>(~100-200 candidates, <100ms)"]
+        FEAT["Feature Assembly<br/>User, item, cross features"]
+        MODEL["Ranking Model<br/>Wide and Deep / DeepFM<br/>XGBoost / LambdaMART"]
+        SCORED["Scored Candidates<br/>P(engagement | user, item)"]
+    end
+
+    subgraph Reranking["Stage 3: Re-ranking<br/>(~20-50 final, <20ms)"]
+        DIV["Diversity Injection<br/>MMR, DPP"]
+        BIZ["Business Rules<br/>Boost promoted, filter blocked"]
+        FRESH["Freshness Boost<br/>New items, recency weight"]
+        FINAL["Final Recommendations<br/>20-50 items displayed"]
+    end
+
+    CORPUS --> ANN
+    CORPUS --> POP
+    CORPUS --> HIST
+    ANN --> MERGE
+    POP --> MERGE
+    HIST --> MERGE
+    MERGE --> FEAT --> MODEL --> SCORED
+    SCORED --> DIV --> BIZ --> FRESH --> FINAL
+
+    style Retrieval fill:#2b6cb0,color:#fff
+    style Scoring fill:#d69e2e,color:#fff
+    style Reranking fill:#38a169,color:#fff
+    style CORPUS fill:#805ad5,color:#fff
+    style FINAL fill:#e53e3e,color:#fff

@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph ItemFeatures["Item Feature Extraction"]
+        META["Item Metadata<br/>Genre, tags, category"]
+        TEXT["Text Features<br/>TF-IDF, BERT embeddings"]
+        IMG["Visual Features<br/>CNN embeddings from images"]
+        AUDIO["Audio Features<br/>Spectral analysis, tempo"]
+        IVEC["Item Feature Vector<br/>Combined representation"]
+    end
+
+    subgraph UserProfile["User Profile Construction"]
+        HIST["Interaction History<br/>Rated, clicked, purchased items"]
+        AGG["Aggregate Item Features<br/>Weighted by recency and rating"]
+        UVEC["User Profile Vector<br/>Preferences in feature space"]
+    end
+
+    subgraph Scoring["Similarity Scoring"]
+        COS["Cosine Similarity<br/>User profile vs item vectors"]
+        RANK["Ranked Candidates<br/>Sorted by similarity score"]
+        FILTER["Post-filtering<br/>Remove seen items, apply rules"]
+        RECS["Recommendations<br/>Top-N unseen items"]
+    end
+
+    META --> IVEC
+    TEXT --> IVEC
+    IMG --> IVEC
+    AUDIO --> IVEC
+
+    HIST --> AGG --> UVEC
+
+    IVEC --> COS
+    UVEC --> COS
+    COS --> RANK --> FILTER --> RECS
+
+    style ItemFeatures fill:#2b6cb0,color:#fff
+    style UserProfile fill:#38a169,color:#fff
+    style Scoring fill:#d69e2e,color:#fff

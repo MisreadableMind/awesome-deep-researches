@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Privacy["Privacy Layer"]
+        DP["Differential Privacy<br/>Add noise to training data<br/>epsilon-delta guarantees"]
+        FED["Federated Learning<br/>Train on-device, share gradients<br/>Raw data never leaves device"]
+        ANON["Anonymization<br/>Hash user IDs, k-anonymity<br/>Remove PII from features"]
+        CONSENT["Consent Management<br/>Opt-in/out, GDPR rights<br/>Data deletion pipelines"]
+    end
+
+    subgraph Fairness["Fairness Layer"]
+        BIAS["Bias Detection<br/>Demographic parity audits<br/>Disparate impact analysis"]
+        DEBIAS["Debiasing Methods<br/>Adversarial training<br/>Counterfactual fairness"]
+        DIVERSE["Diversity Constraints<br/>MMR, DPP<br/>Category/supplier exposure"]
+        EXPLAIN["Explainability<br/>SHAP values, attention weights<br/>'Because you watched X'"]
+    end
+
+    subgraph Robustness["Robustness Layer"]
+        SHILL["Shilling Attack Defense<br/>Fake rating detection<br/>Anomaly detection on profiles"]
+        POISON["Data Poisoning Defense<br/>Robust aggregation<br/>Outlier filtering"]
+        INJECT["Injection Prevention<br/>Feature validation<br/>Input sanitization"]
+        RATE["Rate Limiting<br/>Per-user API quotas<br/>Abuse detection"]
+    end
+
+    subgraph Audit["Audit Layer"]
+        LOG["Recommendation Logs<br/>Full audit trail per request"]
+        METRIC["Fairness Metrics Dashboard<br/>Coverage, Gini coefficient"]
+        REPORT["Regulatory Reports<br/>AI Act compliance, DSA"]
+        REVIEW["Human Review Pipeline<br/>Flagged recommendations"]
+    end
+
+    Privacy --> Fairness --> Robustness --> Audit
+
+    style Privacy fill:#e53e3e,color:#fff
+    style Fairness fill:#2b6cb0,color:#fff
+    style Robustness fill:#38a169,color:#fff
+    style Audit fill:#805ad5,color:#fff

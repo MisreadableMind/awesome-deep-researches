@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    REQ["User Request<br/>API call with user_id, context"]
+
+    subgraph Online["Online Serving Pipeline (<200ms total)"]
+        API["API Gateway<br/>Rate limiting, auth"]
+        UFETCH["User Feature Fetch<br/>Redis / DynamoDB<br/>~5ms"]
+        EMBED["User Embedding Compute<br/>User tower inference<br/>~10ms"]
+        ANNQ["ANN Index Query<br/>FAISS / ScaNN / Milvus<br/>~10ms, k=500"]
+        IFETCH["Item Feature Fetch<br/>Batch lookup for candidates<br/>~15ms"]
+        RANKER["Ranking Model<br/>Score 500 candidates<br/>~50ms"]
+        RERANK["Re-ranking Layer<br/>Diversity, business rules<br/>~10ms"]
+        RESP["Response Assembly<br/>Serialize Top-N results"]
+    end
+
+    subgraph Stores["Data Stores"]
+        FS["Feature Store<br/>Feast / Tecton"]
+        ANNI["ANN Index<br/>Pre-built from embeddings"]
+        MCACHE["Model Cache<br/>TF Serving / Triton"]
+        RCACHE["Result Cache<br/>Redis, TTL=5-15min"]
+    end
+
+    REQ --> API --> UFETCH --> EMBED --> ANNQ --> IFETCH --> RANKER --> RERANK --> RESP
+
+    FS --> UFETCH
+    FS --> IFETCH
+    ANNI --> ANNQ
+    MCACHE --> RANKER
+    RCACHE --> API
+
+    style Online fill:#2b6cb0,color:#fff
+    style Stores fill:#38a169,color:#fff
+    style REQ fill:#805ad5,color:#fff
+    style RESP fill:#e53e3e,color:#fff

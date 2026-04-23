@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph AWS["Amazon Personalize"]
+        direction TB
+        AWS1["Data ingestion: $0.05/GB"]
+        AWS2["Training: $0.24/training-hour"]
+        AWS3["Inference: $0.20/1000 recs<br/>(real-time)"]
+        AWS4["Batch: $0.067/1000 recs"]
+    end
+
+    subgraph GCP["Google Recommendations AI"]
+        direction TB
+        GCP1["Prediction: $0.30/1000 requests<br/>(first 1M/month)"]
+        GCP2["Training: included in<br/>prediction pricing"]
+        GCP3["Tuning: $2.50/node-hour"]
+        GCP4["Volume discounts above<br/>50M predictions/month"]
+    end
+
+    subgraph Azure["Azure Personalizer"]
+        direction TB
+        AZ1["Standard: $1/1000 transactions<br/>(first 50K free/month)"]
+        AZ2["Multi-slot: same pricing<br/>per decision call"]
+        AZ3["Apprentice mode: free<br/>(shadow existing logic)"]
+        AZ4["Log storage: Azure rates"]
+    end
+
+    subgraph Recombee["Recombee"]
+        direction TB
+        RC1["Starter: $99/month<br/>100K users, 1M items"]
+        RC2["Business: $499/month<br/>1M users, 10M items"]
+        RC3["Enterprise: custom<br/>dedicated infrastructure"]
+        RC4["API calls: included<br/>in tier allocation"]
+    end
+
+    style AWS fill:#d69e2e,color:#fff
+    style GCP fill:#2b6cb0,color:#fff
+    style Azure fill:#805ad5,color:#fff
+    style Recombee fill:#38a169,color:#fff

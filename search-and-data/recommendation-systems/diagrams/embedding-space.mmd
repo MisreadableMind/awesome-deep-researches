@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph EmbeddingSpace["Shared Embedding Space (d=128-256 dimensions)"]
+        subgraph ClusterA["Action Movies Cluster"]
+            IA1["Die Hard"]
+            IA2["Mad Max"]
+            IA3["John Wick"]
+        end
+
+        subgraph ClusterB["Sci-Fi Cluster"]
+            IB1["Interstellar"]
+            IB2["Arrival"]
+            IB3["Dune"]
+        end
+
+        subgraph ClusterC["Comedy Cluster"]
+            IC1["Superbad"]
+            IC2["Bridesmaids"]
+            IC3["The Hangover"]
+        end
+
+        UV["User Vector<br/>Learned from watch history"]
+    end
+
+    subgraph Query["ANN Query"]
+        RADIUS["Search Radius<br/>Approximate nearest neighbors"]
+        RESULTS["Retrieved Candidates<br/>k=100 nearest items"]
+    end
+
+    UV --> RADIUS
+    RADIUS --> IA3
+    RADIUS --> IB1
+    RADIUS --> IB3
+    RADIUS --> RESULTS
+
+    subgraph Training["How Embeddings Are Learned"]
+        W2V["Item2Vec / Word2Vec<br/>Co-occurrence in sessions"]
+        DNN["Deep Neural Networks<br/>Two-tower, autoencoders"]
+        GNN["Graph Neural Networks<br/>PinSage, LightGCN"]
+    end
+
+    Training --> EmbeddingSpace
+
+    style EmbeddingSpace fill:#2b6cb0,color:#fff
+    style ClusterA fill:#e53e3e,color:#fff
+    style ClusterB fill:#805ad5,color:#fff
+    style ClusterC fill:#d69e2e,color:#fff
+    style Query fill:#38a169,color:#fff
+    style Training fill:#d69e2e,color:#fff
