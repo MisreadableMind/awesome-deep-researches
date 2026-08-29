@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph LR
+    subgraph Gen1["Gen 1: On-Prem MPP<br/>1990s-2000s"]
+        direction TB
+        G1A["Teradata (1984)"]
+        G1B["Oracle RDBMS"]
+        G1C["IBM Netezza (2000)"]
+        G1D["Coupled storage + compute<br/>Fixed capacity, expensive"]
+    end
+
+    subgraph Gen2["Gen 2: Cloud MPP<br/>2010s"]
+        direction TB
+        G2A["Amazon Redshift (2012)"]
+        G2B["Azure SQL DW (2016)"]
+        G2C["Cloud-hosted clusters<br/>Still coupled, but elastic"]
+    end
+
+    subgraph Gen3["Gen 3: Separated Storage+Compute<br/>2014-present"]
+        direction TB
+        G3A["Snowflake (2014)"]
+        G3B["BigQuery (serverless, 2011)"]
+        G3C["Redshift RA3 (2019)"]
+        G3D["Independent scaling<br/>Pay per use, multi-cluster"]
+    end
+
+    subgraph Gen4["Gen 4: Lakehouse / Open Formats<br/>2020s"]
+        direction TB
+        G4A["Databricks (Delta Lake)"]
+        G4B["Apache Iceberg"]
+        G4C["Apache Hudi"]
+        G4D["Open table formats<br/>Multiple engines on same data"]
+    end
+
+    Gen1 -->|"Cloud migration"| Gen2
+    Gen2 -->|"Disaggregation"| Gen3
+    Gen3 -->|"Open formats"| Gen4
+
+    style Gen1 fill:#e53e3e,color:#fff
+    style Gen2 fill:#d69e2e,color:#fff
+    style Gen3 fill:#2b6cb0,color:#fff
+    style Gen4 fill:#38a169,color:#fff

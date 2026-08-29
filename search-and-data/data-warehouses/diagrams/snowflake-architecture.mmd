@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Cloud["Cloud Services Layer"]
+        AUTH["Authentication<br/>& Access Control"]
+        META["Metadata Manager<br/>Schema, statistics,<br/>query history"]
+        OPTIM["Query Optimizer<br/>& Planner"]
+        TXN["Transaction<br/>Manager"]
+    end
+
+    subgraph Compute["Virtual Warehouses (Compute)"]
+        subgraph WH1["Warehouse: ETL_WH (XL)"]
+            C1A["Node 1"]
+            C1B["Node 2"]
+            C1C["Node 3"]
+            C1D["Node 4"]
+        end
+        subgraph WH2["Warehouse: BI_WH (M)"]
+            C2A["Node 1"]
+            C2B["Node 2"]
+        end
+        subgraph WH3["Warehouse: DS_WH (L)"]
+            C3A["Node 1"]
+            C3B["Node 2"]
+            C3C["Node 3"]
+        end
+    end
+
+    subgraph StorageLayer["Centralized Storage (S3/Azure Blob/GCS)"]
+        subgraph Micro["Micro-partitions"]
+            MP1["Partition 1<br/>Columnar, compressed<br/>50-500MB"]
+            MP2["Partition 2<br/>Columnar, compressed<br/>50-500MB"]
+            MP3["Partition 3<br/>Columnar, compressed<br/>50-500MB"]
+            MP4["... thousands<br/>of partitions"]
+        end
+        TT["Time Travel Data<br/>Historical versions<br/>Up to 90 days"]
+        FS["Fail-Safe Data<br/>7 additional days<br/>Disaster recovery"]
+    end
+
+    Cloud --> Compute
+    Compute --> StorageLayer
+    WH1 -.->|"Local SSD cache"| StorageLayer
+    WH2 -.->|"Local SSD cache"| StorageLayer
+    WH3 -.->|"Local SSD cache"| StorageLayer
+
+    style Cloud fill:#805ad5,color:#fff
+    style WH1 fill:#2b6cb0,color:#fff
+    style WH2 fill:#4299e1,color:#fff
+    style WH3 fill:#63b3ed,color:#fff
+    style StorageLayer fill:#38a169,color:#fff

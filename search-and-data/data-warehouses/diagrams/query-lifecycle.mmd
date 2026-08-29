@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+sequenceDiagram
+    participant Client as SQL Client
+    participant GW as Gateway / Router
+    participant QOPT as Query Optimizer
+    participant COORD as Coordinator Node
+    participant W1 as Worker Node 1
+    participant W2 as Worker Node 2
+    participant W3 as Worker Node 3
+    participant STORE as Cloud Storage
+
+    Client->>GW: Submit SQL query
+    GW->>QOPT: Parse & validate SQL
+
+    Note over QOPT: Parse SQL into AST<br/>Resolve table/column refs<br/>Check permissions
+
+    QOPT->>QOPT: Generate logical plan
+    QOPT->>QOPT: Cost-based optimization
+    Note over QOPT: Partition pruning<br/>Join reordering<br/>Predicate pushdown
+
+    QOPT->>COORD: Distribute execution plan
+
+    par Parallel Execution
+        COORD->>W1: Fragment 1 (partitions 1-100)
+        COORD->>W2: Fragment 2 (partitions 101-200)
+        COORD->>W3: Fragment 3 (partitions 201-300)
+    end
+
+    par Data Fetch
+        W1->>STORE: Read required columns
+        W2->>STORE: Read required columns
+        W3->>STORE: Read required columns
+    end
+
+    STORE-->>W1: Compressed column chunks
+    STORE-->>W2: Compressed column chunks
+    STORE-->>W3: Compressed column chunks
+
+    Note over W1,W3: Local filter, aggregate,<br/>partial sort
+
+    W1-->>COORD: Partial results
+    W2-->>COORD: Partial results
+    W3-->>COORD: Partial results
+
+    Note over COORD: Merge, final aggregate,<br/>sort, limit
+
+    COORD-->>GW: Final result set
+    GW-->>Client: Return results

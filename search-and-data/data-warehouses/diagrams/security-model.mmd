@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Network["Network Security"]
+        VPC["VPC / Private Link<br/>No public internet exposure"]
+        FW["Firewall rules<br/>IP allowlisting"]
+        TLS["TLS 1.2+ encryption<br/>in transit"]
+    end
+
+    subgraph Identity["Identity & Access"]
+        IAM["Cloud IAM<br/>Service accounts, roles"]
+        RBAC["RBAC<br/>Database roles & grants"]
+        MFA["Multi-factor auth<br/>SSO / SAML / OIDC"]
+    end
+
+    subgraph DataSec["Data Security"]
+        ENC["Encryption at rest<br/>AES-256, cloud KMS"]
+        CMEK["Customer-managed keys<br/>BYOK / CMEK"]
+        MASK["Dynamic data masking<br/>Column-level policies"]
+        RLS["Row-level security<br/>Filter by user context"]
+        TAG["Column-level tagging<br/>PII classification"]
+    end
+
+    subgraph Audit["Audit & Compliance"]
+        LOGS2["Query audit logs<br/>Who ran what, when"]
+        ACCESS["Access history<br/>Data lineage tracking"]
+        COMPLY["Compliance certs<br/>SOC 2, HIPAA, GDPR,<br/>FedRAMP, PCI DSS"]
+    end
+
+    Network --> Identity --> DataSec --> Audit
+
+    style Network fill:#e53e3e,color:#fff
+    style Identity fill:#2b6cb0,color:#fff
+    style DataSec fill:#38a169,color:#fff
+    style Audit fill:#805ad5,color:#fff

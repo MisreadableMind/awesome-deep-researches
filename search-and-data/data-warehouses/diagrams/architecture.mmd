@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Sources["Data Sources"]
+        OLTP["OLTP Databases<br/>PostgreSQL, MySQL, Oracle"]
+        LOGS["Application Logs<br/>Clickstream, events"]
+        API["External APIs<br/>Salesforce, Stripe, GA"]
+        FILES["File Sources<br/>CSV, JSON, Parquet"]
+        STREAM["Streaming<br/>Kafka, Kinesis, Pub/Sub"]
+    end
+
+    subgraph Ingestion["Ingestion Layer"]
+        ETL["ETL Pipelines<br/>Airflow, dbt, Fivetran"]
+        ELT["ELT Pipelines<br/>Load raw, transform in-warehouse"]
+        CDC["Change Data Capture<br/>Debezium, DMS"]
+        MICRO["Micro-batch / Streaming<br/>Spark Streaming, Flink"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        RAW["Raw / Landing Zone<br/>Unprocessed source data"]
+        STAGING["Staging Area<br/>Cleaned, validated"]
+        WAREHOUSE["Core Warehouse<br/>Columnar format<br/>Star/snowflake schema"]
+        MARTS["Data Marts<br/>Department-specific views"]
+    end
+
+    subgraph Compute["Compute Layer"]
+        MPP["MPP Engine<br/>Distributed query execution"]
+        CACHE["Result Cache<br/>Materialized views"]
+        OPT["Query Optimizer<br/>Cost-based planning"]
+    end
+
+    subgraph Serving["Serving Layer"]
+        BI["BI Tools<br/>Tableau, Looker, Power BI"]
+        SQL["SQL Clients<br/>Ad-hoc analysis"]
+        ML["ML Platforms<br/>Feature stores, training"]
+        APP["Applications<br/>Embedded analytics"]
+    end
+
+    Sources --> Ingestion
+    Ingestion --> Storage
+    Storage --> Compute
+    Compute --> Serving
+
+    style Sources fill:#805ad5,color:#fff
+    style Ingestion fill:#d69e2e,color:#fff
+    style Storage fill:#2b6cb0,color:#fff
+    style Compute fill:#e53e3e,color:#fff
+    style Serving fill:#38a169,color:#fff
