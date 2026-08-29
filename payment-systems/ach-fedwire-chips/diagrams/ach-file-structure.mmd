@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    F1["Record Type 1: File Header<br/>Immediate origin and destination<br/>File creation date and time<br/>File ID modifier"]
+
+    B1["Record Type 5: Batch Header<br/>Company name and ID<br/>SEC code (PPD, CCD, WEB, CTX, IAT)<br/>Entry description<br/>Effective entry date<br/>ODFI identification"]
+
+    E1["Record Type 6: Entry Detail (94 chars)<br/>pos 02-03 Transaction code<br/>pos 04-12 Routing + check digit<br/>pos 13-29 Account number<br/>pos 30-39 Amount in cents<br/>pos 55-76 Individual name<br/>pos 80-94 Trace number"]
+
+    A1["Record Type 7: Addenda (optional)<br/>80 characters of payment data<br/>1 per entry for most SEC codes<br/>up to 9,999 for CTX<br/>7 mandatory for IAT"]
+
+    E2["Record Type 6: Entry Detail<br/>next payment in the batch"]
+
+    B2["Record Type 8: Batch Control<br/>Entry and addenda count<br/>Entry hash (sum of routing numbers)<br/>Total debit and credit amounts"]
+
+    F2["Record Type 9: File Control<br/>Batch count, block count<br/>Entry count, file hash<br/>File debit and credit totals"]
+
+    P1["Padding: records of all 9s<br/>Blocking factor 10<br/>Total records must be a multiple of 10"]
+
+    F1 --> B1
+    B1 --> E1
+    E1 --> A1
+    A1 --> E2
+    E2 --> B2
+    B2 -.next batch.-> B1
+    B2 --> F2
+    F2 --> P1
+
+    Note1["Every record is exactly 94 characters.<br/>Fixed width, designed for magnetic tape,<br/>structurally unchanged since 1974."]
+    Note2["Amount field is 10 digits in cents,<br/>capping any entry at 99,999,999.99 USD.<br/>Same Day ACH caps at 1,000,000 USD by rule."]
+    Note3["The 22-character name field is<br/>informational. Posting is on<br/>account number alone."]
+
+    E1 -.-> Note2
+    E1 -.-> Note3
+    F1 -.-> Note1
+
+    style F1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style B1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style E1 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style A1 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Note3 fill:#ffebee,stroke:#c62828,stroke-width:2px

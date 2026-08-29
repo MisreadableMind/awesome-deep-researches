@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["The RTGS liquidity problem:<br/>a bank must have the money at the<br/>instant it sends, but incoming payments<br/>do not arrive before outgoing ones"]
+
+    Problem --> Options{"Options for the<br/>central bank"}
+
+    Options -->|Refuse| Gridlock["Payments queue.<br/>Gridlock: everyone waits for<br/>everyone else to pay first"]
+    Options -->|Lend intraday| Credit["Fed extends daylight credit<br/>against the master account"]
+
+    Credit --> PSR["Payment System Risk policy<br/>governs how much and at what price"]
+
+    PSR --> Cap["Net debit cap<br/>Multiple of risk-based capital"]
+    PSR --> Price["Pricing"]
+    PSR --> Weak["Institutions in weak condition:<br/>zero cap, prefunding required"]
+
+    Cap --> C1["Exempt<br/>small, infrequent users"]
+    Cap --> C2["De minimis<br/>board resolution"]
+    Cap --> C3["Average / Above average / High<br/>board-approved self-assessment"]
+
+    Price --> P1["Collateralized overdraft:<br/>zero fee since March 2011"]
+    Price --> P2["Uncollateralized overdraft:<br/>50 basis points annual rate,<br/>prorated over the 22-hour day,<br/>with a per-period fee waiver"]
+
+    P1 --> Effect["Effect: banks pledge collateral<br/>and borrow intraday for free.<br/>Unsecured central bank exposure<br/>is capped and priced."]
+    P2 --> Effect
+
+    Effect --> Result["Roughly 4 trillion USD a day clears<br/>on Fedwire without participants<br/>holding 4 trillion in reserves"]
+
+    Gridlock -.the alternative CHIPS chose.-> Netting["Or: net the payments instead<br/>of funding them.<br/>See CHIPS."]
+
+    style Problem fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P1 fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style P2 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Result fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Gridlock fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px

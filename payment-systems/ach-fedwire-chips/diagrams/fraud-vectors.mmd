@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Rule["The rule: fraud follows finality.<br/>Each rail's attack pattern is a direct<br/>consequence of its reversal rules."]
+
+    Rule --> Wire["FEDWIRE / CHIPS<br/>Irrevocable on settlement"]
+    Rule --> Debit["ACH DEBIT<br/>Reversible for 60 days (consumer)"]
+    Rule --> CreditPush["ACH CREDIT<br/>Hard to reverse"]
+    Rule --> Instant["RTP / FEDNOW<br/>Irrevocable, 24x7"]
+
+    Wire --> W1["Business email compromise<br/>~2.8 billion USD reported in 2024"]
+    Wire --> W2["Endpoint compromise<br/>Bangladesh Bank 2016:<br/>valid credentials, valid instructions,<br/>no cryptography broken"]
+    Wire --> W3["Insider origination"]
+
+    Debit --> D1["Unauthorized debits<br/>routing + account number is<br/>all an attacker needs"]
+    Debit --> D2["Return abuse<br/>authorized debit disputed<br/>within 60 days"]
+    Debit --> D3["Originator failure<br/>ODFI funds the returns"]
+
+    CreditPush --> C1["Payroll diversion<br/>employee portal takeover"]
+    CreditPush --> C2["Vendor instruction change"]
+    CreditPush --> C3["Corporate account takeover<br/>fraudulent file origination"]
+
+    Instant --> I1["Authorized push payment scams<br/>victim sends willingly"]
+    Instant --> I2["Mule networks<br/>24x7 means weekend extraction"]
+
+    W1 --> Ctrl1["CALLBACK VERIFICATION<br/>to a known number, not one<br/>taken from the email.<br/>The single most effective control."]
+    W1 --> Ctrl2["Dual authorization<br/>Beneficiary allowlist<br/>New-beneficiary delay window"]
+    W2 --> Ctrl3["Endpoint hardening,<br/>credential separation,<br/>out-of-band confirmation"]
+
+    D1 --> Ctrl4["ACH debit block<br/>ACH debit filter<br/>ACH positive pay"]
+    D1 --> Ctrl5["Account validation for WEB debits<br/>required by Nacha since March 2021"]
+    D3 --> Ctrl6["Exposure limits<br/>Return rate monitoring"]
+
+    C1 --> Ctrl7["MFA on self-service portals<br/>Change notification to old address"]
+    C3 --> Ctrl8["File-level limits, dual control,<br/>out-of-band file release"]
+
+    I1 --> Ctrl9["Nacha credit-push fraud monitoring<br/>rules phasing in through 2026,<br/>on originators and receivers"]
+
+    Legal["The legal asymmetry:<br/>Reg E protects consumer ACH.<br/>It does not cover wires<br/>or business accounts at all.<br/>UCC 4A puts the loss on the business<br/>if the bank's security procedure<br/>was commercially reasonable."]
+
+    Ctrl1 --> Legal
+    Ctrl8 --> Legal
+
+    style Wire fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Ctrl1 fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+    style Legal fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Rule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

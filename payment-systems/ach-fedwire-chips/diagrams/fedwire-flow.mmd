@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Payer as Originator<br/>(Harbor Properties)
+    participant SB as Sending Bank<br/>(JPMorgan Chase)
+    participant Fed as Federal Reserve<br/>Fedwire Funds Service
+    participant RB as Receiving Bank<br/>(Bank of America)
+    participant Payee as Beneficiary<br/>(Northside Title)
+
+    Payer->>SB: Wire instruction, 4,200,000 USD<br/>Routing, account, beneficiary name
+
+    SB->>SB: Dual authorization check
+    SB->>Payer: Callback verification to a known number
+    Payer-->>SB: Confirmed
+    SB->>SB: OFAC screening, fraud rules,<br/>funds or intraday line check
+
+    Note over SB,Fed: Last point at which the payment<br/>can be stopped unilaterally
+
+    SB->>Fed: pacs.008 customer credit transfer<br/>over FedLine Direct
+
+    Fed->>Fed: Validate message structure,<br/>sender authority, receiver RTN
+    Fed->>Fed: Check sending bank master account
+
+    alt Sufficient balance or daylight overdraft capacity
+        Fed->>Fed: DEBIT sender master account 4,200,000<br/>CREDIT receiver master account 4,200,000<br/>(same transaction, central bank money)
+        Fed-->>SB: Acknowledgement with IMAD
+        Fed->>RB: Deliver message with OMAD
+        Note over Fed,RB: Payment is now FINAL and IRREVOCABLE<br/>under Reg J and UCC 4A
+    else Cap exhausted, no balance
+        Fed-->>SB: Reject or queue per sender configuration
+    end
+
+    RB->>RB: OFAC screening on receipt
+    RB->>Payee: Credit beneficiary account<br/>Available by close of the funds transfer day
+
+    Note over Payer,Payee: Elapsed time: seconds.<br/>The callback in step 3 is the slow part, deliberately.
+
+    alt Payer discovers fraud afterwards
+        Payer->>SB: Request recall
+        SB->>Fed: Send request for return (camt.056)
+        Fed->>RB: Deliver request
+        RB->>RB: Return is voluntary.<br/>Nothing compels the money back.
+    end

@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["A payment needs to move"]
+
+    Start --> Q1{"Does the recipient need<br/>irrevocable funds right now?"}
+
+    Q1 -->|Yes| Q2{"Is the counterparty<br/>reachable on an<br/>instant network?"}
+    Q1 -->|No| Q3{"Does the payer need to<br/>PULL rather than push?"}
+
+    Q2 -->|Yes, and under the limit| RTP["RTP or FedNow<br/>Seconds, 24x7x365, cents<br/>RTP limit 10,000,000 USD"]
+    Q2 -->|No, or very large, or a bank| Q4{"Cross-border dollar payment<br/>or high-volume interbank?"}
+
+    Q4 -->|Yes, both are participants| CHIPS["CHIPS<br/>Minutes, queued, final at release<br/>Conserves liquidity through netting"]
+    Q4 -->|No, or time-critical domestic| Wire["FEDWIRE<br/>Seconds, final, unlimited<br/>25 to 35 USD retail<br/>22-hour day, business days only"]
+
+    Q3 -->|Yes| ACHDebit["ACH DEBIT<br/>The only rail here that pulls.<br/>Instant rails offer Request for Payment,<br/>which asks the payer to push."]
+    Q3 -->|No| Q5{"Must it settle today?"}
+
+    Q5 -->|Yes| SDACH["SAME DAY ACH<br/>Three windows, cents per item<br/>1,000,000 USD limit<br/>Roughly 1,000x cheaper than a wire"]
+    Q5 -->|No| Q6{"Is it recurring<br/>and predictable?"}
+
+    Q6 -->|Yes| ACHStd["STANDARD ACH<br/>Next business day, near zero cost.<br/>Built for exactly this."]
+    Q6 -->|No| Q7{"Does the payee need<br/>rich remittance data?"}
+
+    Q7 -->|Yes, and both sides support it| CTX["ACH CTX<br/>X12 820 across up to<br/>9,999 addenda records"]
+    Q7 -->|Yes, but support is uneven| RTPRem["RTP / FedNow<br/>ISO 20022 remittance<br/>carried natively"]
+    Q7 -->|No| ACHStd
+
+    Rule1["Rule of thumb on amount:<br/>above ~100,000 USD the 30 USD wire fee<br/>is a rounding error and certainty wins.<br/>Below ~10,000 USD, ACH wins."]
+
+    Wire --> Rule1
+    SDACH --> Rule1
+
+    style Wire fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style ACHStd fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style SDACH fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CHIPS fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style RTP fill:#fce4ec,stroke:#880e4f,stroke-width:2px

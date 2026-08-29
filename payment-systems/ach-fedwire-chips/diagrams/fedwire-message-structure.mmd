@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Legacy["Legacy Fedwire Tag Format<br/>(retired July 14, 2025)"]
+        direction TB
+        L1["Tag 1510 Type / subtype code<br/>1000 = basic value transfer"]
+        L2["Tag 1520 IMAD<br/>Input Message Accountability Data"]
+        L3["Tag 2000 Amount<br/>12 digits, in cents"]
+        L4["Tag 3100 Sender DI<br/>routing number + short name"]
+        L5["Tag 3400 Receiver DI"]
+        L6["Tag 3600 Business function code<br/>CTR, CTP, BTR, DRW, DRB"]
+        L7["Tag 4200 Beneficiary<br/>free text, 4 lines of 35 chars"]
+        L8["Tag 5000 Originator<br/>free text, 4 lines of 35 chars"]
+        L9["Tag 6000 Originator to beneficiary info"]
+        L10["Tag 1120 OMAD<br/>assigned by the Fed on delivery"]
+    end
+
+    subgraph ISO["ISO 20022 (live since July 14, 2025)"]
+        direction TB
+        I1["pacs.008<br/>Customer credit transfer"]
+        I2["pacs.009<br/>FI credit transfer"]
+        I3["pacs.004<br/>Payment return"]
+        I4["pacs.002<br/>Status report"]
+        I5["camt.056<br/>Request for cancellation"]
+        I6["camt.029<br/>Resolution of investigation"]
+        I7["Structured party data:<br/>Name, StreetName, BuildingNumber,<br/>PostCode, TownName, Country"]
+        I8["Structured remittance:<br/>referenced or embedded"]
+        I9["Purpose codes:<br/>why the payment exists"]
+    end
+
+    L1 --> I1
+    L6 --> I1
+    L6 --> I2
+    L7 --> I7
+    L8 --> I7
+    L9 --> I8
+
+    Gain["What actually improves:<br/>sanctions screening precision,<br/>straight-through processing rates,<br/>reconciliation on the receiving side.<br/><br/>What does not change:<br/>settlement speed. It was<br/>already seconds."]
+
+    ISO --> Gain
+
+    Trap["The failure mode:<br/>stuffing legacy free-text strings<br/>into structured fields.<br/>Format migrates, data does not."]
+
+    Gain --> Trap
+
+    style Legacy fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ISO fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style I7 fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+    style Trap fill:#ffebee,stroke:#c62828,stroke-width:2px

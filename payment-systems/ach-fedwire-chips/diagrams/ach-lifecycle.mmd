@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Emp as Employee (Receiver)
+    participant Corp as Employer (Originator)
+    participant ODFI as ODFI (Employer's bank)
+    participant Op as ACH Operator<br/>(FedACH or EPN)
+    participant Fed as Federal Reserve<br/>Master Accounts
+    participant RDFI as RDFI (Employee's bank)
+
+    Emp->>Corp: Direct deposit enrollment<br/>(PPD authorization, on file)
+
+    Note over Corp: Day T-2, payroll run
+    Corp->>Corp: Generate Nacha file<br/>File header, batch header (PPD),<br/>entry detail per employee,<br/>effective entry date = T
+    Corp->>ODFI: Transmit file over SFTP/PGP
+
+    ODFI->>ODFI: Format edits: counts, hash totals,<br/>routing check digits
+    ODFI->>ODFI: Exposure check against<br/>originator's approved limit
+    ODFI->>ODFI: OFAC screening
+
+    alt File fails edits
+        ODFI-->>Corp: Reject with error detail
+    end
+
+    Note over ODFI,Op: Day T-1, before 2:15 a.m. ET deadline
+    ODFI->>Op: Submit forward entries
+
+    Op->>Op: Sort all entries by<br/>destination routing number
+    Op->>Op: Compute net settlement<br/>position per institution
+    Op->>RDFI: Deliver inbound file
+
+    Note over Fed: Day T, 8:30 a.m. ET settlement
+    Op->>Fed: Settlement instruction
+    Fed->>Fed: Debit ODFI master account<br/>Credit RDFI master account (net)
+    Fed-->>Op: Settled
+
+    RDFI->>RDFI: Post entries to accounts<br/>Credits available by 9:00 a.m. local
+    RDFI->>Emp: 2,847.50 USD credited<br/>"ACME CORP PAYROLL"
+
+    alt Account closed or invalid
+        RDFI->>Op: Return entry (R02, R03, R04)<br/>within 2 banking days
+        Op->>ODFI: Deliver return
+        ODFI->>Corp: Return advice, funds reversed
+    end
+
+    alt Detail wrong but posted
+        RDFI->>Op: Notification of Change (COR)
+        Op->>ODFI: Deliver NOC
+        ODFI->>Corp: Correct within 6 banking days
+    end
