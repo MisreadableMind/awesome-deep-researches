@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["The 5-byte record header, identical in every version"]
+        direction TB
+        H1["Byte 0: ContentType<br/>20 change_cipher_spec<br/>21 alert<br/>22 handshake<br/>23 application_data<br/>24 heartbeat (RFC 6520)"]
+        H2["Bytes 1-2: legacy_record_version<br/>0x0301 on the first ClientHello,<br/>0x0303 on everything else.<br/>In TLS 1.3 this field is a lie<br/>told to middleboxes."]
+        H3["Bytes 3-4: length, big-endian<br/>Plaintext: at most 2^14 = 16384<br/>TLS 1.3 ciphertext: 2^14 + 256<br/>TLS 1.2 ciphertext: 2^14 + 2048"]
+    end
+
+    subgraph V12["TLS 1.2 protected record, AES-128-GCM"]
+        direction TB
+        P1["header: 17 03 03 LL LL"]
+        P2["explicit nonce: 8 bytes<br/>usually the sequence number"]
+        P3["ciphertext: plaintext length"]
+        P4["auth tag: 16 bytes"]
+        P5["AAD = seq_num || type ||<br/>version || plaintext_length<br/>The content type travels<br/>in the clear."]
+    end
+
+    subgraph V13["TLS 1.3 protected record"]
+        direction TB
+        Q1["header: 17 03 03 LL LL<br/>Outer type is always 23,<br/>whatever is inside."]
+        Q2["encrypted_record =<br/>AEAD(key, nonce, AAD, inner)"]
+        Q3["inner = content ||<br/>real ContentType ||<br/>zero padding<br/>The real type is encrypted."]
+        Q4["AAD = the 5 header bytes<br/>Nonce = 64-bit sequence number,<br/>left-padded to iv_length,<br/>XORed with the static write IV.<br/>The sequence number is never<br/>sent."]
+    end
+
+    subgraph Limits["Why records get rekeyed"]
+        direction TB
+        L1["AES-GCM: RFC 9846 section 5.5<br/>caps a key at 2^24.5 full-size<br/>records, about 23.7 million<br/>records or 389 GB."]
+        L2["KeyUpdate, handshake type 24,<br/>rotates the traffic secret:<br/>next = HKDF-Expand-Label(<br/>current, 'traffic upd', '', Hash.len)"]
+        L3["RFC 9846 makes the update<br/>before the limit a MUST and<br/>caps how many KeyUpdates<br/>a peer may send."]
+        L4["record_size_limit, RFC 8449,<br/>extension 28: a constrained peer<br/>asks for records smaller than<br/>16 KB. Replaces the broken<br/>max_fragment_length."]
+    end
+
+    Header --> V12
+    Header --> V13
+    V13 --> Limits
+
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style V12 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style V13 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Limits fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

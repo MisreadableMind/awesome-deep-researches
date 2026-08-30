@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Free["The free tier, funded by sponsors"]
+        direction TB
+        FA["Let's Encrypt / ISRG<br/>Nonprofit. Sponsored by cloud and<br/>infrastructure firms. ISRG operated<br/>three projects on roughly 7 million<br/>USD a year as of its 2023 report,<br/>with about 41% of expense on<br/>Let's Encrypt."]
+        FB["Output: 762 million websites<br/>served as of Dec 2025, over<br/>10 million certificates issued<br/>on peak days"]
+        FC["Google Trust Services, ZeroSSL,<br/>Amazon ACM: free certificates as a<br/>loss leader for a platform"]
+        FA --> FB
+    end
+
+    subgraph Paid["The paid tier, and what it sells"]
+        direction TB
+        PA["DV certificates: commercially<br/>near-worthless, since the identical<br/>product is free. Sold bundled."]
+        PB["OV: roughly 30 to 150 USD a year<br/>list price. Buys an organisation<br/>name in the subject field."]
+        PC["EV: from under 100 USD at<br/>discount resellers to 800 to 1500 USD<br/>a year at premium CAs. Browsers<br/>removed the EV address bar UI<br/>in 2019."]
+        PD["What is actually sold in 2026:<br/>certificate lifecycle management.<br/>Discovery, inventory, automated<br/>renewal, private PKI, and the<br/>compliance reporting around them."]
+        PA --> PD
+        PB --> PD
+        PC --> PD
+    end
+
+    subgraph Compute["Compute cost at the endpoint"]
+        direction TB
+        CA1["Handshake: one signature or one<br/>KEM decapsulation per full handshake.<br/>Asymmetric work dominates and it is<br/>per connection, not per byte."]
+        CA2["Bulk: AES-GCM with AES-NI or ARMv8<br/>crypto extensions runs at several<br/>gigabytes per second per core.<br/>Effectively free."]
+        CA3["Which is why session resumption<br/>and connection reuse matter far more<br/>than cipher choice for cost"]
+        CA4["Post-quantum adds about 1.2 kB per<br/>handshake and a measured 4% increase<br/>in handshake time"]
+        CA1 --> CA3
+        CA2 --> CA3
+    end
+
+    subgraph Ops["Operational cost, where the real money is"]
+        direction TB
+        OA["Expiry outages. The dominant<br/>real-world cost of TLS, and it rises<br/>as lifetimes fall from 398 to 200<br/>to 100 to 47 days."]
+        OB["Automation build-out: ACME clients,<br/>cert-manager, secret distribution,<br/>rotation without dropping connections"]
+        OC["Key custody: HSMs for CAs and for<br/>regulated private PKI. Cloudflare's<br/>Keyless SSL and RFC 9345 delegated<br/>credentials exist so a CDN can<br/>terminate TLS without holding<br/>the customer's private key."]
+        OD["CT log operation: cost scales with<br/>issuance volume, which is about to<br/>multiply as lifetimes fall. This is<br/>why the ecosystem rebuilt logs as<br/>static tiles on object storage."]
+        OA --> OB
+    end
+
+    subgraph Who["Who ends up paying"]
+        direction TB
+        WA["Site operator: near zero for the<br/>certificate, real money for automation<br/>and for the outage when it fails"]
+        WB["CDN and cloud platform: absorbs<br/>termination cost, sells the<br/>convenience back"]
+        WC["Sponsors of ISRG: fund the free<br/>tier for everyone"]
+        WD["Browser vendors: fund the root<br/>programs, CT infrastructure,<br/>and most of the protocol work,<br/>and recover nothing directly"]
+    end
+
+    Free --> Who
+    Paid --> Who
+    Compute --> Who
+    Ops --> Who
+
+    style Free fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Paid fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Compute fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Ops fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Who fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

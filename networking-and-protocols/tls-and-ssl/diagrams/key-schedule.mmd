@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Zero1["0 (Hash.length zero bytes)"]
+    PSK["PSK<br/>from a resumption ticket,<br/>or Hash.length zeros if none"]
+    Early["Early Secret<br/>= HKDF-Extract(salt=0, ikm=PSK)"]
+    Zero1 --> Early
+    PSK --> Early
+
+    Early --> B1["binder_key =<br/>Derive-Secret(., 'res binder', '')<br/>keys the PSK binder HMAC"]
+    Early --> E1["client_early_traffic_secret =<br/>Derive-Secret(., 'c e traffic', ClientHello)<br/>encrypts 0-RTT data"]
+    Early --> E2["early_exporter_secret =<br/>Derive-Secret(., 'e exp master', ClientHello)<br/>label keeps 'master' for wire compatibility"]
+
+    Early --> D1["Derive-Secret(., 'derived', '')"]
+    DHE["(EC)DHE shared secret<br/>32 bytes for x25519,<br/>64 bytes for X25519MLKEM768<br/>(ML-KEM secret || X25519 secret)"]
+    HS["Handshake Secret<br/>= HKDF-Extract(salt=derived, ikm=DHE)"]
+    D1 --> HS
+    DHE --> HS
+
+    HS --> H1["client_handshake_traffic_secret =<br/>Derive-Secret(., 'c hs traffic', CH..SH)"]
+    HS --> H2["server_handshake_traffic_secret =<br/>Derive-Secret(., 's hs traffic', CH..SH)"]
+
+    HS --> D2["Derive-Secret(., 'derived', '')"]
+    Zero2["0 (Hash.length zero bytes)"]
+    MS["Main Secret<br/>= HKDF-Extract(salt=derived, ikm=0)<br/>RFC 9846 renamed this from<br/>'Master Secret'"]
+    D2 --> MS
+    Zero2 --> MS
+
+    MS --> A1["client_application_traffic_secret_0 =<br/>Derive-Secret(., 'c ap traffic',<br/>CH..server Finished)"]
+    MS --> A2["server_application_traffic_secret_0 =<br/>Derive-Secret(., 's ap traffic',<br/>CH..server Finished)"]
+    MS --> A3["exporter_secret =<br/>Derive-Secret(., 'exp master',<br/>CH..server Finished)"]
+    MS --> A4["resumption_secret =<br/>Derive-Secret(., 'res master',<br/>CH..client Finished)<br/>feeds the next session's PSK"]
+
+    A1 --> K1["Per-direction key and IV:<br/>key = HKDF-Expand-Label(secret,'key','',key_len)<br/>iv  = HKDF-Expand-Label(secret,'iv','',iv_len)"]
+    A2 --> K1
+
+    style Early fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style HS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MS fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style DHE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style K1 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

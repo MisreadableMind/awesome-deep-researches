@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph F1["Family 1: legacy options still reachable"]
+        direction TB
+        A1["FREAK, Mar 2015, CVE-2015-0204<br/>Client accepts an export-grade<br/>512-bit RSA key it never asked for.<br/>36.7% of browser-trusted sites<br/>affected on 6 Mar 2015."]
+        A2["Logjam, May 2015, CVE-2015-4000<br/>Downgrade to DHE_EXPORT with a<br/>512-bit prime. 8.4% of the top<br/>1M HTTPS sites. 82% of vulnerable<br/>servers shared ONE prime, so a<br/>single precomputation broke them all."]
+        A3["DROWN, Mar 2016, CVE-2016-0800<br/>An SSLv2 server sharing a key with<br/>a TLS server decrypts recorded TLS<br/>sessions. About a third of HTTPS<br/>servers, 11 million services."]
+        A4["POODLE, Oct 2014, CVE-2014-3566<br/>Force a fallback to SSL 3.0, then<br/>use its unauthenticated CBC padding.<br/>256 requests recover one byte."]
+        A5["FIX: delete the code paths.<br/>TLS 1.3 has no export, no NULL,<br/>no anonymous, no static RSA,<br/>no server-chosen DH groups."]
+    end
+
+    subgraph F2["Family 2: CBC and MAC-then-encrypt"]
+        direction TB
+        B1["BEAST, Sep 2011, CVE-2011-3389<br/>TLS 1.0 chains the CBC IV from the<br/>previous record, so an adversary<br/>who can inject chosen plaintext<br/>predicts it and confirms guesses."]
+        B2["Lucky 13, Feb 2013, CVE-2013-0169<br/>MAC verification time depends on<br/>padding length. A timing oracle<br/>recovers plaintext."]
+        B3["FIX: TLS 1.1 explicit IVs,<br/>RFC 7366 encrypt-then-MAC,<br/>constant-time decryption, and<br/>finally TLS 1.3 deleting CBC."]
+    end
+
+    subgraph F3["Family 3: compression leaks length"]
+        direction TB
+        C1["CRIME, Sep 2012, CVE-2012-4929<br/>TLS-level compression. Attacker<br/>injects guesses next to a secret;<br/>a correct guess compresses better,<br/>so the record is shorter."]
+        C2["BREACH, Aug 2013<br/>Same idea at the HTTP layer.<br/>TLS cannot fix it: the compression<br/>is above TLS."]
+        C3["FIX at TLS level: TLS 1.3 removes<br/>compression entirely.<br/>At HTTP level: separate secrets<br/>from attacker input, mask CSRF<br/>tokens per response, add padding."]
+    end
+
+    subgraph F4["Family 4: RSA PKCS 1 v1.5 oracles"]
+        direction TB
+        D1["Bleichenbacher, 1998<br/>The server reveals whether padding<br/>was well-formed. About a million<br/>queries recover the pre-master secret."]
+        D2["ROBOT, Dec 2017<br/>The same attack, still working,<br/>against F5, Citrix, Cisco, and<br/>others 19 years later."]
+        D3["FIX: TLS 1.3 removes RSA key<br/>transport. RSA-PSS replaces<br/>PKCS 1 v1.5 in CertificateVerify."]
+    end
+
+    subgraph F5["Family 5: implementation, not protocol"]
+        direction TB
+        E1["Heartbleed, Apr 2014, CVE-2014-0160<br/>OpenSSL 1.0.1 to 1.0.1f trusts the<br/>attacker's length field in the RFC 6520<br/>heartbeat and memcpys up to 64 kB of<br/>adjacent heap into the reply.<br/>Netcraft: 17.5% of SSL sites,<br/>more than 500,000 servers."]
+        E2["goto fail, Feb 2014, CVE-2014-1266<br/>A duplicated goto in Apple's code<br/>skips the signature check entirely."]
+        E3["Debian OpenSSL, 2008, CVE-2008-0166<br/>A patch removed entropy seeding.<br/>Every key generated for 20 months<br/>came from a set of 32,768."]
+        E4["Sweet32, Aug 2016, CVE-2016-2183<br/>64-bit block ciphers collide after<br/>2^32 blocks. About 785 GB on one<br/>3DES connection recovers a cookie."]
+        E5["FIX: memory-safe languages,<br/>fuzzing, formal verification,<br/>and removing 3DES."]
+    end
+
+    F1 --> Fix["The general rule:<br/>an option retained for<br/>backward compatibility is<br/>an option an attacker can<br/>steer a modern client into.<br/>Deletion beats configuration."]
+    F2 --> Fix
+    F3 --> Fix
+    F4 --> Fix
+    F5 --> Fix2["The other rule:<br/>the protocol was never the<br/>weakest part. Heartbleed and<br/>goto fail were bugs in code<br/>that implemented a correct<br/>specification."]
+
+    style F1 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style F2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style F3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style F4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style F5 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Fix fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Fix2 fill:#eceff1,stroke:#37474f,stroke-width:3px

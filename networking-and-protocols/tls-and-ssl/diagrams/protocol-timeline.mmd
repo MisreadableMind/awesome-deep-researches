@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Netscape Era<br/>1994-1998"]
+        direction TB
+        E1A["1994: SSL 1.0 designed at Netscape<br/>by Taher Elgamal's team.<br/>Never shipped: no message<br/>integrity, replayable."]
+        E1B["Feb 1995: SSL 2.0 ships in<br/>Netscape Navigator 1.1.<br/>MD5-only MAC, weak key<br/>derivation, no handshake<br/>authentication."]
+        E1C["Nov 1996: SSL 3.0, a complete<br/>redesign by Freier, Karlton<br/>and Kocher. Documented<br/>retroactively as RFC 6101 in 2011."]
+        E1D["1998: Bleichenbacher publishes<br/>the RSA PKCS 1 v1.5 padding<br/>oracle. It is still being<br/>rediscovered 25 years later."]
+    end
+
+    subgraph Era2["IETF Era<br/>1999-2008"]
+        direction TB
+        E2A["Jan 1999: TLS 1.0, RFC 2246.<br/>Version 0x0301, meaning<br/>'SSL 3.1'. Renamed for<br/>political neutrality."]
+        E2B["2003: SNI added, RFC 3546.<br/>One IP address can now host<br/>many certificates."]
+        E2C["Apr 2006: TLS 1.1, RFC 4346.<br/>Explicit CBC IV, fixing an<br/>attack nobody had yet published."]
+        E2D["Aug 2008: TLS 1.2, RFC 5246.<br/>SHA-256 replaces MD5/SHA-1<br/>in the PRF. AEAD ciphers<br/>become possible."]
+    end
+
+    subgraph Era3["The Break Era<br/>2009-2015"]
+        direction TB
+        E3A["2009: renegotiation attack.<br/>RFC 5746 patches it in 2010."]
+        E3B["2011-2014: BEAST, CRIME,<br/>Lucky 13, POODLE.<br/>Every CBC and compression<br/>choice in TLS 1.0 falls."]
+        E3C["Apr 2014: Heartbleed.<br/>Not a protocol flaw.<br/>A missing bounds check in<br/>OpenSSL's heartbeat handler."]
+        E3D["2015: FREAK, Logjam.<br/>1990s export ciphers,<br/>still in the code, still<br/>negotiable."]
+    end
+
+    subgraph Era4["Encrypt Everything<br/>2013-2020"]
+        direction TB
+        E4A["Jun 2013: Snowden disclosures.<br/>IETF declares pervasive<br/>monitoring an attack, BCP 188."]
+        E4B["Sep 2015: Let's Encrypt issues<br/>its first publicly trusted<br/>certificate. Price of DV<br/>drops to zero."]
+        E4C["Aug 2018: TLS 1.3, RFC 8446.<br/>Four years, 28 drafts.<br/>One round trip, AEAD only,<br/>forward secrecy mandatory."]
+        E4D["2020: HTTPS passes 80% of<br/>Firefox page loads globally."]
+    end
+
+    subgraph Era5["Automation and Quantum<br/>2021-2026"]
+        direction TB
+        E5A["Apr 2024: Chrome 124 enables<br/>hybrid post-quantum key<br/>agreement by default on desktop."]
+        E5B["Mar 2024: OCSP becomes optional<br/>for public CAs; CRLs mandatory."]
+        E5C["Apr 2025: CA/Browser Forum<br/>passes SC-081v3. Certificate<br/>lifetimes fall to 47 days<br/>by March 2029."]
+        E5D["Mar 2026: RFC 9849 publishes<br/>Encrypted Client Hello."]
+        E5E["Jul-Aug 2026: RFC 9846 replaces<br/>RFC 8446; RFC 10024 standardises<br/>ML-KEM hybrid key agreement."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+
+    Note over C,S: Round trip 1. Everything below is plaintext.
+
+    C->>S: ClientHello<br/>16 03 01 LL LL | 01 00 00 LL<br/>03 03 (client_version = TLS 1.2)<br/>random[32]<br/>session_id_len, session_id<br/>cipher_suites: C0 2B C0 2F CC A9 ...<br/>compression: 01 00 (null only)<br/>extensions: server_name(0),<br/>supported_groups(10), ec_point_formats(11),<br/>signature_algorithms(13), ALPN(16),<br/>status_request(5), SCT(18),<br/>extended_master_secret(23),<br/>session_ticket(35), renegotiation_info(65281)
+
+    S->>C: ServerHello<br/>02 00 00 LL | 03 03 | random[32]<br/>session_id | cipher_suite = C0 2F<br/>compression_method = 00<br/>extensions: the subset it accepts
+    S->>C: Certificate<br/>0b 00 LL LL | 3-byte chain length |<br/>for each cert: 3-byte length + DER
+    S->>C: ServerKeyExchange<br/>0c 00 00 LL<br/>curve_type = 03 (named_curve)<br/>named_curve = 00 1D (x25519)<br/>pubkey_len = 20 | pubkey[32]<br/>sig_alg = 08 04 (rsa_pss_rsae_sha256)<br/>sig_len | signature over<br/>client_random + server_random + params
+    S->>C: CertificateRequest (optional, mutual TLS)
+    S->>C: ServerHelloDone<br/>0e 00 00 00
+
+    Note over C,S: Client validates the chain and the ServerKeyExchange signature.
+
+    Note over C,S: Round trip 2.
+
+    C->>S: Certificate (only if requested)
+    C->>S: ClientKeyExchange<br/>10 00 00 21 | 20 | client_pubkey[32]
+    C->>S: CertificateVerify (only for mutual TLS)
+    C->>S: ChangeCipherSpec<br/>14 03 03 00 01 | 01<br/>Its own record type, not a<br/>handshake message.
+    C->>S: Finished (encrypted)<br/>14 00 00 0c | verify_data[12]<br/>= PRF(master_secret, "client finished",<br/>SHA256(all handshake messages))
+
+    S->>C: NewSessionTicket (optional)<br/>04 00 00 LL | lifetime_hint | ticket
+    S->>C: ChangeCipherSpec
+    S->>C: Finished (encrypted)<br/>verify_data = PRF(master_secret,<br/>"server finished", SHA256(transcript))
+
+    Note over C,S: Round trip 3 carries the first application byte.
+
+    C->>S: Application data<br/>17 03 03 LL LL | ...
+    S->>C: Application data
+
+    Note over C,S: 2 RTT of handshake before the first request.<br/>Certificate, SNI, and ALPN all sent in the clear.

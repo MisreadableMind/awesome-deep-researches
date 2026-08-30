@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant R as DNS resolver<br/>over DoH or DoT
+    participant CF as Client-facing server<br/>public_name: cloudflare-ech.com
+    participant B as Backend server<br/>the real origin
+
+    Note over C,R: Step 1. Fetch the ECH configuration.
+
+    C->>R: Query HTTPS RR for private.example.com<br/>(SVCB/HTTPS record, RFC 9460)
+    R-->>C: HTTPS 1 . alpn="h2,h3"<br/>ipv4hint=...<br/>ech="AEX+DQBB..."<br/>The ech= parameter is a base64<br/>ECHConfigList.
+
+    Note over C: ECHConfig carries:<br/>config_id (1 byte),<br/>HPKE KEM id + public key,<br/>cipher suite list,<br/>maximum_name_length,<br/>public_name.<br/>The transport must be encrypted<br/>or the config leaks the intent.
+
+    Note over C: Step 2. Build two ClientHellos.
+
+    Note over C: INNER: server_name = private.example.com,<br/>real ALPN, real key_share, real everything.<br/>Padded per RFC 9849 6.1.3 using<br/>maximum_name_length, then rounded up<br/>to a multiple of 32 bytes.<br/>OUTER: server_name = cloudflare-ech.com<br/>(the public_name, in the clear),<br/>plus extension 0xfe0d carrying<br/>HPKE-Seal(config public key,<br/>info = "tls ech" || 0x00 || ECHConfig,<br/>aad = the outer ClientHello with the<br/>payload zeroed, plaintext = inner CH)
+
+    C->>CF: ClientHello (outer)<br/>An observer sees only<br/>cloudflare-ech.com
+
+    alt Server can decrypt
+        CF->>CF: HPKE-Open with the private key<br/>matching config_id
+        Note over CF: Shared mode: CF is the backend.<br/>Split mode: CF forwards the inner<br/>ClientHello to the backend and<br/>relays bytes without keys.
+        CF->>B: inner ClientHello (split mode)
+        B-->>C: ServerHello, then encrypted flight<br/>certificate for private.example.com
+    else Server cannot decrypt (stale config, GREASE)
+        CF-->>C: Handshake completes to public_name<br/>EncryptedExtensions carries<br/>retry_configs
+        Note over C: Client aborts with<br/>ech_required alert (121),<br/>reconnects with the fresh config.<br/>The retry is authenticated by the<br/>public_name certificate, so an<br/>attacker cannot force a downgrade.
+    end
+
+    Note over C,CF: GREASE ECH: clients send a<br/>well-formed dummy ECH extension on<br/>connections that do not use ECH,<br/>so that using ECH is not itself<br/>a signal. RFC 9849 6.2.1:<br/>a SHOULD, not a MUST.

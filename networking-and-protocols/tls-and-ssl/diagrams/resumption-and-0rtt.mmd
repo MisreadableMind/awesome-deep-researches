@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+    participant A as Attacker on path
+
+    Note over C,S: Connection 1: a full handshake happens.
+
+    C->>S: ClientHello, key_share
+    S->>C: ServerHello .. {Finished}
+    C->>S: {Finished}
+    S->>C: {NewSessionTicket}<br/>ticket_lifetime (max 604800 s = 7 days)<br/>ticket_age_add (32-bit random)<br/>ticket_nonce<br/>ticket (opaque blob)<br/>extensions: early_data(max_early_data_size)
+
+    Note over C: PSK = HKDF-Expand-Label(<br/>  resumption_secret,<br/>  "resumption", ticket_nonce, Hash.len)
+
+    Note over C,S: Connection 2: resumption, 1-RTT.
+
+    C->>S: ClientHello<br/>psk_key_exchange_modes = psk_dhe_ke<br/>key_share (fresh, for forward secrecy)<br/>pre_shared_key (MUST be last extension):<br/>  identity = the ticket<br/>  obfuscated_ticket_age =<br/>    (now - ticket_receipt) + ticket_age_add<br/>  binder = HMAC(binder_key,<br/>    Transcript-Hash(truncated ClientHello))
+    Note over S: The binder covers the ClientHello up to<br/>but not including the binder list itself.<br/>That truncation is why pre_shared_key<br/>must be the final extension.
+    S->>C: ServerHello with pre_shared_key<br/>selecting identity index, plus key_share
+    Note over C,S: 1 RTT. No certificate, no signature.<br/>Authentication comes from the PSK.
+
+    Note over C,S: Connection 3: 0-RTT.
+
+    C->>S: ClientHello + early_data(42)<br/>+ [Early application data]<br/>encrypted under client_early_traffic_secret<br/>= Derive-Secret(Early Secret,<br/>  "c e traffic", ClientHello)
+    Note over C: Sent before ANY server response.<br/>Not forward secret: it depends only<br/>on the stored PSK.
+    S->>C: ServerHello .. {EncryptedExtensions<br/>with early_data} .. {Finished}
+    C->>S: {EndOfEarlyData}, {Finished}
+
+    Note over A,S: The replay.
+    A->>A: Record the whole first flight:<br/>ClientHello + early data
+    A->>S: Replay it verbatim, later,<br/>possibly to a different server<br/>in the same cluster
+    Note over S: The bytes decrypt correctly.<br/>They were validly encrypted.<br/>Nothing in the crypto distinguishes<br/>a replay from the original.
+
+    Note over S: Defences, none complete:<br/>1. Single-use tickets + a strike register<br/>   (does not survive a server cluster)<br/>2. Reject if obfuscated_ticket_age is<br/>   outside a narrow window<br/>3. Restrict 0-RTT to idempotent requests:<br/>   Cloudflare allows only GET with no<br/>   query string, and tags the request<br/>   with a value derived from the PSK binder<br/>4. RFC 8470: the origin sees an<br/>   Early-Data: 1 header and may answer<br/>   425 Too Early
