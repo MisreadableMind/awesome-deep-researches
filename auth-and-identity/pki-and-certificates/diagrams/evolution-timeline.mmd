@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Standards Era<br/>1988-1998"]
+        direction TB
+        E1A["1988: CCITT X.509 v1 ships as<br/>the authentication framework for<br/>the X.500 directory. Names are<br/>Distinguished Names. There is<br/>no internet in the design."]
+        E1B["1993: X.509 v2 adds unique<br/>identifiers. Nobody uses them.<br/>They are banned by the Baseline<br/>Requirements today."]
+        E1C["1996: X.509 v3 adds extensions.<br/>This is the version every<br/>certificate on the web uses,<br/>encoded as INTEGER 2."]
+        E1D["1995-1999: Netscape ships SSL<br/>with a hardcoded list of CAs.<br/>VeriSign, Thawte and RSA<br/>Data Security are the first<br/>commercial trust anchors."]
+    end
+
+    subgraph Era2["PKIX Era<br/>1999-2010"]
+        direction TB
+        E2A["Jan 1999: RFC 2459, the first<br/>IETF profile of X.509 for the<br/>internet. Replaced by RFC 3280<br/>in 2002 and RFC 5280 in 2008."]
+        E2B["1999: OCSP, RFC 2560.<br/>A per-certificate status query<br/>that will fail for privacy,<br/>latency and soft-fail reasons."]
+        E2C["2000: RFC 2818 says the<br/>subjectAltName extension<br/>supersedes commonName<br/>for hostname matching."]
+        E2D["2002-2011: browser bugs that<br/>ignore basicConstraints turn<br/>any leaf into a CA. Internet<br/>Explorer in 2002, iOS in 2011."]
+    end
+
+    subgraph Era3["Governance Era<br/>2005-2015"]
+        direction TB
+        E3A["2005: the CA/Browser Forum<br/>forms. Browsers get a seat<br/>at the table that writes<br/>the issuance rules."]
+        E3B["2007: EV Guidelines. Legal<br/>identity verification in<br/>exchange for a green bar."]
+        E3C["Jul 2011: Baseline Requirements<br/>v1.0 adopted. For the first time<br/>every publicly trusted TLS<br/>certificate has a written rulebook."]
+        E3D["Aug 2011: DigiNotar. One<br/>compromised CA issues at least<br/>531 fraudulent certificates and<br/>leaves browser trust stores<br/>within days. Apple takes<br/>until 13 Oct 2011."]
+    end
+
+    subgraph Era4["Transparency and Automation Era<br/>2013-2020"]
+        direction TB
+        E4A["Jun 2013: RFC 6962 defines<br/>Certificate Transparency.<br/>Misissuance becomes a<br/>public, append-only fact."]
+        E4B["Sep 2015: Let's Encrypt issues<br/>its first publicly trusted<br/>certificate. The price of a<br/>DV certificate goes to zero."]
+        E4C["2016-2018: WoSign, StartCom<br/>and Symantec are distrusted.<br/>Symantec sells its CA business<br/>to DigiCert rather than rebuild."]
+        E4D["Mar 2019: RFC 8555 standardises<br/>ACME. Certificates stop being<br/>a purchase and become an<br/>API call."]
+    end
+
+    subgraph Era5["Agility Era<br/>2022-2026"]
+        direction TB
+        E5A["Sep 2022: the Chrome Root Store<br/>launches on Windows and macOS.<br/>Linux, ChromeOS and Android<br/>follow in 2023. Chrome for iOS<br/>never gets it."]
+        E5B["Mar 2024: SC-063 takes effect.<br/>OCSP becomes optional,<br/>CRLs become mandatory."]
+        E5C["Aug 2024 to Dec 2026: SC-067<br/>phases in Multi-Perspective<br/>Issuance Corroboration, from<br/>two remote perspectives to five."]
+        E5D["Apr 2025: SC-081v3 sets the<br/>lifetime schedule. 398 days<br/>until Mar 2026, 200 days today,<br/>100 from Mar 2027,<br/>47 from Mar 2029."]
+        E5E["Feb 2026: Chrome opens a second,<br/>separate root program for<br/>post-quantum Merkle Tree<br/>Certificates. Classical X.509<br/>with PQ keys is refused."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Era5 fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

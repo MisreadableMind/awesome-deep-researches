@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Dig["DigiNotar, 2011: compromise"]
+        direction TB
+        DG1["10 Jul 2011: an intruder issues a<br/>wildcard certificate for Google<br/>from DigiNotar's systems"]
+        DG2["19 Jul 2011: DigiNotar detects the<br/>intrusion. It tells nobody"]
+        DG3["28 Aug 2011: Iranian users report<br/>certificate errors. Chrome's<br/>hardcoded pin on Google domains<br/>catches it. The certificate<br/>is posted publicly"]
+        DG4["Fox-IT finds roughly 300,000 OCSP<br/>requests from Iranian addresses<br/>for the rogue certificate.<br/>At least 531 fraudulent<br/>certificates in total"]
+        DG5["29 Aug to 13 Oct 2011: every<br/>browser and OS removes the roots.<br/>Apple patches iOS only on<br/>13 Oct with iOS 5"]
+        DG6["20 Sep 2011: DigiNotar files for<br/>bankruptcy. The Dutch government<br/>had taken over operations on<br/>3 Sep. Failure to disclose<br/>killed the company, not<br/>the breach itself"]
+        DG1 --> DG2 --> DG3 --> DG4 --> DG5 --> DG6
+    end
+
+    subgraph Wo["WoSign and StartCom, 2015-2017: incompetence plus concealment"]
+        direction TB
+        W1["Jan to Apr 2015, the any-port bug:<br/>WoSign let an applicant nominate<br/>any port for HTTP validation.<br/>A researcher opened a port above<br/>50,000 on a university host and<br/>got a certificate. 72 certificates<br/>issued this way"]
+        W2["Jun 2015, the subdomain bugs:<br/>control of any subdomain yielded<br/>the base domain, and arbitrary<br/>unvalidated names could be added<br/>after validation. A researcher<br/>used schrauger.github.io to obtain<br/>certificates for github.com,<br/>github.io and www.github.io.<br/>33 certificates"]
+        W3["Jan 2016, backdating: 3 SHA-1<br/>certificates carry a Dec 2015<br/>notBefore and embedded SCTs<br/>dated Jan 2016. The SCTs prove<br/>the real signing date. 62 more<br/>share a notBefore of Sunday<br/>20 Dec 2015, a non-working day<br/>in China. Backdating evaded<br/>browser SHA-1 blocks"]
+        W4["Nov 2015: WoSign buys StartCom<br/>and denies it for a year.<br/>Concealment, not the bugs,<br/>is what the root programs cite"]
+        W5["Oct 2016 onward: Mozilla, Apple,<br/>Google and Microsoft distrust<br/>both CAs by notBefore date.<br/>Neither returns"]
+        W1 --> W2 --> W3 --> W4 --> W5
+    end
+
+    subgraph Sym["Symantec, 2015-2018: scale plus delegation"]
+        direction TB
+        S1["2009 to 2015: test certificates<br/>issued for domains Symantec did not<br/>control, including google.com,<br/>without validation. Three employees<br/>dismissed"]
+        S2["Jan 2017: CrossCert, a Korean<br/>registration authority with<br/>independent issuance rights under<br/>Symantec intermediates, is found<br/>to have misissued. 127 confirmed<br/>cases. Symantec revalidates<br/>10,000-plus CrossCert certificates<br/>and 20,000-plus from other RAs"]
+        S3["The finding that mattered: the only<br/>control checking whether the RAs<br/>followed the rules was the annual<br/>WebTrust audit, and the audits<br/>had missed it"]
+        S4["Sep 2017: graduated distrust plan.<br/>Chrome 66 in Apr 2018 drops<br/>certificates issued before<br/>1 Jun 2016. Chrome 70 in Oct 2018<br/>drops the rest"]
+        S5["Oct 2017: rather than rebuild,<br/>Symantec sells the CA business<br/>to DigiCert. The largest CA on<br/>the web at the time changes<br/>owner to survive"]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph Modern["The modern instrument: SCT-based distrust"]
+        direction TB
+        M1["Jun 2024: Chrome announces distrust<br/>of nine Entrust and AffirmTrust roots<br/>for certificates whose earliest SCT<br/>is after 11 Nov 2024. Cited reason:<br/>six years of compliance failures and<br/>unmet improvement commitments"]
+        M2["2025: Chrome applies the same<br/>instrument to Chunghwa Telecom<br/>and NETLOCK for certificates<br/>with SCTs after 31 Jul 2025"]
+        M3["Why it works: the constraint is<br/>keyed on the SCT timestamp, which<br/>Certificate Transparency makes<br/>a verifiable fact rather than a<br/>self-asserted field. Existing<br/>certificates keep working.<br/>The CA has no future"]
+        M4["Apr 2025: an SSL.com DCV bug lets a<br/>researcher obtain a certificate for<br/>aliyun.com by putting a personal<br/>address in a validation TXT record.<br/>11 certificates misissued, all<br/>revoked, the method disabled<br/>within hours"]
+        M1 --> M2 --> M3 --> M4
+    end
+
+    Dig --> Wo --> Sym --> Modern
+
+    style Dig fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Wo fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Sym fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Modern fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Prim["The primitive: a signature is a claim anyone can check"]
+        direction TB
+        P1["A key pair is two numbers.<br/>The private key signs.<br/>The public key verifies.<br/>Deriving one from the other<br/>is the hard problem."]
+        P2["RSA rests on integer factoring.<br/>ECDSA rests on the elliptic curve<br/>discrete logarithm. Shor's algorithm<br/>breaks both, which is why the<br/>whole stack has an expiry date."]
+        P3["Sign: hash the message, then<br/>transform the hash with the<br/>private key. Verify: recompute<br/>the hash and check the transform<br/>with the public key."]
+        P1 --> P2 --> P3
+    end
+
+    subgraph Gap["The gap the primitive cannot close"]
+        direction TB
+        G1["A signature proves the signer<br/>held the private key.<br/>It says nothing about<br/>who the signer is."]
+        G2["A server can hand a browser<br/>any public key and prove it<br/>holds the matching private key.<br/>So can an attacker."]
+        G3["Key exchange without<br/>authentication is secure against<br/>a passive eavesdropper and<br/>useless against an active one."]
+        G1 --> G2 --> G3
+    end
+
+    subgraph Fix["The certificate closes it by delegation"]
+        direction TB
+        F1["A certificate is a signed<br/>statement: this public key<br/>belongs to these names,<br/>between these two times."]
+        F2["The relying party does not<br/>have to know the server.<br/>It has to know the issuer,<br/>which it does, because the<br/>issuer's key shipped with<br/>the software."]
+        F3["Trust does not become<br/>unnecessary. It moves.<br/>From n servers to<br/>roughly 100 root CAs."]
+        F1 --> F2 --> F3
+    end
+
+    subgraph Cost["What the move costs"]
+        direction TB
+        C1["Any trusted CA can issue for<br/>any name. The security of<br/>the web equals the security<br/>of the weakest trusted CA."]
+        C2["100 TLS roots in the Chrome<br/>Root Store from 44 owners,<br/>203 in the Microsoft store<br/>from 64 owners, as of<br/>29 Aug 2026."]
+        C3["Every later mechanism in this<br/>document exists to shrink that<br/>blast radius: name constraints,<br/>CAA, Certificate Transparency,<br/>short lifetimes, distrust."]
+        C1 --> C2 --> C3
+    end
+
+    Prim --> Gap --> Fix --> Cost
+
+    style Prim fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Gap fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Cost fill:#fff3e0,stroke:#e65100,stroke-width:2px

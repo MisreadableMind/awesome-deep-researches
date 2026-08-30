@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Graph["The real graph, letsencrypt.org as served on 30 Aug 2026"]
+        direction TB
+        Leaf["Leaf<br/>subject CN=letsencrypt.org<br/>issuer CN=YE2<br/>ECDSA P-256, 1,098 bytes"]
+        Int["Intermediate<br/>subject CN=YE2, O=Let's Encrypt<br/>issuer CN=Root YE, O=ISRG<br/>cA TRUE, pathlen 0<br/>EKU serverAuth only<br/>valid 2025-09-03 to 2028-09-02"]
+        RootYE["ISRG Root YE<br/>ECDSA P-384<br/>New Generation Y root,<br/>generated Sep 2025, awaiting<br/>inclusion in the trust stores"]
+        X2["Root YE cross-signed by<br/>ISRG Root X2, issued 2026-05-13<br/>Bridges the new root to an<br/>anchor that already ships"]
+        X1["ISRG Root X2 cross-signed by<br/>ISRG Root X1. Subject key<br/>ECDSA P-384, signed sha256WithRSA<br/>valid 2026-05-13 to 2032-09-02<br/>1,140 bytes. Chains to the RSA 4096<br/>ISRG Root X1 already in every store"]
+
+        Leaf -->|"signed by"| Int
+        Int -->|"signed by"| RootYE
+        RootYE -->|"also certified by"| X2
+        X2 -->|"also certified by"| X1
+    end
+
+    subgraph Paths["Three valid paths, one leaf"]
+        direction TB
+        PA["Path A: Leaf, YE2, Root YE<br/>Works once Root YE ships"]
+        PB["Path B: Leaf, YE2, Root YE,<br/>Root X2 cross-sign<br/>Works on clients that have X2"]
+        PC["Path C: Leaf, YE2, Root YE,<br/>Root X2 cross-sign,<br/>Root X1 cross-sign<br/>Works almost everywhere"]
+        PA --> PB --> PC
+    end
+
+    subgraph Algo["RFC 5280 section 6.1, what the client actually runs"]
+        direction TB
+        A1["Initialise eleven state variables:<br/>valid_policy_tree, permitted_subtrees,<br/>excluded_subtrees, explicit_policy,<br/>inhibit_anyPolicy, policy_mapping,<br/>working_public_key and its algorithm<br/>and parameters, working_issuer_name,<br/>max_path_length"]
+        A2["For each certificate, in order:<br/>verify the signature with the<br/>issuer's working public key"]
+        A3["Check notBefore is not in the<br/>future and notAfter is not in<br/>the past, at every level"]
+        A4["Check the subject name and every<br/>subjectAltName against<br/>permitted_subtrees and<br/>excluded_subtrees"]
+        A5["Check basicConstraints cA is TRUE<br/>and max_path_length is not<br/>exhausted for every non-leaf"]
+        A6["Check keyUsage asserts keyCertSign<br/>on every CA certificate"]
+        A7["Wrap up: match a SAN dNSName<br/>against the requested host,<br/>wildcards only at the leftmost<br/>label and only one label deep"]
+        A8["Check CT policy: 2 SCTs from<br/>distinct logs for lifetimes of<br/>180 days or less, 3 above,<br/>from at least 2 operators"]
+        A9["Check revocation with whatever<br/>data the client already has.<br/>Not a fetch. A lookup."]
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7 --> A8 --> A9
+    end
+
+    subgraph Fail["Where implementations break"]
+        direction TB
+        F1["Treating the chain as a linked<br/>list. The server's ordering is<br/>a hint, not the answer."]
+        F2["Stopping at the first expired<br/>anchor. This is the 30 Sep 2021<br/>DST Root CA X3 outage:<br/>OpenSSL 1.0.2 stopped,<br/>modern stacks backtracked."]
+        F3["Ignoring basicConstraints.<br/>Internet Explorer 5 and 6 in 2002,<br/>iOS through 4.3.4 in 2011<br/>CVE-2011-0228."]
+        F4["Reading commonName when SAN<br/>is present, or accepting a<br/>null byte inside a name.<br/>CVE-2009-2408."]
+        F1 --> F2 --> F3 --> F4
+    end
+
+    Graph --> Paths --> Algo --> Fail
+
+    style Graph fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Paths fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Algo fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fail fill:#ffebee,stroke:#c62828,stroke-width:2px

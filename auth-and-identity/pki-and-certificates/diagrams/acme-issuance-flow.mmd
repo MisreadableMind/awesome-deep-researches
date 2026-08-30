@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Op as Server operator
+    participant Cl as ACME client<br/>certbot, Caddy, cert-manager
+    participant CA as ACME server<br/>Let's Encrypt Boulder
+    participant DNS as example.com<br/>DNS and web server
+    participant MP as Remote network<br/>perspectives
+    participant CT as CT logs
+
+    Op->>Cl: "Get a certificate for example.com"
+    Cl->>CA: GET /directory
+    CA-->>Cl: newNonce, newAccount, newOrder,<br/>revokeCert, keyChange, renewalInfo,<br/>and the profiles the CA offers
+    Cl->>CA: POST /new-account<br/>JWS signed with a fresh account key
+    CA-->>Cl: 201 Created, account URL
+
+    Cl->>CA: POST /new-order<br/>identifiers, one dns entry for example.com<br/>plus the profile name tlsserver
+    CA-->>Cl: 201, authorization URLs,<br/>finalize URL
+
+    Cl->>CA: POST-as-GET the authorization
+    CA-->>Cl: challenges http-01, dns-01,<br/>tls-alpn-01, dns-account-01,<br/>each with a random token
+
+    Note over Cl,DNS: keyAuthorization = token || "." ||<br/>base64url(SHA-256 JWK thumbprint of the account key)<br/>http-01 serves it at /.well-known/acme-challenge/token<br/>dns-01 publishes base64url(SHA-256(keyAuthorization))<br/>as TXT at _acme-challenge.example.com
+
+    Cl->>DNS: Provision the response
+    Cl->>CA: POST the challenge URL, empty JWS body
+
+    CA->>DNS: Fetch from the primary perspective
+    CA->>MP: Ask remote perspectives to corroborate
+    MP->>DNS: Independent fetch, no shared DNS cache
+    MP-->>CA: Same token observed, or not
+
+    Note over CA,MP: From 15 Jun 2026 at least four remote<br/>perspectives in two RIR regions.<br/>Five from 15 Dec 2026.
+
+    CA->>DNS: CAA lookup, walking up to the<br/>registrable domain, DNSSEC-validated
+    CA-->>Cl: authorization status valid
+
+    Cl->>CA: POST finalize with a PKCS 10 CSR<br/>carrying the public key and the SAN list
+
+    Note over CA: Build a precertificate: the real TBS<br/>plus the critical poison extension<br/>1.3.6.1.4.1.11129.2.4.3
+    CA->>CT: add-pre-chain to at least two logs<br/>from at least two operators
+    CT-->>CA: Signed Certificate Timestamps
+    Note over CA: Remove the poison, embed the SCT list<br/>in extension 1.3.6.1.4.1.11129.2.4.2,<br/>sign the real certificate
+
+    CA-->>Cl: 200, certificate URL
+    Cl->>CA: POST-as-GET the certificate
+    CA-->>Cl: PEM chain, leaf first, root omitted
+    Cl->>Op: Install, reload, done
+
+    loop Every renewal cycle
+        Cl->>CA: GET /renewal-info/<br/>base64url(AKI keyId) "." base64url(serial)
+        CA-->>CA: Normal case: window near<br/>two thirds of the lifetime
+        CA-->>Cl: JSON with suggestedWindow start and end,<br/>an optional explanationURL,<br/>and a Retry-After header of 21600 seconds
+        Cl->>Cl: Pick a uniform random time<br/>inside the window
+        Note over CA,Cl: Mass revocation: the CA moves every<br/>affected window to now and the fleet<br/>renews itself. RFC 9773, June 2025.
+    end

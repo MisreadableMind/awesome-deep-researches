@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Outer["Certificate, the outer SEQUENCE, RFC 5280 section 4.1"]
+        direction TB
+        O1["Certificate ::= SEQUENCE {<br/>  tbsCertificate     TBSCertificate,<br/>  signatureAlgorithm AlgorithmIdentifier,<br/>  signatureValue     BIT STRING }"]
+        O2["The signature covers the DER<br/>bytes of tbsCertificate exactly<br/>as they appear on the wire.<br/>Re-encoding breaks it. Parsers<br/>must keep the original bytes."]
+        O3["signatureAlgorithm MUST be<br/>byte-for-byte identical to<br/>tbsCertificate.signature.<br/>A mismatch is a rejection,<br/>and was an attack in the 1990s."]
+        O1 --> O2 --> O3
+    end
+
+    subgraph TBS["TBSCertificate, the part that is signed"]
+        direction TB
+        T1["version [0] EXPLICIT<br/>INTEGER 2, meaning v3.<br/>Every publicly trusted TLS<br/>certificate is v3."]
+        T2["serialNumber INTEGER<br/>Non-sequential, greater than 0,<br/>less than 2^159, at least<br/>64 bits from a CSPRNG.<br/>The rule exists because of the<br/>2008 MD5 chosen-prefix collision."]
+        T3["signature AlgorithmIdentifier<br/>Repeated inside so the<br/>signature covers it."]
+        T4["issuer Name<br/>Must byte-match the subject<br/>of the issuing certificate."]
+        T5["validity SEQUENCE<br/>notBefore within 48 hours of<br/>signing. notAfter capped at<br/>200 days, 100 from 15 Mar 2027,<br/>47 from 15 Mar 2029.<br/>UTCTime before 2050,<br/>GeneralizedTime after."]
+        T6["subject Name<br/>For a DV certificate this is<br/>empty or a single commonName<br/>that no client reads."]
+        T7["subjectPublicKeyInfo<br/>AlgorithmIdentifier plus key bits.<br/>RSA at least 2048 bits, or<br/>P-256, P-384, P-521.<br/>Nothing else is permitted."]
+        T8["issuerUniqueID [1] and<br/>subjectUniqueID [2]<br/>Two separate fields, both<br/>MUST NOT be present.<br/>Dead since X.509 v2."]
+        T9["extensions [3] EXPLICIT<br/>Where all the work happens.<br/>See the extension map."]
+        T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7 --> T8 --> T9
+    end
+
+    subgraph Real["A live certificate, letsencrypt.org, read 30 Aug 2026"]
+        direction TB
+        R1["serialNumber<br/>0505bb29efe3ee152ba3e9e6872810b5feb9<br/>18 bytes of encoding, not 18 bytes<br/>of entropy: the low 7 bits of the<br/>last byte tag the CRL shard.<br/>Still far over the 64 CSPRNG<br/>bits the BRs require"]
+        R2["issuer C=US, O=Let's Encrypt, CN=YE2<br/>subject CN=letsencrypt.org"]
+        R3["validity 2026-07-06 15:24:34Z to<br/>2026-10-04 15:24:33Z<br/>90 days minus one second"]
+        R4["subjectPublicKeyInfo<br/>id-ecPublicKey, prime256v1,<br/>a 65-byte uncompressed point"]
+        R5["Whole certificate: 1,098 bytes DER.<br/>Four-certificate chain:<br/>3,576 bytes on the wire."]
+        R1 --> R2 --> R3 --> R4 --> R5
+    end
+
+    Outer --> TBS --> Real
+
+    style Outer fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style TBS fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Real fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

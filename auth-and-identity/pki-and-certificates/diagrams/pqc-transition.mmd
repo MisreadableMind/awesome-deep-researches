@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Size["The arithmetic that rules out a drop-in replacement"]
+        direction TB
+        Z1["Today: ECDSA P-256 signature<br/>64 bytes, public key 64 bytes.<br/>RSA-2048 signature 256 bytes,<br/>public key 256 bytes"]
+        Z2["ML-DSA-44, FIPS 204, published<br/>13 Aug 2024: signature 2,420 bytes,<br/>public key 1,312 bytes.<br/>ML-DSA-65: 3,309 and 1,952"]
+        Z3["A Web PKI handshake carries<br/>roughly five signatures and two<br/>public keys. Even with a directly<br/>trusted intermediate, two SCTs<br/>plus a leaf signature add<br/>7,260 bytes with ML-DSA-44<br/>and 9,927 with ML-DSA-65"]
+        Z4["Measured reference point: the live<br/>letsencrypt.org chain is 3,576 bytes<br/>across four certificates, and<br/>1,754 for the two a modern<br/>client needs. A single ML-DSA-44<br/>signature is larger than the<br/>entire leaf it would replace"]
+        Z5["Consequence: Chrome states it has<br/>no immediate plan to add traditional<br/>X.509 certificates containing<br/>post-quantum cryptography to the<br/>Chrome Root Store, and will do<br/>so only as a last resort"]
+        Z1 --> Z2 --> Z3 --> Z4 --> Z5
+    end
+
+    subgraph MTC["Merkle Tree Certificates, draft-ietf-plants-merkle-tree-certs"]
+        direction TB
+        M1["Invert Certificate Transparency.<br/>Today a CA signs, then logs.<br/>An MTC CA certifies by logging,<br/>then has the log cosigned"]
+        M2["The CA runs append-only issuance<br/>logs. It adds a TBSCertificateLogEntry,<br/>signs a checkpoint describing the<br/>whole tree, and signs subtrees<br/>covering the recent additions"]
+        M3["Cosigners, including independent<br/>mirrors, verify the log is<br/>append-only and cosign the<br/>checkpoints and subtrees"]
+        M4["A standalone certificate is<br/>the TBSCertificate, an inclusion<br/>proof to a subtree, and the<br/>cosignatures on that subtree"]
+        M5["A landmark-relative certificate<br/>drops the signatures entirely:<br/>an inclusion proof to a landmark<br/>subtree the client already holds.<br/>Smaller than today's chain,<br/>with post-quantum security"]
+        M6["Log entries hold hashes instead of<br/>public keys and carry no signatures,<br/>so log size does not scale with<br/>algorithm size. Expired entries<br/>can be pruned"]
+        M1 --> M2 --> M3 --> M4 --> M5 --> M6
+    end
+
+    subgraph Stages["Chromium's four-stage roadmap, 27 Feb 2026"]
+        direction TB
+        G1["Stage 1: add post-quantum options<br/>without removing classical ones.<br/>No security benefit yet, because<br/>an attacker targets the weakest<br/>option the client accepts"]
+        G2["Stage 2: per-site opt-in.<br/>A Require-Post-Quantum response<br/>header analogous to HSTS,<br/>with a preload list.<br/>Explicitly a stopgap"]
+        G3["Stage 3: require a post-quantum<br/>PKI. Trust only PQ CAs, still<br/>allow classical TLS keys signed<br/>by them. Downgrade protection<br/>without waiting for every server<br/>to rotate its key"]
+        G4["Stage 4: require post-quantum<br/>TLS keys. Far future,<br/>needs every server migrated"]
+        G1 --> G2 --> G3 --> G4
+    end
+
+    subgraph Neg["What makes the transition survivable"]
+        direction TB
+        N1["Certificate negotiation.<br/>signature_algorithms picks classical<br/>or PQ TLS keys. Trust anchor<br/>negotiation, draft-ietf-tls-<br/>trust-anchor-ids, picks which<br/>CA's certificate to send"]
+        N2["ACME extensions provision two<br/>certificates for the same key,<br/>so the intermediate state can<br/>be automated with no change<br/>to the serving software"]
+        N3["Feb 2026: Chrome opens the Chrome<br/>Quantum-resistant Root Program,<br/>a separate store listing MTC CA<br/>operators and mirroring operators<br/>in cosigners.json.<br/>Draft policy v0.3.0, 14 Aug 2026"]
+        N4["Jun 2026: Let's Encrypt commits to<br/>MTCs, targeting a staging<br/>environment in late 2026 and<br/>production in 2027"]
+        N1 --> N2 --> N3 --> N4
+    end
+
+    subgraph Clock["The clock everyone is working against"]
+        direction TB
+        C1["NSA CNSA 2.0 has directed national<br/>security systems toward post-quantum<br/>algorithms on a 2030 to 2035<br/>schedule since 2022"]
+        C2["NIST IR 8547, still an initial<br/>public draft as of Aug 2026,<br/>would deprecate RSA-2048 and<br/>P-256 after 2030 and disallow<br/>them after 2035"]
+        C3["Google has said it will migrate<br/>its services by 2029.<br/>Cloudflare has made a<br/>parallel commitment"]
+        C1 --> C2 --> C3
+    end
+
+    Size --> MTC --> Stages --> Neg --> Clock
+
+    style Size fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style MTC fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Stages fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Neg fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Clock fill:#eceff1,stroke:#37474f,stroke-width:2px

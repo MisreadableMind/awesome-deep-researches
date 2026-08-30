@@ -1,0 +1,74 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Why["Why it exists"]
+        direction TB
+        W1["Aug 2011: DigiNotar is breached.<br/>A fraudulent *.google.com<br/>certificate is used against<br/>roughly 300,000 Iranian users<br/>for almost two months"]
+        W2["Detection came from Chrome's<br/>hardcoded pin on Google domains.<br/>Pinning does not scale to<br/>the whole web and was itself<br/>removed after HPKP failed"]
+        W3["The insight: a CA that must<br/>publish every certificate it<br/>issues cannot issue one in<br/>secret. Detection replaces<br/>prevention"]
+        W1 --> W2 --> W3
+    end
+
+    subgraph Log["The log, RFC 6962 and RFC 9162"]
+        direction TB
+        L1["An append-only Merkle hash tree.<br/>Leaves are certificates and<br/>precertificates in submission<br/>order. Logs are sharded by the<br/>expiry year of what they accept"]
+        L2["Signed Tree Head: the log signs<br/>tree size, root hash and timestamp"]
+        L3["Inclusion proof: log(n) hashes<br/>showing one leaf is in a given STH"]
+        L4["Consistency proof: log(n) hashes<br/>showing an older STH is a prefix<br/>of a newer one. This is what makes<br/>a rewritten history detectable"]
+        L5["Maximum Merge Delay, 24 hours<br/>by convention. Exceeding it is a<br/>compliance failure, and it is the<br/>reason the Static CT API<br/>abolishes the concept"]
+        L1 --> L2 --> L3 --> L4 --> L5
+    end
+
+    subgraph Pre["The precertificate trick"]
+        direction TB
+        P1["Chicken and egg: the SCT must be<br/>inside the certificate, but the<br/>log needs the certificate before<br/>it can issue an SCT"]
+        P2["Sign a precertificate, identical<br/>to the real one except for the<br/>CRITICAL poison extension<br/>1.3.6.1.4.1.11129.2.4.3"]
+        P3["Every conforming client rejects a<br/>critical extension it does not<br/>understand, so a precertificate<br/>can never be used in a handshake"]
+        P4["Log it, collect the SCTs, remove<br/>the poison, insert the SCT list,<br/>sign the real certificate.<br/>From 15 Jun 2026 Chrome requires<br/>logging before the final<br/>certificate is signed"]
+        P1 --> P2 --> P3 --> P4
+    end
+
+    subgraph SCT["The SCT and how it travels"]
+        direction TB
+        S1["struct: sct_version, LogID<br/>(SHA-256 of the log's<br/>SubjectPublicKeyInfo), uint64<br/>timestamp in milliseconds,<br/>CtExtensions, then a signature<br/>over all of it plus the entry"]
+        S2["Delivery 1: embedded in the<br/>certificate, extension<br/>1.3.6.1.4.1.11129.2.4.2.<br/>Almost all real traffic"]
+        S3["Delivery 2: TLS extension 18,<br/>signed_certificate_timestamp"]
+        S4["Delivery 3: inside a stapled OCSP<br/>response. Chrome drops support<br/>for this in version 148"]
+        S1 --> S2
+        S1 --> S3
+        S1 --> S4
+    end
+
+    subgraph Policy["What clients require"]
+        direction TB
+        Pol1["Chrome: at least one embedded SCT<br/>from a Qualified, Usable or ReadOnly<br/>log. 2 SCTs from distinct logs for<br/>a lifetime of 180 days or less,<br/>3 above, from at least 2 distinct<br/>operators. CT enforcement disables<br/>itself if the log list is more<br/>than 70 days stale"]
+        Pol2["Apple: at least 2 SCTs, at least<br/>one from an RFC 6962 log,<br/>2 embedded for 180 days or less<br/>and 3 for 181 to 398 days,<br/>with a per-operator cap"]
+        Pol3["48 recognised logs across 8<br/>operators on 29 Aug 2026:<br/>Google, Cloudflare, DigiCert,<br/>Sectigo, Let's Encrypt, TrustAsia,<br/>Geomys, IPng Networks"]
+    end
+
+    subgraph Static["The Static CT API, the scaling fix"]
+        direction TB
+        St1["Same RFC 6962 write path,<br/>add-chain and add-pre-chain.<br/>A completely different read path:<br/>static tiles of 256 entries<br/>served from object storage"]
+        St2["Kills the relational database.<br/>Let's Encrypt reported RFC 6962<br/>shards of 7 to 10 TB each and<br/>annual cloud costs approaching<br/>seven figures"]
+        St3["Kills the Maximum Merge Delay.<br/>The SCT carries a leaf_index<br/>extension, a big-endian 40-bit<br/>integer, so the entry's position<br/>is known at issuance"]
+        St4["Let's Encrypt made its RFC 6962<br/>logs read-only on 30 Nov 2025 and<br/>shut them down on 28 Feb 2026.<br/>22 of the 48 recognised logs<br/>are now tiled"]
+        St1 --> St2 --> St3 --> St4
+    end
+
+    subgraph Scale["Scale, measured 30 Aug 2026"]
+        direction TB
+        Sc1["Sycamore 2026h2, one shard of<br/>one Let's Encrypt log:<br/>713,547,422 entries"]
+        Sc2["Willow 2026h2: 688,055,204<br/>Tuscolo 2026h2: 557,794,253"]
+        Sc3["Every publicly trusted certificate<br/>on the web appears in at least<br/>two of these, by policy"]
+        Sc1 --> Sc2 --> Sc3
+    end
+
+    Why --> Log --> Pre --> SCT --> Policy --> Static --> Scale
+
+    style Why fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Log fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Pre fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style SCT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Policy fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Static fill:#e0f7fa,stroke:#00695c,stroke-width:2px
+    style Scale fill:#eceff1,stroke:#37474f,stroke-width:2px
