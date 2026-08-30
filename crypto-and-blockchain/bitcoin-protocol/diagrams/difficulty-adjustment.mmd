@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    T["Every 2,016 blocks, at heights<br/>where height % 2016 == 0"]
+
+    T --> M["actual_timespan =<br/>nTime(last block of period)<br/>- nTime(first block of period)"]
+
+    M --> BUG["The off-by-one:<br/>this spans 2,015 intervals,<br/>not 2,016. Retarget uses the<br/>FIRST block of the current period<br/>rather than the last of the previous.<br/>Blocks run ~0.05% fast forever.<br/>Never fixed: fixing it is a hard fork."]
+
+    BUG --> CLAMP["Clamp:<br/>if actual &lt; 302,400 s: actual = 302,400<br/>if actual &gt; 4,838,400 s: actual = 4,838,400<br/>Maximum change is 4x up or 4x down<br/>per retarget."]
+
+    CLAMP --> CALC["new_target = old_target<br/>* actual_timespan / 1,209,600<br/><br/>1,209,600 s = 2016 * 600 = 14 days"]
+
+    CALC --> CHECK["If actual_timespan &lt; 14 days:<br/>blocks came too fast,<br/>target shrinks, difficulty rises.<br/><br/>If actual_timespan &gt; 14 days:<br/>blocks came too slow,<br/>target grows, difficulty falls."]
+
+    CHECK --> REAL["Recent mainnet:<br/>08 Aug 2026 -> 127.48T<br/>23 Aug 2026 -> 125.81T, -1.31%<br/>06 Sep 2026 projected -0.73%"]
+
+    subgraph Props["What the design guarantees, and does not"]
+        P1["Guarantees: ten-minute average<br/>block interval across any two-week<br/>window, whatever the hashrate."]
+        P2["Does not guarantee: any individual<br/>block interval. Intervals are<br/>exponentially distributed. About 1 in 20<br/>gaps exceeds 30 minutes."]
+        P3["Does not respond fast: a 50% hashrate<br/>loss means four-week retarget periods<br/>until the adjustment lands.<br/>China's 2021 mining ban produced<br/>a -27.94% retarget, the largest ever."]
+        P4["Cannot be gamed much: nTime is bounded<br/>by median-time-past below and<br/>network time + 2 hours above."]
+    end
+
+    REAL --> Props
+
+    style T fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BUG fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style CALC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Props fill:#fff3e0,stroke:#e65100,stroke-width:2px

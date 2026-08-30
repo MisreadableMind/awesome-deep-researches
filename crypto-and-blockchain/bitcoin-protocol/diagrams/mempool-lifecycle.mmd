@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    IN["Transaction arrives via P2P tx message<br/>or sendrawtransaction RPC"]
+
+    IN --> V1{"Consensus valid?<br/>scripts, amounts,<br/>no double spend"}
+    V1 -->|no| REJ1["Rejected. Peer<br/>may be penalised."]
+
+    V1 -->|yes| V2{"Standard?<br/>known script types,<br/>&lt;= 400,000 WU,<br/>no dust outputs,<br/>version 1, 2 or 3"}
+    V2 -->|no| REJ2["Not relayed.<br/>Still valid in a block<br/>if a miner includes it."]
+
+    V2 -->|yes| V3{"Feerate &gt;=<br/>max(minrelaytxfee,<br/>current mempoolminfee)?"}
+    V3 -->|no| REJ3["Rejected.<br/>minrelaytxfee default<br/>0.1 sat/vB since v30.0"]
+
+    V3 -->|yes| V4{"Cluster limits OK?<br/>&lt;= 64 transactions<br/>and &lt;= 101 kvB<br/>in the connected component<br/>(v31.0 cluster mempool)"}
+    V4 -->|no| REJ4["Too many related<br/>unconfirmed transactions"]
+
+    V4 -->|yes| CONF{"Conflicts with an<br/>existing mempool tx?"}
+    CONF -->|yes| RBF{"RBF checks:<br/>higher absolute fee,<br/>pays incremental relay fee<br/>for its own size,<br/>no new unconfirmed inputs,<br/>feerate diagram strictly better,<br/>&lt;= 100 conflicting descendants"}
+    RBF -->|fail| REJ5["Replacement rejected"]
+    RBF -->|pass| ACC
+    CONF -->|no| ACC["Accepted into mempool"]
+
+    ACC --> ANN["Announce wtxid via inv<br/>to peers, with Poisson delay<br/>~5 s inbound, ~2 s outbound"]
+
+    ACC --> FATE{"What happens next"}
+    FATE --> F1["Mined: removed, along with<br/>anything it conflicts with"]
+    FATE --> F2["Replaced by a higher-fee<br/>conflicting transaction"]
+    FATE --> F3["Evicted: mempool exceeds<br/>300 MB default, lowest-chunk-feerate<br/>transactions dropped, mempoolminfee<br/>rises to the eviction floor"]
+    FATE --> F4["Expired: 336 hours,<br/>14 days, in the mempool"]
+    FATE --> F5["Lost on restart unless<br/>mempool.dat persists it"]
+
+    style IN fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ACC fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style REJ1 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style REJ2 fill:#fff3e0,stroke:#e65100,stroke-width:1px
+    style REJ3 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style REJ4 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style REJ5 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style FATE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

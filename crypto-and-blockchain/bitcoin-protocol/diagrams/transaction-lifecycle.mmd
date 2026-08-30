@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant W as Alice's wallet<br/>BIP86 descriptor
+    participant HW as Hardware signer<br/>holds the seed
+    participant N as Alice's full node
+    participant P as P2P network<br/>~23,000 listening nodes
+    participant PL as Mining pool<br/>Foundry, 23.8% share
+    participant AS as ASIC farm<br/>Stratum V2
+    participant B as Bob's node
+
+    Note over W,B: Construction
+    W->>W: Coin selection: pick 4a5e:0 (0.40) and 9c1f:1 (0.25)
+    W->>W: Build 2-in 2-out P2TR tx.<br/>222 vbytes, 887 WU
+    W->>N: estimatesmartfee 3
+    N-->>W: 3 sat/vB from confirmation history
+    W->>W: fee = 666 sat, change = 34,999,334 sat
+    W->>HW: PSBT with prevout amounts,<br/>scripts, and derivation paths
+
+    Note over HW: BIP341 sighash commits to<br/>ALL input amounts and scriptPubKeys.<br/>A lying host cannot induce<br/>a signature over a wrong fee.
+    HW->>HW: Verify change path is its own
+    HW->>HW: Sign input 1: ECDSA, BIP143 sighash, low-S, RFC6979
+    HW->>HW: Sign input 2: Schnorr BIP340,<br/>64 bytes, SIGHASH_DEFAULT
+    HW-->>W: Signed PSBT
+    W->>W: Finalise, extract raw tx.<br/>txid 7be3...9f04 fixed at construction:<br/>both inputs are SegWit, so no malleability.
+
+    Note over W,P: Broadcast
+    W->>N: sendrawtransaction
+    N->>N: Consensus check: scripts, amounts, no double spend
+    N->>N: Policy check: standard, 222 vB under the 100,000 vB cap,<br/>3 sat/vB above the 0.1 sat/vB minrelay,<br/>cluster of 1 under the 64 tx limit
+    N->>N: Accept into mempool
+    N->>P: inv(MSG_WTX, wtxid) to peers,<br/>Poisson delay avg 5 s in, 2 s out
+    P->>N: getdata(wtxid)
+    N->>P: tx (353 bytes)
+    Note over P: Reaches most of the network<br/>in a few seconds
+
+    Note over PL,AS: Mining
+    P->>PL: tx reaches the pool's node
+    PL->>PL: Cluster mempool linearises the tx<br/>into a chunk at 3 sat/vB
+    PL->>PL: Build template: coinbase claims<br/>3.125 BTC subsidy + ~0.03 BTC fees,<br/>fill to 4,000,000 WU by chunk feerate
+    PL->>AS: Stratum V2 job:<br/>80-byte header candidate,<br/>merkle path, nBits 0x1707..., share target
+    loop ~5.4 * 10^23 hashes network-wide
+        AS->>AS: SHA256d(header), roll nonce,<br/>extraNonce, nTime, version bits
+    end
+    AS-->>PL: Share meeting the NETWORK target
+    PL->>PL: Validate own block against its full node
+    PL->>P: cmpctblock, ~25 KB for a ~2 MB block
+
+    Note over P,B: Confirmation
+    P->>B: cmpctblock
+    B->>B: Reconstruct from mempool, request<br/>any missing tx via getblocktxn
+    B->>B: Validate: PoW at or under target, merkle root,<br/>every script, every amount, no double spend
+    B->>B: Apply to UTXO set: delete 4a5e:0 and 9c1f:1,<br/>insert 7be3:0 and 7be3:1
+    B-->>B: Bob's wallet shows 0.3 BTC, 1 confirmation
+
+    Note over W,B: Six blocks later, roughly 60 minutes.<br/>Rewriting that hour means duplicating<br/>920 EH/s for an hour: about $1.47 M of<br/>energy plus $1.47 M of forgone rewards,<br/>at a late-August 2026 hashprice of $38.29 per PH/s per day.

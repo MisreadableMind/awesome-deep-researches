@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Consensus["Consensus rules - changing these forks the chain"]
+        C1["Block weight <= 4,000,000 WU"]
+        C2["Subsidy schedule, halving every 210,000 blocks"]
+        C3["Script validity, signature checks, sigop cost <= 80,000"]
+        C4["No double spend of an outpoint"]
+        C5["Proof of work meets nBits target"]
+        C6["Coinbase maturity 100 blocks"]
+    end
+
+    subgraph Policy["Policy rules - local, per node, no fork risk"]
+        P1["minrelaytxfee 0.1 sat/vB since v30.0"]
+        P2["Standard script types only"]
+        P3["Max standard tx 400,000 WU"]
+        P4["datacarriersize 100,000 default since v30.0"]
+        P5["Cluster limits 64 tx / 101 kvB since v31.0"]
+        P6["Dust threshold 546 or 294 sat"]
+    end
+
+    subgraph P2P["P2P layer - transport, not rules"]
+        N1["Message framing, 4-byte magic F9BEB4D9"]
+        N2["BIP324 v2 encrypted transport, default since v27.0"]
+        N3["Compact blocks BIP152"]
+        N4["addrv2 peer discovery BIP155"]
+    end
+
+    Consensus -->|"a block violating these<br/>is rejected by every node"| Chain["The chain"]
+    Policy -->|"a tx violating these is not relayed<br/>but is perfectly valid in a block"| Chain
+    P2P -->|"how bytes reach the node.<br/>Swappable without consensus impact"| Chain
+
+    Note1["A miner may include any consensus-valid transaction,<br/>however non-standard. Policy only decides what<br/>travels the public relay network for free."]
+    Policy -.-> Note1
+
+    style Consensus fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Policy fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P2P fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Note1 fill:#eceff1,stroke:#37474f,stroke-width:1px

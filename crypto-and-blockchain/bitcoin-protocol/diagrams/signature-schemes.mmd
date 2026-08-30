@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Curve["secp256k1, shared by both schemes"]
+        CV["y^2 = x^3 + 7 over F_p<br/>p = 2^256 - 2^32 - 977<br/>order n, cofactor 1<br/>private key d, public key P = dG"]
+    end
+
+    subgraph ECDSA["ECDSA - 2009 to present"]
+        E1["Sign: pick nonce k,<br/>R = kG, r = R.x mod n,<br/>s = k^-1 (z + r*d) mod n"]
+        E2["Encoding: DER<br/>0x30 len 0x02 rlen r 0x02 slen s<br/>plus 1 sighash byte.<br/>70 to 72 bytes total."]
+        E3["Rules bolted on later:<br/>BIP66 strict DER (2015 soft fork)<br/>low-S as relay policy only,<br/>BIP146 never activated<br/>RFC6979 deterministic k"]
+        E4["Not linear.<br/>No key aggregation.<br/>No batch verification.<br/>n-of-n multisig costs n signatures."]
+        E5["Failure mode: reused or biased k<br/>leaks the private key outright.<br/>Sony PS3 and 2013 Android<br/>SecureRandom both fell to this."]
+    end
+
+    subgraph Schnorr["Schnorr - BIP340, live since block 709632"]
+        S1["Sign: nonce k from<br/>tagged hash of aux randomness,<br/>R = kG, e = H_challenge(R.x || P.x || m),<br/>s = k + e*d mod n"]
+        S2["Encoding: raw 64 bytes,<br/>R.x (32) || s (32).<br/>No DER, no length fields,<br/>no malleability surface."]
+        S3["Public key: 32 bytes, x-only.<br/>Even Y coordinate implied.<br/>Saves 1 byte per key<br/>and removes a parity choice."]
+        S4["Linear: s*G = R + e*P.<br/>Enables MuSig2 key aggregation,<br/>FROST threshold signing,<br/>adaptor signatures,<br/>batch verification."]
+        S5["Provably secure under<br/>discrete log in the ROM.<br/>ECDSA has no such proof<br/>without extra assumptions."]
+    end
+
+    Curve --> ECDSA
+    Curve --> Schnorr
+
+    Tagged["Tagged hashing, BIP340:<br/>hash_tag(x) = SHA256(SHA256(tag) || SHA256(tag) || x)<br/>tags: BIP0340/aux, BIP0340/nonce, BIP0340/challenge<br/>Domain separation prevents cross-protocol<br/>signature reuse."]
+    Schnorr --> Tagged
+
+    style Curve fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style ECDSA fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Schnorr fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tagged fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

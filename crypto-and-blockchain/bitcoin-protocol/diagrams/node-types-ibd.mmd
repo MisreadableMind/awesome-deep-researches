@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Full["Validating nodes - enforce every consensus rule"]
+        AR["ARCHIVAL FULL NODE<br/>All ~740 GB of blocks retained.<br/>Serves historical blocks during IBD.<br/>Optional txindex adds ~50 GB.<br/>The population that makes IBD possible."]
+        PR["PRUNED FULL NODE<br/>Validates everything, then deletes<br/>old block files. -prune=550 keeps<br/>the minimum: UTXO set,<br/>headers, last 288 blocks.<br/>~10 GB total. Cannot serve<br/>historical blocks or rescan<br/>before the prune horizon."]
+        AU["ASSUMEUTXO NODE<br/>Loads a signed UTXO snapshot<br/>via loadtxoutset, becomes usable<br/>in under two hours, then validates<br/>the full history in the background.<br/>Available since v28.0."]
+    end
+
+    subgraph Light["Non-validating clients - trust someone"]
+        SPV["SPV / BIP37 BLOOM FILTER<br/>Headers only, ~77 MB for the<br/>full header chain at 80 bytes<br/>per block. Asks a full node for<br/>matching transactions plus a<br/>Merkle proof. The filter leaks<br/>the wallet's addresses to that node.<br/>Disabled by default since Core 0.19."]
+        NEU["NEUTRINO / BIP157-158<br/>Server builds a compact filter per<br/>block, ~20 KB, encoding every<br/>script touched. Client downloads<br/>filters, checks locally, and only<br/>requests the few blocks that match.<br/>Leaks nothing to the server.<br/>Costs ~5 GB of filters for the chain."]
+        CUS["CUSTODIAL CLIENT<br/>No chain data. Trusts an API.<br/>The vast majority of wallets<br/>by user count."]
+    end
+
+    subgraph Mining["Mining participants"]
+        POOL["POOL NODE<br/>Full node plus template<br/>construction plus share accounting."]
+        HASH["HASHER<br/>ASICs. No chain data at all.<br/>Receives 80-byte header<br/>candidates over Stratum."]
+    end
+
+    Full -->|"serve blocks,<br/>headers, filters"| Light
+    Full --> Mining
+    POOL --> HASH
+
+    Trade["The trade is bandwidth and disk<br/>against trust. A full node trusts<br/>nobody about validity. Neutrino trusts<br/>that at least one peer is honest about<br/>which blocks exist. SPV trusts the<br/>peer it queries. Custodial trusts a company."]
+
+    style Full fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Light fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Mining fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Trade fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

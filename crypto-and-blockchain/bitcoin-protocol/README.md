@@ -1,0 +1,1978 @@
+# Bitcoin Protocol: Complete Technical Deep Dive
+
+---
+
+## Table of Contents
+
+1. [History and Overview](#1-history-and-overview)
+2. [What Bitcoin Is (and Is Not)](#2-what-bitcoin-is-and-is-not)
+3. [Key Participants and Roles](#3-key-participants-and-roles)
+4. [The UTXO Model and Transaction Structure](#4-the-utxo-model-and-transaction-structure)
+5. [Script and Its Opcodes](#5-script-and-its-opcodes)
+6. [Signatures: ECDSA and Schnorr](#6-signatures-ecdsa-and-schnorr)
+7. [SegWit and Taproot](#7-segwit-and-taproot)
+8. [Wallet Key Management: BIP32, BIP39, BIP44](#8-wallet-key-management-bip32-bip39-bip44)
+9. [Mining and Difficulty Adjustment](#9-mining-and-difficulty-adjustment)
+10. [Nakamoto Consensus and Reorgs](#10-nakamoto-consensus-and-reorgs)
+11. [The Mempool and the Fee Market](#11-the-mempool-and-the-fee-market)
+12. [The P2P Network and Propagation](#12-the-p2p-network-and-propagation)
+13. [Node Types and Initial Block Download](#13-node-types-and-initial-block-download)
+14. [A Worked End-to-End Example](#14-a-worked-end-to-end-example)
+15. [The Halving Schedule and Miner Economics](#15-the-halving-schedule-and-miner-economics)
+16. [Security and Threat Model](#16-security-and-threat-model)
+17. [Governance, Soft Forks, and Activation](#17-governance-soft-forks-and-activation)
+18. [Regulation and Compliance](#18-regulation-and-compliance)
+19. [Comparisons and Alternatives](#19-comparisons-and-alternatives)
+20. [Modern Developments](#20-modern-developments)
+21. [Appendix](#21-appendix)
+22. [Key Takeaways](#22-key-takeaways)
+
+---
+
+## 1. History and Overview
+
+Bitcoin is the first system that lets strangers agree on the order of transactions without agreeing on who is in charge. Every technical decision in this document exists to serve that single property. The ledger is public, the rules are checkable by anyone with a laptop, and the ordering is decided by whoever burns the most electricity guessing hashes.
+
+The design is seventeen years old and the consensus rules have changed four times. That stability is the product.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+timeline
+    title Bitcoin protocol milestones, 2008 to 2026
+    section Origins
+        2008-10-31 : Whitepaper posted to the Cryptography mailing list
+        2009-01-03 : Genesis block, hardcoded subsidy 50 BTC
+        2009-01-12 : First peer-to-peer transaction, block 170
+    section Early repairs
+        2010-07-15 : Block size limit of 1,000,000 bytes added quietly
+        2010-08-15 : Value overflow incident, block 74638, 184 billion BTC created and erased
+        2012-03-30 : P2SH activates, BIP16
+        2013-03-11 : BerkeleyDB lock split, 24 blocks, resolved by pool downgrade
+    section Hardening
+        2015-07-04 : BIP66 activation, 6-block SPV-mining fork
+        2015-12-14 : CLTV activates, BIP65
+        2016-07-04 : CSV and relative timelocks activate, BIP68-112-113
+    section Capacity war
+        2017-08-01 : UASF flag day, BIP148
+        2017-08-09 : SegWit locks in at block 479808
+        2017-08-24 : SegWit activates at block 481824, BIP141-143-144
+        2017-11-08 : SegWit2x hard fork cancelled
+    section Modern era
+        2021-11-14 : Taproot activates at block 709632, BIP340-341-342
+        2023-05 : Ordinals and BRC-20 push feerates past 300 sat/vB
+        2024-04-20 : Fourth halving at block 840000, subsidy 3.125 BTC, record 37.6 BTC fee block
+        2025-10-10 : Bitcoin Core 30.0 uncaps OP_RETURN relay
+        2026-04-19 : Bitcoin Core 31.0 ships cluster mempool
+        2026-08-08 : BIP-110 signalling begins and fails at 2.53 percent
+```
+
+### 1.1 The Whitepaper Solves an Ordering Problem, Not a Money Problem
+
+Digital cash existed before Bitcoin. Agreement on which spend came first did not.
+
+David Chaum's blind signatures, presented at Crypto '82 and patented in 1988 as US 4,759,063, gave payers unlinkable coins, and DigiCash commercialised them from 1990. It also gave them a bank, because a mint had to check each coin against a spent list. Adam Back's Hashcash, published in 1997, made email senders burn CPU cycles to produce a partial hash collision, establishing that computation can be a costly, verifiable token. Wei Dai's b-money (1998) and Nick Szabo's bit gold (1998) both sketched decentralised issuance and both left the same hole: no mechanism forced a global agreement on transaction order when honest participants saw different orders.
+
+Satoshi Nakamoto posted "Bitcoin: A Peer-to-Peer Electronic Cash System" to the Cryptography mailing list on 31 October 2008. The contribution is section 4 of that paper, not section 1. Proof of work is repurposed from an anti-spam token into a clock: the chain with the most cumulative work is the ordering everyone converges on, because building an alternative ordering costs the same electricity as building the original.
+
+Double spending stops being a detection problem. It becomes a cost problem.
+
+### 1.2 Genesis and the First Years
+
+The genesis block is dated 3 January 2009 and its coinbase carries the string `The Times 03/Jan/2009 Chancellor on brink of second bailout for banks`. That coinbase output is unspendable: the genesis block is special-cased in the code and its 50 BTC never enters the UTXO set. The chain's first real transaction, 10 BTC from Nakamoto to Hal Finney, lands in block 170 on 12 January 2009.
+
+Two early defects define the security posture that follows. On 15 August 2010 a transaction in block 74,638 created 184,467,440,737.09551616 BTC across three outputs by overflowing a signed 64-bit integer when summing output values. The fix shipped in roughly five hours, the network reorganised onto a clean chain, and block 74,691 restored the correct supply. Catalogued as CVE-2010-5139, it remains the only successful inflation in Bitcoin's history, and it lasted eight and a half hours.
+
+The 1,000,000-byte block size limit arrived in July 2010 as an uncommented anti-spam patch. It became the most contested number in the protocol seven years later.
+
+On 11 and 12 March 2013 the chain split for 24 blocks. Bitcoin 0.8 replaced BerkeleyDB with LevelDB, and a large block that 0.8 accepted exceeded the BerkeleyDB lock count configured in 0.7 and earlier. Two chains ran in parallel for about six hours. BTC Guild and Slush's pool downgraded to 0.7 to move hashrate onto the older chain, and the 0.8 nodes reorganised. The post-mortem is BIP50, and its lesson is that an implementation detail can be a consensus rule whether or not anyone wrote it down.
+
+### 1.3 The Block Size War Produces SegWit
+
+Between 2015 and 2017 Bitcoin's community argued about one number and settled it by changing a different one.
+
+The dispute was whether to raise the 1 MB block limit by hard fork. One side wanted larger blocks for cheaper on-chain payments. The other argued that block size determines how expensive it is to run a validating node, and that cheap validation is the property that makes the rules enforceable by users rather than by miners. Neither side could win by argument, because a hard fork requires everyone to upgrade and a soft fork does not.
+
+Segregated Witness, specified in BIP141, BIP143 and BIP144, resolved the deadlock by restructuring rather than raising. Signature data moves out of the transaction body into a separate witness structure, old nodes stop seeing it, and the block limit is redefined in weight units where witness bytes count one quarter as much as body bytes. A 1 MB limit becomes a 4,000,000 weight unit limit that, in practice, admits blocks of roughly 1.5 to 2.5 MB depending on transaction mix.
+
+Miner signalling stalled through 2016 and early 2017. BIP148, a user-activated soft fork, set 1 August 2017 as a flag day on which participating nodes would reject non-signalling blocks. The threat of a split moved miners. SegWit locked in at block 479,808 on 9 August 2017, at the end of the retarget period in which signalling crossed the threshold, and activated at block 481,824 on 24 August 2017 after the mandatory two-week grace period. The competing SegWit2x hard fork, which would have doubled the base limit in November, was cancelled on 8 November 2017 for lack of support. Bitcoin Cash forked away on 1 August 2017 with an 8 MB block and no witness segregation.
+
+The number that changed was 1,000,000 bytes to 4,000,000 weight units. The number that mattered was the cost of verifying a block on a laptop.
+
+### 1.4 Taproot and What Came After
+
+Taproot activated at block 709,632 on 14 November 2021 and is the only consensus change since SegWit.
+
+Three BIPs make it up. BIP340 defines Schnorr signatures over secp256k1 with 32-byte x-only public keys and 64-byte signatures. BIP341 defines the Taproot output type, in which a single 32-byte key commits both to a spending key and to a Merkle tree of alternative scripts. BIP342 defines Tapscript, the script version used inside those leaves. Activation used Speedy Trial, a three-month BIP9 signalling window with a 90 percent threshold, which locked in on 12 June 2021.
+
+The five years since have produced no consensus change and a great deal of policy change. Ordinals, released January 2023, exploits Tapscript's witness discount to write arbitrary data into the chain, and BRC-20 tokens followed in March 2023. Runes launched at the halving block 840,000 on 20 April 2024, producing the highest-fee block in Bitcoin's history at roughly 37.6 BTC. Bitcoin Core 30.0, released 10 October 2025, raised the default `-datacarriersize` from 83 bytes to 100,000 and permitted multiple `OP_RETURN` outputs, on the argument that a relay filter which spammers route around only degrades fee estimation for honest nodes. That release triggered the sharpest governance fight since 2017 and produced BIP-110, a temporary soft fork to restrict arbitrary data, which entered mandatory signalling at block 961,632 on 8 August 2026 and drew 2.53 percent miner support against a 55 percent threshold.
+
+### 1.5 Scale as of 30 August 2026
+
+| Metric | Value | Measured |
+|--------|-------|----------|
+| Block height | 964,758 | 30 Aug 2026 |
+| Difficulty | 125.81 trillion (125,807,076,547,197) | retarget of 23 Aug 2026, down 1.31% |
+| Network hashrate | ~920 EH/s seven-day average, peaks above 1 ZH/s | Aug 2026 |
+| Block subsidy | 3.125 BTC | since block 840,000 |
+| Coin supply issued | ~20,077,000 BTC, 95.6% of the 21 million cap | computed at height 964,758 |
+| Chain data on disk | ~740 GB | mid-2026 |
+| UTXO set | 173 million outputs, ~11 GB chainstate | snapshot at block 892,385, 14 Apr 2025 |
+| Reachable listening nodes | ~23,000 | Apr 2026 crawl |
+| Typical next-block feerate | 1 to 6 sat/vB | 19 Aug 2026 |
+| Fees as share of miner revenue | 0.77% | week ending 3 Aug 2026 |
+| Hashprice | $38.29 per PH/s per day | week of 22 Aug 2026 |
+| BTC price | ~$79,100 | 28 Aug 2026 |
+| Latest reference implementation | Bitcoin Core 31.1 | 31.0 released 19 Apr 2026 |
+
+Two of those numbers explain the current state of the system. Fees are 0.77 percent of miner revenue, which means the security budget is almost entirely subsidy. And the subsidy halves again in about twenty months.
+
+---
+
+## 2. What Bitcoin Is (and Is Not)
+
+### 2.1 The Precise Definition
+
+Bitcoin is a replicated, append-only log of transactions, in which each transaction destroys a set of previously created outputs and creates a new set, and in which the order of the log is chosen by cumulative proof of work.
+
+Unpack that into four claims, each of which is separately checkable.
+
+**Replicated.** Every full node holds the entire log and validates every rule against it. There is no authoritative copy. A node that disagrees with the rest of the network follows its own rules and simply stops seeing other people's blocks as valid.
+
+**Append-only through cost, not through cryptography.** Nothing prevents rewriting history. Each block header commits to its predecessor's hash, so rewriting block N requires redoing the work of blocks N through the tip. Rewriting is possible and priced.
+
+**Outputs, not accounts.** There is no field anywhere in the system holding a user's balance. There are unspent transaction outputs, each an amount and a spending condition. A wallet balance is a sum a wallet computes locally.
+
+**Order chosen by work.** When two valid histories exist, nodes follow the one with the most accumulated proof of work. Not the longest, not the first seen, not the one with the most transactions.
+
+### 2.2 Three Layers That Get Confused
+
+Most arguments about "what Bitcoin allows" are arguments about the wrong layer.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Consensus["Consensus rules - changing these forks the chain"]
+        C1["Block weight <= 4,000,000 WU"]
+        C2["Subsidy schedule, halving every 210,000 blocks"]
+        C3["Script validity, signature checks, sigop cost <= 80,000"]
+        C4["No double spend of an outpoint"]
+        C5["Proof of work meets nBits target"]
+        C6["Coinbase maturity 100 blocks"]
+    end
+
+    subgraph Policy["Policy rules - local, per node, no fork risk"]
+        P1["minrelaytxfee 0.1 sat/vB since v30.0"]
+        P2["Standard script types only"]
+        P3["Max standard tx 400,000 WU"]
+        P4["datacarriersize 100,000 default since v30.0"]
+        P5["Cluster limits 64 tx / 101 kvB since v31.0"]
+        P6["Dust threshold 546 or 294 sat"]
+    end
+
+    subgraph P2P["P2P layer - transport, not rules"]
+        N1["Message framing, 4-byte magic F9BEB4D9"]
+        N2["BIP324 v2 encrypted transport, default since v27.0"]
+        N3["Compact blocks BIP152"]
+        N4["addrv2 peer discovery BIP155"]
+    end
+
+    Consensus -->|"a block violating these<br/>is rejected by every node"| Chain["The chain"]
+    Policy -->|"a tx violating these is not relayed<br/>but is perfectly valid in a block"| Chain
+    P2P -->|"how bytes reach the node.<br/>Swappable without consensus impact"| Chain
+
+    Note1["A miner may include any consensus-valid transaction,<br/>however non-standard. Policy only decides what<br/>travels the public relay network for free."]
+    Policy -.-> Note1
+
+    style Consensus fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Policy fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P2P fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Note1 fill:#eceff1,stroke:#37474f,stroke-width:1px
+```
+
+**Consensus rules** decide whether a block is valid. Every node enforces the identical set or it is on a different chain. Changing them requires a fork.
+
+**Policy rules** decide whether a node will relay and store an unconfirmed transaction. They are local, per-node, and configurable. A transaction that no node will relay is still valid if a miner puts it in a block. This is why the 2025 to 2026 `OP_RETURN` fight was loud and, at the consensus layer, empty: the disputed limit was a relay filter that data-stuffers had already routed around by paying miners directly.
+
+**The P2P layer** is transport. It has been replaced piecewise without any consensus event: headers-first sync in 0.10, compact blocks in 0.13, `addrv2` in 0.21, encrypted transport in 27.0.
+
+### 2.3 What Bitcoin Is Not
+
+**Not an account ledger.** There is no row keyed by address holding a number. Block explorers synthesise address balances by scanning outputs; the protocol has no concept of an address at all, only scripts. Addresses are a wallet-level encoding of a script, defined in BIP173 and BIP350, never transmitted on the wire.
+
+**Not anonymous.** Every transaction, amount, and script is public forever. Bitcoin is pseudonymous at best, and chain analysis reliably clusters addresses through common-input-ownership and change-output heuristics. A user who reuses an address has no privacy at all.
+
+**Not a system where miners validate transactions for you.** Miners order transactions. Full nodes validate them. A miner who includes an invalid transaction produces a block that every full node rejects, and forfeits the subsidy. Verification is done by the party who cares, which is the receiver.
+
+**Not solving useless puzzles that "confirm" payments.** The hash search does no verification work. It is a lottery whose ticket price is electricity and whose purpose is to make the choice of block producer expensive and unpredictable. Confirmation comes from the accumulating cost of undoing the block, not from the hash itself.
+
+**Not made safe by a 51 percent attack being impossible.** A majority of hashrate can reorder recent history and double spend its own transactions. It cannot steal coins it has no key for, create coins outside the subsidy schedule, or change any rule that full nodes check. The attack surface of hashrate majority is narrow and real, not broad and hypothetical.
+
+**Not "the blockchain is stored by miners".** Miners store it because they must build on it. So do roughly 23,000 reachable listening nodes and an unmeasured larger number behind NAT. The chain's persistence is a property of the node population, not the miner population.
+
+### 2.4 The Simplest Accurate Mental Model
+
+Bitcoin is a shared spreadsheet of coins, where each coin is a row containing an amount and a lock, where spending a coin means deleting its row and writing new rows, and where the right to append rows is auctioned every ten minutes to whoever burned the most electricity.
+
+Everything else is detail about the lock language, the auction, and the gossip.
+
+---
+
+## 3. Key Participants and Roles
+
+### 3.1 The Actors
+
+| Role | What it does | Holds keys? | Enforces consensus? |
+|------|--------------|-------------|---------------------|
+| **Full node** | Downloads and validates every block and transaction against every rule; relays what it accepts | No | Yes, for itself |
+| **Pruned node** | Full validation, then discards old block files, keeping the UTXO set and the last 288 blocks | No | Yes |
+| **Archival node** | Full node that retains all block data and serves it to peers during IBD | No | Yes |
+| **Miner (hasher)** | Runs ASICs, grinds nonces against a template supplied by a pool | No | No, unless it also runs a node |
+| **Mining pool** | Builds block templates, distributes work, aggregates shares, pays out | Yes, pays rewards | Yes, runs full nodes |
+| **Wallet** | Generates and stores keys, builds and signs transactions, tracks UTXOs | Yes | Usually no |
+| **Light client (SPV / Neutrino)** | Verifies headers and proofs of inclusion, trusts full nodes for validity | Yes | No |
+| **ASIC manufacturer** | Designs and fabricates SHA-256 hashing chips | No | No |
+| **Exchange / custodian** | Holds keys for users, runs nodes, defines its own confirmation policy | Yes | Yes |
+| **Bitcoin Core contributors** | Maintain the reference implementation; no authority over what anyone runs | No | No |
+| **BIP editors** | Assign numbers and check formatting for Bitcoin Improvement Proposals | No | No |
+
+### 3.2 The Two Roles That Decide the Rules
+
+**Economic full nodes decide the rules, not developers or miners.** A node that will not accept a block enforces its rule set against anyone, including a hashrate majority. The property that matters is economic weight: an exchange, a custodian, or a merchant that refuses a chain makes coins on that chain unsellable. The 2017 UASF episode demonstrated this directly. Miners signalled against SegWit for eighteen months and activated it within two months of a credible commitment by node operators to reject non-signalling blocks.
+
+The corollary is that the cost of running a node is the cost of participating in governance. This is why block size is a governance parameter disguised as a performance parameter, and why the 2015 to 2017 argument was so bitter.
+
+**Mining pools concentrate a role that the design assumed would be diffuse.** As of 27 August 2026 the seven-day distribution ran Foundry USA 23.8 percent, AntPool 17.3 percent, F2Pool 15.0 percent, SpiderPool 11.4 percent, ViaBTC 7.5 percent. Four pools clear 65 percent, and a June 2026 snapshot put the top four above 70 percent.
+
+Pool share overstates the concentration in one respect and understates it in another. A pool cannot spend a miner's coins or force a miner to stay: hashrate redirects in minutes, and pools that have censored transactions have lost it. But under Stratum V1 the pool constructs the block template, so the pool alone chooses which transactions are included and which are not. That is the concentrated power, and it is why Stratum V2's job declaration mechanism, which lets an individual miner submit its own template, matters more than the pool share table suggests.
+
+### 3.3 Who Pays for What
+
+Nobody pays for the network in the sense of funding an operator, because there is no operator. Costs land on four parties.
+
+Miners pay for electricity, hardware, and hosting, and are compensated by subsidy plus fees. Node operators pay for a disk, a CPU, and bandwidth, and are compensated by not having to trust anybody. Users pay fees to miners for block space. Developers are paid, when they are paid, by grants from firms and foundations with an interest in the protocol continuing to work.
+
+The last of these has no protocol-level funding mechanism, by design and by accident.
+
+---
+
+## 4. The UTXO Model and Transaction Structure
+
+### 4.1 There Are No Balances
+
+An unspent transaction output is the only thing Bitcoin actually stores as spendable state. It has exactly two fields: a value in satoshis, and a `scriptPubKey`, which is the lock.
+
+A transaction consumes a set of UTXOs by referencing them, satisfies each one's lock, and creates a new set. The consumed outputs are deleted from the UTXO set. The created outputs are inserted. The difference between total input value and total output value is the fee, which is never written anywhere: it is inferred by subtraction and claimed by the miner in the coinbase transaction.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Before["UTXO set before"]
+        U1["UTXO A<br/>txid 4a5e...:0<br/>0.40000000 BTC<br/>P2WPKH lock"]
+        U2["UTXO B<br/>txid 9c1f...:1<br/>0.25000000 BTC<br/>P2TR lock"]
+        U3["UTXO C<br/>unrelated<br/>2.00000000 BTC"]
+    end
+
+    subgraph Tx["Transaction 7be3... : 2 inputs, 2 outputs"]
+        IN["Inputs reference outpoints.<br/>Each carries a witness that<br/>satisfies the referenced lock.<br/>Inputs have no amount field:<br/>the amount is looked up<br/>in the UTXO set."]
+        OUT["Outputs each carry<br/>an 8-byte value and<br/>a scriptPubKey.<br/>Fee = sum(in) - sum(out)<br/>= 0.65 - 0.64999334<br/>= 666 sat"]
+    end
+
+    subgraph After["UTXO set after"]
+        N1["UTXO D<br/>txid 7be3...:0<br/>0.30000000 BTC<br/>payee P2TR lock"]
+        N2["UTXO E<br/>txid 7be3...:1<br/>0.34999334 BTC<br/>change, P2TR lock"]
+        N3["UTXO C<br/>untouched<br/>2.00000000 BTC"]
+    end
+
+    U1 -->|"spent, deleted"| IN
+    U2 -->|"spent, deleted"| IN
+    IN --> OUT
+    OUT -->|"created, inserted"| N1
+    OUT -->|"created, inserted"| N2
+    U3 -.->|"unchanged"| N3
+
+    Fee["666 sat fee<br/>claimed by the miner<br/>in the coinbase output"]
+    OUT -.-> Fee
+
+    style Before fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tx fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style After fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fee fill:#ffebee,stroke:#c62828,stroke-width:2px
+```
+
+Three consequences follow, and all three surprise people arriving from account-based systems.
+
+**Outputs are indivisible.** Holding one 0.4 BTC UTXO and needing to send 0.1 BTC means spending the whole 0.4 and creating a 0.3 change output back to yourself. Change is not an accounting nicety, it is a structural requirement.
+
+**Transaction size depends on coin selection, not on amount.** Sending 1 BTC from one large UTXO costs the same as sending 0.001 BTC from that UTXO. Sending 1 BTC assembled from forty small UTXOs costs roughly forty times as much in fees, because each input adds bytes.
+
+**Validation is order-independent and parallelisable.** Each input references a specific outpoint by txid and index. There is no global state to read beyond the existence of that outpoint, which is why the UTXO set is the entire validation working set and why its 11 GB size is the number that determines a node's RAM and disk requirement.
+
+### 4.2 The Serialised Transaction, Field by Field
+
+A transaction on the wire is a fixed sequence of little-endian integers and length-prefixed byte strings. There is no self-describing structure, no tags, and no version negotiation beyond the 4-byte version field.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["Transaction prefix"]
+        V["nVersion<br/>4 bytes LE<br/>1 = legacy, 2 = BIP68 timelocks,<br/>3 = TRUC per BIP431"]
+        M["marker 0x00 + flag 0x01<br/>2 bytes, SegWit only.<br/>Absent means no witness.<br/>Counted at 1 WU each."]
+    end
+
+    subgraph Inputs["Inputs, count as CompactSize"]
+        I1["outpoint txid, 32 bytes<br/>internal byte order,<br/>displayed reversed"]
+        I2["outpoint index, 4 bytes LE"]
+        I3["scriptSig length, CompactSize<br/>0x00 for native SegWit inputs"]
+        I4["scriptSig, variable<br/>legacy unlocking script"]
+        I5["nSequence, 4 bytes LE<br/>< 0xFFFFFFFF enables locktime,<br/>< 0xFFFFFFFE signals BIP125 RBF,<br/>BIP68 relative timelock if v>=2"]
+    end
+
+    subgraph Outputs["Outputs, count as CompactSize"]
+        O1["value, 8 bytes LE, satoshis<br/>max 2,100,000,000,000,000"]
+        O2["scriptPubKey length, CompactSize"]
+        O3["scriptPubKey, variable<br/>22 bytes P2WPKH,<br/>34 bytes P2TR,<br/>25 bytes P2PKH"]
+    end
+
+    subgraph Witness["Witness, SegWit only, one stack per input"]
+        W1["stack item count, CompactSize"]
+        W2["per item: length CompactSize + data<br/>P2TR key path: one 64-byte signature<br/>P2WPKH: 71-72 byte sig + 33-byte pubkey"]
+    end
+
+    subgraph Tail["Suffix"]
+        L["nLockTime, 4 bytes LE<br/>< 500,000,000 = block height<br/>>= 500,000,000 = Unix timestamp"]
+    end
+
+    Header --> Inputs --> Outputs --> Witness --> Tail
+
+    subgraph Ids["Two identifiers"]
+        T1["txid = SHA256d over<br/>the serialisation WITHOUT<br/>marker, flag, witness"]
+        T2["wtxid = SHA256d over<br/>the FULL serialisation.<br/>Used for relay dedup and<br/>the witness merkle root."]
+    end
+
+    Tail --> Ids
+
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Inputs fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Outputs fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Witness fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Tail fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Ids fill:#ffebee,stroke:#c62828,stroke-width:2px
+```
+
+`CompactSize` is Bitcoin's variable-length integer. Values below 0xFD are one byte. 0xFD introduces a 2-byte little-endian value, 0xFE a 4-byte value, 0xFF an 8-byte value. It appears wherever a count or a length is written.
+
+Two details trip up everyone writing a parser for the first time. The txid in an outpoint is stored in internal byte order, which is the reverse of the order every block explorer displays, so a parser must reverse 32 bytes on read and on write. And the 8-byte value field is satoshis, not bitcoin: 0.001 BTC is `0x00000000000186A0` written little-endian as `A0 86 01 00 00 00 00 00`.
+
+### 4.3 Weight, Virtual Size, and the Witness Discount
+
+Block capacity is measured in weight units, and the conversion is the single most consequential arithmetic in the fee market.
+
+```
+base_size  = serialised size WITHOUT marker, flag, and witness
+total_size = serialised size WITH marker, flag, and witness
+weight     = base_size * 3 + total_size
+vsize      = ceil(weight / 4)
+```
+
+Equivalently, a byte in the transaction body costs 4 weight units and a byte of witness data costs 1. The block limit is 4,000,000 weight units, which is exactly 1,000,000 non-witness bytes if a block contains no witness data at all, and roughly 1.5 to 2.5 MB of real bytes depending on transaction mix.
+
+| Component | Base bytes | Witness bytes | Weight units | vbytes |
+|-----------|-----------|---------------|--------------|--------|
+| P2PKH input (legacy) | 148 | 0 | 592 | 148 |
+| P2SH-P2WPKH input (nested) | 64 | 107 | 363 | 90.75 |
+| P2WPKH input | 41 | 107 | 271 | 67.75 |
+| P2TR key-path input | 41 | 66 | 230 | 57.5 |
+| P2PKH output | 34 | 0 | 136 | 34 |
+| P2SH output | 32 | 0 | 128 | 32 |
+| P2WPKH output | 31 | 0 | 124 | 31 |
+| P2TR output | 43 | 0 | 172 | 43 |
+| SegWit tx overhead | 10 | 2 | 42 | 10.5 |
+
+The discount is not a subsidy for SegWit users. It reflects that witness data is not needed to compute the UTXO set: a node that trusts an old checkpoint can discard witnesses, whereas it can never discard the outputs. Charging less for the data that costs less to keep is the whole argument.
+
+Ordinals uses the same argument in reverse. Arbitrary data pushed into a Tapscript witness costs one weight unit per byte instead of four, making the witness the cheapest place in a Bitcoin block to store a JPEG. That is a direct consequence of a fee policy chosen in 2016 for reasons that had nothing to do with images.
+
+### 4.4 nSequence, nLockTime, and Timelocks
+
+Four mechanisms let a transaction be invalid until a condition on time or block height is met, and they are commonly confused with each other.
+
+**`nLockTime`** is a transaction-level absolute lock. If any input has an `nSequence` below `0xFFFFFFFF`, the transaction is invalid until the block height or Unix timestamp in `nLockTime` is reached. Values below 500,000,000 are interpreted as block heights, values at or above as Unix timestamps. The comparison for timestamps is against median time past, the median of the previous eleven block timestamps, per BIP113, which stops miners from lying about time to unlock transactions early.
+
+**`OP_CHECKLOCKTIMEVERIFY`** (BIP65, opcode 0xb1, formerly `OP_NOP2`) is a script-level absolute lock. It fails the script unless the spending transaction's `nLockTime` is at least the stack value. It puts the deadline in the output's lock rather than in the spending transaction, so the output itself cannot be spent early by anyone.
+
+**`nSequence` as a relative timelock** (BIP68) applies when the transaction version is 2 or higher and bit 31 of `nSequence` is clear. The low 16 bits give a count, and bit 22 selects units: clear means blocks, set means 512-second intervals. The input cannot be spent until that much time has passed since the referenced output was confirmed.
+
+**`OP_CHECKSEQUENCEVERIFY`** (BIP112, opcode 0xb2, formerly `OP_NOP3`) is the script-level relative lock, checking the input's `nSequence` against a stack value the same way CLTV checks `nLockTime`.
+
+Relative timelocks are what makes the Lightning Network possible. A channel's revocation mechanism gives the wronged party a window, measured in blocks since a commitment transaction confirmed, in which to punish a cheating counterparty. Without BIP68 and BIP112 there is no way to express "spendable only 144 blocks after this output appeared".
+
+### 4.5 txid, wtxid, and Malleability
+
+A transaction has two identifiers and knowing which is which resolves a decade of confusion.
+
+The `txid` is the double SHA-256 of the serialisation without the marker, flag, and witness. Since a SegWit input's `scriptSig` is empty and all its signature data lives in the witness, no third party can alter anything the txid covers. The txid is fixed the moment the sender constructs the transaction.
+
+The `wtxid` is the double SHA-256 of the full serialisation including witnesses. It changes if a signature is re-encoded. It is used for relay deduplication (BIP339, protocol version 70016) and for the witness Merkle root committed in the coinbase.
+
+Before SegWit, signatures lived in the `scriptSig`, which the txid covered. A third party could re-encode a DER signature or push extra data and produce a different txid for a transaction spending the same inputs to the same outputs. That is transaction malleability, and it broke every protocol that pre-signed a chain of transactions, including every early payment channel design. Mt. Gox blamed its 2014 insolvency on malleability, which was false in the sense that the coins were gone for other reasons and true in the sense that malleability made the accounting impossible to audit.
+
+SegWit fixed it for SegWit inputs. Legacy inputs are still malleable in 2026. The fix was the reason SegWit was designed, and the block size increase was the sweetener.
+
+### 4.6 What the UTXO Set Actually Contains
+
+The 14 April 2025 snapshot at block 892,385 gives the composition, and it is not what the discourse suggests.
+
+| Output type | Count | Share of outputs | Value held (BTC) | Share of value |
+|-------------|-------|------------------|------------------|----------------|
+| P2TR (Taproot) | 59.3 M | 34.22% | 147,912 | 0.75% |
+| P2PKH (legacy) | 49.9 M | 28.79% | 6,496,612 | 32.87% |
+| P2WPKH (SegWit v0) | 45.9 M | 26.53% | 6,132,282 | 31.02% |
+| P2SH | 13.7 M | 7.92% | 4,203,041 | 21.25% |
+| P2MS (bare multisig) | 2.5 M | 1.46% | 33,137 | 0.17% |
+| P2WSH | 1.8 M | 1.05% | 1,115,123 | 5.64% |
+| P2PK (2009-era) | 45 K | 0.03% | 1,720,270 | 8.70% |
+| Non-standard | 21 K | 0.01% | 2,617 | 0.01% |
+
+Taproot holds 34 percent of the outputs and 0.75 percent of the value, because inscription outputs are Taproot outputs holding 546 satoshis each. Roughly 30 percent of the entire UTXO set is inscription-related, and 49.1 percent of all UTXOs hold under 1,000 satoshis. Those outputs are permanently in the set, because spending them costs more in fees than they contain.
+
+The 45,000 P2PK outputs from 2009 and 2010 hold 1.72 million BTC, 8.7 percent of all value, in the output type Satoshi's original client used. Most of that is presumed lost.
+
+---
+
+## 5. Script and Its Opcodes
+
+### 5.1 A Stack Machine With No Loops
+
+Bitcoin Script is a Forth-derived, stack-based bytecode with no jumps, no loops, no recursion, and no persistent state. Execution either finishes with a single true value on the stack or it fails. That is the entire computational model.
+
+The absence of loops is deliberate and load-bearing. Every script's execution cost is bounded by its length, so a validator can price a script before running it, and the halting problem never arises. There is no gas metering because there is nothing to meter.
+
+Validation runs the unlocking script and the locking script against one stack. For legacy inputs, `scriptSig` is executed first, then `scriptPubKey`, on the same stack. For SegWit inputs, the witness stack is loaded directly as the initial stack and the witness program supplies the script. Separate evaluation has been the rule since v0.3.8 in 2010. Before that the two scripts were concatenated and run as one, which let the unlocking side inject opcodes that the locking side never authorised. BIP16 (P2SH, active 1 April 2012 at block 173,805) added the further requirement that a P2SH `scriptSig` contain only pushes, which is what makes the redeemScript's evaluation predictable.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Spend a P2WPKH output.<br/>scriptPubKey = OP_0 &lt;20-byte hash&gt;<br/>scriptSig is empty"]
+
+    Start --> S1["Witness stack loaded as initial stack:<br/>[ signature 71 bytes ]<br/>[ pubkey 33 bytes ]"]
+
+    S1 --> S2["Node substitutes the implied script<br/>OP_DUP OP_HASH160 &lt;20-byte hash&gt;<br/>OP_EQUALVERIFY OP_CHECKSIG<br/>per BIP141"]
+
+    S2 --> E1["OP_DUP 0x76<br/>duplicate top item<br/>stack: sig, pubkey, pubkey"]
+    E1 --> E2["OP_HASH160 0xa9<br/>RIPEMD160(SHA256(top))<br/>stack: sig, pubkey, hash160"]
+    E2 --> E3["push &lt;20-byte hash&gt; from the program<br/>stack: sig, pubkey, hash160, target"]
+    E3 --> E4["OP_EQUALVERIFY 0x88<br/>pop two, fail if unequal<br/>stack: sig, pubkey"]
+    E4 --> E5["OP_CHECKSIG 0xac<br/>build BIP143 sighash,<br/>verify ECDSA over secp256k1,<br/>push true or false"]
+
+    E5 --> Check{"Stack holds<br/>exactly one<br/>true value?"}
+    Check -->|yes| Pass["Input valid"]
+    Check -->|no| Fail["Input invalid.<br/>Whole transaction rejected."]
+
+    subgraph Limits["Hard limits enforced during execution"]
+        L1["Stack element <= 520 bytes"]
+        L2["Stack + altstack <= 1,000 items"]
+        L3["Script <= 10,000 bytes (not in Tapscript)"]
+        L4["<= 201 non-push opcodes (not in Tapscript)"]
+        L5["<= 20 pubkeys per OP_CHECKMULTISIG"]
+        L6["Block sigop cost <= 80,000"]
+    end
+
+    E5 -.-> Limits
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Pass fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Fail fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Limits fill:#fff3e0,stroke:#e65100,stroke-width:2px
+```
+
+### 5.2 The Standard Output Types
+
+Nine script patterns account for essentially all value on the chain. Anything else is non-standard, meaning nodes will not relay it, though a miner may still confirm it.
+
+| Type | scriptPubKey | Address prefix | Spend data location | Introduced |
+|------|--------------|----------------|---------------------|------------|
+| **P2PK** | `<pubkey> OP_CHECKSIG` | none | scriptSig | 2009 |
+| **P2PKH** | `OP_DUP OP_HASH160 <20B> OP_EQUALVERIFY OP_CHECKSIG` | `1...` (base58) | scriptSig | 2009 |
+| **P2MS** | `OP_m <pubkeys> OP_n OP_CHECKMULTISIG` | none | scriptSig | 2011 |
+| **P2SH** | `OP_HASH160 <20B> OP_EQUAL` | `3...` (base58) | scriptSig, redeemScript last | BIP16, 2012 |
+| **P2WPKH** | `OP_0 <20B>` | `bc1q...` (bech32) | witness | BIP141, 2017 |
+| **P2WSH** | `OP_0 <32B>` | `bc1q...` (bech32) | witness, witnessScript last | BIP141, 2017 |
+| **P2SH-P2WPKH** | P2SH wrapping a v0 program | `3...` | witness | BIP141, 2017 |
+| **P2TR** | `OP_1 <32B>` | `bc1p...` (bech32m) | witness | BIP341, 2021 |
+| **Null data** | `OP_RETURN <data>` | none | unspendable | 2013 |
+
+`OP_RETURN` outputs are provably unspendable, so nodes drop them from the UTXO set immediately rather than carrying them forever. That is the entire point: before `OP_RETURN` existed, people embedded data in fake public keys inside `OP_CHECKMULTISIG` outputs, which are indistinguishable from real ones and stay in the UTXO set permanently. The 2.5 million bare-multisig UTXOs in the set today are largely that.
+
+The relay limit on `OP_RETURN` data was 40 bytes from 2014, raised to 80 in 2015, then 83 bytes counting the opcode and push. Bitcoin Core 30.0 raised the default to 100,000 bytes and allowed multiple such outputs per transaction, on the reasoning that a filter data-writers bypass by using Taproot witnesses is a filter that only pushes garbage into the permanent UTXO set instead of the prunable one.
+
+### 5.3 The Opcode Reference
+
+Bitcoin Script defines 256 single-byte opcodes, of which roughly 115 are active. Opcodes 0x01 to 0x4b push that many bytes directly. `OP_PUSHDATA1`, `OP_PUSHDATA2`, and `OP_PUSHDATA4` (0x4c, 0x4d, 0x4e) push data with 1, 2, or 4-byte length prefixes.
+
+| Category | Opcodes | Notes |
+|----------|---------|-------|
+| **Constants** | `OP_0` (0x00), `OP_1NEGATE` (0x4f), `OP_1` to `OP_16` (0x51 to 0x60) | Push small numbers without a length byte |
+| **Flow control** | `OP_IF` (0x63), `OP_NOTIF` (0x64), `OP_ELSE` (0x67), `OP_ENDIF` (0x68), `OP_VERIFY` (0x69), `OP_RETURN` (0x6a) | Branches only, never loops |
+| **Stack** | `OP_DUP` (0x76), `OP_DROP` (0x75), `OP_SWAP` (0x7c), `OP_ROT` (0x7b), `OP_TOALTSTACK` (0x6b), `OP_FROMALTSTACK` (0x6c), `OP_DEPTH` (0x74), `OP_PICK` (0x79), `OP_ROLL` (0x7a) | |
+| **Splice** | `OP_SIZE` (0x82) active; `OP_CAT`, `OP_SUBSTR`, `OP_LEFT`, `OP_RIGHT` disabled since 2010 | `OP_CAT` revival is BIP347 |
+| **Bitwise** | `OP_EQUAL` (0x87), `OP_EQUALVERIFY` (0x88); `OP_AND`, `OP_OR`, `OP_XOR`, `OP_INVERT` disabled | |
+| **Arithmetic** | `OP_ADD` (0x93), `OP_SUB` (0x94), `OP_NEGATE`, `OP_ABS`, `OP_NOT`, `OP_BOOLAND`, `OP_NUMEQUAL`, `OP_LESSTHAN`, `OP_MIN`, `OP_MAX`, `OP_WITHIN` | 32-bit signed operands only; `OP_MUL`, `OP_DIV`, `OP_MOD` disabled |
+| **Crypto** | `OP_RIPEMD160` (0xa6), `OP_SHA1` (0xa7), `OP_SHA256` (0xa8), `OP_HASH160` (0xa9), `OP_HASH256` (0xaa), `OP_CHECKSIG` (0xac), `OP_CHECKSIGVERIFY` (0xad), `OP_CHECKMULTISIG` (0xae), `OP_CHECKMULTISIGVERIFY` (0xaf) | `OP_HASH160` is RIPEMD160(SHA256(x)); `OP_HASH256` is SHA256(SHA256(x)) |
+| **Timelocks** | `OP_CHECKLOCKTIMEVERIFY` (0xb1), `OP_CHECKSEQUENCEVERIFY` (0xb2) | Repurposed `OP_NOP2` and `OP_NOP3` by soft fork |
+| **Tapscript only** | `OP_CHECKSIGADD` (0xba) | Replaces `OP_CHECKMULTISIG`, which BIP342 disables |
+| **Reserved** | `OP_NOP1`, `OP_NOP4` to `OP_NOP10`; `OP_SUCCESS` codes in Tapscript | Upgrade hooks for future soft forks |
+
+`OP_CHECKMULTISIG` carries a permanent bug: it pops one extra stack element that it does not use, because of an off-by-one in the original implementation. Every multisig `scriptSig` in existence begins with a dummy push. BIP147 constrained that dummy to be exactly the empty element, removing a malleability vector, and BIP342 deleted the opcode from Tapscript rather than fixing it.
+
+### 5.4 What Script Cannot Do
+
+Script has no access to the transaction it is validating beyond what a signature hash commits to. This is the constraint that shapes every proposal on the table in 2026.
+
+A script cannot inspect its own output amounts, cannot require that the spending transaction sends to a particular address, and cannot enforce anything about the transaction's shape. `OP_CHECKSIG` checks a signature over a message derived from the transaction, but the script cannot construct that message itself and compare it to something, because `OP_CAT` is disabled and there is no opcode to push transaction fields onto the stack.
+
+The general name for "an output that constrains how it may be spent" is a covenant. Bitcoin has none. Vaults that force a withdrawal delay, congestion-control trees that batch thousands of payouts into one on-chain transaction, and non-interactive channel factories all require one.
+
+Two proposals compete. `OP_CHECKTEMPLATEVERIFY` (BIP119) commits an output to the exact hash of a template of the spending transaction: fixed outputs, fixed input count, no amounts inspectable. It is narrow by design. `OP_CAT` (BIP347), which reached Complete specification status on 1 March 2026, simply re-enables concatenation, from which a script can rebuild a sighash preimage on the stack and enforce arbitrary predicates on it. It is general by accident.
+
+Neither has an activation path agreed as of August 2026. A CTV activation client published in 2026 specifies Speedy Trial with a 90 percent miner threshold and a minimum activation height around May 2027; signalling stands at 0.00 percent.
+
+---
+
+## 6. Signatures: ECDSA and Schnorr
+
+### 6.1 One Curve, Two Schemes
+
+Bitcoin uses a single elliptic curve, secp256k1, defined over the prime field `p = 2^256 - 2^32 - 977` by the equation `y^2 = x^3 + 7`. The group order is
+
+```
+n = 0xFFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE BAAEDCE6 AF48A03B BFD25E8C D0364141
+```
+
+with cofactor 1, so every point except infinity generates the whole group. The curve was chosen for a property that matters more than security margin: it has an efficiently computable endomorphism (the GLV endomorphism), which speeds verification by roughly 20 percent, and it is a Koblitz curve whose parameters are rigid and self-explaining, `p = 2^256 - 2^32 - 977`, `b = 7`, and a small generator, with nothing hidden in a seed. That was a deliberate choice against the NIST P-256 approach, whose curve coefficient is SHA-1 of a seed nobody can account for.
+
+Two signature schemes run on that curve.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Curve["secp256k1, shared by both schemes"]
+        CV["y^2 = x^3 + 7 over F_p<br/>p = 2^256 - 2^32 - 977<br/>order n, cofactor 1<br/>private key d, public key P = dG"]
+    end
+
+    subgraph ECDSA["ECDSA - 2009 to present"]
+        E1["Sign: pick nonce k,<br/>R = kG, r = R.x mod n,<br/>s = k^-1 (z + r*d) mod n"]
+        E2["Encoding: DER<br/>0x30 len 0x02 rlen r 0x02 slen s<br/>plus 1 sighash byte.<br/>70 to 72 bytes total."]
+        E3["Rules bolted on later:<br/>BIP66 strict DER (2015 soft fork)<br/>low-S as relay policy only,<br/>BIP146 never activated<br/>RFC6979 deterministic k"]
+        E4["Not linear.<br/>No key aggregation.<br/>No batch verification.<br/>n-of-n multisig costs n signatures."]
+        E5["Failure mode: reused or biased k<br/>leaks the private key outright.<br/>Sony PS3 and 2013 Android<br/>SecureRandom both fell to this."]
+    end
+
+    subgraph Schnorr["Schnorr - BIP340, live since block 709632"]
+        S1["Sign: nonce k from<br/>tagged hash of aux randomness,<br/>R = kG, e = H_challenge(R.x || P.x || m),<br/>s = k + e*d mod n"]
+        S2["Encoding: raw 64 bytes,<br/>R.x (32) || s (32).<br/>No DER, no length fields,<br/>no malleability surface."]
+        S3["Public key: 32 bytes, x-only.<br/>Even Y coordinate implied.<br/>Saves 1 byte per key<br/>and removes a parity choice."]
+        S4["Linear: s*G = R + e*P.<br/>Enables MuSig2 key aggregation,<br/>FROST threshold signing,<br/>adaptor signatures,<br/>batch verification."]
+        S5["Provably secure under<br/>discrete log in the ROM.<br/>ECDSA has no such proof<br/>without extra assumptions."]
+    end
+
+    Curve --> ECDSA
+    Curve --> Schnorr
+
+    Tagged["Tagged hashing, BIP340:<br/>hash_tag(x) = SHA256(SHA256(tag) || SHA256(tag) || x)<br/>tags: BIP0340/aux, BIP0340/nonce, BIP0340/challenge<br/>Domain separation prevents cross-protocol<br/>signature reuse."]
+    Schnorr --> Tagged
+
+    style Curve fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style ECDSA fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Schnorr fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tagged fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+```
+
+### 6.2 ECDSA and Its Three Retrofits
+
+ECDSA shipped in 2009 with three defects that took six years to close, each closed without breaking old transactions.
+
+**Signature encoding was not canonical.** DER permits leading zeros, and OpenSSL accepted encodings the spec did not. A third party could re-encode a signature, changing the txid without changing the meaning. BIP66 made strict DER a consensus rule at block 363,724 on 4 July 2015.
+
+**The `s` value has two valid forms.** For any valid signature `(r, s)`, the pair `(r, n - s)` is also valid. BIP146 proposed making low-S canonical at the consensus layer and never activated. Low-S is enforced as relay and mining policy for every input type, legacy and SegWit alike, through `SCRIPT_VERIFY_LOW_S` in Bitcoin Core's `STANDARD_SCRIPT_VERIFY_FLAGS`, so a high-S signature is still valid in a block a miner chooses to build. The malleability rule that did become consensus alongside SegWit is BIP147's NULLDUMMY.
+
+**The nonce is catastrophic if reused.** Two signatures under the same key with the same `k` let anyone solve for the private key with school algebra. Any bias in `k` leaks bits. RFC 6979 derives `k` deterministically from the private key and the message, which removes the randomness source from the trust model entirely. Bitcoin Core has used it since 2014, and libsecp256k1 makes it the default.
+
+BIP66's activation produced Bitcoin's most instructive consensus incident. Several large pools were mining on block headers received from other pools without validating the blocks, a practice called SPV mining, in order to shave seconds off their start time. When a non-upgraded miner produced an invalid block after the fork, the SPV miners built on it, producing a six-block invalid chain on 4 July 2015 that took several hours to resolve. The lesson stuck: validate before you build, even when it costs you revenue.
+
+### 6.3 The Signature Hash System
+
+`OP_CHECKSIG` verifies a signature over a message derived from the spending transaction. Which parts of the transaction the message covers is selected by a sighash flag appended to the signature, and the derivation algorithm has changed twice.
+
+| Flag | Value | Commits to |
+|------|-------|-----------|
+| `SIGHASH_DEFAULT` | 0x00 | Taproot only. Same as ALL, allows a 64-byte signature with no flag byte |
+| `SIGHASH_ALL` | 0x01 | All inputs, all outputs. The default in every wallet |
+| `SIGHASH_NONE` | 0x02 | All inputs, no outputs. Signer does not care where the money goes |
+| `SIGHASH_SINGLE` | 0x03 | All inputs, the output at the same index only |
+| `SIGHASH_ANYONECANPAY` | 0x80 | Modifier: only this input, ORed with one of the above |
+
+**Legacy sighash** (2009) reserialises the whole transaction for every signature, replacing other inputs' scriptSigs with empty strings. Signing a transaction with `n` inputs therefore hashes `O(n^2)` bytes. A 1 MB block crafted to maximise this took over 30 seconds to validate on 2015 hardware, and one was mined in July 2015 as a demonstration. Legacy sighash also carries the `SIGHASH_SINGLE` bug: when the input index exceeds the output count, the algorithm returns the hash value 1 instead of erroring, and signing that is equivalent to signing a fixed known message.
+
+**BIP143 sighash** (SegWit v0, 2017) precomputes `hashPrevouts`, `hashSequence`, and `hashOutputs` once per transaction, making signing linear in input count. It also commits to the value of the input being spent, which fixed a real hardware wallet vulnerability: a device with no chain access previously had to trust the host's claim about input amounts, and a lying host could induce a signature that spent an enormous fee.
+
+**BIP341 sighash** (Taproot, 2021) commits to the values and `scriptPubKey`s of **all** inputs, not just the one being signed, closing the same class of attack for multi-input transactions. It hashes each field once with tagged hashing under `TapSighash`.
+
+### 6.4 BIP340 Schnorr in Detail
+
+A BIP340 signature is 64 bytes: the x-coordinate of a nonce point `R`, then a scalar `s`. A BIP340 public key is 32 bytes: an x-coordinate, with the even-Y point implied.
+
+Signing computes `e = int(hash_BIP0340/challenge(bytes(R) || bytes(P) || m)) mod n` and `s = (k + e*d) mod n`. Verification computes `R = s*G - e*P` and checks that `R` has even Y and that `R.x` matches the signature. The relation `s*G = R + e*P` is linear in both the nonce and the key, and that linearity is the entire reason Taproot exists.
+
+Four capabilities fall out of it.
+
+**Key aggregation.** MuSig2 lets `n` parties produce one 64-byte signature under one 32-byte aggregate key, in two communication rounds, with the first round precomputable. On-chain, a 5-of-5 multisig is indistinguishable from a single-key spend, and costs the same 57.5 vbytes.
+
+**Threshold signing.** FROST extends this to `t`-of-`n` with a distributed key generation phase, again producing one signature indistinguishable from single-key.
+
+**Adaptor signatures.** A signature can be published with an offset that a second party can remove only by revealing a secret, which makes atomic swaps and discreet log contracts work without any script-visible hash preimage.
+
+**Batch verification.** Because verification is a linear equation, `m` signatures can be checked as one randomised linear combination, roughly 2 to 3 times faster than checking each separately. This matters during initial block download, where signature verification dominates CPU time.
+
+BIP340's nonce derivation deserves note. It hashes the private key, the message, and 32 bytes of auxiliary randomness under the `BIP0340/aux` and `BIP0340/nonce` tags. If the randomness source fails entirely, the scheme degrades to deterministic signing rather than to nonce reuse. If it works, it defends against fault-injection attacks that deterministic-only signing is vulnerable to.
+
+---
+
+## 7. SegWit and Taproot
+
+### 7.1 What SegWit Actually Changed
+
+SegWit is four changes shipped as one soft fork, and only one of them is about capacity.
+
+**A new script versioning system.** A `scriptPubKey` of the form `OP_n <2 to 40 byte program>`, where `n` is 0 through 16, is a witness program. Version 0 defines P2WPKH and P2WSH. Versions 1 through 16 were defined as "anyone can spend" to old nodes, which is what let Taproot activate later as a soft fork by claiming version 1.
+
+**The witness moved out of the txid.** Signature data now lives in a structure the txid does not cover, which eliminates third-party malleability for SegWit inputs.
+
+**A second Merkle tree.** The block's witness data is committed in a witness Merkle root, placed in an `OP_RETURN` output of the coinbase transaction with a 36-byte payload: the 4-byte prefix `0xaa21a9ed` followed by the 32-byte root. That root is computed over wtxids with the coinbase's own wtxid treated as 32 zero bytes, and combined with a 32-byte witness reserved value taken from the coinbase's witness stack. Old nodes see an unspendable output and ignore it. New nodes verify it.
+
+**The weight formula.** Base bytes count 4, witness bytes count 1, limit 4,000,000 weight units. Old nodes, which do not download witnesses, see a block of at most 1,000,000 bytes and are satisfied. This is the trick that made a capacity increase a soft fork.
+
+The activation was messy and the design is not. Every subsequent upgrade rides on the version-number hook SegWit installed.
+
+### 7.2 Taproot: One Key, Many Scripts
+
+Taproot's claim is that the common case and the exotic case should look identical on-chain, and cost the same.
+
+A P2TR output is `OP_1 <32-byte output key Q>`. That key is constructed as
+
+```
+Q = P + int(hash_TapTweak(bytes(P) || merkle_root)) * G
+```
+
+where `P` is an internal public key and `merkle_root` is the root of a Merkle tree whose leaves are alternative spending scripts. Two spending paths exist and they are not distinguishable in advance.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Construct["Constructing a P2TR output"]
+        IK["Internal key P<br/>32-byte x-only.<br/>Often a MuSig2 aggregate<br/>of all cooperating parties."]
+        LA["Leaf A: 2-of-3 recovery<br/>&lt;pkB&gt; OP_CHECKSIG<br/>&lt;pkC&gt; OP_CHECKSIGADD<br/>OP_2 OP_NUMEQUAL"]
+        LB["Leaf B: timeout path<br/>&lt;144&gt; OP_CHECKSEQUENCEVERIFY<br/>OP_DROP &lt;pkD&gt; OP_CHECKSIG"]
+        LC["Leaf C: hash preimage<br/>OP_SHA256 &lt;hash&gt; OP_EQUALVERIFY<br/>&lt;pkE&gt; OP_CHECKSIG"]
+
+        LA --> HA["TapLeaf hash A =<br/>hash_TapLeaf(0xc0 || compact_size(len) || script)"]
+        LB --> HB["TapLeaf hash B"]
+        LC --> HC["TapLeaf hash C"]
+
+        HA --> BR1["TapBranch hash AB =<br/>hash_TapBranch(sorted(A,B))"]
+        HB --> BR1
+        BR1 --> ROOT["Merkle root =<br/>hash_TapBranch(sorted(AB,C))<br/>Path length limited to 128"]
+        HC --> ROOT
+
+        IK --> TWEAK["t = hash_TapTweak(P || merkle_root)<br/>Q = P + t*G<br/>Output key Q, 32 bytes"]
+        ROOT --> TWEAK
+        TWEAK --> SPK["scriptPubKey = OP_1 &lt;Q&gt;<br/>34 bytes on chain.<br/>Address bc1p..., bech32m per BIP350"]
+    end
+
+    subgraph Spend["Two ways to spend it"]
+        KP["KEY PATH<br/>Witness: one 64-byte Schnorr signature<br/>over the tweaked key Q.<br/>57.5 vbytes total input cost.<br/>Reveals nothing about the tree.<br/>Indistinguishable from a single-sig spend."]
+        SP["SCRIPT PATH<br/>Witness: script inputs, then the leaf script,<br/>then a control block of 33 + 32m bytes:<br/>1 byte (leaf version 0xc0 | Q parity)<br/>+ 32-byte internal key P<br/>+ m sibling hashes, m &lt;= 128.<br/>Reveals only the leaf used."]
+    end
+
+    SPK --> KP
+    SPK --> SP
+
+    Result["Cooperative close uses the key path and looks<br/>like any other payment. The recovery and timeout<br/>branches are never published unless used."]
+    KP --> Result
+    SP --> Result
+
+    style Construct fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Spend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style KP fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style SP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Result fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+```
+
+**The key path** spends by signing with the private key corresponding to `Q`, which the holders of `P` can compute because they know `t`. The witness is a single 64-byte signature. The tree is never revealed, and the spend is byte-identical to a plain single-key Taproot spend.
+
+**The script path** spends by revealing one leaf script, its inputs, and a control block containing the internal key `P` plus the sibling hashes needed to recompute the root. Sibling branches stay hidden. A tree with 128 alternative conditions is seven levels deep, so revealing one leaf costs 7 * 32 = 224 witness bytes of Merkle path. BIP341's limit of 128 is on depth, not on leaf count: a maximally deep path would carry 128 sibling hashes and cost 4,096 bytes, and no practical tree is built that way.
+
+Two details in the construction are not decoration. Branch hashes sort their two children lexicographically before hashing, so a verifier does not need to know which side a node was on, which shortens the control block. And the tagged hashes `TapLeaf`, `TapBranch`, and `TapTweak` each prefix `SHA256(tag)` twice, giving domain separation that stops a 32-byte leaf hash being reinterpreted as a branch hash.
+
+Leaf version `0xc0` selects Tapscript. The leaf version cannot be odd, because the low bit encodes the parity of `Q`, and cannot be `0x50`, which is reserved as the annex prefix.
+
+### 7.3 Tapscript Differences
+
+BIP342 defines the script language inside a `0xc0` leaf, and it differs from legacy Script in ways that matter for anyone writing contracts.
+
+`OP_CHECKMULTISIG` and `OP_CHECKMULTISIGVERIFY` are removed. `OP_CHECKSIGADD` (0xba) replaces them: it pops a public key, a number, and a signature, and pushes the number incremented if the signature verifies. A `k`-of-`n` check becomes `n` `OP_CHECKSIGADD` operations followed by a numeric comparison, which is cheaper to batch-verify and does not carry the dummy-element bug.
+
+The 10,000-byte script size limit and the 201-opcode limit are gone. In their place is a signature operations budget: each input starts with a budget of 50 plus the size in bytes of its witness stack, and each executed signature check costs 50. A script cannot verify more signatures than the witness it arrived with can pay for, which bounds validation cost without an arbitrary opcode count.
+
+Undefined opcodes are `OP_SUCCESS` rather than failures: encountering one makes the whole script succeed immediately. Combined with the rule that unknown public key types (anything that is not 32 bytes) validate successfully, this gives future soft forks two clean upgrade hooks that old nodes will accept.
+
+Signatures may be 64 or 65 bytes. Sixty-four means `SIGHASH_DEFAULT`; sixty-five appends an explicit sighash byte.
+
+### 7.4 Address Formats
+
+An address is a wallet-level encoding of a `scriptPubKey`, with a checksum. It never appears on the chain.
+
+| Format | Encoding | Checksum | Used for | Spec |
+|--------|----------|----------|----------|------|
+| `1...` | Base58Check | 4-byte SHA256d | P2PKH | Original |
+| `3...` | Base58Check | 4-byte SHA256d | P2SH and nested SegWit | BIP13 |
+| `bc1q...` | Bech32 | BCH code over GF(32) | SegWit v0 | BIP173 |
+| `bc1p...` | Bech32m | Modified BCH constant | SegWit v1+ | BIP350 |
+
+Bech32 uses a 32-character alphabet excluding `1`, `b`, `i`, and `o`, is case-insensitive, and its BCH checksum detects any 4 character errors and locates single errors. Bech32m exists because the original bech32 constant of 1 has a flaw: inserting or deleting a `q` immediately before the checksum in certain positions preserves validity. That is harmless for the fixed-length v0 programs but not for future variable-length ones, so BIP350 changed the constant to `0x2bc830a3` for witness versions 1 and above.
+
+### 7.5 Adoption
+
+Taproot outputs are 34.22 percent of the UTXO set and 0.75 percent of value, and that ratio is mostly inscriptions rather than payments. Wallet support arrived slowly: hardware wallets shipped Taproot signing through 2022 and 2023, and Bitcoin Core made `bech32m` the default address type in version 23.0.
+
+The privacy argument for Taproot is stronger than the fee argument and has been undermined by both. A Taproot key-path spend is indistinguishable from a MuSig2 5-of-5 or a cooperatively closed Lightning channel, which is the point. But the population of Taproot spends is dominated by inscription reveals using the script path with a distinctive envelope pattern, so in practice a Taproot input in 2026 is more identifiable, not less.
+
+---
+
+## 8. Wallet Key Management: BIP32, BIP39, BIP44
+
+### 8.1 One Seed, Unlimited Keys
+
+A hierarchical deterministic wallet derives every key it will ever use from a single 512-bit seed, so a backup is a fixed-size secret rather than a growing key file.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    ENT["Entropy: 128 to 256 bits<br/>from a CSPRNG"]
+
+    ENT --> CS["BIP39 checksum:<br/>first ENT/32 bits of SHA256(entropy).<br/>128 bits -> 4 check bits -> 132 bits<br/>256 bits -> 8 check bits -> 264 bits"]
+
+    CS --> WORDS["Split into 11-bit groups,<br/>index a 2048-word list.<br/>132 / 11 = 12 words<br/>264 / 11 = 24 words"]
+
+    WORDS --> MNEM["Mnemonic:<br/>'abandon abandon ... about'<br/>Wordlist is per-language;<br/>first 4 letters are unique."]
+
+    MNEM --> KDF["BIP39 seed derivation:<br/>PBKDF2-HMAC-SHA512<br/>password = NFKD(mnemonic)<br/>salt = 'mnemonic' + NFKD(passphrase)<br/>2048 iterations, 512-bit output"]
+
+    KDF --> SEED["512-bit seed S.<br/>Passphrase changes S entirely.<br/>Any passphrase is 'valid':<br/>a wrong one silently yields<br/>a different empty wallet."]
+
+    SEED --> MASTER["BIP32 master key:<br/>I = HMAC-SHA512('Bitcoin seed', S)<br/>IL (32B) = master private key<br/>IR (32B) = master chain code"]
+
+    MASTER --> CKD["Child key derivation, CKDpriv:<br/>hardened, index >= 2^31:<br/>  I = HMAC-SHA512(c_par, 0x00 || k_par || index)<br/>normal, index &lt; 2^31:<br/>  I = HMAC-SHA512(c_par, serP(K_par) || index)<br/>k_child = (IL + k_par) mod n"]
+
+    CKD --> PATH["BIP44 path:<br/>m / purpose' / coin_type' / account' / change / index"]
+
+    PATH --> P44["m/44'/0'/0'/0/0<br/>P2PKH, addresses 1..."]
+    PATH --> P49["m/49'/0'/0'/0/0<br/>P2SH-P2WPKH, addresses 3..."]
+    PATH --> P84["m/84'/0'/0'/0/0<br/>P2WPKH, addresses bc1q..."]
+    PATH --> P86["m/86'/0'/0'/0/0<br/>P2TR, addresses bc1p..."]
+
+    WARN["Hardened derivation matters:<br/>with a non-hardened xpub and ANY<br/>child private key, an attacker recovers<br/>the parent private key. Account level<br/>and above are always hardened."]
+    CKD -.-> WARN
+
+    style ENT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SEED fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MASTER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style WARN fill:#ffebee,stroke:#c62828,stroke-width:3px
+```
+
+### 8.2 BIP32 in Detail
+
+The master key comes from `HMAC-SHA512` with the fixed ASCII key `Bitcoin seed` and the 512-bit seed as data. The left 32 bytes become the master private key, the right 32 the master chain code. A chain code is 256 bits of extra entropy carried alongside each key so that deriving a child requires both.
+
+Child derivation splits on the index. Indices at or above 2^31 are hardened, written `44'` or `44h`, and hash the parent **private** key. Indices below 2^31 are normal and hash the parent **public** key, which is what allows an extended public key (`xpub`) to derive receive addresses without any private key present.
+
+That capability carries a trap. Given a parent `xpub` and any non-hardened child private key, an attacker computes `k_par = k_child - IL mod n` and recovers the parent private key, and from it every sibling. This is why every standard path hardens the purpose, coin type, and account levels, and why exporting an account-level `xpub` to a watch-only wallet or an accounting system is safe while exporting the master `xpub` is not.
+
+An extended key serialises to 78 bytes: 4 version bytes (`0x0488ADE4` for mainnet `xprv`, `0x0488B21E` for `xpub`), 1 depth byte, 4 bytes of parent fingerprint, 4 bytes of child index, 32 bytes of chain code, and 33 bytes of key material. Private keys are prefixed with `0x00` to reach 33 bytes; public keys use compressed SEC encoding with a `0x02` or `0x03` prefix.
+
+### 8.3 BIP39 and What the Words Are Not
+
+A BIP39 mnemonic is an encoding of entropy plus a checksum, not a private key.
+
+Twelve words carry 128 bits of entropy and 4 bits of checksum. Twenty-four words carry 256 and 8. The checksum catches most single-word transcription errors and roughly 15 out of 16 random word substitutions in a 12-word phrase, which is useful and much weaker than people assume.
+
+The mnemonic becomes a seed through PBKDF2-HMAC-SHA512 with 2,048 iterations, a salt of the literal string `mnemonic` concatenated with an optional passphrase, and a 512-bit output. Two properties follow that cause real losses.
+
+**2,048 iterations is not a meaningful work factor in 2026.** It was never meant to be. The security is in the 128 or 256 bits of entropy, not in the stretching. A brute force against a mnemonic with full entropy is infeasible; a brute force against a mnemonic derived from a brain-chosen phrase is trivial.
+
+**Any passphrase is valid.** There is no wrong passphrase, only a different wallet. A typo produces a functioning, empty wallet with no error message. This is the "25th word" or "plausible deniability" feature, and it is responsible for a meaningful share of self-custody losses.
+
+BIP39 is also not part of Bitcoin. It is a wallet interoperability convention. Bitcoin Core has never implemented it, and uses its own descriptor-based backup format instead.
+
+### 8.4 Derivation Path Standards
+
+| BIP | Purpose index | Script type | Address prefix |
+|-----|---------------|-------------|----------------|
+| BIP44 | `44'` | P2PKH | `1...` |
+| BIP49 | `49'` | P2SH-P2WPKH | `3...` |
+| BIP84 | `84'` | P2WPKH | `bc1q...` |
+| BIP86 | `86'` | P2TR key path | `bc1p...` |
+| BIP48 | `48'` | Multisig, with a script-type level | varies |
+
+`coin_type` is `0'` for mainnet Bitcoin and `1'` for all testnets, per SLIP-0044. The `change` level is `0` for receive addresses and `1` for change. The `address_index` increments.
+
+Wallets scan a gap limit, conventionally 20 consecutive unused addresses, before concluding that a branch is exhausted. A user who receives to address index 25 while indices 0 through 24 are unused will find a restored wallet reporting a zero balance. This is a recurring support issue and not a bug in anything.
+
+### 8.5 Descriptors and PSBT
+
+Two later standards fixed what BIP32 and BIP39 left ambiguous.
+
+**Output descriptors** (BIP380 through BIP386) express exactly which scripts a wallet owns, in a string that includes the script type, the key origin, and the derivation. For example:
+
+```
+wpkh([d34db33f/84h/0h/0h]xpub6C.../0/*)#gn28ywm7
+```
+
+The bracketed part is the master key fingerprint and the derivation path used to reach the `xpub`. The trailing eight characters are a bech32-style checksum. A descriptor removes the guesswork that made restoring a wallet from a seed phrase alone a matter of trying every standard path against a block explorer. Bitcoin Core made descriptor wallets the only supported type in version 29.0.
+
+**Partially Signed Bitcoin Transactions** (BIP174, with PSBTv2 in BIP370) define a binary format for passing an unsigned or partially signed transaction between devices that hold different keys. A PSBT carries the transaction, the previous outputs being spent with their amounts and scripts, the derivation paths for every key involved, and a slot for each signature. It is what makes a hardware wallet, a coordinator, and a multisig cosigner interoperate without any of them trusting the others about amounts.
+
+---
+
+## 9. Mining and Difficulty Adjustment
+
+### 9.1 The Block Header Is 80 Bytes
+
+Everything a miner grinds against fits in 80 bytes, and everything a light client needs to verify work fits in the same 80 bytes. That coincidence is the design.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["Block header, exactly 80 bytes, hashed twice with SHA-256"]
+        H1["nVersion, 4 bytes LE<br/>bits 29-31 fixed to 001 by BIP9.<br/>Bits 0-12 carry soft-fork signalling.<br/>Bits 13-28 reserved for version<br/>rolling by BIP320, mask 0x1fffe000."]
+        H2["hashPrevBlock, 32 bytes<br/>SHA256d of the parent header.<br/>This is the chain."]
+        H3["hashMerkleRoot, 32 bytes<br/>Root over txids. Changing any<br/>transaction changes this."]
+        H4["nTime, 4 bytes LE, Unix seconds<br/>Must exceed median of last 11 blocks<br/>and be within 2 hours of network time."]
+        H5["nBits, 4 bytes, compact target<br/>0x1707cf49 style encoding.<br/>Must equal the value the retarget<br/>rule computes. Miners cannot pick it."]
+        H6["nNonce, 4 bytes LE<br/>Only 4.29 billion values.<br/>Exhausted in under a millisecond<br/>by a modern ASIC."]
+    end
+
+    H5 --> TGT["Target from nBits:<br/>exponent = nBits >> 24<br/>mantissa = nBits &amp; 0x007fffff<br/>target = mantissa * 256^(exponent - 3)<br/><br/>Difficulty 1 target = 0xFFFF * 2^208<br/>difficulty = max_target / target"]
+
+    H6 --> SEARCH["The search:<br/>SHA256(SHA256(header)) interpreted<br/>as a 256-bit LE integer must be<br/>&lt;= target."]
+
+    SEARCH --> EXTRA["Nonce space runs out instantly, so miners<br/>also roll:<br/>- extraNonce in the coinbase scriptSig,<br/>  which changes hashMerkleRoot<br/>- nTime, within the 2-hour window<br/>- nVersion low bits (ASICBoost, version rolling)"]
+
+    TGT --> WORK["Expected hashes per block<br/>= difficulty * 2^32.<br/>At 125.81T that is 5.40 * 10^23 hashes.<br/>At 920 EH/s: 587 seconds, about 9.8 minutes."]
+
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style TGT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SEARCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style WORK fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style EXTRA fill:#eceff1,stroke:#37474f,stroke-width:2px
+```
+
+The `nBits` field is a floating-point-like encoding of a 256-bit target in four bytes. The high byte is an exponent, the low three bytes a mantissa. It is not a miner's choice: every node computes the required `nBits` independently from the retarget rule and rejects any header carrying a different value.
+
+The nonce field's inadequacy is a historical artifact. Four bytes gave 4.29 billion attempts, which was ample in 2009 at CPU speeds. A single Antminer S23 Hydro at 580 TH/s exhausts the entire nonce range in 7.4 microseconds. Miners therefore roll the extraNonce inside the coinbase transaction's `scriptSig`, which changes the coinbase txid, which changes the Merkle root, which gives a fresh 4-billion-nonce space per increment. Stratum V1 exposes this by handing miners a partial coinbase and letting them fill in `extranonce2` themselves.
+
+Version rolling, standardised through the Stratum `version-rolling` extension in 2017 and reserved in BIP320, lets miners vary bits 13 to 28 of `nVersion`, mask `0x1fffe000`. Its original motivation was ASICBoost, an optimisation that reuses part of the SHA-256 midstate to save roughly 20 percent of hashing work, and the covert form of which was one of the undercurrents of the 2017 block size fight because SegWit made it harder to use.
+
+**The Merkle root is built bottom up over the block's txids, in block order.** Leaves are the txids as stored, in internal byte order, not the reversed form explorers print. Each level pairs adjacent hashes left to right and takes SHA256d over the 64-byte concatenation of the pair. If a level holds an odd number of hashes, the last one is duplicated and paired with itself. Levels repeat until a single hash remains, and that hash is `hashMerkleRoot`. A 4,000-transaction block is twelve levels deep, so proving that one transaction is in it costs twelve 32-byte sibling hashes, 384 bytes, plus the leaf's index. That is the ratio every light client lives on: 384 bytes instead of 2 MB.
+
+The odd-node duplication rule is the source of two known defects. CVE-2012-2459 exploits it directly. A block whose transaction count is odd can be mutated by appending a copy of its last transaction, which leaves the Merkle root and therefore the block hash unchanged while making the block invalid, because a block may not contain the same transaction twice. Nodes that rejected the mutant recorded that block hash as permanently invalid and then refused the honest block carrying the same hash. Bitcoin Core 0.6.1 fixed it by detecting the duplicated branch while computing the root and rejecting the block as mutated rather than as invalid, which leaves the hash available for the honest block.
+
+The second defect is the 64-byte transaction. A serialised transaction of exactly 64 bytes has the same length as the concatenation of two child hashes, so an interior node of the tree can be handed to a light client as though it were a leaf, and an inclusion proof can be forged for a transaction the block does not contain. Relay policy already refuses transactions below 82 non-witness bytes, but policy is not consensus, and a miner can still include one. The consensus cleanup proposal in 20.2 forbids the length outright, which removes the ambiguity rather than papering over it.
+
+### 9.2 The Coinbase Transaction
+
+The first transaction in every block is a coinbase, and it is the only transaction that creates value.
+
+Its single input has a null outpoint: 32 zero bytes and an index of `0xFFFFFFFF`. Its `scriptSig` is 2 to 100 bytes of arbitrary data, which BIP34 constrains to begin with a push of the block height, making every coinbase txid unique. That rule exists because two pairs of blocks in 2010 have identical coinbase transactions (blocks 91,722 and 91,880, blocks 91,812 and 91,842), and the duplicate overwrote the earlier UTXO, permanently destroying 100 BTC. BIP30 forbade duplicate txids, and BIP34 made them impossible.
+
+Coinbase outputs may not be spent until 100 blocks have passed. That maturity rule exists so that a reorg does not invalidate a chain of transactions descending from a coinbase that no longer exists.
+
+The output value may be at most the subsidy plus the sum of fees in the block. Miners may claim less, and occasionally have: block 501,726 in December 2017 claimed no reward at all, destroying 12.5 BTC through a software error.
+
+### 9.3 The Difficulty Adjustment
+
+Difficulty retargets every 2,016 blocks, roughly every two weeks, and the formula is four lines.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    T["Every 2,016 blocks, at heights<br/>where height % 2016 == 0"]
+
+    T --> M["actual_timespan =<br/>nTime(last block of period)<br/>- nTime(first block of period)"]
+
+    M --> BUG["The off-by-one:<br/>this spans 2,015 intervals,<br/>not 2,016. Retarget uses the<br/>FIRST block of the current period<br/>rather than the last of the previous.<br/>Blocks run ~0.05% fast forever.<br/>Never fixed: fixing it is a hard fork."]
+
+    BUG --> CLAMP["Clamp:<br/>if actual &lt; 302,400 s: actual = 302,400<br/>if actual &gt; 4,838,400 s: actual = 4,838,400<br/>Maximum change is 4x up or 4x down<br/>per retarget."]
+
+    CLAMP --> CALC["new_target = old_target<br/>* actual_timespan / 1,209,600<br/><br/>1,209,600 s = 2016 * 600 = 14 days"]
+
+    CALC --> CHECK["If actual_timespan &lt; 14 days:<br/>blocks came too fast,<br/>target shrinks, difficulty rises.<br/><br/>If actual_timespan &gt; 14 days:<br/>blocks came too slow,<br/>target grows, difficulty falls."]
+
+    CHECK --> REAL["Recent mainnet:<br/>08 Aug 2026 -> 127.48T<br/>23 Aug 2026 -> 125.81T, -1.31%<br/>06 Sep 2026 projected -0.73%"]
+
+    subgraph Props["What the design guarantees, and does not"]
+        P1["Guarantees: ten-minute average<br/>block interval across any two-week<br/>window, whatever the hashrate."]
+        P2["Does not guarantee: any individual<br/>block interval. Intervals are<br/>exponentially distributed. About 1 in 20<br/>gaps exceeds 30 minutes."]
+        P3["Does not respond fast: a 50% hashrate<br/>loss means four-week retarget periods<br/>until the adjustment lands.<br/>China's 2021 mining ban produced<br/>a -27.94% retarget, the largest ever."]
+        P4["Cannot be gamed much: nTime is bounded<br/>by median-time-past below and<br/>network time + 2 hours above."]
+    end
+
+    REAL --> Props
+
+    style T fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BUG fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style CALC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Props fill:#fff3e0,stroke:#e65100,stroke-width:2px
+```
+
+The off-by-one is worth stating precisely. The retarget compares the timestamp of the last block of a period against the timestamp of the **first block of that same period**, which measures 2,015 intervals while dividing by 2,016 intervals' worth of target time. The result is that Bitcoin's blocks arrive about 0.05 percent faster than ten minutes on average, forever. It has been known since 2010 and will not be fixed, because changing it changes the emission schedule and is therefore a hard fork over an error worth roughly one block every three weeks.
+
+The four-times clamp caps how fast difficulty can move. The upward limit bound once, at the retarget of 16 July 2010, which took difficulty from 45.38 to 181.54, exactly 4x, after a Slashdot post five days earlier brought a burst of new miners. The downward limit has never bound. The largest downward adjustment was 27.94 percent in July 2021 after China banned mining and roughly half the network's hashrate went dark within weeks, which is well inside the 75 percent floor.
+
+### 9.4 Pools, Shares, and Payout Schemes
+
+Solo mining a block at 125.81T difficulty with a single S23 Hydro at 580 TH/s has an expected time between successes of 5.40 * 10^23 / 5.8 * 10^14 seconds, which is about 29.5 years. Pooling is not an optimisation. It is the only way for anything short of an industrial site to receive income.
+
+A pool distributes a block template and a share target far easier than the network target. Miners submit headers meeting the share target; the pool counts them as proof of work done and pays accordingly. A share that happens to meet the real network target is a block, and the pool claims it.
+
+| Scheme | How it pays | Who carries variance |
+|--------|-------------|---------------------|
+| **PPS** (pay per share) | Fixed satoshis per share at expected value, minus a fee | The pool |
+| **FPPS** (full pay per share) | PPS plus an average fee component | The pool |
+| **PPLNS** (pay per last N shares) | Shares in the last N-share window split the actual block reward | The miner |
+| **Solo pool** | Winner takes the whole block; the pool only aggregates | The miner, entirely |
+
+FPPS dominates in 2026 because industrial miners finance hardware against predictable cashflow, and PPLNS pays lumpy. The pool absorbing variance is effectively selling insurance, priced into its 1 to 3 percent fee.
+
+### 9.5 Stratum V1 and V2
+
+The mining protocol was never standardised by a BIP and matters more than most things that were.
+
+**Stratum V1**, a JSON-RPC-over-TCP protocol from 2012, sends the miner a `mining.notify` containing the previous block hash, a coinbase split into two halves with an `extranonce2` slot in between, the Merkle branch, the version, `nBits`, and `nTime`. The miner fills in `extranonce2`, computes the Merkle root, grinds nonces, and submits candidates with `mining.submit`. Traffic is unencrypted and unauthenticated, which permits hashrate hijacking by an ISP or a hosting provider, and has been observed in practice.
+
+The structural fact is in the message: the pool supplies the Merkle branch, so the pool chose the transactions. A miner running Stratum V1 has no view of and no vote over block content.
+
+**Stratum V2** adds encryption and authentication using the Noise protocol framework, binary framing that cuts bandwidth, and a Job Declaration subprotocol in which the miner builds its own template from its own node and declares it to the pool, which validates and accepts it. Seven pools representing roughly 75 percent of global hashrate joined the Stratum V2 Working Group on 7 May 2026: AntPool, Block, DMND, F2Pool, Foundry, MARA Foundation, and SpiderPool. Block 955,318, mined through DMND for GoMining on 25 June 2026, was the first production block built with a miner-declared template.
+
+Joining a working group is not deployment. Roughly 25 percent of major pools supported V2-compatible infrastructure as of mid-2026, and most miners connecting over V2 still accept pool-built templates, using the protocol for encryption and efficiency alone. The transaction-selection decentralisation that V2 makes possible is available, not yet widespread.
+
+---
+
+## 10. Nakamoto Consensus and Reorgs
+
+### 10.1 The Rule Is Most Work, Not Longest Chain
+
+Nodes follow the valid chain with the greatest cumulative proof of work. Work is summed as `2^256 / (target + 1)` per block, not counted in blocks.
+
+The distinction has bitten people. Two chains of equal block count can carry different work if a difficulty retarget fell between them, and a shorter chain can outweigh a longer one. Testnet3 demonstrated this constantly until Core 29.0 dropped it, because its 20-minute difficulty reset rule permitted long low-difficulty stretches that a short burst of real hashrate overtook. Testnet4, live since Core 28.0 under BIP94, keeps the reset rule but forbids it at a retarget boundary.
+
+The rule is also purely local. A node does not vote, poll, or ask. It receives headers, checks proof of work, downloads and validates blocks, sums work, and switches to whichever tip wins. Consensus is an emergent property of every node running the same arithmetic on the same data, not a protocol step.
+
+### 10.2 What a Reorg Does
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Normal["Ordinary one-block race, a handful of times a year"]
+        A0["Block 964,750<br/>common ancestor"]
+        A1["Block 964,751-A<br/>found in Iceland"]
+        A2["Block 964,751-B<br/>found in Texas 1.2 s later"]
+        A3["Block 964,752<br/>built on A"]
+        A0 --> A1
+        A0 --> A2
+        A1 --> A3
+        A2 -.->|"stale. Its transactions<br/>return to the mempool<br/>unless already in A."| Stale["Stale block.<br/>Miner earns nothing.<br/>Not called 'orphan':<br/>an orphan is a block<br/>whose parent is unknown."]
+    end
+
+    subgraph Deep["Deep reorg, requires sustained majority hashrate"]
+        B0["Block N<br/>attacker deposits 1,000 BTC<br/>at an exchange"]
+        B1["N+1 ... N+6<br/>public chain confirms it"]
+        B2["Exchange credits, attacker<br/>withdraws to another chain"]
+        B3["Attacker releases a private chain<br/>from N, of greater work,<br/>omitting the deposit"]
+        B4["Every node reorganises.<br/>Deposit never happened.<br/>Withdrawal already settled elsewhere."]
+        B0 --> B1 --> B2
+        B0 -.->|"mined privately"| B3
+        B3 --> B4
+    end
+
+    subgraph What["What a reorg can and cannot do"]
+        C1["CAN: erase recent transactions,<br/>enabling double spend of<br/>the attacker's own coins"]
+        C2["CAN: censor, by refusing to<br/>include and orphaning blocks<br/>that do include"]
+        C3["CANNOT: spend coins whose<br/>private key the attacker lacks.<br/>Signatures are checked by every node."]
+        C4["CANNOT: create coins beyond<br/>the subsidy schedule.<br/>Nodes reject such a block."]
+        C5["CANNOT: change any consensus rule.<br/>A majority mining an invalid chain<br/>simply forks itself off."]
+    end
+
+    Deep --> What
+
+    Math["Confirmation arithmetic, Nakamoto section 11:<br/>with attacker hashrate q = 0.10,<br/>P(catch up from 6 behind) = 0.00024<br/>q = 0.30 -> 0.13 at 6 confirmations<br/>q = 0.45 -> 0.77 at 6 confirmations<br/>q &gt;= 0.50 -> 1.0 at any depth"]
+    What --> Math
+
+    style Normal fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Deep fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style What fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Math fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+```
+
+One-block reorgs still happen, a few times a year. Two miners find a block within the propagation delay of each other, both chains exist for a few seconds, and the next block decides. The transactions in the losing block return to the mempool and confirm in the next one, so users almost never notice. The rate collapsed as propagation improved: 60 stale blocks in 2017, five in 2018, two in 2019, and low single digits every year since, which is compact block relay and dedicated inter-pool links doing their work. The losing miner earns nothing. That is the cost that pays for fast propagation.
+
+The deepest reorg on Bitcoin mainnet since 2013 is six blocks, and it happened during the BIP66 SPV-mining incident of 4 July 2015. The 2013 BerkeleyDB split ran 24 blocks and was a validity disagreement, not a work race. The 2010 value overflow rollback covered 53 blocks and was coordinated by the developers and miners of a network worth almost nothing.
+
+### 10.3 Confirmation Depth Is a Risk Choice
+
+Six confirmations is a convention from the whitepaper, not a rule. The correct depth depends on the value at risk against the cost of acquiring the hashrate needed to rewrite that depth.
+
+The cost side is computable. At 920 EH/s and a hashprice of $38.29 per PH/s per day, the whole network earns about $35.2 million a day, which is $1.47 million an hour and roughly $245,000 per block. An attacker rewriting six blocks must produce seven while the network produces six, so at minimum it duplicates the network's hashrate for an hour: about $1.47 million of energy and depreciation, plus the $1.47 million of honest rewards it forgoes by mining privately. That is a floor near $2.9 million, before acquiring the hardware, and 920 EH/s of hardware is not available to rent at any price.
+
+Exchanges vary from 1 to 6 confirmations for deposits, and the number tracks value, not risk of reorg. A 1,000 BTC deposit is a different question from a 0.01 BTC one.
+
+Zero-confirmation acceptance is a different calculation entirely. Since Bitcoin Core 28.0 made full replace-by-fee the default and 29.0 removed the option to disable it, any unconfirmed transaction can be replaced by a conflicting higher-fee version, so an unconfirmed transaction carries no assurance beyond the sender's reputation. Merchants who accepted zero-conf did so on the basis of a policy that no longer exists.
+
+### 10.4 Selfish Mining and the Majority Question
+
+Selfish mining, described by Eyal and Sirer in 2013, is a strategy in which a miner withholds a found block and releases it strategically to make honest miners waste work. The paper's claim is that it is profitable above roughly 25 percent hashrate under favourable network propagation assumptions.
+
+It has never been observed on mainnet. The reason is probably economic rather than technical: a pool detected doing it loses hashrate immediately, because miners can repoint in minutes, and the pool's franchise is worth more than the marginal revenue. This is the general shape of Bitcoin's defence against pool misbehaviour, and it is a coordination assumption rather than a cryptographic one.
+
+A hashrate majority buys the ability to reorder and censor. It buys nothing else. The commonly repeated framing that "51 percent lets you take everyone's bitcoin" is wrong in a way that matters, because it obscures the actual exposures: deposit double spends against exchanges, and the ability to prevent specific transactions from confirming for as long as the majority persists.
+
+---
+
+## 11. The Mempool and the Fee Market
+
+### 11.1 The Mempool Is Not a Queue and Not Shared
+
+Every node holds its own set of unconfirmed transactions, admitted under its own policy rules, sorted by its own criteria. There is no global mempool, no ordering guarantee, and no queue.
+
+Two nodes started at different times, running different versions, with different `-maxmempool` and `-minrelaytxfee` settings, will hold different sets. A transaction below one node's minimum fee rate is unknown to it and perfectly known to another. Fee estimators work because the sets overlap heavily in practice, not because they are the same.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    IN["Transaction arrives via P2P tx message<br/>or sendrawtransaction RPC"]
+
+    IN --> V1{"Consensus valid?<br/>scripts, amounts,<br/>no double spend"}
+    V1 -->|no| REJ1["Rejected. Peer<br/>may be penalised."]
+
+    V1 -->|yes| V2{"Standard?<br/>known script types,<br/>&lt;= 400,000 WU,<br/>no dust outputs,<br/>version 1, 2 or 3"}
+    V2 -->|no| REJ2["Not relayed.<br/>Still valid in a block<br/>if a miner includes it."]
+
+    V2 -->|yes| V3{"Feerate &gt;=<br/>max(minrelaytxfee,<br/>current mempoolminfee)?"}
+    V3 -->|no| REJ3["Rejected.<br/>minrelaytxfee default<br/>0.1 sat/vB since v30.0"]
+
+    V3 -->|yes| V4{"Cluster limits OK?<br/>&lt;= 64 transactions<br/>and &lt;= 101 kvB<br/>in the connected component<br/>(v31.0 cluster mempool)"}
+    V4 -->|no| REJ4["Too many related<br/>unconfirmed transactions"]
+
+    V4 -->|yes| CONF{"Conflicts with an<br/>existing mempool tx?"}
+    CONF -->|yes| RBF{"RBF checks:<br/>higher absolute fee,<br/>pays incremental relay fee<br/>for its own size,<br/>no new unconfirmed inputs,<br/>feerate diagram strictly better,<br/>&lt;= 100 conflicting descendants"}
+    RBF -->|fail| REJ5["Replacement rejected"]
+    RBF -->|pass| ACC
+    CONF -->|no| ACC["Accepted into mempool"]
+
+    ACC --> ANN["Announce wtxid via inv<br/>to peers, with Poisson delay<br/>~5 s inbound, ~2 s outbound"]
+
+    ACC --> FATE{"What happens next"}
+    FATE --> F1["Mined: removed, along with<br/>anything it conflicts with"]
+    FATE --> F2["Replaced by a higher-fee<br/>conflicting transaction"]
+    FATE --> F3["Evicted: mempool exceeds<br/>300 MB default, lowest-chunk-feerate<br/>transactions dropped, mempoolminfee<br/>rises to the eviction floor"]
+    FATE --> F4["Expired: 336 hours,<br/>14 days, in the mempool"]
+    FATE --> F5["Lost on restart unless<br/>mempool.dat persists it"]
+
+    style IN fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ACC fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style REJ1 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style REJ2 fill:#fff3e0,stroke:#e65100,stroke-width:1px
+    style REJ3 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style REJ4 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style REJ5 fill:#ffebee,stroke:#c62828,stroke-width:1px
+    style FATE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+```
+
+### 11.2 The Defaults That Matter
+
+| Parameter | Default | Changed |
+|-----------|---------|---------|
+| `-maxmempool` | 300 MB | since 0.12 |
+| `-mempoolexpiry` | 336 hours (14 days) | since 0.14 |
+| `-minrelaytxfee` | 0.1 sat/vB | lowered from 1 sat/vB in v30.0 |
+| `-incrementalrelayfee` | 0.1 sat/vB | lowered in v30.0 |
+| `-blockmintxfee` | 0.001 sat/vB | lowered in v30.0 |
+| `-datacarriersize` | 100,000 bytes | raised from 83 in v30.0, deprecated |
+| Max standard tx weight | 400,000 WU (100,000 vbytes) | since 0.13 |
+| Cluster size limit | 64 transactions, 101 kvB | new in v31.0 |
+| Dust threshold | 546 sat (P2PKH-equivalent), 294 sat (P2WPKH) | unchanged |
+| `-dbcache` | 1024 MiB on machines with 4 GiB+ RAM | raised from 450 MiB in v31.0 |
+
+Dust is defined as an output whose value is below three times the cost of spending it at the dust relay feerate of 3,000 sat/kvB. It is a relay rule, not a consensus rule, and it exists to stop the UTXO set filling with outputs nobody will ever economically spend. It did not work: 49.1 percent of UTXOs hold under 1,000 satoshis, most of them inscription outputs at exactly 546.
+
+### 11.3 Replace-by-Fee and Child-Pays-for-Parent
+
+Two mechanisms let a transaction's effective fee change after broadcast, and they solve opposite problems.
+
+**Replace-by-fee** replaces an unconfirmed transaction with a conflicting one paying more. BIP125 originally required the transaction to signal opt-in by setting an `nSequence` below `0xFFFFFFFE`. Bitcoin Core 28.0 (October 2024) made full RBF the default, and 29.0 (April 2025) removed the option entirely. Any unconfirmed transaction is now replaceable on the default network.
+
+The current replacement rules, in `doc/policy/mempool-replacements.md`, require that the replacement pay a higher absolute fee than everything it evicts, that it pay at least the incremental relay feerate for its own size on top of that, that it introduce no new unconfirmed inputs, and that it conflict with no more than 100 descendant transactions. Since 31.0 an additional condition applies: the resulting mempool feerate diagram must be strictly better than before, which replaces several ad hoc rules with one comparison.
+
+**Child-pays-for-parent** works when the sender cannot replace, typically because the receiver holds the transaction. Anyone spending an output of a stuck transaction can attach a high-fee child; a miner evaluating the pair as a package sees an ancestor feerate high enough to include both. This is the escape hatch that makes receiving an underpaid transaction survivable.
+
+**Pinning** is the attack that connects them. A counterparty who can attach a large low-fee descendant to a shared transaction inflates the package the honest party must beat, sometimes past the point where beating it is economic. This is not theoretical: it breaks Lightning's justice transactions under adversarial conditions. BIP431 addresses it with TRUC transactions, version 3, standard since Core 28.0, which restrict a transaction to being either a singleton of at most 10,000 vbytes or the single child, capped at 1,000 vbytes, of exactly one TRUC parent. The topology restriction makes the maximum pinning cost bounded and small.
+
+### 11.4 Cluster Mempool
+
+Bitcoin Core 31.0, released 19 April 2026, replaced the ancestor and descendant limits with cluster limits, and this is the largest mempool change since the mempool was written.
+
+The old model bounded each transaction's ancestor set at 25 transactions and 101 kvB and its descendant set at the same, which is a per-transaction constraint that says nothing useful about the mining algorithm's cost. The new model treats the mempool as a forest: a cluster is a connected component under the parent-child relation, bounded at 64 transactions and 101 kvB. Within a cluster, transactions are partitioned into chunks by a linearisation algorithm, and each chunk carries a feerate. Block assembly consumes chunks in feerate order.
+
+Three things become possible. The mining algorithm becomes exactly optimal within cluster bounds instead of a greedy approximation. RBF gets a single principled test, the feerate diagram comparison, in place of a pile of heuristics. And the CPFP carve-out, a special case added in 0.19 to let one small child bypass descendant limits, was removed, with TRUC as the supported replacement.
+
+Two new RPCs expose the internals: `getmempoolcluster` and `getmempoolfeeratediagram`.
+
+### 11.5 The Fee Market as It Stands in 2026
+
+Fees are 0.77 percent of miner revenue in the week ending 3 August 2026, near a ten-year low, having touched 0.52 percent in April 2026. Typical next-block feerates run 1 to 6 sat/vB, and the mempool held roughly 241 MB on 19 August 2026.
+
+That is a market with essentially no congestion. The history tells the rest.
+
+| Period | Driver | Peak feerate | Notes |
+|--------|--------|--------------|-------|
+| Dec 2017 | Retail bull market | ~1,000 sat/vB | Median fee above $30 |
+| May 2023 | Ordinals and BRC-20 | >300 sat/vB | Record 682,281 transactions on 1 May 2023 |
+| Dec 2023 | Inscription wave | ~385 sat/vB | Average fee peaked at $38.43 on 17 Dec |
+| 20 Apr 2024 | Runes launch at the halving block | >2,750 sat/vB | Block 840,000 carried ~37.6 BTC in fees, roughly $2.4 M, the highest-fee block ever |
+| Aug 2026 | Nothing in particular | 1 to 6 sat/vB | Fees 0.77% of miner revenue |
+
+Fee estimation in Bitcoin Core works from observed confirmation times, tracking how long transactions in each feerate bucket took to confirm and reporting a feerate likely to confirm within a target number of blocks. Core 31.0 lowered the minimum bucket from 1 sat/vB to 0.1 sat/vB to match the new relay minimum, which matters only in a market this quiet.
+
+---
+
+## 12. The P2P Network and Propagation
+
+### 12.1 Message Framing
+
+Bitcoin's P2P protocol is a binary message stream over TCP, default port 8333, with a 24-byte header per message.
+
+| Offset | Size | Field | Value |
+|--------|------|-------|-------|
+| 0 | 4 | magic | `0xF9BEB4D9` mainnet, `0x0B110907` testnet3, `0xFABFB5DA` regtest |
+| 4 | 12 | command | ASCII, null-padded, e.g. `version\0\0\0\0\0` |
+| 16 | 4 | payload length | uint32 LE, max 4,000,000 |
+| 20 | 4 | checksum | first 4 bytes of SHA256d(payload) |
+
+The magic bytes exist so a node can resynchronise a stream after corruption and so that different networks cannot accidentally talk to each other. The checksum is redundant over TCP and was retained anyway. BIP324's v2 transport removes both, replacing the whole frame with a ChaCha20-Poly1305 AEAD envelope and a 1-byte or 13-byte command encoding, which is where its "mild bandwidth reduction" comes from.
+
+The current protocol version is 70016, which signals `wtxidrelay` support per BIP339. A connection opens with a `version` message carrying the protocol version, service flags, timestamps, addresses, user agent, and best block height, answered by `verack`.
+
+| Message | Purpose |
+|---------|---------|
+| `version` / `verack` | Handshake |
+| `addr` / `addrv2` / `getaddr` | Peer discovery; `addrv2` (BIP155) carries Tor v3, I2P, and CJDNS addresses |
+| `inv` | Announce txids, wtxids, or block hashes the sender has |
+| `getdata` | Request specific items announced by `inv` |
+| `tx` | A serialised transaction |
+| `getheaders` / `headers` | Header sync, up to 2,000 headers per `headers` message |
+| `block` | A full serialised block |
+| `sendcmpct` / `cmpctblock` / `getblocktxn` / `blocktxn` | Compact block relay, BIP152 |
+| `feefilter` | Tell a peer not to announce below a feerate, BIP133 |
+| `sendheaders` | Ask for direct header announcements instead of `inv`, BIP130 |
+| `wtxidrelay` | Negotiate wtxid-based relay, BIP339 |
+| `getcfilters` / `cfilter` / `cfheaders` | Compact block filters for light clients, BIP157/158 |
+| `ping` / `pong` | Liveness and latency |
+| `notfound` | Requested item is unavailable |
+
+### 12.2 Connection Management and Eclipse Resistance
+
+A default Bitcoin Core node opens 8 outbound full-relay connections, 2 outbound block-relay-only connections, and one rotating feeler connection used to test addresses, and accepts up to 115 inbound for a total of 125.
+
+The block-relay-only connections carry blocks and headers but never transactions or addresses. They exist because transaction and address relay is the observable side of a node, so a peer that only sees blocks cannot infer which transactions originated locally or map the node's peer graph. An attacker attempting an eclipse, in which a victim's every connection is attacker-controlled, must find and occupy connections it cannot see.
+
+Peer addresses live in `addrman`, a structured table of 1,024 "new" buckets and 256 "tried" buckets. Which bucket an address lands in is derived from its network group, so filling the table requires addresses across many groups rather than many addresses in one. Since Core 0.20.0 the `-asmap` option groups by autonomous system number instead of by IP prefix, making the diversity requirement harder to fake for an attacker who controls one AS. Core 31.0 embeds an ASN map generated on 5 March 2026 so the feature no longer needs an external file, though it stays off by default.
+
+BIP324 v2 transport, default since Core 27.0, gives opportunistic encryption using X25519 with the ElligatorSwift encoding, so the handshake has no recognisable byte pattern for a deep packet inspector to fingerprint. It defends against passive observation and traffic shaping, not against a peer that is itself the adversary. Its share of P2P traffic is not published: crawlers report the share of reachable nodes advertising v2, not bytes carried, and no traffic-volume measurement exists.
+
+### 12.3 Transaction Relay
+
+A node announcing a transaction sends an `inv` containing its wtxid, and the peer responds with `getdata` if it does not have it.
+
+Announcements are batched and delayed on a Poisson schedule, averaging 5 seconds to inbound peers (`INBOUND_INVENTORY_BROADCAST_INTERVAL`) and 2 seconds to outbound (`OUTBOUND_INVENTORY_BROADCAST_INTERVAL`). The asymmetry is deliberate: an attacker who connects many inbound sockets to a node and times first announcements can otherwise infer which transactions the node originated. Slower announcement to inbound peers costs propagation time and buys origin privacy.
+
+Bandwidth is the known weakness. Every transaction is announced to every peer, so a node with 10 peers sends roughly 10 announcements per transaction, and announcements dominate a well-connected node's traffic. Erlay, specified in BIP330, replaces most announcements with a periodic reconciliation using invertible Bloom lookup tables, reducing relay bandwidth by roughly 40 percent overall and by 84 percent on the announcement component. It has been implemented and reviewed for years and is not merged as of August 2026.
+
+### 12.4 Block Propagation
+
+A 2 MB block sent naively to 10 peers is 20 MB of upload and several seconds of delay, and every second of delay is stale-block risk for the miner who found it. Two mechanisms cut it.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant M as Miner's node<br/>found block 964,759
+    participant A as Peer A<br/>high-bandwidth mode
+    participant B as Peer B<br/>low-bandwidth mode
+    participant C as Peer C<br/>missing 3 transactions
+
+    Note over M,C: Setup, once per connection
+    A->>M: sendcmpct(announce=1, version=2)
+    B->>M: sendcmpct(announce=0, version=2)
+    Note over M: Core keeps at most 3 peers<br/>in high-bandwidth mode
+
+    Note over M,C: Block found. ~2 MB, ~4,000 transactions
+    M->>M: Validate own block
+
+    rect rgb(232, 245, 233)
+    Note over M,A: High bandwidth: send without being asked
+    M->>A: cmpctblock<br/>80-byte header + nonce<br/>+ 6-byte short IDs per tx<br/>+ prefilled coinbase<br/>~25 KB for 4,000 txs
+    A->>A: SipHash-2-4 keyed by<br/>SHA256(header || nonce)<br/>over each mempool wtxid.<br/>Match short IDs.
+    A->>A: All present. Reconstruct,<br/>validate, relay onward.
+    end
+
+    rect rgb(227, 242, 253)
+    Note over M,B: Low bandwidth: announce first
+    M->>B: headers (or inv)
+    B->>M: getdata(MSG_CMPCT_BLOCK)
+    M->>B: cmpctblock
+    B->>B: Reconstruct from mempool
+    end
+
+    rect rgb(255, 243, 224)
+    Note over M,C: Missing transactions
+    M->>C: cmpctblock
+    C->>C: 3 short IDs unmatched
+    C->>M: getblocktxn(indexes 412, 1877, 3902)
+    M->>C: blocktxn(3 full transactions)
+    C->>C: Reconstruct, validate, relay
+    end
+
+    Note over M,C: Result: ~25 KB instead of 2 MB.<br/>Sub-second propagation to the<br/>bulk of the network.
+
+    Note over M,C: 48-bit short IDs collide in a<br/>4,000-tx block roughly 1 time in<br/>3.5 * 10^7. 6 bytes bounds bandwidth<br/>at a collision rate the getblocktxn<br/>fallback absorbs cheaply.
+```
+
+**Headers-first synchronisation**, since Core 0.10, downloads and validates the 80-byte header chain before requesting any block bodies. A node knows the shape and total work of the chain before spending bandwidth on contents, which makes parallel block download from many peers safe and makes a bogus low-work chain cheap to reject.
+
+**Compact block relay**, BIP152, sends a block as its header, a nonce, and a 6-byte SipHash-2-4 short ID per transaction, keyed by the header and nonce so an attacker cannot precompute colliding transactions. A peer reconstructs the block from its own mempool and requests only what it lacks. A 2 MB block becomes roughly 25 KB. Version 2 of the protocol uses wtxids rather than txids, which SegWit made necessary.
+
+High-bandwidth mode, requested by `sendcmpct(announce=1)`, lets a peer push a `cmpctblock` unsolicited immediately after validating proof of work. Core maintains at most three such peers. Low-bandwidth mode announces first and sends on request, which avoids duplicate transmission at the cost of one round trip.
+
+Beyond the public network, miners historically used FIBRE, a UDP relay network with forward error correction that eliminated round trips entirely. Its role has largely been taken over by compact blocks plus dedicated private links between large pools.
+
+---
+
+## 13. Node Types and Initial Block Download
+
+### 13.1 The Node Taxonomy
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Full["Validating nodes - enforce every consensus rule"]
+        AR["ARCHIVAL FULL NODE<br/>All ~740 GB of blocks retained.<br/>Serves historical blocks during IBD.<br/>Optional txindex adds ~50 GB.<br/>The population that makes IBD possible."]
+        PR["PRUNED FULL NODE<br/>Validates everything, then deletes<br/>old block files. -prune=550 keeps<br/>the minimum: UTXO set,<br/>headers, last 288 blocks.<br/>~10 GB total. Cannot serve<br/>historical blocks or rescan<br/>before the prune horizon."]
+        AU["ASSUMEUTXO NODE<br/>Loads a signed UTXO snapshot<br/>via loadtxoutset, becomes usable<br/>in under two hours, then validates<br/>the full history in the background.<br/>Available since v28.0."]
+    end
+
+    subgraph Light["Non-validating clients - trust someone"]
+        SPV["SPV / BIP37 BLOOM FILTER<br/>Headers only, ~77 MB for the<br/>full header chain at 80 bytes<br/>per block. Asks a full node for<br/>matching transactions plus a<br/>Merkle proof. The filter leaks<br/>the wallet's addresses to that node.<br/>Disabled by default since Core 0.19."]
+        NEU["NEUTRINO / BIP157-158<br/>Server builds a compact filter per<br/>block, ~20 KB, encoding every<br/>script touched. Client downloads<br/>filters, checks locally, and only<br/>requests the few blocks that match.<br/>Leaks nothing to the server.<br/>Costs ~5 GB of filters for the chain."]
+        CUS["CUSTODIAL CLIENT<br/>No chain data. Trusts an API.<br/>The vast majority of wallets<br/>by user count."]
+    end
+
+    subgraph Mining["Mining participants"]
+        POOL["POOL NODE<br/>Full node plus template<br/>construction plus share accounting."]
+        HASH["HASHER<br/>ASICs. No chain data at all.<br/>Receives 80-byte header<br/>candidates over Stratum."]
+    end
+
+    Full -->|"serve blocks,<br/>headers, filters"| Light
+    Full --> Mining
+    POOL --> HASH
+
+    Trade["The trade is bandwidth and disk<br/>against trust. A full node trusts<br/>nobody about validity. Neutrino trusts<br/>that at least one peer is honest about<br/>which blocks exist. SPV trusts the<br/>peer it queries. Custodial trusts a company."]
+
+    style Full fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Light fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Mining fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Trade fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+```
+
+### 13.2 Initial Block Download
+
+Bringing a new node to the chain tip means downloading roughly 740 GB, verifying about 1.3 billion transactions, and building an 11 GB UTXO set. Bitcoin Core runs it in four phases.
+
+**Header sync.** The node requests headers via `getheaders`, receiving up to 2,000 per message. The full header chain at 964,758 blocks is about 77 MB and downloads in seconds. Proof of work is checked on every header, so a peer feeding a fake chain must actually mine it.
+
+**Parallel block download.** With the header chain known, the node requests block bodies from its peers in parallel, at most 16 blocks in flight per peer (`MAX_BLOCKS_IN_TRANSIT_PER_PEER`), inside a 1,024-block window ahead of the validated tip (`BLOCK_DOWNLOAD_WINDOW`). Stalling detection disconnects a peer that holds up the low end of the window. The number of peers used is bounded by the outbound connection count, not by 16.
+
+**Validation with `assumevalid`.** Bitcoin Core ships a hardcoded block hash, updated each release, below which script signature verification is skipped. Every other rule is still checked: block structure, Merkle roots, proof of work, the UTXO set transitions, amounts, and the absence of double spends. Only the signature checks, which dominate CPU time, are skipped for history that has been buried under years of accumulated work. A node can disable this with `-assumevalid=0` at the cost of several extra hours.
+
+**UTXO set construction.** Blocks are applied in order, inserting and deleting outputs. `-dbcache` controls how much of the set is held in RAM before flushing to LevelDB, and it is the single largest determinant of IBD time. Core 31.0 raised the default to 1024 MiB on machines with at least 4 GiB of RAM, from 450 MiB.
+
+**AssumeUTXO**, available since Core 28.0, changes the shape entirely. The operator obtains a serialised UTXO snapshot out of band and loads it with `loadtxoutset`. The node checks the snapshot's hash against a value hardcoded in the release, builds a chainstate from it, and syncs from the snapshot height forward, which takes minutes. In the background it performs the full historical validation from genesis, and until that completes the node is trusting the release's snapshot hash. Time to a usable node drops from six hours to a week down to under two hours.
+
+The security model of `assumeutxo` is worth stating plainly, since it is often misdescribed. The user trusts the Bitcoin Core release's hardcoded hash for a window of hours or days, exactly as they already trust the `assumevalid` hash and the release binary itself. They do not trust the party who supplied the snapshot file, because a wrong file fails the hash check.
+
+### 13.3 What It Costs to Run One
+
+| Resource | Minimum viable | Comfortable | Notes |
+|----------|----------------|-------------|-------|
+| Disk | ~10 GB pruned | 1 TB NVMe SSD | Full chain ~740 GB and growing 70 to 80 GB/year |
+| RAM | 2 GB | 8 GB+ | `-dbcache=1024` default needs 4 GiB detected |
+| CPU | Any 64-bit dual core | 4 cores | Only matters during IBD |
+| Bandwidth down | ~740 GB once | same | Pruned nodes still download everything |
+| Bandwidth up | ~5 GB/month | 200+ GB/month | Archival nodes serving IBD dominate this |
+| IBD time | Days on a Raspberry Pi with an HDD | 6 hours on a fast desktop with NVMe | Under 2 hours with assumeutxo |
+
+Roughly 23,000 reachable listening nodes were counted in April 2026. Total nodes including those behind NAT are not directly measurable; published estimates range from 50,000 to over 100,000, and none of them is a measurement.
+
+The number that actually matters is not the node count but the cost of running one, because that cost is the entry price for enforcing rules on your own behalf. A 1 TB NVMe drive at 2026 prices plus a small computer is a few hundred dollars, and the chain grows at 70 to 80 GB a year, which is 52,560 blocks at an average 1.5 MB, against a storage cost per gigabyte that falls faster. That ratio, not the node count, is the argument the block size war was about.
+
+---
+
+## 14. A Worked End-to-End Example
+
+Follow 0.65 BTC from two UTXOs to a confirmed payment, with every number stated.
+
+### 14.1 The Setup
+
+Alice runs a descriptor wallet derived from a 24-word BIP39 mnemonic with no passphrase, holding a BIP84 P2WPKH account at `m/84'/0'/0'` and a BIP86 Taproot account at `m/86'/0'/0'`. She holds two UTXOs, one under each account:
+
+| Outpoint | Value | Script type | Derivation |
+|----------|-------|-------------|------------|
+| `4a5e...c31b:0` | 0.40000000 BTC (40,000,000 sat) | P2WPKH | `m/84'/0'/0'/0/7` |
+| `9c1f...80a2:1` | 0.25000000 BTC (25,000,000 sat) | P2TR | `m/86'/0'/0'/1/3` |
+
+She is paying Bob 0.30000000 BTC to `bc1p...`, a P2TR address. The mempool on 30 August 2026 is quiet; her wallet's fee estimator targets 3 confirmations and returns 3 sat/vB.
+
+### 14.2 Size and Fee Arithmetic
+
+The wallet constructs a transaction with 2 inputs and 2 outputs, both outputs P2TR.
+
+```
+Base size (no witness):
+  version                                     4 bytes
+  input count (CompactSize)                   1
+  input 1: 32 txid + 4 vout + 1 (empty scriptSig len) + 4 sequence   = 41
+  input 2: same                                                       = 41
+  output count                                1
+  output 1: 8 value + 1 len + 34 scriptPubKey                        = 43
+  output 2: 8 value + 1 len + 34 scriptPubKey                        = 43
+  nLockTime                                   4
+  ---------------------------------------------------------------
+  base_size                                 178 bytes
+
+Witness section:
+  marker 0x00 + flag 0x01                     2 bytes
+  input 1 (P2WPKH): 1 item count + 1+71 sig + 1+33 pubkey          = 107
+  input 2 (P2TR key path): 1 item count + 1+64 sig                 =  66
+  ---------------------------------------------------------------
+  witness bytes                             175
+
+total_size = 178 + 175                      353 bytes
+weight     = 178 * 3 + 353                  887 weight units
+vsize      = ceil(887 / 4)                  222 vbytes
+
+Fee at 3 sat/vB                             666 satoshis
+Fee in USD at $79,100/BTC                   $0.53
+```
+
+Inputs total 65,000,000 sat. Bob receives 30,000,000. Change is 65,000,000 - 30,000,000 - 666 = 34,999,334 sat, which is 0.34999334 BTC, sent to `m/86'/0'/0'/1/4`.
+
+Note what the fee does not depend on: the 0.3 BTC being sent. It depends on 222 vbytes. Had Alice's 0.65 BTC been spread across twenty P2TR UTXOs instead of two, the transaction would be roughly 1,240 vbytes and the fee 3,720 satoshis, five and a half times more, for an identical payment.
+
+### 14.3 The Sequence
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant W as Alice's wallet<br/>BIP86 descriptor
+    participant HW as Hardware signer<br/>holds the seed
+    participant N as Alice's full node
+    participant P as P2P network<br/>~23,000 listening nodes
+    participant PL as Mining pool<br/>Foundry, 23.8% share
+    participant AS as ASIC farm<br/>Stratum V2
+    participant B as Bob's node
+
+    Note over W,B: Construction
+    W->>W: Coin selection: pick 4a5e:0 (0.40) and 9c1f:1 (0.25)
+    W->>W: Build 2-in 2-out P2TR tx.<br/>222 vbytes, 887 WU
+    W->>N: estimatesmartfee 3
+    N-->>W: 3 sat/vB from confirmation history
+    W->>W: fee = 666 sat, change = 34,999,334 sat
+    W->>HW: PSBT with prevout amounts,<br/>scripts, and derivation paths
+
+    Note over HW: BIP341 sighash commits to<br/>ALL input amounts and scriptPubKeys.<br/>A lying host cannot induce<br/>a signature over a wrong fee.
+    HW->>HW: Verify change path is its own
+    HW->>HW: Sign input 1: ECDSA, BIP143 sighash, low-S, RFC6979
+    HW->>HW: Sign input 2: Schnorr BIP340,<br/>64 bytes, SIGHASH_DEFAULT
+    HW-->>W: Signed PSBT
+    W->>W: Finalise, extract raw tx.<br/>txid 7be3...9f04 fixed at construction:<br/>both inputs are SegWit, so no malleability.
+
+    Note over W,P: Broadcast
+    W->>N: sendrawtransaction
+    N->>N: Consensus check: scripts, amounts, no double spend
+    N->>N: Policy check: standard, 222 vB under the 100,000 vB cap,<br/>3 sat/vB above the 0.1 sat/vB minrelay,<br/>cluster of 1 under the 64 tx limit
+    N->>N: Accept into mempool
+    N->>P: inv(MSG_WTX, wtxid) to peers,<br/>Poisson delay avg 5 s in, 2 s out
+    P->>N: getdata(wtxid)
+    N->>P: tx (353 bytes)
+    Note over P: Reaches most of the network<br/>in a few seconds
+
+    Note over PL,AS: Mining
+    P->>PL: tx reaches the pool's node
+    PL->>PL: Cluster mempool linearises the tx<br/>into a chunk at 3 sat/vB
+    PL->>PL: Build template: coinbase claims<br/>3.125 BTC subsidy + ~0.03 BTC fees,<br/>fill to 4,000,000 WU by chunk feerate
+    PL->>AS: Stratum V2 job:<br/>80-byte header candidate,<br/>merkle path, nBits 0x1707..., share target
+    loop ~5.4 * 10^23 hashes network-wide
+        AS->>AS: SHA256d(header), roll nonce,<br/>extraNonce, nTime, version bits
+    end
+    AS-->>PL: Share meeting the NETWORK target
+    PL->>PL: Validate own block against its full node
+    PL->>P: cmpctblock, ~25 KB for a ~2 MB block
+
+    Note over P,B: Confirmation
+    P->>B: cmpctblock
+    B->>B: Reconstruct from mempool, request<br/>any missing tx via getblocktxn
+    B->>B: Validate: PoW at or under target, merkle root,<br/>every script, every amount, no double spend
+    B->>B: Apply to UTXO set: delete 4a5e:0 and 9c1f:1,<br/>insert 7be3:0 and 7be3:1
+    B-->>B: Bob's wallet shows 0.3 BTC, 1 confirmation
+
+    Note over W,B: Six blocks later, roughly 60 minutes.<br/>Rewriting that hour means duplicating<br/>920 EH/s for an hour: about $1.47 M of<br/>energy plus $1.47 M of forgone rewards,<br/>at a late-August 2026 hashprice of $38.29 per PH/s per day.
+```
+
+### 14.4 What Went Right, and What Could Have Gone Wrong
+
+Three failure modes are worth naming because they are the ones that actually occur.
+
+**The fee estimate is too low and the transaction sits.** Alice's wallet can replace it: full RBF is the default since Core 28.0, so she broadcasts a conflicting transaction paying, say, 10 sat/vB. To be accepted the replacement must pay more in absolute fees than the original and cover its own size at the incremental relay feerate, so it costs 2,220 satoshis rather than 666. Bob sees a different txid and, if his software is naive, briefly sees a payment disappear.
+
+**Bob wants it faster and Alice is gone.** Bob spends his own new output with a high-fee child. A miner evaluates the pair as a package; the ancestor feerate of the pair determines inclusion. This is CPFP, and Core's 1-parent-1-child package relay, improved in 30.0 and again in 31.0, means the child propagates even when the parent alone is below the relay minimum.
+
+**The hardware signer is fed a false amount.** Under legacy sighash this worked: a compromised host claimed input 1 was 0.40 BTC when it was 4.0, and the device signed away 3.6 BTC in fees. BIP143 fixed it for SegWit v0 by committing to the input's amount, and BIP341 extended the commitment to all input amounts and scripts. This is not a theoretical hardening. It closed a live class of attack against every hardware wallet shipped before 2017.
+
+---
+
+## 15. The Halving Schedule and Miner Economics
+
+### 15.1 The Emission Schedule Is Integer Arithmetic
+
+The block subsidy starts at 5,000,000,000 satoshis and is halved by an integer right shift every 210,000 blocks. After 33 shifts the value is zero.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Rule["The rule, in full"]
+        R1["halvings = height / 210,000  (integer division)<br/>if halvings &gt;= 64: subsidy = 0<br/>subsidy = 5,000,000,000 satoshi &gt;&gt; halvings<br/><br/>Integer shift, so the subsidy reaches 1 satoshi<br/>and then 0 at halving 33, block 6,930,000,<br/>around the year 2140."]
+    end
+
+    subgraph Past["Halvings so far"]
+        E0["Block 0, Jan 2009<br/>50 BTC<br/>10,500,000 BTC issued in era"]
+        E1["Block 210,000, 28 Nov 2012<br/>25 BTC<br/>5,250,000 BTC"]
+        E2["Block 420,000, 09 Jul 2016<br/>12.5 BTC<br/>2,625,000 BTC"]
+        E3["Block 630,000, 11 May 2020<br/>6.25 BTC<br/>1,312,500 BTC"]
+        E4["Block 840,000, 20 Apr 2024<br/>3.125 BTC<br/>1,312,500/2 BTC when complete.<br/>Highest-fee block ever: ~37.6 BTC"]
+        E0 --> E1 --> E2 --> E3 --> E4
+    end
+
+    subgraph Now["Position on 30 Aug 2026, height 964,758"]
+        N1["124,758 blocks into era 5<br/>124,758 * 3.125 = 389,871.875 BTC<br/><br/>Cumulative issued:<br/>10,500,000 + 5,250,000 + 2,625,000<br/>+ 1,312,500 + 389,872<br/>= 20,077,372 BTC<br/>= 95.6% of the 21 million cap"]
+        N2["Daily issuance:<br/>144 blocks * 3.125 = 450 BTC<br/>= ~$35.6 M/day at $79,100"]
+    end
+
+    subgraph Next["Next halvings"]
+        F1["Block 1,050,000, ~April 2028<br/>3.125 -> 1.5625 BTC<br/>Daily issuance 450 -> 225 BTC"]
+        F2["Block 1,260,000, ~2032<br/>0.78125 BTC"]
+        F3["Block 6,930,000, ~2140<br/>subsidy reaches 0.<br/>Fees are the entire budget."]
+        F1 --> F2 --> F3
+    end
+
+    subgraph Cap["Why the cap is not exactly 21,000,000"]
+        C1["Theoretical maximum:<br/>20,999,999.9769 BTC<br/>from integer truncation<br/>in the shift."]
+        C2["Minus 50 BTC: the genesis coinbase<br/>is special-cased and its output<br/>never enters the UTXO set."]
+        C3["Minus 100 BTC: duplicate coinbases<br/>at blocks 91,722/91,880 and<br/>91,812/91,842 overwrote earlier<br/>UTXOs. BIP30 and BIP34 followed."]
+        C4["Minus miner underclaims,<br/>e.g. block 501,726 claimed 0 BTC.<br/>Roughly 28 BTC total."]
+        C5["Minus lost keys: unmeasurable.<br/>Common estimates run 3 to 4 million BTC,<br/>none of them a measurement."]
+    end
+
+    Rule --> Past --> Now --> Next
+    Now --> Cap
+
+    style Rule fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Past fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Now fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Next fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Cap fill:#ffebee,stroke:#c62828,stroke-width:2px
+```
+
+The 21 million figure is a consequence, not a parameter. Nowhere in the code does the number 21,000,000 appear as the supply cap. `MAX_MONEY` is 21,000,000 * 100,000,000 satoshis and is used only as a sanity bound on individual values. The actual cap falls out of the geometric series: 210,000 blocks times 50 BTC, halving each era, sums to 20,999,999.9769 BTC after integer truncation.
+
+### 15.2 The Miner's Income Statement
+
+A miner's revenue is subsidy plus fees, and its cost is electricity plus hardware depreciation plus hosting.
+
+Working the late-August 2026 numbers for a single Antminer S23 Hydro at 580 TH/s and 5,510 W:
+
+```
+Revenue:
+  hashprice                     $38.29 per PH/s per day
+  machine hashrate              0.580 PH/s
+  gross revenue                 $22.21 per day
+
+Cost:
+  power draw                    5,510 W = 132.24 kWh per day
+  at $0.045/kWh (industrial)    $5.95 per day
+  at $0.070/kWh (typical hosted) $9.26 per day
+  at $0.150/kWh (residential)   $19.84 per day
+
+Gross margin:
+  at $0.045/kWh                 $16.26 per day, 73%
+  at $0.070/kWh                 $12.95 per day, 58%
+  at $0.150/kWh                 $2.37 per day, 11%
+```
+
+Two facts follow, and they explain the industry's geography. Electricity price is the only variable a miner controls. Breakeven for the most efficient machine on the market sits at $0.168 per kWh at a hashprice of $38.29, and sat at $0.141 three weeks earlier when hashprice was $32.10, so a four-day price rally moved the entire cost frontier by 19 percent. Every miner is a buyer of the cheapest stranded power on earth. Nothing else about the business matters as much.
+
+The second fact is that efficiency compounds against you. Older hardware does not become unprofitable because it broke; it becomes unprofitable because difficulty rose as newer machines joined. An S21 XP Hydro at 12 J/TH produces the same revenue per terahash as an S23 Hydro at 9.5 J/TH and burns 26 percent more power to do it. At $0.070 per kWh the S23 Hydro nets $12.95 a day on 580 TH/s, and the S21 XP Hydro nets $8.57 on 473 TH/s.
+
+### 15.3 Hashprice and the 2026 Squeeze
+
+Hashprice, revenue per unit of hashrate per day, is the miner's single summary statistic. It is `(subsidy + fees) * price / total_hashrate`, and it falls whenever hashrate grows faster than price.
+
+| Date | Hashprice (USD/PH/s/day) | Context |
+|------|--------------------------|---------|
+| Early 2024, pre-halving | ~$100 | 6.25 BTC subsidy |
+| Post April 2024 halving | ~$55 | Subsidy cut in half |
+| Q1 2026 close | ~$23.9 | Lowest since 2018 |
+| Early August 2026 | $32.10 | Partial recovery |
+| 22 August 2026 | $38.29 | Up 20.4% in four days on a 14% price move |
+
+The Q1 2026 low of $23.9 is the lowest reading since 2018 in nominal terms, at a hashrate roughly 25 times higher and an efficiency roughly 8 times better. Miners responded by curtailing, by selling reserves, and by converting sites to AI and high-performance computing hosting, which pays a higher and less volatile rate per megawatt.
+
+The industry's cost floor moved with it. Reported all-in production costs for listed miners in 2026 cluster well above the spot price for high-cost operators, and the survivors are those with power below roughly $0.045 per kWh and machines below roughly 15 J/TH.
+
+### 15.4 The Security Budget Problem
+
+Fees are 0.77 percent of miner revenue in August 2026, and the subsidy halves in about twenty months. That is the open question in Bitcoin's economics, and it is arithmetic rather than opinion.
+
+Total annual miner revenue at 450 BTC per day and $79,100 is roughly $13.0 billion. Of that, roughly $100 million is fees. After the 2028 halving, holding price and fee volume constant, subsidy revenue halves to about $6.5 billion. Difficulty then falls until the marginal miner is profitable again, which reduces the cost of attacking the chain proportionally.
+
+Three positions exist on what happens next.
+
+**Price compensates.** Every previous halving has been followed by a price increase that more than offset the subsidy cut. This has held four times out of four and is not a mechanism.
+
+**Fees grow into the gap.** Block space is a fixed supply at 4,000,000 weight units, so sustained demand must raise its price. The counterargument is that demand for on-chain settlement moves to Lightning, sidechains, and custodians, and those consume very little block space per unit of economic activity.
+
+**The budget shrinks and that is acceptable.** Security is needed in proportion to the value that can be stolen by reorg, which is bounded by the depth exchanges wait, not by market capitalisation. A smaller absolute budget with the same relative cost of attack is not obviously worse.
+
+No mechanism in the protocol resolves this. It is left to the market, deliberately, and it is the one design decision that cannot be evaluated until roughly 2036.
+
+---
+
+## 16. Security and Threat Model
+
+### 16.1 What Bitcoin Defends and What It Does Not
+
+Bitcoin defends the integrity of the ledger against everyone, including its own miners and developers. It defends nothing about a user's key material, and it defends nothing about the correctness of what a user intends to do.
+
+| Threat | Defence | Residual risk |
+|--------|---------|---------------|
+| Forging a spend of someone else's coins | ECDSA or Schnorr over secp256k1, verified by every node | Key theft, side channels, bad randomness |
+| Inflating supply | Every node checks the coinbase against the subsidy schedule | Implementation bug, as in CVE-2018-17144 |
+| Double spending a confirmed payment | Cumulative proof of work | Hashrate majority; shallow confirmations |
+| Rewriting old history | Cost grows linearly with depth | None practical below several thousand blocks |
+| Censoring a transaction | Any miner may include it | Sustained hashrate majority can suppress |
+| Rule changes imposed by miners | Full nodes reject invalid blocks | Users who do not run nodes inherit others' rules |
+| Network partition | Chains converge on reunification | Payments accepted during a partition may be reversed |
+| Traffic analysis of transaction origin | Poisson relay delays, block-relay-only peers, BIP324 | Well-resourced network observer |
+
+### 16.2 Attack Classes That Have Been Executed
+
+**Implementation bugs affecting consensus.** CVE-2010-5139, the value overflow, is the only successful inflation. CVE-2018-17144, disclosed 18 September 2018 and fixed in 0.16.3 and 0.17.0rc4, is the closest call: an optimisation added in 0.14.0 skipped a duplicate-input check believed redundant, turning what should have been a rejected block into a node crash in 0.14.x and an inflation vulnerability in 0.15.0 through 0.16.2. It was never exploited, and exploiting it would have cost a miner a block reward to try.
+
+**Exchange and custodian compromise.** Mt. Gox, Bitfinex in 2016, and dozens since. None of these are protocol failures, and all of them are what most users experience as "Bitcoin was hacked".
+
+**Key material failures.** The 2013 Android `SecureRandom` flaw produced repeated ECDSA nonces across many wallets and drained the affected keys. Brain wallets, in which a passphrase is hashed directly to a private key, have been swept systematically by attackers running dictionary attacks against the entire chain.
+
+**Dust attacks and chain analysis.** Sending small amounts to many addresses in order to link them when they are later spent together. Cheap, effective, and unpreventable at the protocol layer.
+
+**Eclipse attacks.** Demonstrated academically in 2015 against the pre-0.10 address manager. The countermeasures, block-relay-only connections and ASN-based bucketing, are direct responses.
+
+**Time-warp.** A theoretical attack in which a hashrate majority manipulates block timestamps around the retarget boundary to drive difficulty down. It requires sustained majority control and is one of the things the proposed consensus cleanup soft fork addresses.
+
+### 16.3 Quantum Computing
+
+Bitcoin's exposure to a cryptographically relevant quantum computer is specific and asymmetric, and the public discussion usually gets the asymmetry backwards.
+
+Shor's algorithm breaks elliptic curve discrete log, which recovers a private key from a **public** key. Grover's algorithm halves the effective security of SHA-256, taking it from 256 bits to 128, which is not an operational concern.
+
+The exposure therefore depends on whether a public key has been revealed. A P2PKH or P2WPKH output publishes only a hash of the public key; the key itself appears only when the output is spent, in the window between broadcast and confirmation. A P2PK output, a P2TR output, and any address that has been spent from before publish the key permanently. That means the 1.72 million BTC in 2009-era P2PK outputs and the 147,912 BTC in Taproot outputs are exposed in a way that unspent P2WPKH outputs are not, plus every reused address in the chain.
+
+A Google Quantum AI paper published 31 March 2026 lowered the estimated physical qubit count for breaking a 256-bit elliptic curve key to under 500,000, roughly a twentieth of the 2019 estimate. That is a change in the timeline's slope, not an existing capability: no machine near that scale exists. BIP360 proposes post-quantum spending paths as a soft fork. Migration would require every holder to move coins to new output types, which for lost keys is impossible by definition.
+
+The honest statement is that the technical solution is tractable and the migration is not, and the number of coins in permanently exposed outputs whose owners cannot move them is not known.
+
+---
+
+## 17. Governance, Soft Forks, and Activation
+
+### 17.1 Soft Fork Versus Hard Fork
+
+A soft fork tightens the rules: every block valid under the new rules is valid under the old ones. Non-upgraded nodes continue to follow the chain, unaware that a rule was added. A hard fork loosens them: blocks valid under the new rules are invalid under the old, so any non-upgraded node forks off permanently.
+
+Every consensus change Bitcoin has made since 2012 is a soft fork. P2SH exploited `OP_HASH160 ... OP_EQUAL` looking like a trivially satisfiable script to old nodes. SegWit exploited version-1-through-16 witness programs looking like anyone-can-spend outputs. Taproot exploited the hook SegWit installed. The pattern is consistent: find something old nodes already accept, and constrain it.
+
+### 17.2 Activation Mechanisms
+
+| Mechanism | Used for | How it works |
+|-----------|----------|--------------|
+| Flag day | BIP16 (P2SH), 2012 | Rules take effect at a fixed date or height |
+| BIP34 / BIP66 / BIP65 style | 2012 to 2015 | 750 of the last 1,000 blocks signal to start, 950 to enforce |
+| BIP9 | SegWit attempt, 2016 to 2017 | Version bit, 95% of a 2,016-block window, with a timeout |
+| BIP148 (UASF) | SegWit, 2017 | Nodes reject non-signalling blocks after a flag day |
+| Speedy Trial | Taproot, 2021 | Short BIP9 window at 90%, with a fixed later activation height if it locks in |
+| BIP8 | Proposed, unused | BIP9 with a `LOT=true` option that forces activation at timeout |
+
+Miner signalling is a coordination device, not a vote. Its purpose is to confirm that a supermajority of block producers have upgraded, so that the fork does not produce invalid blocks and confused SPV clients. It has repeatedly been misread as miners having authority over the rules, and the 2017 episode settled that: signalling stalled for eighteen months and moved within weeks of node operators committing to a flag day.
+
+### 17.3 The 2026 BIP-110 Episode
+
+BIP-110, the Reduced Data Temporary Softfork, is the cleanest available demonstration of how Bitcoin governance actually resolves, and it happened in the last month covered by this document.
+
+The proposal followed Bitcoin Core 30.0's October 2025 decision to raise the default `-datacarriersize` from 83 bytes to 100,000 and permit multiple `OP_RETURN` outputs. Opponents held that Core had removed a spam filter. Proponents held that the filter was already bypassed by Taproot witness inscriptions and by direct submission to miners, so its only remaining effect was to make honest nodes' mempools diverge from what miners actually mined, degrading fee estimation and compact block reconstruction.
+
+BIP-110 proposed temporary consensus rules limiting arbitrary data, expiring after twelve months, with a reduced 55 percent activation threshold on the argument that urgency justified a lower bar. Mandatory signalling began at block 961,632 on 8 August 2026. Miner support peaked around 2.53 percent and stayed in low single digits. With 99.85 percent of hashpower on the original chain, the fork failed.
+
+Three things are worth extracting. A lowered threshold does not lower the actual bar, which is rough consensus. A contested soft fork with a mandatory signalling period is a chain split risk regardless of whether it activates. And the outcome was decided by nobody in particular, through the accumulated non-action of pools, node operators, and exchanges, which is what "no one is in charge" looks like in practice.
+
+### 17.4 Hard Forks and Chain Splits
+
+Hard forks that produce a persistent competing chain have happened repeatedly and none has retained significant economic weight.
+
+Bitcoin XT (2015) and Bitcoin Classic (2016) proposed larger blocks and failed to reach activation thresholds. Bitcoin Cash split on 1 August 2017 with 8 MB blocks and no SegWit, and split again into Bitcoin SV in November 2018. SegWit2x was cancelled in November 2017 before its scheduled fork.
+
+The August 2026 eCash hard fork, announced by Drivechain author Paul Sztorc and scheduled for block 964,000 on 21 August 2026, is the most recent. It copies the entire chain state, credits every holder 1:1, activates BIP300 and BIP301 Drivechains, and reassigns roughly 500,000 dormant Satoshi-era coins, which is the element that drew the strongest objections. It attracted minimal exchange or institutional support.
+
+The consistent result is that copying the ledger is trivial and copying the network effect is not. A fork inherits the coin distribution and none of the liquidity, custody integrations, or merchant acceptance, and those are where the value sits.
+
+---
+
+## 18. Regulation and Compliance
+
+### 18.1 What Is Regulated Is Not the Protocol
+
+No jurisdiction regulates the Bitcoin protocol, because there is no entity to regulate. Regulation attaches to intermediaries: exchanges, custodians, payment processors, and increasingly miners as energy consumers.
+
+| Jurisdiction | Framework | What it covers |
+|--------------|-----------|----------------|
+| United States | Bank Secrecy Act, FinCEN guidance (2013, 2019) | Money transmitter registration for custodial exchanges; non-custodial software is not a money transmitter |
+| United States | IRS Notice 2014-21 and later guidance | Bitcoin is property; every disposal is a taxable event |
+| European Union | MiCA, in force for CASPs from 30 December 2024 | Licensing for crypto-asset service providers; does not address the protocol |
+| European Union | Transfer of Funds Regulation (TFR) | Travel Rule for crypto transfers between providers |
+| Global | FATF Recommendation 16, updated 2019 | The Travel Rule: originator and beneficiary information must accompany transfers between VASPs |
+| El Salvador | Bitcoin Law, 2021, amended January 2025 | Legal tender status made voluntary for merchants under an IMF programme |
+
+The Travel Rule is the requirement with the most direct technical consequence. It obliges a virtual asset service provider sending above a threshold, $3,000 in the United States and 1,000 euros in much of the EU, to transmit originator and beneficiary identity to the receiving provider. Bitcoin carries no field for this, so the information travels out of band through protocols such as TRP, IVMS101 messaging, or bilateral APIs. The requirement also has no defined behaviour for a transfer to an address controlled by an individual rather than a provider, which is why "unhosted wallet" rules differ by jurisdiction and keep changing.
+
+### 18.2 What the Protocol Does Not Provide
+
+Bitcoin has no reversal mechanism, no identity layer, no freeze function, and no compliance hooks. A confirmed transaction cannot be undone by anyone, including a court. Remedies operate at the endpoints: seizure of keys, orders against custodians, and blacklisting of addresses by exchanges through chain analysis.
+
+Address blacklisting is the one control that has real effect, and it works because most economic exits run through regulated custodians. The OFAC designation of the Tornado Cash contracts in 2022, and its partial reversal in 2025, was an Ethereum matter, but the underlying question of whether a specific coin's history can taint it applies identically to Bitcoin and has no protocol-level answer. Bitcoin's UTXO model makes the tracing arithmetic harder than an account model's, and various heuristics (FIFO, LIFO, Haircut, Poison) give different and incompatible answers about which satoshis are which.
+
+### 18.3 Mining and Energy Regulation
+
+Mining is the part of Bitcoin most exposed to regulation, because it is physical, sited, and visible on a grid operator's load curve.
+
+China banned mining in May and June 2021, removing roughly half the network's hashrate within weeks and producing the largest downward difficulty adjustment on record at 27.94 percent. Hashrate relocated primarily to the United States, Kazakhstan, and Russia over the following year. The European Union considered and dropped a proof-of-work ban during MiCA negotiations in 2022. Individual US states have imposed moratoria on new fossil-fuel-powered mining, most notably New York in 2022.
+
+The economics push in one direction regardless of policy. A miner buys the cheapest power available, which is by definition power nobody else wants at that time and place: curtailed wind, flared associated gas, and off-peak hydro. Demand response contracts, in which a miner is paid to shut down during peak grid load, are now a material revenue line for large US operators and are the strongest argument that miners make to regulators.
+
+---
+
+## 19. Comparisons and Alternatives
+
+### 19.1 UTXO Versus Account Model
+
+| Property | Bitcoin (UTXO) | Ethereum (account) |
+|----------|----------------|--------------------|
+| State unit | Unspent output with a script | Account with a balance and storage |
+| State size | 173 M UTXOs, ~11 GB | Larger and growing faster; state expiry is an open research problem |
+| Transaction validation | Independent per input; parallelisable | Sequential; depends on account state at execution time |
+| Replay protection | Inherent: an outpoint can only be spent once | Requires an explicit nonce per account |
+| Privacy default | New address per payment is natural | Address reuse is the norm |
+| Fee determinism | Exact, computable before broadcast | Gas is estimated; execution may cost more |
+| Contract expressiveness | Stateless scripts, no loops, no covenants | Turing-complete with gas metering |
+| Failure mode of complexity | Script is too weak for many use cases | Contracts have novel bugs, repeatedly and expensively |
+
+The two models trade the same thing in opposite directions. UTXO gives cheap parallel validation, exact fees, and no global state to reason about, at the cost of an expression language too weak to write a vault in. Accounts give expressiveness at the cost of sequential execution, unbounded state growth, and a class of bugs that has cost several billion dollars.
+
+### 19.2 Bitcoin Against Other Chains
+
+| System | Consensus | Block time | Supply policy | Distinguishing property |
+|--------|-----------|------------|---------------|------------------------|
+| **Bitcoin** | Proof of work, SHA-256 | 10 min | 21 M cap, halving | Longest-running, largest security budget, least changed |
+| **Ethereum** | Proof of stake since Sep 2022 | 12 s | No cap, issuance net of burn | General computation, largest application ecosystem |
+| **Litecoin** | Proof of work, Scrypt | 2.5 min | 84 M cap | Bitcoin's codebase with faster blocks; adopted MWEB privacy in 2022 |
+| **Monero** | Proof of work, RandomX | 2 min | Tail emission, no cap | Mandatory privacy via ring signatures and stealth addresses |
+| **Bitcoin Cash** | Proof of work, SHA-256 | 10 min | 21 M cap | 2017 fork; larger blocks, no SegWit, no Taproot |
+| **Solana** | Proof of stake with PoH | ~400 ms | Inflationary, decaying | Throughput at the cost of hardware requirements for validators |
+
+The comparison that matters is not throughput. It is what each system asks a validator to spend to check the rules independently. Bitcoin asks for a few hundred dollars of hardware and 740 GB. Systems that ask for more concentrate validation, and concentrated validation makes the rules negotiable by whoever runs the validators.
+
+### 19.3 Layers Built on Bitcoin
+
+| Layer | Mechanism | State as of 2026 |
+|-------|-----------|------------------|
+| **Lightning Network** | Bidirectional payment channels with revocable commitments, HTLC routing | ~4,898 BTC public capacity across 41,080 channels and 17,438 nodes (May 2026); estimates put total capacity including private channels above 12,000 BTC; monthly payment volume above $1.1 bn |
+| **Liquid** | Federated sidechain, 15 functionaries, 1-minute blocks, 11-of-15 signing, confidential transactions | Used mainly for exchange settlement and securities issuance |
+| **Rootstock** | Merge-mined sidechain with an EVM | Small usage relative to its age |
+| **Statechains** | Off-chain transfer of UTXO ownership via a semi-trusted server | Experimental |
+| **Ark** | Off-chain virtual UTXOs with periodic on-chain rounds | Deployed on signet and mainnet in limited form |
+| **Drivechains (BIP300/301)** | Miner-validated two-way peg to sidechains | Not activated on mainnet; the basis of the August 2026 eCash fork |
+
+Lightning's public capacity fell roughly 20 percent through 2025, from about 5,400 BTC in late 2023 to about 4,200 BTC by August 2025, before recovering to 4,898 BTC by May 2026. Node count fell from a 2022 peak near 20,700 to 17,438. Those numbers understate usage because private and unannounced channels, which mobile wallets and service providers use by default, are not visible to crawlers and are estimated at twice the public capacity or more.
+
+The structural point is that a payment channel is a two-party contract secured by the ability to publish a transaction on chain and by a relative timelock, so its safety depends entirely on being able to get a transaction confirmed within the timelock window. Every Lightning safety argument is therefore a bet about the fee market, and pinning attacks are exactly attacks on that bet.
+
+---
+
+## 20. Modern Developments
+
+### 20.1 What Has Changed Since 2024
+
+**The consensus rules have not changed since November 2021.** Every development below is policy, implementation, or off-chain.
+
+**Full RBF became the default and then unconditional.** Core 28.0 (October 2024) set `-mempoolfullrbf=1` by default; 29.0 (April 2025) removed the option. Zero-confirmation acceptance based on an absent replacement signal no longer has a basis.
+
+**TRUC transactions became standard.** Version 3 transactions per BIP431, standard since 28.0, restrict a transaction to a singleton of at most 10,000 vbytes or the single 1,000-vbyte child of one TRUC parent, bounding the cost of a pinning attack. Lightning implementations are migrating commitment transactions to them.
+
+**Package relay shipped incrementally.** `submitpackage` in 26.0, opportunistic 1-parent-1-child relay over P2P plus limited package RBF in 28.0, multi-parent and grandparent handling in 30.0, and parents with zero or sub-minimum fees in non-TRUC packages in 31.0.
+
+**AssumeUTXO shipped.** Available since 28.0, cutting time-to-usable node from hours or days to under two hours.
+
+**The OP_RETURN default was raised.** Core 30.0, 10 October 2025, raised `-datacarriersize` to 100,000, allowed multiple such outputs, and marked both options deprecated. It also lowered `-minrelaytxfee` and `-incrementalrelayfee` to 0.1 sat/vB and `-blockmintxfee` to 0.001 sat/vB.
+
+**Cluster mempool shipped.** Core 31.0, 19 April 2026, replaced ancestor and descendant limits with cluster limits of 64 transactions and 101 kvB, added feerate-diagram-based RBF, removed the CPFP carve-out, and added `getmempoolcluster` and `getmempoolfeeratediagram`.
+
+**Stratum V2 crossed from advocacy to production.** Seven pools representing roughly 75 percent of hashrate joined the working group on 7 May 2026. Block 955,318 on 25 June 2026 was the first production block built from a miner-declared template.
+
+**Two forks were attempted and both failed to take hashrate.** BIP-110 drew 2.53 percent against a 55 percent threshold. The eCash hard fork at block 964,000 drew minimal support.
+
+### 20.2 What Is Under Discussion
+
+**Covenants.** `OP_CHECKTEMPLATEVERIFY` (BIP119) with an activation client targeting May 2027 and 0.00 percent signalling as of August 2026. `OP_CAT` (BIP347), Complete as of 1 March 2026 with no proposed activation parameters. LNHANCE, a bundle of CTV, `OP_CHECKSIGFROMSTACK`, and internal-key opcodes, as a competing package. CTV plus CSFS together can emulate `SIGHASH_ANYPREVOUT`, which enables LN-Symmetry. None has agreed activation parameters.
+
+**Consensus cleanup.** A bundle addressing the time-warp attack, the legacy sighash quadratic hashing cost, the 64-byte transaction Merkle ambiguity that permits a false inclusion proof, and the residual duplicate-transaction case BIP34 left open. Uncontroversial in substance and slow because every consensus change is slow.
+
+**Post-quantum signatures.** BIP360 proposes quantum-resistant spending paths. The March 2026 Google Quantum AI estimate of under 500,000 physical qubits shortened perceived timelines without changing what exists.
+
+**Erlay.** BIP330 set reconciliation for transaction relay, roughly 40 percent bandwidth reduction overall. Implemented, reviewed, not merged.
+
+**Ephemeral dust and the anchor output pattern.** Policy work allowing zero-value or below-dust anchor outputs that must be spent in the same package, which is what Lightning's fee-bumping design wants.
+
+### 20.3 Where This Is Heading
+
+Four statements are safe to make from the mechanism rather than from sentiment.
+
+**Consensus changes will stay rare and contested.** The 2026 BIP-110 episode showed that even a temporary, expiring soft fork with a lowered threshold cannot pass without broad agreement. That raises the bar for covenants, which are permanent and expressive.
+
+**Policy will keep doing the work consensus cannot.** Every meaningful change since 2021 has been policy: RBF, TRUC, package relay, cluster mempool, relay minimums. Policy changes ship in a release and can be reverted, which is why they carry the load.
+
+**The fee market's shape is the open question, not its level.** Fees at 0.77 percent of revenue in a quiet market and 40 percent in a busy hour is a distribution problem. Miner planning against a bimodal revenue stream is harder than planning against a low one.
+
+**Block construction is decentralising while pool share is not.** Stratum V2 job declaration separates who accounts for shares from who chooses transactions. If it deploys widely, the pool concentration table stops describing censorship capability. If it does not, it keeps describing it exactly.
+
+---
+
+## 21. Appendix
+
+### 21.1 Key Terminology
+
+| Term | Meaning |
+|------|---------|
+| **Base size** | Serialised transaction size excluding marker, flag, and witness. Counts 4 weight units per byte. |
+| **bech32 / bech32m** | Address encodings for SegWit v0 (BIP173) and v1+ (BIP350). Case-insensitive, BCH checksummed. |
+| **BIP** | Bitcoin Improvement Proposal. A design document. Carries no authority by itself. |
+| **Chain code** | 256 bits of entropy carried alongside a BIP32 key, required to derive children. |
+| **Cluster** | The connected component of related mempool transactions. Limited to 64 transactions and 101 kvB since Core 31.0. |
+| **Coinbase transaction** | The first transaction in a block. Creates the subsidy plus fees. Unspendable for 100 blocks. |
+| **CompactSize** | Bitcoin's variable-length integer encoding for counts and lengths. |
+| **Consensus rule** | A rule whose violation makes a block invalid to every node. Changing one forks the chain. |
+| **CPFP** | Child pays for parent. Raising a stuck transaction's effective feerate by spending its output at a high fee. |
+| **Difficulty** | `max_target / current_target`. Expected hashes per block is `difficulty * 2^32`. |
+| **Extended key (xprv/xpub)** | A BIP32 key plus its chain code, serialised to 78 bytes, from which children derive. |
+| **Hardened derivation** | BIP32 child derivation at index >= 2^31, which hashes the parent private key. Prevents parent-key recovery from an xpub plus a child key. |
+| **Hashprice** | Miner revenue per unit of hashrate per day. $38.29 per PH/s/day in the week of 22 August 2026, against $32.10 three weeks earlier. |
+| **IBD** | Initial Block Download. Bringing a new node from genesis to the chain tip. |
+| **Mempool** | A node's local set of unconfirmed transactions. Not global, not shared, not a queue. |
+| **Merkle root** | The root of the binary hash tree over a block's txids, committed in the header. Built bottom up by pairing adjacent hashes and taking SHA256d of the 64-byte pair, duplicating the last hash when a level is odd. |
+| **nBits** | The compact 4-byte encoding of the proof-of-work target in the block header. |
+| **Nakamoto consensus** | Following the valid chain with the most cumulative proof of work. |
+| **Orphan vs stale** | A stale block is valid but not on the best chain. An orphan is a block whose parent is unknown. |
+| **Outpoint** | A 32-byte txid plus a 4-byte index. The reference to a specific output. |
+| **P2TR** | Pay to Taproot. `OP_1 <32-byte key>`. Address prefix `bc1p`. |
+| **P2WPKH** | Pay to Witness Public Key Hash. `OP_0 <20-byte hash>`. Address prefix `bc1q`. |
+| **Pinning** | Attaching a large low-fee descendant to a shared transaction to make replacing or bumping it uneconomic. |
+| **Policy rule** | A local rule about relaying and storing unconfirmed transactions. Violating it is not invalidity. |
+| **PSBT** | Partially Signed Bitcoin Transaction, BIP174. The interchange format between signing devices. |
+| **RBF** | Replace by fee. Default and unconditional since Core 29.0. |
+| **Reorg** | Reorganisation. Switching to a chain with more cumulative work, discarding blocks. |
+| **Schnorr signature** | BIP340. 64 bytes, linear, batch-verifiable, supports key aggregation. |
+| **Script path / key path** | Taproot's two spend routes: revealing a Merkle leaf, or signing with the tweaked output key. |
+| **Sighash** | The transaction digest a signature commits to. Legacy, BIP143, and BIP341 variants. |
+| **SPV** | Simplified Payment Verification. Header-only validation plus Merkle inclusion proofs. |
+| **Stratum V1 / V2** | Mining pool protocols. V2 adds encryption, binary framing, and miner-declared block templates. |
+| **Tagged hash** | `SHA256(SHA256(tag) || SHA256(tag) || msg)`. BIP340's domain separation construction. |
+| **Tapscript** | BIP342. The script language inside a Taproot leaf with version `0xc0`. |
+| **TRUC / v3** | BIP431. Topologically restricted transactions that bound pinning cost. Standard since Core 28.0. |
+| **UTXO** | Unspent Transaction Output. Amount plus `scriptPubKey`. The only spendable state. |
+| **Weight unit** | Block capacity metric. `weight = base_size * 3 + total_size`. Limit 4,000,000. |
+| **Witness** | Signature data segregated out of the txid by BIP141. Counts 1 weight unit per byte. |
+| **wtxid** | Transaction hash including the witness. Used for relay dedup (BIP339) and the witness Merkle root. |
+
+### 21.2 Architecture Diagrams
+
+| Diagram | Source | Description |
+|---------|--------|-------------|
+| Protocol Timeline | [`diagrams/protocol-timeline.mmd`](diagrams/protocol-timeline.mmd) | Milestones from the 2008 whitepaper to the failed BIP-110 fork of August 2026 |
+| Consensus vs Policy | [`diagrams/consensus-vs-policy.mmd`](diagrams/consensus-vs-policy.mmd) | The three layers people conflate, and which one forks the chain |
+| UTXO Model | [`diagrams/utxo-model.mmd`](diagrams/utxo-model.mmd) | Outputs consumed and created, and where the fee comes from |
+| Transaction Structure | [`diagrams/transaction-structure.mmd`](diagrams/transaction-structure.mmd) | Byte-level serialisation, and the txid / wtxid split |
+| Script Execution | [`diagrams/script-execution.mmd`](diagrams/script-execution.mmd) | A P2WPKH spend traced opcode by opcode, with the interpreter's hard limits |
+| Signature Schemes | [`diagrams/signature-schemes.mmd`](diagrams/signature-schemes.mmd) | ECDSA and BIP340 Schnorr on secp256k1, and what linearity buys |
+| Taproot Tree | [`diagrams/taproot-tree.mmd`](diagrams/taproot-tree.mmd) | Building the tweaked output key, and the two spend paths |
+| BIP32 Derivation | [`diagrams/bip32-derivation.mmd`](diagrams/bip32-derivation.mmd) | Entropy to mnemonic to seed to keys, with the hardened-derivation trap |
+| Block Header | [`diagrams/block-header.mmd`](diagrams/block-header.mmd) | The 80 bytes a miner grinds, and how nBits becomes a target |
+| Difficulty Adjustment | [`diagrams/difficulty-adjustment.mmd`](diagrams/difficulty-adjustment.mmd) | The retarget formula, the off-by-one, and the 4x clamp |
+| Chain Reorg | [`diagrams/chain-reorg.mmd`](diagrams/chain-reorg.mmd) | Ordinary races, deep reorgs, and what a hashrate majority cannot do |
+| Mempool Lifecycle | [`diagrams/mempool-lifecycle.mmd`](diagrams/mempool-lifecycle.mmd) | Admission checks, RBF conditions, and the five ways a transaction leaves |
+| Block Propagation | [`diagrams/block-propagation.mmd`](diagrams/block-propagation.mmd) | BIP152 compact blocks in high and low bandwidth mode |
+| Node Types and IBD | [`diagrams/node-types-ibd.mmd`](diagrams/node-types-ibd.mmd) | Archival, pruned, assumeutxo, Neutrino, SPV, and what each trusts |
+| Transaction Lifecycle | [`diagrams/transaction-lifecycle.mmd`](diagrams/transaction-lifecycle.mmd) | The worked example end to end, from coin selection to six confirmations |
+| Halving Schedule | [`diagrams/halving-schedule.mmd`](diagrams/halving-schedule.mmd) | The emission rule, the five eras so far, and why the cap is not exactly 21 million |
+
+### 21.3 Consensus Constants Reference
+
+| Constant | Value | Where defined |
+|----------|-------|---------------|
+| Target block interval | 600 seconds | Retarget divisor |
+| Retarget interval | 2,016 blocks | `nPowTargetTimespan / nPowTargetSpacing` |
+| Retarget clamp | 0.25x to 4x | `CalculateNextWorkRequired` |
+| Max block weight | 4,000,000 WU | BIP141 |
+| Max block sigop cost | 80,000 | BIP141 |
+| Max block base size (implied) | 1,000,000 bytes | Legacy |
+| Halving interval | 210,000 blocks | `GetBlockSubsidy` |
+| Initial subsidy | 5,000,000,000 satoshi | `GetBlockSubsidy` |
+| Coinbase maturity | 100 blocks | `COINBASE_MATURITY` |
+| `MAX_MONEY` | 2,100,000,000,000,000 satoshi | Sanity bound only |
+| Theoretical max supply | 20,999,999.9769 BTC | Consequence of integer truncation |
+| Max script element size | 520 bytes | `MAX_SCRIPT_ELEMENT_SIZE` |
+| Max non-push opcodes | 201 (not in Tapscript) | `MAX_OPS_PER_SCRIPT` |
+| Max script size | 10,000 bytes (not in Tapscript) | `MAX_SCRIPT_SIZE` |
+| Max stack size | 1,000 items including altstack | `MAX_STACK_SIZE` |
+| Max pubkeys per multisig | 20 | `MAX_PUBKEYS_PER_MULTISIG` |
+| Taproot Merkle path limit | 128 | BIP341 |
+| Tapscript leaf version | 0xc0 | BIP342 |
+| Tapscript sigops budget | 50 + witness size in bytes; 50 per signature check | BIP342 |
+| Median time past window | 11 blocks | BIP113 |
+| Block timestamp future limit | 2 hours ahead of adjusted network time | `MAX_FUTURE_BLOCK_TIME` |
+| nLockTime height/time threshold | 500,000,000 | `LOCKTIME_THRESHOLD` |
+| BIP68 sequence time unit | 512 seconds | BIP68 |
+| P2P default port | 8333 | mainnet |
+| P2P mainnet magic | `0xF9BEB4D9` | mainnet |
+| Max P2P message length | 4,000,000 bytes | `MAX_PROTOCOL_MESSAGE_LENGTH` |
+| Protocol version | 70016 | wtxid relay, BIP339 |
+
+### 21.4 BIP Reference for the Rules Described Here
+
+| BIP | Title | Status |
+|-----|-------|--------|
+| 11 | M-of-N standard transactions | Active |
+| 13 | Address format for P2SH | Active |
+| 16 | Pay to Script Hash | Active since 1 Apr 2012 |
+| 30 | Duplicate transactions forbidden | Active |
+| 32 | Hierarchical Deterministic Wallets | Wallet standard |
+| 34 | Block v2, height in coinbase | Active |
+| 39 | Mnemonic code for generating deterministic keys | Wallet standard, not in Bitcoin Core |
+| 44 / 49 / 84 / 86 | Derivation paths for P2PKH / nested SegWit / P2WPKH / P2TR | Wallet standards |
+| 50 | March 2013 chain fork post-mortem | Informational |
+| 65 | `OP_CHECKLOCKTIMEVERIFY` | Active since 14 Dec 2015 |
+| 66 | Strict DER signatures | Active since 4 Jul 2015 |
+| 68 / 112 / 113 | Relative lock-time, `OP_CHECKSEQUENCEVERIFY`, median time past | Active since 4 Jul 2016 |
+| 94 | Testnet4 difficulty reset rules | Active on testnet4 since Core 28.0 |
+| 110 | Reduced Data Temporary Softfork | Failed activation, Aug 2026 |
+| 119 | `OP_CHECKTEMPLATEVERIFY` | Proposed; activation client targets May 2027 |
+| 125 | Opt-in replace by fee | Superseded by full RBF default in Core 28.0 |
+| 130 | `sendheaders` | Active |
+| 133 | `feefilter` | Active |
+| 141 / 143 / 144 / 147 | SegWit, its sighash, its P2P changes, dummy element malleability | Active since block 481,824 |
+| 152 | Compact block relay | Active |
+| 155 | `addrv2` | Active |
+| 157 / 158 | Compact block filters for light clients | Active |
+| 173 / 350 | bech32 and bech32m addresses | Active |
+| 174 / 370 | PSBT and PSBTv2 | Wallet standards |
+| 300 / 301 | Drivechains: hashrate escrows and blind merged mining | Not activated |
+| 320 | `nVersion` bits 13 to 28 reserved for general use | Used by Stratum version rolling |
+| 324 | Version 2 P2P encrypted transport | Default since Core 27.0 |
+| 330 | Erlay transaction reconciliation | Not merged |
+| 339 | wtxid-based relay | Active, protocol version 70016 |
+| 340 / 341 / 342 | Schnorr signatures, Taproot, Tapscript | Active since block 709,632 |
+| 347 | `OP_CAT` | Complete spec as of 1 Mar 2026, no activation parameters |
+| 360 | Post-quantum spending paths | Proposed |
+| 380 to 386 | Output script descriptors | Wallet standards |
+| 431 | Topology restrictions for pinning, TRUC v3 | Standard policy since Core 28.0 |
+
+---
+
+## 22. Key Takeaways
+
+**1. Bitcoin solves ordering, not payment.** Digital cash existed in 1990. What did not exist was a way for participants who cannot see each other to agree on which of two conflicting spends came first. Proof of work is a clock, and the whitepaper's contribution is section 4.
+
+**2. There are no balances, only outputs.** Every UTXO is an amount and a lock. A wallet balance is a local sum. A transaction destroys outputs and creates outputs, and the fee is the difference, never written down anywhere.
+
+**3. Consensus rules and policy rules are different things and most arguments confuse them.** A transaction no node will relay is still valid in a block. The 2025 to 2026 `OP_RETURN` fight was about a relay filter, and its failure at 2.53 percent miner support is the clearest available demonstration of where authority actually sits.
+
+**4. Full nodes enforce the rules; miners only order transactions.** A miner who includes an invalid transaction forfeits the block. A hashrate majority can reorder recent history and censor, and can do nothing else: it cannot spend coins it lacks keys for, create coins outside the schedule, or change a rule that nodes check.
+
+**5. The weight formula is the fee market.** Witness bytes cost one weight unit, body bytes cost four, and the block limit is 4,000,000. That discount was chosen in 2016 because witness data can be discarded and UTXOs cannot. It is also why the cheapest place on the Bitcoin chain to store a JPEG is a Taproot witness, and why 34 percent of the UTXO set is now inscription outputs holding 546 satoshis each.
+
+**6. Schnorr's value is linearity, not size.** Sixty-four bytes instead of seventy-two is a rounding error. `s*G = R + e*P` being linear is what makes MuSig2 key aggregation, FROST threshold signing, adaptor signatures, and batch verification possible, and what makes a 5-of-5 multisig indistinguishable from a single-key spend at identical cost.
+
+**7. Difficulty guarantees a ten-minute average and nothing else.** Individual intervals are exponentially distributed, roughly one gap in twenty exceeds thirty minutes, and the retarget carries a permanent off-by-one that runs blocks 0.05 percent fast because fixing it is a hard fork over an error worth one block every three weeks.
+
+**8. Fees are 0.77 percent of miner revenue and the subsidy halves again in twenty months.** At 450 BTC a day and $79,100 per coin, roughly $13.0 billion a year of miner revenue is about $100 million of fees. The protocol has no mechanism to resolve what happens when the subsidy runs out, and that is deliberate.
+
+**9. Every consensus change since 2012 has been a soft fork, and there have been four.** P2SH, BIP66/65/68, SegWit, Taproot. Five years have passed since the last one. The rate is the product, not a bug in the process.
+
+**10. Policy does the work consensus cannot.** Full RBF, TRUC transactions, package relay, assumeutxo, and cluster mempool are the meaningful changes of the last two years, and none of them touched consensus. They ship in a release and can be reverted, which is exactly why they carry the load.
+
+**11. Running a node is the entry price for governing the protocol.** A node that rejects a block enforces its rules against anyone, hashrate majority included. That is why block size was never a performance argument. The cost of validation is the cost of participation.
+
+**12. The protocol's exposure to quantum computing is asymmetric and specific.** Shor's algorithm recovers a private key from a public key, so outputs that have published a key are exposed and outputs that have published only a hash are not. That means 2009-era P2PK holdings and every Taproot output are the exposed surface, and the migration problem for coins whose keys are lost has no solution at any level.
+
+---
+
+*Figures in this document reflect data available as of 30 August 2026 and cite the date of measurement where a value moves. Block height, difficulty, hashrate, hashprice, and price change continuously; specification details, BIP numbers, and consensus constants do not.*

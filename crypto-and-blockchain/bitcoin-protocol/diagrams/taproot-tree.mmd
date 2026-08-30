@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Construct["Constructing a P2TR output"]
+        IK["Internal key P<br/>32-byte x-only.<br/>Often a MuSig2 aggregate<br/>of all cooperating parties."]
+        LA["Leaf A: 2-of-3 recovery<br/>&lt;pkB&gt; OP_CHECKSIG<br/>&lt;pkC&gt; OP_CHECKSIGADD<br/>OP_2 OP_NUMEQUAL"]
+        LB["Leaf B: timeout path<br/>&lt;144&gt; OP_CHECKSEQUENCEVERIFY<br/>OP_DROP &lt;pkD&gt; OP_CHECKSIG"]
+        LC["Leaf C: hash preimage<br/>OP_SHA256 &lt;hash&gt; OP_EQUALVERIFY<br/>&lt;pkE&gt; OP_CHECKSIG"]
+
+        LA --> HA["TapLeaf hash A =<br/>hash_TapLeaf(0xc0 || compact_size(len) || script)"]
+        LB --> HB["TapLeaf hash B"]
+        LC --> HC["TapLeaf hash C"]
+
+        HA --> BR1["TapBranch hash AB =<br/>hash_TapBranch(sorted(A,B))"]
+        HB --> BR1
+        BR1 --> ROOT["Merkle root =<br/>hash_TapBranch(sorted(AB,C))<br/>Path length limited to 128"]
+        HC --> ROOT
+
+        IK --> TWEAK["t = hash_TapTweak(P || merkle_root)<br/>Q = P + t*G<br/>Output key Q, 32 bytes"]
+        ROOT --> TWEAK
+        TWEAK --> SPK["scriptPubKey = OP_1 &lt;Q&gt;<br/>34 bytes on chain.<br/>Address bc1p..., bech32m per BIP350"]
+    end
+
+    subgraph Spend["Two ways to spend it"]
+        KP["KEY PATH<br/>Witness: one 64-byte Schnorr signature<br/>over the tweaked key Q.<br/>57.5 vbytes total input cost.<br/>Reveals nothing about the tree.<br/>Indistinguishable from a single-sig spend."]
+        SP["SCRIPT PATH<br/>Witness: script inputs, then the leaf script,<br/>then a control block of 33 + 32m bytes:<br/>1 byte (leaf version 0xc0 | Q parity)<br/>+ 32-byte internal key P<br/>+ m sibling hashes, m &lt;= 128.<br/>Reveals only the leaf used."]
+    end
+
+    SPK --> KP
+    SPK --> SP
+
+    Result["Cooperative close uses the key path and looks<br/>like any other payment. The recovery and timeout<br/>branches are never published unless used."]
+    KP --> Result
+    SP --> Result
+
+    style Construct fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Spend fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style KP fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style SP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Result fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

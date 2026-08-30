@@ -1,0 +1,25 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["Block header, exactly 80 bytes, hashed twice with SHA-256"]
+        H1["nVersion, 4 bytes LE<br/>bits 29-31 fixed to 001 by BIP9.<br/>Bits 0-12 carry soft-fork signalling.<br/>Bits 13-28 reserved for version<br/>rolling by BIP320, mask 0x1fffe000."]
+        H2["hashPrevBlock, 32 bytes<br/>SHA256d of the parent header.<br/>This is the chain."]
+        H3["hashMerkleRoot, 32 bytes<br/>Root over txids. Changing any<br/>transaction changes this."]
+        H4["nTime, 4 bytes LE, Unix seconds<br/>Must exceed median of last 11 blocks<br/>and be within 2 hours of network time."]
+        H5["nBits, 4 bytes, compact target<br/>0x1707cf49 style encoding.<br/>Must equal the value the retarget<br/>rule computes. Miners cannot pick it."]
+        H6["nNonce, 4 bytes LE<br/>Only 4.29 billion values.<br/>Exhausted in under a millisecond<br/>by a modern ASIC."]
+    end
+
+    H5 --> TGT["Target from nBits:<br/>exponent = nBits >> 24<br/>mantissa = nBits &amp; 0x007fffff<br/>target = mantissa * 256^(exponent - 3)<br/><br/>Difficulty 1 target = 0xFFFF * 2^208<br/>difficulty = max_target / target"]
+
+    H6 --> SEARCH["The search:<br/>SHA256(SHA256(header)) interpreted<br/>as a 256-bit LE integer must be<br/>&lt;= target."]
+
+    SEARCH --> EXTRA["Nonce space runs out instantly, so miners<br/>also roll:<br/>- extraNonce in the coinbase scriptSig,<br/>  which changes hashMerkleRoot<br/>- nTime, within the 2-hour window<br/>- nVersion low bits (ASICBoost, version rolling)"]
+
+    TGT --> WORK["Expected hashes per block<br/>= difficulty * 2^32.<br/>At 125.81T that is 5.40 * 10^23 hashes.<br/>At 920 EH/s: 587 seconds, about 9.8 minutes."]
+
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style TGT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SEARCH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style WORK fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style EXTRA fill:#eceff1,stroke:#37474f,stroke-width:2px
