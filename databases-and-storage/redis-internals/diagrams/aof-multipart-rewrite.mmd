@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant M as Main thread
+    participant B as bio_aof thread
+    participant Ch as Rewrite child
+    participant FS as appenddirname<br/>directory
+
+    Note over C,FS: Steady state, appendfsync everysec
+
+    C->>M: SET user:42 alice
+    M->>M: Execute, then append the command<br/>to server.aof_buf in RESP form
+    M->>FS: beforeSleep: write(2) aof_buf into<br/>appendonly.aof.1.incr.aof
+    M->>B: Queue a BIO_AOF_FSYNC job<br/>at most once per second
+    B->>FS: fsync(2). Main thread never blocks<br/>unless a previous fsync is still<br/>in flight after 2 seconds.
+    M-->>C: +OK
+
+    Note over M,FS: Rewrite triggered when the AOF has grown<br/>auto-aof-rewrite-percentage 100 over the size<br/>after the last rewrite, and is at least<br/>auto-aof-rewrite-min-size 64mb
+
+    M->>M: Roll a new INCR file:<br/>appendonly.aof.2.incr.aof.<br/>New writes go there from now on.
+    M->>Ch: fork(2)
+    activate Ch
+    Ch->>Ch: Walk the frozen copy-on-write<br/>snapshot of the keyspace
+    Ch->>FS: Write temp-rewriteaof-bg.rdb<br/>as the new BASE, in RDB format<br/>when aof-use-rdb-preamble is yes
+    deactivate Ch
+    Ch-->>M: SIGCHLD, exit status 0
+
+    M->>FS: Write a temporary manifest:<br/>file appendonly.aof.2.base.rdb seq 2 type b<br/>file appendonly.aof.2.incr.aof seq 2 type i
+    M->>FS: rename(2) the temp manifest over<br/>appendonly.aof.manifest. Atomic.
+    M->>FS: Mark the old BASE and INCR as HISTORY<br/>and unlink them
+
+    Note over M,FS: If the child fails, the old BASE plus the old INCR<br/>plus the new INCR still describe the complete dataset.<br/>Nothing is lost, and the retry backs off progressively.
+
+    Note over C,FS: Before Redis 7.0 the parent buffered every write made<br/>during the rewrite in memory, wrote it twice, and could<br/>stall at the end flushing that buffer to the new file.

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trigger["When a rehash starts"]
+        T1["Load factor reaches 1 and no<br/>fork child is running: grow to the<br/>next power of two"]
+        T2["Load factor reaches<br/>dict_force_resize_ratio 4 while a<br/>child IS running: grow anyway,<br/>copy-on-write cost accepted"]
+        T3["Load factor falls below 1/8:<br/>shrink"]
+    end
+
+    subgraph State["During the rehash the dict has two tables"]
+        H0["ht_table 0<br/>the old table.<br/>Buckets 0 to rehashidx-1 are empty."]
+        H1["ht_table 1<br/>the new table,<br/>twice or half the size"]
+        RI["rehashidx<br/>-1 when idle,<br/>otherwise the next bucket to move"]
+    end
+
+    subgraph Rules["Read and write rules while rehashing"]
+        R1["Lookups check ht 0, then ht 1"]
+        R2["Inserts go only into ht 1,<br/>so ht 0 can only shrink"]
+        R3["Every dictAddRaw, dictFind and<br/>dictGenericDelete moves one bucket<br/>before doing its own work"]
+        R4["serverCron runs a 1 millisecond<br/>batch of dictRehashMilliseconds<br/>when activerehashing is yes"]
+    end
+
+    subgraph Bound["The bound that stops a stall"]
+        B1["dictRehash n visits at most<br/>n times 10 empty buckets<br/>before returning, so a sparse<br/>table cannot block the loop"]
+    end
+
+    subgraph Scan["SCAN and the reverse cursor"]
+        S1["The cursor is incremented in<br/>reverse binary order: reverse the<br/>bits, add one, reverse back"]
+        S2["Guarantee: every element present<br/>for the whole iteration is returned<br/>at least once. Elements may be<br/>returned more than once."]
+        S3["No guarantee about elements added<br/>or removed during the iteration.<br/>SCAN is a cursor, not a snapshot."]
+    end
+
+    Trigger --> State --> Rules --> Bound
+    State --> Scan
+
+    style Trigger fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style State fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Rules fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Bound fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Scan fill:#eceff1,stroke:#37474f,stroke-width:2px

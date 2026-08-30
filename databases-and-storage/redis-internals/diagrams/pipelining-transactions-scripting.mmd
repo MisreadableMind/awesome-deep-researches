@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Pipe["Pipelining - a client-side batching trick"]
+        P1["Write N commands into one buffer,<br/>read N replies afterwards"]
+        P2["Saves N-1 round trips AND N-1 pairs<br/>of read and write syscalls.<br/>Throughput rises roughly linearly<br/>with depth and plateaus near<br/>10 times the unpipelined rate."]
+        P3["NOT atomic. Other clients' commands<br/>interleave freely between yours."]
+        P4["Server queues every reply in memory.<br/>Batch in groups of about 10000."]
+    end
+
+    subgraph Multi["MULTI / EXEC - server-side queueing"]
+        M1["MULTI, then commands reply +QUEUED,<br/>then EXEC runs the whole queue with<br/>no other client interleaved"]
+        M2["Atomic in the isolation sense only.<br/>There is no rollback: a WRONGTYPE at<br/>command 3 does not undo commands 1<br/>and 2, and EXEC still runs 4 and 5."]
+        M3["Two error classes. A syntax error or<br/>an unknown command fails at queue time<br/>and, since 2.6.5, aborts EXEC. A type<br/>error fails at execution time and does not."]
+        M4["WATCH adds optimistic locking.<br/>If any watched key is touched before<br/>EXEC, by another client OR by expiry<br/>or eviction, EXEC returns a null reply."]
+        M5["No conditional logic. The command list<br/>is fixed before the first reply is seen."]
+    end
+
+    subgraph Lua["EVAL / EVALSHA and Redis Functions"]
+        L1["Lua 5.1, embedded. The script runs<br/>to completion with the server blocked,<br/>so read-compute-write is one step."]
+        L2["Script cache keyed by SHA1.<br/>SCRIPT LOAD then EVALSHA.<br/>Cache is volatile: flushed on restart,<br/>on failover, and by SCRIPT FLUSH.<br/>A missing digest returns -NOSCRIPT."]
+        L3["Every key the script touches must be<br/>declared in KEYS. Cluster routing<br/>depends on it and is not enforced."]
+        L4["Effects replication: since Redis 5.0<br/>only the write commands the script<br/>produced are propagated, wrapped in<br/>MULTI/EXEC. Verbatim script replication<br/>was removed in 7.0, so non-deterministic<br/>calls like TIME are now safe."]
+        L5["A script past busy-reply-threshold makes<br/>the server answer -BUSY to everyone.<br/>SCRIPT KILL works only if the script has<br/>not yet written. Otherwise the only exit<br/>is SHUTDOWN NOSAVE."]
+        L6["Redis Functions, 7.0: FUNCTION LOAD<br/>registers a named library that IS<br/>persisted in the RDB and replicated,<br/>so the application stops re-uploading it."]
+    end
+
+    subgraph Choose["Choosing"]
+        C1["Many independent commands,<br/>no dependency: pipeline"]
+        C2["A fixed set that must not interleave:<br/>MULTI/EXEC"]
+        C3["A read whose result decides the write:<br/>Lua or a Function"]
+        C4["A conditional single-key update:<br/>since Redis 8.4, SET with IFEQ or<br/>DELEX beat WATCH on both counts"]
+    end
+
+    Pipe --> Multi --> Lua --> Choose
+
+    style Pipe fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Multi fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Lua fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Choose fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

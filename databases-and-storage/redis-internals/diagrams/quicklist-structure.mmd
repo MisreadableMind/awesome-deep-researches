@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph QL["quicklist, 40 bytes on 64-bit"]
+        Q["head and tail pointers<br/>count: total entries<br/>len: number of nodes<br/>fill: 16-bit signed fill factor<br/>compress: nodes left uncompressed<br/>at each end"]
+    end
+
+    subgraph N1["quicklistNode, 40 bytes on 64-bit"]
+        A["prev, next, entry pointers<br/>sz: bytes in the listpack<br/>count: 16 bits<br/>encoding: RAW or LZF<br/>container: PACKED or PLAIN"]
+    end
+
+    subgraph N2["quicklistNode"]
+        B["LZF-compressed listpack.<br/>node-&gt;entry points at a<br/>quicklistLZF struct instead"]
+    end
+
+    subgraph N3["quicklistNode"]
+        C["PLAIN node.<br/>A single element too large<br/>for any listpack, stored raw"]
+    end
+
+    subgraph Fill["The fill factor, list-max-listpack-size"]
+        F1["Negative values cap by size:<br/>-1 is 4 KB, -2 is 8 KB (default),<br/>-3 is 16 KB, -4 is 32 KB, -5 is 64 KB"]
+        F2["Positive values cap by count:<br/>128 means 128 entries per node"]
+        F3["list-compress-depth 0 disables<br/>compression. A value of 1 leaves<br/>the head and tail node raw and<br/>LZF-compresses the middle."]
+    end
+
+    QL --> N1 --> N2 --> N3
+    QL --> Fill
+
+    NOTE["LPUSH and RPUSH stay O(1)<br/>because only the head or tail<br/>listpack is touched.<br/>LINSERT into the middle is O(N)<br/>because the node must be found<br/>and its listpack rewritten."]
+    N3 --> NOTE
+
+    style QL fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style N1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style N2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style N3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fill fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style NOTE fill:#fce4ec,stroke:#880e4f,stroke-width:2px

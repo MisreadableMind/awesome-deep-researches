@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Alloc["jemalloc rounds every request up to a size class"]
+        A1["Small: 8, 16, 32, 48, 64, 80, 96, 112,<br/>128, 160, 192, 224, 256 ... bytes"]
+        A2["A 65-byte request consumes 80 bytes.<br/>The 15 bytes are internal fragmentation<br/>and are invisible to used_memory."]
+        A3["Runs of equal-size objects live in<br/>4 MB extents. A run is returned to the<br/>OS only when every object in it is free."]
+        A4["This is why the embstr limit is 44:<br/>16-byte robj plus a 3-byte sdshdr8<br/>plus 44 bytes plus a NUL is 64 exactly"]
+    end
+
+    subgraph Metrics["The three numbers in INFO memory"]
+        M1["used_memory: the sum of what Redis<br/>asked the allocator for"]
+        M2["used_memory_rss: resident set size,<br/>what the OS says the process holds"]
+        M3["mem_fragmentation_ratio =<br/>used_memory_rss / used_memory"]
+        M4["allocator_frag_ratio isolates the<br/>allocator's own waste from copy-on-write<br/>pages, stacks and code"]
+    end
+
+    subgraph Read["Reading the ratio"]
+        R1["About 1.0 to 1.5: normal"]
+        R2["Above 1.5 with a stable workload:<br/>real external fragmentation"]
+        R3["Very high after a large delete:<br/>an artefact. RSS reflects the PEAK.<br/>Provision for peak, not for average."]
+        R4["Below 1.0: part of the process is<br/>swapped out. Check /proc/PID/smaps<br/>for non-zero Swap lines. This is the<br/>only reading that is always bad."]
+    end
+
+    subgraph Defrag["activedefrag, off by default"]
+        D1["Redis links jemalloc with a patch<br/>that reports whether a given pointer<br/>sits in a sparsely used run"]
+        D2["The defragmenter reallocates such<br/>objects, letting jemalloc release the<br/>run. Copying in place is only possible<br/>because Redis is single-threaded."]
+        D3["active-defrag-ignore-bytes 100mb,<br/>active-defrag-threshold-lower 10,<br/>active-defrag-threshold-upper 100,<br/>active-defrag-cycle-min 1,<br/>active-defrag-cycle-max 25,<br/>active-defrag-max-scan-fields 1000"]
+        D4["CPU spend scales linearly between the<br/>lower and upper thresholds. jemalloc-bg-thread<br/>yes lets jemalloc purge in the background."]
+    end
+
+    Alloc --> Metrics --> Read --> Defrag
+
+    style Alloc fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Metrics fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Read fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Defrag fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

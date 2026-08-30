@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["robj, the 16-byte object header"]
+        H["type: 4 bits, one of string, list,<br/>set, zset, hash, stream, module<br/>encoding: 4 bits<br/>lru: 24 bits, LRU clock or<br/>16-bit LFU time plus 8-bit counter<br/>refcount: 32 bits<br/>ptr: 64 bits"]
+    end
+
+    subgraph Str["OBJ_STRING"]
+        S1["int<br/>value is a long, stored in ptr.<br/>Integers 0 to 9999 are shared<br/>objects with refcount INT_MAX"]
+        S2["embstr<br/>length 44 bytes or less.<br/>robj and sds in one allocation,<br/>sized to fit jemalloc's 64-byte class"]
+        S3["raw<br/>anything longer, or any string<br/>that has been APPENDed to<br/>or SETRANGEd"]
+    end
+
+    subgraph Lst["OBJ_LIST"]
+        L1["listpack<br/>small lists"]
+        L2["quicklist<br/>doubly linked list of listpacks.<br/>list-max-listpack-size -2<br/>means 8 KB per node"]
+    end
+
+    subgraph Set["OBJ_SET"]
+        T1["intset<br/>all members parse as integers<br/>and count is under<br/>set-max-intset-entries 512"]
+        T2["listpack<br/>since Redis 7.2, for small sets<br/>with non-integer members.<br/>128 entries, 64 bytes"]
+        T3["hashtable<br/>dict with NULL values"]
+    end
+
+    subgraph Zs["OBJ_ZSET"]
+        Z1["listpack<br/>128 entries, 64-byte members.<br/>Member and score alternate"]
+        Z2["skiplist<br/>a dict from member to score<br/>plus a skip list ordered by<br/>score then member"]
+    end
+
+    subgraph Hsh["OBJ_HASH"]
+        M1["listpack<br/>512 entries, 64-byte values"]
+        M2["listpackex<br/>listpack plus per-field TTL<br/>metadata, added in Redis 7.4"]
+        M3["hashtable"]
+    end
+
+    Header --> Str & Lst & Set & Zs & Hsh
+    S2 -.APPEND or grow.-> S3
+    L1 -.exceeds threshold.-> L2
+    T1 -.non-integer added.-> T2
+    T1 -.over 512 integers.-> T3
+    T2 -.exceeds threshold.-> T3
+    Z1 -.exceeds threshold.-> Z2
+    M1 -.exceeds threshold.-> M3
+    M1 -.HEXPIRE.-> M2
+
+    NOTE["Conversion is one-way.<br/>Redis never converts back down,<br/>even after the collection shrinks."]
+    Lst --> NOTE
+    Set --> NOTE
+    Zs --> NOTE
+    Hsh --> NOTE
+
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Str fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Lst fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Set fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Zs fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Hsh fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style NOTE fill:#ffebee,stroke:#b71c1c,stroke-width:2px

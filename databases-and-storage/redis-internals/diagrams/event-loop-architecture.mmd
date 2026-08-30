@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Sockets["Kernel readiness notification"]
+        EP["epoll on Linux<br/>kqueue on BSD and macOS<br/>evport on Solaris<br/>select as the fallback<br/>Chosen at compile time in ae.c"]
+    end
+
+    subgraph Loop["aeMain, the single event loop"]
+        direction TB
+        BS["beforeSleep<br/>fast active-expire cycle,<br/>flush the AOF buffer,<br/>handle unblocked clients,<br/>send replication stream"]
+        POLL["aeApiPoll<br/>blocks until a socket is ready<br/>or the nearest timer fires"]
+        AS["afterSleep"]
+        FE["File events<br/>readQueryFromClient<br/>then sendReplyToClient"]
+        TE["Time events<br/>serverCron at server.hz,<br/>default 10 times per second"]
+    end
+
+    subgraph Exec["Command execution, always one at a time"]
+        PARSE["Parse the RESP array<br/>into an argv vector"]
+        LOOKUP["lookupCommand<br/>arity, ACL, OOM, cluster<br/>and replica checks"]
+        CALL["call proc<br/>mutates the keyspace"]
+        PROP["propagate<br/>to the AOF buffer and<br/>to the replication backlog"]
+    end
+
+    subgraph Cron["serverCron, once per hz tick"]
+        C1["Slow active-expire cycle"]
+        C2["Incremental dict rehash step"]
+        C3["Client timeout and eviction"]
+        C4["Check RDB or AOF child status"]
+        C5["Replication cron, cluster cron"]
+        C6["Sample used memory, resize dicts"]
+    end
+
+    subgraph Bio["Background threads, bio.c, three of them"]
+        B1["bio_close_file<br/>deferred close syscall"]
+        B2["bio_aof<br/>deferred fsync and AOF close"]
+        B3["bio_lazy_free<br/>frees big objects off the main thread"]
+    end
+
+    subgraph Child["Forked child processes"]
+        F1["RDB save child"]
+        F2["AOF rewrite child"]
+    end
+
+    EP --> POLL
+    BS --> POLL --> AS --> FE
+    FE --> PARSE --> LOOKUP --> CALL --> PROP
+    PROP --> BS
+    POLL --> TE --> Cron
+    C4 -.forks.-> Child
+    PROP -.queues jobs.-> Bio
+    CALL -.UNLINK, lazy eviction.-> B3
+
+    style Sockets fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Loop fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Exec fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cron fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Bio fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Child fill:#fce4ec,stroke:#880e4f,stroke-width:2px

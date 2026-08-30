@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Hash["Key to slot"]
+        H1["HASH_SLOT = CRC16(key) mod 16384"]
+        H2["CRC16 is XMODEM:<br/>polynomial 0x1021, init 0x0000,<br/>no input or output reflection,<br/>no final XOR.<br/>CRC16 of '123456789' is 0x31C3."]
+        H3["Hash tag: if the key contains an<br/>opening brace, a closing brace to its<br/>right, and at least one byte between<br/>them, only that substring is hashed"]
+        H4["16384 slots means the slot bitmap<br/>in every heartbeat is 2 KB.<br/>65536 would have been 8 KB per<br/>packet, and the design assumed<br/>clusters below about 1000 nodes."]
+    end
+
+    subgraph Topo["Topology"]
+        T1["Node A: slots 0 to 5460"]
+        T2["Node B: slots 5461 to 10922"]
+        T3["Node C: slots 10923 to 16383"]
+        T4["Each has replicas. Full mesh on the<br/>cluster bus, at the data port plus<br/>10000 unless cluster-port is set."]
+    end
+
+    subgraph Redir["What a node replies"]
+        R1["Slot is mine: execute"]
+        R2["Slot belongs elsewhere:<br/>-MOVED 3999 127.0.0.1:6381<br/>Permanent. Update the client's map."]
+        R3["Slot is MIGRATING and the key is gone:<br/>-ASK 3999 127.0.0.1:6382<br/>One-shot. Do not update the map."]
+        R4["Slot is IMPORTING and the client did<br/>not send ASKING first: -MOVED back"]
+        R5["Multi-key command whose keys split<br/>across the migrating slot:<br/>-TRYAGAIN"]
+        R6["Multi-key command across two slots:<br/>-CROSSSLOT Keys in request don't hash<br/>to the same slot"]
+    end
+
+    subgraph Fail["Failure detection and failover"]
+        F1["PFAIL: no PONG for cluster-node-timeout,<br/>default 15000 ms. Local opinion only."]
+        F2["FAIL: a majority of primaries reported<br/>PFAIL or FAIL within<br/>cluster-node-timeout times 2"]
+        F3["Replica waits 500 ms plus 0 to 500 ms<br/>random plus rank times 1000 ms, where<br/>rank orders replicas by replication offset"]
+        F4["Replica increments currentEpoch and<br/>broadcasts FAILOVER_AUTH_REQUEST.<br/>Each primary votes once per epoch."]
+        F5["On a majority of votes the replica takes<br/>a new, higher configEpoch and claims the<br/>slots. Higher configEpoch always wins."]
+    end
+
+    Hash --> Topo --> Redir
+    Topo --> Fail
+
+    style Hash fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Topo fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Redir fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fail fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

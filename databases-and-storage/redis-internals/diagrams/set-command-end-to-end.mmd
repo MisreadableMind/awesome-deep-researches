@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application
+    participant IO as I/O thread 3
+    participant Main as Main thread
+    participant KS as Keyspace, db 0
+    participant AOF as AOF buffer
+    participant Repl as Replication backlog
+    participant Rep as Replica
+
+    App->>IO: 64 bytes:<br/>*5 $3 SET $12 session:9f3a<br/>$9 logged-in $2 EX $3 900
+    IO->>IO: Read into the query buffer,<br/>parse the RESP array into argv,<br/>set argc = 5
+    IO->>Main: Hand the parsed client over.<br/>The I/O thread never touches the keyspace.
+
+    Main->>Main: lookupCommand finds setCommand,<br/>arity -3 satisfied
+    Main->>Main: ACL check, then the maxmemory check:<br/>used_memory 3.2 GB against maxmemory 4 GB,<br/>no eviction needed
+    Main->>KS: dbLookup 'session:9f3a' in db->keys.<br/>Absent, so nothing to overwrite.
+    Main->>KS: Create the value object.<br/>'logged-in' is 9 bytes, so embstr:<br/>one 32-byte jemalloc allocation holding<br/>the 16-byte robj plus the sds
+    Main->>KS: dictAdd into db->keys.<br/>One rehash bucket is migrated as a side effect.
+    Main->>KS: setExpire writes 1756500000000<br/>into db->expires, an absolute millisecond<br/>timestamp, not a countdown
+    Main->>Main: signalModifiedKey aborts any client<br/>that has WATCHed this key
+    Main->>Main: Keyspace notification, if notify-keyspace-events<br/>is on: __keyspace@0__:session:9f3a -> set
+
+    Note over Main,Repl: Propagation rewrites the command so it is<br/>deterministic on replay
+    Main->>AOF: SET session:9f3a logged-in PXAT 1756500000000
+    Main->>Repl: The same bytes, and master_repl_offset<br/>advances by their length
+    Main-->>App: +OK CRLF, buffered
+
+    Repl->>Rep: The rewritten command
+    Rep->>Rep: Apply it. The replica does NOT<br/>start its own timer for this key.
+
+    Main->>AOF: beforeSleep: write(2) the buffer into<br/>appendonly.aof.N.incr.aof
+    Main->>Main: beforeSleep: flush the reply to the socket
+
+    Note over App,Rep: 900 seconds later the key is logically dead. It is<br/>removed either when a client next touches it, or when<br/>the active expire cycle samples its bucket, whichever<br/>comes first. Only then does the DEL reach the replica.

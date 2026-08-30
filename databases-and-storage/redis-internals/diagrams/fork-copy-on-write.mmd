@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Before["t = 0, before the fork"]
+        BF["Parent RSS 24 GB.<br/>Page table: 24 GB / 4 KB * 8 bytes<br/>= 48 MB of page table entries"]
+    end
+
+    subgraph Fork["t = 0+, the fork syscall itself"]
+        FK1["The kernel copies the page table,<br/>not the pages. 48 MB of copying<br/>while the main thread is blocked."]
+        FK2["Measured cost, from latest_fork_usec:<br/>about 9 to 13 milliseconds per GB on<br/>bare metal and on modern EC2 HVM<br/>instances"]
+        FK3["Old EC2 instance types on Xen<br/>measured 239 ms/GB.<br/>One Linode measurement, also Xen:<br/>424 ms/GB. The fork, not the save,<br/>is the outage."]
+    end
+
+    subgraph During["t &gt; 0, copy-on-write"]
+        DR1["Every page is marked read-only in<br/>both processes and shared"]
+        DR2["The parent writes a key.<br/>Page fault. Kernel copies that<br/>4 KB page. Parent RSS grows."]
+        DR3["Peak extra memory equals the<br/>working set touched during the<br/>child's lifetime, not the dataset size"]
+    end
+
+    subgraph THP["Transparent huge pages make it worse"]
+        TH1["With THP the unit of copy-on-write<br/>is 2 MB, not 4 KB"]
+        TH2["Touching one key can copy 2 MB.<br/>A few event loop iterations can<br/>copy most of the process."]
+        TH3["Redis sets disable-thp yes and<br/>logs a warning. The kernel setting<br/>is /sys/kernel/mm/transparent_hugepage/enabled"]
+    end
+
+    subgraph Provision["What this means for capacity planning"]
+        PR1["A write-heavy instance can need close<br/>to 2x its dataset size in RAM while<br/>a BGSAVE or AOF rewrite runs"]
+        PR2["The OOM killer targets the parent<br/>because it has the larger RSS.<br/>oom-score-adj-values 0 200 800<br/>biases the killer toward the child."]
+        PR3["vm.overcommit_memory = 1 stops the<br/>kernel refusing the fork when the<br/>nominal reservation exceeds RAM"]
+        PR4["Diskless replication and diskless<br/>RDB skip the disk but still fork"]
+    end
+
+    Before --> Fork --> During --> Provision
+    During --> THP --> Provision
+
+    style Before fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Fork fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style During fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style THP fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Provision fill:#fff3e0,stroke:#e65100,stroke-width:2px

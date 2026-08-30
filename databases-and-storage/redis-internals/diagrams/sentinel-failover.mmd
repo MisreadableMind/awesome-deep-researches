@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Client
+    participant S1 as Sentinel 1<br/>port 26379
+    participant S2 as Sentinel 2
+    participant S3 as Sentinel 3
+    participant M as Primary
+    participant R1 as Replica A
+    participant R2 as Replica B
+
+    Note over S1,R2: Discovery, continuous
+    S1->>M: INFO every 10 seconds, discovers replicas
+    S1->>M: PUBLISH __sentinel__:hello every 2 seconds<br/>with its own ip, port and runid
+    S2->>M: SUBSCRIBE __sentinel__:hello, learns S1 and S3
+
+    Note over S1,M: Failure detection
+    S1->>M: PING every second
+    M--xS1: No +PONG, no -LOADING, no -MASTERDOWN
+    S1->>S1: down-after-milliseconds elapsed.<br/>Mark SDOWN, subjectively down.
+    S1->>S2: SENTINEL is-master-down-by-addr [ip] [port] [epoch] *
+    S2-->>S1: 1, plus leader runid and epoch.<br/>S2 sees it down too.
+    S1->>S3: SENTINEL is-master-down-by-addr ...
+    S3-->>S1: 1
+    S1->>S1: Reports reach the configured quorum.<br/>Promote SDOWN to ODOWN, objectively down.
+
+    Note over S1,S3: Leader election, a majority, not the quorum
+    S1->>S1: Increment its failover epoch
+    S1->>S2: is-master-down-by-addr with its own runid,<br/>asking to be voted leader
+    S2-->>S1: Vote granted for this epoch
+    S3-->>S1: Vote granted
+    S1->>S1: Majority of ALL known Sentinels reached.<br/>With 5 Sentinels and quorum 2, detection<br/>needs 2 but the failover needs 3.
+
+    Note over S1,R2: Replica selection
+    S1->>S1: Discard replicas disconnected longer than<br/>down-after-milliseconds * 10 plus the SDOWN age.<br/>Then sort by replica-priority ascending,<br/>then by replication offset descending,<br/>then by lexicographically smaller run ID.<br/>replica-priority 0 is never promoted.
+
+    S1->>R1: REPLICAOF NO ONE
+    S1->>R1: INFO, wait until role:master is observed
+    S1->>S1: Failover is now successful.<br/>Broadcast the new config with the new epoch.
+    S1->>R2: REPLICAOF [new primary], parallel-syncs at a time
+    S1->>M: REPLICAOF [new primary] when it returns
+
+    App->>S1: SENTINEL get-master-addr-by-name mymaster
+    S1-->>App: The new address
+    S1->>App: PUBLISH +switch-master mymaster [old] [new]
+
+    Note over App,R2: What is NOT guaranteed: replication is asynchronous,<br/>so writes acknowledged by the old primary and not yet<br/>replicated are lost. min-replicas-to-write bounds<br/>the window. It does not close it.

@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph ZS["A skiplist-encoded sorted set holds TWO structures"]
+        D["dict: member to score.<br/>Gives ZSCORE and ZADD<br/>existence checks in O(1)."]
+        SL["zskiplist: ordered by score,<br/>then by member lexicographically.<br/>Gives ZRANGE, ZRANK and<br/>ZRANGEBYSCORE in O(log N)."]
+    end
+
+    subgraph Levels["The skip list itself"]
+        direction TB
+        L4["Level 4:  header ------------------------&gt; NULL"]
+        L3["Level 3:  header ------&gt; carol ---------&gt; NULL"]
+        L2["Level 2:  header ------&gt; carol --&gt; erin -&gt; NULL"]
+        L1["Level 1:  header -&gt; bob -&gt; carol --&gt; erin -&gt; NULL"]
+        L0["Level 0:  header -&gt; alice -&gt; bob -&gt; carol -&gt; dave -&gt; erin -&gt; NULL"]
+    end
+
+    subgraph Node["zskiplistNode"]
+        NN["ele: the member as an sds string<br/>score: a C double<br/>backward: one pointer, for reverse range<br/>level array of: forward pointer plus span"]
+    end
+
+    subgraph Params["The two constants that define it"]
+        P1["ZSKIPLIST_MAXLEVEL 32<br/>enough for 2 to the 64 elements"]
+        P2["ZSKIPLIST_P 0.25<br/>each new node keeps flipping a<br/>one-in-four coin to gain a level.<br/>Expected 1.33 pointers per node."]
+    end
+
+    subgraph Span["Why span matters"]
+        SP["Each forward pointer carries a span:<br/>how many level-0 nodes it skips.<br/>Summing spans along the search path<br/>yields ZRANK in O(log N) without<br/>an auxiliary index."]
+    end
+
+    ZS --> Levels --> Node --> Params
+    Node --> Span
+
+    style ZS fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Levels fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Node fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Params fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Span fill:#eceff1,stroke:#37474f,stroke-width:2px

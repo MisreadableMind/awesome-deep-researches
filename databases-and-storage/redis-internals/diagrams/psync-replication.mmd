@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant R as Replica
+    participant P as Primary
+    participant Ch as RDB child
+    participant BL as Replication backlog<br/>repl-backlog-size, default 1mb
+    participant OB as Replica output buffer<br/>client-output-buffer-limit replica<br/>256mb 64mb 60
+
+    Note over R,P: Handshake
+    R->>P: PING
+    P-->>R: +PONG
+    R->>P: REPLCONF listening-port 6380
+    R->>P: REPLCONF capa eof capa psync2
+    R->>P: PSYNC [cached-replid] [offset+1]
+
+    alt Partial resynchronisation possible
+        P->>P: replid matches replid or replid2,<br/>and offset is still inside the backlog
+        P-->>R: +CONTINUE [replid]
+        BL->>R: Replay the backlog from that offset
+        Note over R,P: No fork, no RDB, no reload.<br/>This is the whole point of PSYNC.
+    else Full resynchronisation
+        P-->>R: +FULLRESYNC [replid] [offset]
+        P->>Ch: fork for BGSAVE
+        activate Ch
+        Note over P: repl-diskless-sync yes: the child streams<br/>the RDB straight down the socket.<br/>repl-diskless-sync-delay 5 waits 5 seconds<br/>so several replicas share one fork.
+        Ch->>R: RDB payload
+        deactivate Ch
+        P->>OB: Buffer every write made during the transfer.<br/>Overflowing the limit disconnects the replica<br/>and restarts the whole sync.
+        R->>R: Flush the old dataset, load the RDB.<br/>Loading blocks the replica's main thread.
+        OB->>R: Drain the buffered stream
+    end
+
+    Note over R,P: Steady state
+    P->>R: Write commands, verbatim RESP,<br/>plus periodic PING at repl-ping-replica-period
+    R->>P: REPLCONF ACK [offset], once per second
+    P->>P: Track each replica's acked offset.<br/>WAIT numreplicas timeout blocks on it.<br/>min-replicas-to-write and min-replicas-max-lag<br/>refuse writes when too few replicas are current.
+
+    Note over R,P: PSYNC2, Redis 4.0. A promoted replica moves its old<br/>replid into replid2 and generates a fresh replid,<br/>so the other replicas of the failed primary can<br/>partially resync against it instead of full-syncing.
+
+    Note over R,P: Redis 8.0 opens the RDB channel and the command<br/>stream in parallel: measured 18 percent faster<br/>full sync and a 35 percent lower peak buffer on<br/>the primary for a 10 GB dataset under load.

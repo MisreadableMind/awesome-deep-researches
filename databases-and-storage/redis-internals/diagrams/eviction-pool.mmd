@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Check["Before every command, performEvictions"]
+        CH1["used_memory minus<br/>mem_not_counted_for_evict<br/>compared with maxmemory.<br/>Replica output buffers and the<br/>AOF buffer are excluded."]
+        CH2["Under the limit: run the command"]
+        CH3["Over the limit and policy is<br/>noeviction: reply<br/>-OOM command not allowed when<br/>used memory &gt; 'maxmemory'"]
+    end
+
+    subgraph Policies["The ten policies, eight before Redis 8.6"]
+        P1["noeviction, the default"]
+        P2["allkeys-lru / volatile-lru"]
+        P3["allkeys-lfu / volatile-lfu"]
+        P4["allkeys-random / volatile-random"]
+        P5["volatile-ttl, shortest remaining TTL first"]
+        P6["allkeys-lrm / volatile-lrm,<br/>least recently MODIFIED,<br/>added in Redis 8.6"]
+    end
+
+    subgraph Pool["The eviction pool, EVPOOL_SIZE 16"]
+        PL1["Sample maxmemory-samples keys,<br/>default 5, from db-&gt;keys for allkeys-*<br/>or from db-&gt;expires for volatile-*"]
+        PL2["Score each: for LRU, the idle time;<br/>for LFU, 255 minus the decayed counter;<br/>for TTL, the remaining time"]
+        PL3["Merge into a 16-entry pool kept<br/>sorted worst-last, persisted across<br/>calls so good candidates survive"]
+        PL4["Evict the tail entry.<br/>Repeat until under the limit or the<br/>maxmemory-eviction-tenacity budget,<br/>default 10, is spent"]
+    end
+
+    subgraph LFU["LFU inside 24 bits of robj-&gt;lru"]
+        LF1["High 16 bits: last decrement time<br/>in minutes. Low 8 bits: a Morris<br/>counter, 0 to 255, starting at<br/>LFU_INIT_VAL = 5"]
+        LF2["Increment probability<br/>p = 1 / ((counter - 5) * lfu_log_factor + 1)<br/>with lfu-log-factor 10 by default.<br/>At factor 10, 100 hits reaches about 10,<br/>1 million hits saturates at 255."]
+        LF3["Decay: subtract one point for every<br/>lfu-decay-time minutes elapsed,<br/>default 1 minute"]
+    end
+
+    Check --> Policies --> Pool --> LFU
+    CH1 --> CH2
+    CH1 --> CH3
+    PL1 --> PL2 --> PL3 --> PL4
+
+    NOTE["Eviction is approximate on purpose.<br/>True LRU needs a global ordered list<br/>and a pointer per object.<br/>Redis trades exactness for<br/>24 bits and five samples."]
+    LFU --> NOTE
+
+    style Check fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Policies fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Pool fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LFU fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NOTE fill:#eceff1,stroke:#37474f,stroke-width:2px
