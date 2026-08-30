@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant JS as Page script
+    participant B as Browser WebSocket stack
+    participant N as TCP and TLS
+    participant S as Server
+
+    JS->>B: open wss://chat.example.com/ws<br/>requesting subprotocol v3.chat.example.com
+    Note over B: readyState = CONNECTING, value 0
+
+    B->>N: TCP connect to port 443, then TLS 1.3 handshake<br/>ALPN offers h2 and http/1.1
+    N-->>B: TLS established, ALPN selected http/1.1
+
+    Note over B: Generate a fresh 16-byte nonce from a<br/>strong entropy source, base64 encode it.<br/>7b16f37a4a1c1e9d0c4a5f2e8d3b6c91<br/>becomes exbzekocHp0MSl8ujTtskQ==
+
+    B->>S: GET /ws HTTP/1.1<br/>Host: chat.example.com<br/>Upgrade: websocket<br/>Connection: Upgrade<br/>Sec-WebSocket-Key: exbzekocHp0MSl8ujTtskQ==<br/>Sec-WebSocket-Version: 13<br/>Sec-WebSocket-Protocol: v3.chat.example.com<br/>Sec-WebSocket-Extensions: permessage-deflate with client_max_window_bits<br/>Origin: https://chat.example.com<br/>Cookie: session=...
+
+    Note over S: Validate Origin against an allowlist.<br/>This is the only CSRF defence available.<br/>Authenticate the cookie or bearer token.<br/>Choose one subprotocol from the offer.<br/>Choose extension parameters.
+
+    Note over S: accept = base64(SHA-1(key + 258EAFA5-E914-47DA-95CA-C5AB0DC85B11))<br/>SHA-1 digest 922bf5b1f96a8614d9e9541438fbf3342087bfe6<br/>encodes to kiv1sflqhhTZ6VQUOPvzNCCHv+Y=
+
+    S-->>B: HTTP/1.1 101 Switching Protocols<br/>Upgrade: websocket<br/>Connection: Upgrade<br/>Sec-WebSocket-Accept: kiv1sflqhhTZ6VQUOPvzNCCHv+Y=<br/>Sec-WebSocket-Protocol: v3.chat.example.com<br/>Sec-WebSocket-Extensions: permessage-deflate with client_max_window_bits=15
+
+    Note over B: Recompute the accept value and compare.<br/>A mismatch aborts. This proves the peer<br/>parsed the handshake rather than replaying<br/>a cached 101 response.
+
+    B-->>JS: onopen fires. readyState = OPEN, value 1
+    Note over B,S: From here the bytes are frames.<br/>No HTTP request, response, header<br/>or status code appears again.

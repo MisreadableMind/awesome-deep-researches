@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Neg["Negotiation, RFC 7692"]
+        direction TB
+        N1["Client offer:<br/>Sec-WebSocket-Extensions:<br/>permessage-deflate;<br/>client_max_window_bits"]
+        N2["Server answer names the agreed<br/>parameters. Anything the server<br/>does not echo is not in force.<br/>The client offer is a hint;<br/>the server answer is the contract."]
+        N3["Four parameters:<br/>server_no_context_takeover<br/>client_no_context_takeover<br/>server_max_window_bits, 8 to 15<br/>client_max_window_bits, 8 to 15<br/>Window default is 15, meaning<br/>32,768 bytes."]
+    end
+
+    subgraph Wire["What happens to the bytes"]
+        direction TB
+        W1["Compress the message payload with<br/>raw DEFLATE, RFC 1951."]
+        W2["Flush with an empty stored block,<br/>then strip the trailing four<br/>octets 0x00 0x00 0xff 0xff.<br/>The decompressor appends them back<br/>before inflating."]
+        W3["Set RSV1 on the first frame of<br/>the message only. Continuation<br/>frames leave RSV1 clear.<br/>Compression is per message,<br/>not per frame."]
+        W4["Control frames are never<br/>compressed."]
+    end
+
+    subgraph Measured["Measured on one real payload"]
+        direction TB
+        M1["A 192-byte presence JSON message,<br/>sent five times on one connection."]
+        M2["With context takeover:<br/>144, 6, 5, 5, 5 bytes.<br/>The LZ77 window remembers the<br/>previous messages, so repeats<br/>collapse to a back-reference."]
+        M3["With no_context_takeover:<br/>144, 144, 144, 144, 144 bytes.<br/>Every message compresses alone<br/>and repetition buys nothing."]
+        M4["Ratio on the steady state:<br/>192 raw to 5 compressed, a factor<br/>of 38. That number is why chat and<br/>market-data feeds enable it."]
+    end
+
+    subgraph Cost["What it costs"]
+        direction TB
+        C1["Memory is per connection and per<br/>direction, and the two directions<br/>are not equal. A zlib deflate<br/>context at windowBits 15 and<br/>memLevel 8 costs about 256 KB.<br/>The inflate side adds about<br/>40 KB more, so about 300 KB<br/>for a bidirectional connection."]
+        C2["At 100,000 bidirectional<br/>connections that is 30 GB of zlib<br/>arenas before a single message is<br/>queued. This is the single most<br/>common cause of memory blowups<br/>in WebSocket servers."]
+        C3["The ws library disables<br/>permessage-deflate on the server<br/>by default and warns that on Linux<br/>increased concurrency can lead to<br/>catastrophic memory fragmentation<br/>and slow performance."]
+        C4["Levers, in order of preference:<br/>refuse the extension entirely for<br/>binary or already-compressed<br/>payloads, set both<br/>no_context_takeover flags, then<br/>lower max_window_bits to 10 or 11."]
+    end
+
+    subgraph Sec["The security caveat"]
+        direction TB
+        S1["Compressing attacker-influenced<br/>data together with secret data on<br/>one shared context leaks the<br/>secret through message length.<br/>This is the CRIME and BREACH<br/>family applied to a WebSocket."]
+        S2["Mitigation is the same as for TLS<br/>compression: do not mix<br/>attacker-controlled and secret<br/>content in one compression<br/>context, or disable context<br/>takeover."]
+    end
+
+    Neg --> Wire --> Measured
+    Measured --> Cost
+    Measured --> Sec
+
+    style Neg fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Wire fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Measured fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Cost fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Sec fill:#ffebee,stroke:#c62828,stroke-width:2px

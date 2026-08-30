@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Stack["Every idle timer between a browser and an origin"]
+        direction TB
+        S1["Carrier NAT and CGNAT:<br/>UDP mappings from 30 seconds,<br/>TCP mappings commonly 5 to 30<br/>minutes. Not configurable and<br/>not observable from either end."]
+        S2["Home router NAT and corporate<br/>firewall: TCP idle commonly<br/>300 to 3,600 seconds."]
+        S3["CDN and reverse proxy:<br/>nginx proxy_read_timeout defaults<br/>to 60 seconds. AWS Application<br/>Load Balancer idle timeout defaults<br/>to 60 seconds. Cloudflare closes<br/>idle WebSockets and documents no<br/>fixed figure for the general plan."]
+        S4["Application server: its own<br/>read deadline, usually the one<br/>engineers remember to raise and<br/>then forget."]
+        S5["The shortest timer in the chain<br/>wins. Nobody tells the endpoints<br/>which one it was."]
+    end
+
+    subgraph Ping["The RFC 6455 mechanism"]
+        direction TB
+        P1["Ping, opcode 0x9, payload at<br/>most 125 bytes. A receiver MUST<br/>reply with Pong, opcode 0xA,<br/>carrying identical payload,<br/>as soon as practical."]
+        P2["Unsolicited Pong is legal and is<br/>defined as a one-way heartbeat.<br/>No reply is expected."]
+        P3["Browsers answer Ping in the<br/>network stack. The page never<br/>sees it. The browser WebSocket<br/>API exposes no way to send a<br/>Ping, which is why almost every<br/>JavaScript client invents an<br/>application-level ping message."]
+    end
+
+    subgraph Budget["Choosing the interval"]
+        direction TB
+        B1["Rule: ping interval must be<br/>shorter than the shortest idle<br/>timer, with margin for one lost<br/>packet and one retransmission."]
+        B2["Common production settings:<br/>Socket.IO sends a server ping every<br/>25,000 ms and expects a pong<br/>within 20,000 ms.<br/>MQTT closes at 1.5x the keep alive.<br/>SSE convention is a comment line<br/>every 15 seconds."]
+        B3["Cost: 1 million connections<br/>pinged every 30 seconds is 33,333<br/>exchanges per second, or roughly<br/>0.27 MB/s of pure heartbeat at<br/>2 bytes for the server Ping plus<br/>6 bytes for the client Pong."]
+        B4["Detection time is the interval<br/>plus the timeout, not the interval.<br/>A 25 s interval with a 20 s<br/>timeout detects a dead peer in<br/>up to 45 seconds."]
+    end
+
+    subgraph Half["The half-open problem"]
+        direction TB
+        H1["A peer whose power is cut sends<br/>no FIN and no RST. The other side<br/>holds an OPEN socket that will<br/>never deliver another byte."]
+        H2["TCP keepalive defaults on Linux<br/>fire after tcp_keepalive_time of<br/>7,200 seconds, which is two hours<br/>and useless for this."]
+        H3["Only an application-visible<br/>heartbeat with a deadline frees<br/>the file descriptor, the session<br/>object and the pub/sub<br/>subscription."]
+    end
+
+    Stack --> Ping --> Budget --> Half
+
+    style Stack fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Ping fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Budget fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Half fill:#fff3e0,stroke:#e65100,stroke-width:2px

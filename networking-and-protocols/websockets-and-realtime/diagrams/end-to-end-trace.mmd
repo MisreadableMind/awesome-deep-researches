@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Priya, London<br/>Chrome
+    participant LB as ALB, eu-west-2
+    participant EA as Edge node A
+    participant BUS as Redis pub/sub
+    participant EB as Edge node B<br/>ap-southeast-2
+    participant B as Marcus, Sydney<br/>Safari
+
+    Note over A,B: t = 0 ms. Both users already hold open WebSockets<br/>to their nearest edge. Channel eng-general has<br/>412 subscribers across 6 edge nodes.
+
+    A->>A: keypress, then send<br/>payload 56 bytes of JSON
+    Note over A: Frame built: 81 b8 3a 5b 7f 01 ...<br/>0x81 FIN plus opcode 1 text<br/>0xb8 MASK plus length 56<br/>3a 5b 7f 01 masking key<br/>62 bytes total on the wire
+
+    A->>LB: TLS record carrying the frame, t = 1 ms
+    LB->>EA: forwarded, t = 3 ms
+    Note over EA: unmask with the 4-byte key,<br/>validate UTF-8, parse JSON,<br/>check the channel grant on the<br/>session, assign seq 88412
+
+    EA->>BUS: PUBLISH ch:eng-general {seq:88412,...}, t = 5 ms
+    BUS-->>EB: message, t = 152 ms<br/>London to Sydney propagation dominates
+    Note over EB: look up local subscribers for<br/>eng-general: 71 sockets on this node
+
+    EB-->>B: server frame: 81 38 plus 56 bytes<br/>no mask, 58 bytes on the wire, t = 154 ms
+    Note over B: onmessage fires once with the<br/>complete message. The page renders<br/>at the next animation frame.
+
+    Note over A,B: End to end: 154 ms, of which 147 ms is<br/>speed of light and fibre routing between<br/>London and Sydney. Protocol overhead is<br/>7 ms and 120 bytes of framing.
+
+    B-->>EB: ack frame, seq 88412, 6 bytes of header
+    EB->>BUS: PUBLISH ch:eng-general:acks
+    Note over EA,BUS: Delivery receipts are an application<br/>concern. RFC 6455 has no acknowledgement,<br/>no sequence number and no retransmission.
+
+    Note over A,B: Same message under 1-second polling:<br/>up to 1,000 ms of added latency and<br/>781 bytes per empty poll per client.<br/>412 subscribers polling once a second<br/>is 412 requests per second to answer<br/>nothing, against 412 writes on one event.

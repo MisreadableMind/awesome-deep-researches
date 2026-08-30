@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Poll["Short polling: fixed cost, variable latency"]
+        direction TB
+        P1["Client asks every N seconds<br/>whether anything changed."]
+        P2["Measured request: 564 bytes of<br/>headers, cookie and user agent.<br/>Empty response: 217 bytes.<br/>Round trip on the wire: 781 bytes."]
+        P3["At N = 1 second: 86,400 requests<br/>per client per day, 67.5 MB per<br/>client per day, and the server<br/>answers 'nothing' 99 percent of<br/>the time."]
+        P4["Mean detection delay is N/2.<br/>Worst case is N. Lowering N to cut<br/>latency raises cost linearly and<br/>never reaches zero."]
+    end
+
+    subgraph Long["Long polling: variable cost, low latency"]
+        direction TB
+        L1["Client asks and the server holds<br/>the request open until an event<br/>arrives or a timeout fires."]
+        L2["One held request per client.<br/>Latency on the first event is one<br/>network transit, not N/2."]
+        L3["The second event costs three<br/>transits: response out, new request<br/>in, response out. RFC 6202 calls<br/>this the maximal latency problem."]
+        L4["Every held request occupies a<br/>socket, a file descriptor and,<br/>on a thread-per-request server,<br/>a whole thread."]
+    end
+
+    subgraph WS["WebSocket: near-zero marginal cost"]
+        direction TB
+        W1["One handshake, then frames.<br/>Server to client overhead is 2 bytes<br/>for payloads under 126."]
+        W2["Client to server overhead is<br/>6 bytes: 2 header plus a 4-byte<br/>masking key."]
+        W3["781 bytes per poll against<br/>6 bytes per message is a factor<br/>of 130 on the send path."]
+        W4["Latency is one transit in either<br/>direction, at any time, with no<br/>request needed to unlock a send."]
+    end
+
+    Poll -->|"hold the request open"| Long
+    Long -->|"stop closing the connection"| WS
+
+    style Poll fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Long fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style WS fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

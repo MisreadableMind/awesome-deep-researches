@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Is["What a WebSocket IS"]
+        direction TB
+        I1["A framed, bidirectional,<br/>message-oriented tunnel over one<br/>TCP connection, opened by an<br/>HTTP request and then leaving<br/>HTTP behind."]
+        I2["Message-preserving. A send of<br/>1,000 bytes arrives as one message<br/>of 1,000 bytes, never as two<br/>halves the receiver must rejoin."]
+        I3["Ordered and reliable, because<br/>TCP underneath is ordered and<br/>reliable. Nothing in RFC 6455<br/>adds retransmission."]
+        I4["Origin-aware but not<br/>origin-enforced. The browser sends<br/>Origin. The server decides whether<br/>to believe it."]
+    end
+
+    subgraph IsNot["What a WebSocket IS NOT"]
+        direction TB
+        N1["NOT a socket. There is no<br/>connect to an arbitrary host and<br/>port from a page, no UDP, no<br/>raw byte stream, no listen."]
+        N2["NOT HTTP after the handshake.<br/>No methods, no status codes, no<br/>caching, no CORS preflight,<br/>no per-message authorisation."]
+        N3["NOT a delivery guarantee.<br/>A successful send means the bytes<br/>reached the kernel socket buffer.<br/>Application acknowledgement is the<br/>subprotocol's job, not the wire's."]
+        N4["NOT lower latency than HTTP<br/>on a warm connection. It removes<br/>request overhead and the need for<br/>a client request, not propagation<br/>delay."]
+        N5["NOT free of head-of-line<br/>blocking. One TCP connection means<br/>one lost segment stalls every<br/>message behind it."]
+    end
+
+    subgraph Model["The accurate mental model"]
+        direction TB
+        M1["An HTTP request that, on success,<br/>hands both endpoints a shared,<br/>persistent, message-framed pipe<br/>and then gets out of the way."]
+        M2["Everything the application needs<br/>above that pipe, channels,<br/>acknowledgements, replay, presence,<br/>authentication refresh, is invented<br/>by the subprotocol."]
+    end
+
+    Is --> Model
+    IsNot --> Model
+
+    style Is fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style IsNot fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Model fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

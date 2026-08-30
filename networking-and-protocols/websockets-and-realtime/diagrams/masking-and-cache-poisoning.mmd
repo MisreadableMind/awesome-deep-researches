@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Attack["The 2010 attack that created masking"]
+        direction TB
+        A1["Setup: a transparent forward proxy<br/>sits between the browser and the<br/>internet, intercepts port 80, and<br/>caches responses. It does not<br/>understand the WebSocket upgrade."]
+        A2["Step 1: a malicious page opens a<br/>WebSocket to attacker.com:80.<br/>The proxy sees a GET with an<br/>Upgrade header, does not recognise<br/>it, and forwards the bytes."]
+        A3["Step 2: the attacker's server<br/>answers 101. The proxy now treats<br/>the connection as an opaque tunnel<br/>but keeps parsing subsequent bytes<br/>as HTTP requests."]
+        A4["Step 3: the page sends, as<br/>WebSocket payload, the literal text<br/>of a GET for a victim origin.<br/>The proxy reads it as a real<br/>request and caches the attacker's<br/>reply against the victim URL."]
+        A5["Result: every user behind that<br/>proxy is served attacker JavaScript<br/>for a URL on a domain the attacker<br/>never controlled. Firefox and Opera<br/>disabled WebSocket in December 2010."]
+    end
+
+    subgraph Fix["The fix: unpredictable per-frame masking"]
+        direction TB
+        F1["RFC 6455 section 5.3: every<br/>client-to-server frame carries a<br/>32-bit masking key chosen at random<br/>per frame, from a strong source<br/>of entropy, per RFC 4086."]
+        F2["Transform: octet i of the payload<br/>is XORed with octet i mod 4 of the<br/>key. The operation is its own<br/>inverse, so unmasking is the same<br/>code path."]
+        F3["The attacker controls the plaintext<br/>but not the key, so the attacker<br/>cannot choose the bytes that appear<br/>on the wire. The proxy sees<br/>uniformly random-looking octets."]
+        F4["Cost: one XOR pass over every<br/>outbound byte on the client and<br/>every inbound byte on the server.<br/>Vectorised implementations run it<br/>at memory bandwidth."]
+    end
+
+    subgraph Wrong["Two things masking is not"]
+        direction TB
+        W1["NOT encryption. The key travels<br/>in the clear four bytes ahead of<br/>the ciphertext. Anyone can undo it.<br/>Confidentiality comes from TLS."]
+        W2["NOT integrity. Masking detects<br/>nothing and authenticates nothing.<br/>It exists only to deny the attacker<br/>control of the byte pattern."]
+        W3["Server-to-server clients still<br/>MUST mask if they act as the<br/>client role. Servers MUST reject<br/>an unmasked client frame with<br/>close code 1002."]
+    end
+
+    Attack --> Fix --> Wrong
+
+    style Attack fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Wrong fill:#fff3e0,stroke:#e65100,stroke-width:2px

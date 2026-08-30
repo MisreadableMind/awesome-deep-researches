@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Workarounds<br/>1995-2008"]
+        direction TB
+        E1A["1995-2000: hidden iframe and<br/>forever-frame tricks. The browser<br/>keeps one response open and the<br/>server writes script tags into it."]
+        E1B["2006: Alex Russell coins Comet<br/>for the family of server-push<br/>hacks over HTTP/1.1."]
+        E1C["2006: Opera ships Server-Sent<br/>Events as part of the WHATWG<br/>Web Applications 1.0 draft."]
+    end
+
+    subgraph Era2["Standardisation<br/>2008-2011"]
+        direction TB
+        E2A["June 2008: Michael Carter and<br/>Ian Hickson start TCPConnection,<br/>renamed WebSocket, inside the<br/>HTML5 draft."]
+        E2B["Dec 2009: WebSocket lands in the<br/>Chrome dev channel. Chrome 4 ships<br/>draft-75 to stable in Jan 2010 and<br/>Safari 5 follows with draft-76 in<br/>June 2010. Firefox never ships<br/>draft-76 enabled."]
+        E2C["Dec 2010: Firefox and Opera<br/>disable WebSocket after Huang et al.<br/>show transparent proxies can be<br/>poisoned. Masking is added."]
+        E2D["Dec 2011: RFC 6455 published.<br/>Version 13 is the only version<br/>ever shipped as a standard."]
+    end
+
+    subgraph Era3["Consolidation<br/>2011-2018"]
+        direction TB
+        E3A["Apr 2011: RFC 6202 documents<br/>long polling and streaming as<br/>the interim answer."]
+        E3B["2012-2015: SockJS, Socket.IO,<br/>SignalR and Faye wrap the raw<br/>protocol in fallbacks, rooms,<br/>reconnects and acknowledgements."]
+        E3C["Dec 2015: RFC 7692 adds<br/>permessage-deflate, the only<br/>registered compression extension."]
+        E3D["Sept 2018: RFC 8441 bootstraps<br/>WebSocket over an HTTP/2 stream<br/>using extended CONNECT."]
+    end
+
+    subgraph Era4["The QUIC era<br/>2018-2026"]
+        direction TB
+        E4A["June 2022: RFC 9220 repeats<br/>RFC 8441 for HTTP/3."]
+        E4B["Jan 2022: Chrome 97 ships<br/>WebTransport over HTTP/3.<br/>Firefox 114 follows in June 2023."]
+        E4C["Aug 2026: draft-ietf-webtrans-http3-16<br/>sits in working group last call.<br/>WebSocket remains the only<br/>bidirectional transport with<br/>universal browser support."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

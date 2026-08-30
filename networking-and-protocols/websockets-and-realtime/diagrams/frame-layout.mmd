@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Byte0["Byte 0: FIN, RSV, opcode"]
+        direction TB
+        B0A["Bit 0, FIN. 1 means this is the<br/>final fragment of the message.<br/>0 means more fragments follow."]
+        B0B["Bits 1-3, RSV1 RSV2 RSV3.<br/>MUST be 0 unless an extension<br/>defines them. RSV1 is claimed by<br/>permessage-deflate as the<br/>Per-Message Compressed bit."]
+        B0C["Bits 4-7, opcode, 4 bits.<br/>An unknown opcode is a protocol<br/>error and the receiver MUST<br/>fail the connection."]
+    end
+
+    subgraph Byte1["Byte 1: MASK and payload length"]
+        direction TB
+        B1A["Bit 8, MASK. 1 means a 4-byte<br/>masking key follows the length.<br/>Clients MUST set it. Servers<br/>MUST NOT."]
+        B1B["Bits 9-15, payload length, 7 bits.<br/>0 to 125 means that is the length.<br/>126 means read the next 2 bytes<br/>as a 16-bit unsigned length.<br/>127 means read the next 8 bytes<br/>as a 64-bit length whose top<br/>bit MUST be 0."]
+        B1C["Minimal encoding is required.<br/>A length of 100 sent as 126 0x0064<br/>is a protocol error, not a<br/>tolerated inefficiency."]
+    end
+
+    subgraph Opcodes["Opcode registry, IANA"]
+        direction TB
+        OP1["0x0 Continuation<br/>0x1 Text, payload MUST be valid UTF-8<br/>0x2 Binary, payload is opaque<br/>0x3 to 0x7 unassigned, non-control"]
+        OP2["0x8 Close<br/>0x9 Ping<br/>0xA Pong<br/>0xB to 0xF unassigned, control"]
+        OP3["Control frames: opcode high bit set.<br/>Payload MUST be 125 bytes or fewer.<br/>MUST NOT be fragmented.<br/>MAY be injected between the<br/>fragments of a data message."]
+    end
+
+    subgraph Overhead["Header size on the wire"]
+        direction TB
+        OV1["Server to client, payload under 126:<br/>2 bytes. This is the smallest<br/>framing overhead of any<br/>message protocol in wide use."]
+        OV2["Client to server, payload under 126:<br/>6 bytes, because of the mask."]
+        OV3["Payload 126 to 65,535: add 2 bytes.<br/>Payload above 65,535: add 8 bytes.<br/>Maximum single frame is 2^63-1<br/>bytes, which no implementation<br/>accepts."]
+    end
+
+    subgraph Example["A real 56-byte text frame, client to server"]
+        direction TB
+        EX1["81 b8 3a 5b 7f 01 41 79 10 71 18 61 ..."]
+        EX2["0x81 = FIN set, RSV clear, opcode 0x1 text.<br/>0xb8 = MASK set, length 0x38 = 56.<br/>3a 5b 7f 01 = the masking key.<br/>41 79 10 71 ... = the masked payload."]
+        EX3["Unmasked, the first four payload<br/>bytes are 0x7b 0x22 0x6f 0x70,<br/>the ASCII for the opening of a<br/>JSON object. 62 bytes total<br/>carry 56 bytes of application data."]
+    end
+
+    Byte0 --> Byte1 --> Opcodes
+    Opcodes --> Overhead --> Example
+
+    style Byte0 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Byte1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Opcodes fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Overhead fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Example fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

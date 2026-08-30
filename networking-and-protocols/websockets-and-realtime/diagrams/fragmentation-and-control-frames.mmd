@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Rules["The three fragmentation rules"]
+        direction TB
+        R1["First fragment: FIN = 0,<br/>opcode = 0x1 or 0x2.<br/>Middle fragments: FIN = 0,<br/>opcode = 0x0 continuation.<br/>Last fragment: FIN = 1,<br/>opcode = 0x0."]
+        R2["Fragments of one message MUST NOT<br/>be interleaved with fragments of<br/>another on the same connection,<br/>unless an extension negotiates it.<br/>No such extension is registered."]
+        R3["Control frames MAY be injected<br/>between fragments. That is the<br/>whole reason fragmentation exists:<br/>a 4 GB upload must not block a<br/>ping for the duration."]
+    end
+
+    subgraph Why["Why a sender fragments"]
+        direction TB
+        Y1["Streaming output of unknown length.<br/>The length field is in the header,<br/>so a sender that does not yet know<br/>the total size must either buffer<br/>the whole message or fragment."]
+        Y2["Fairness. A server multiplexing<br/>many logical channels over one<br/>socket can round-robin fragments<br/>and avoid one large payload<br/>starving the rest."]
+        Y3["Memory ceilings. A receiver that<br/>refuses messages above a limit can<br/>abort mid-message with close code<br/>1009 instead of allocating first<br/>and failing after."]
+    end
+
+    subgraph Traps["Where implementations go wrong"]
+        direction TB
+        T1["Unbounded reassembly. A peer can<br/>send FIN = 0 fragments forever.<br/>A receiver with no cap on total<br/>assembled size is a memory<br/>exhaustion target with no<br/>protocol violation involved."]
+        T2["UTF-8 validation across boundaries.<br/>A text message split mid-codepoint<br/>is legal. A validator that checks<br/>each fragment independently<br/>rejects valid traffic and, worse,<br/>can be tricked into accepting<br/>invalid sequences."]
+        T3["Control frames with payload above<br/>125 bytes, or a fragmented control<br/>frame, are protocol errors.<br/>Autobahn TestSuite case groups 2<br/>and 5 exist to catch exactly this."]
+    end
+
+    subgraph Order["What arrives at the application"]
+        direction TB
+        O1["The API surfaces messages, not<br/>frames. Browser onmessage fires<br/>once per complete message."]
+        O2["The browser WebSocket API exposes<br/>no way to send a fragmented<br/>message deliberately, and no way<br/>to observe fragment boundaries.<br/>Server libraries expose both."]
+    end
+
+    Rules --> Why
+    Rules --> Traps
+    Why --> Order
+    Traps --> Order
+
+    style Rules fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Why fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Traps fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Order fill:#eceff1,stroke:#37474f,stroke-width:2px

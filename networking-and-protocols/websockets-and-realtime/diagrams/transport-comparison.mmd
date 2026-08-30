@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Q["Four selectors, tested in order"]
+        direction TB
+        Q1["1. Client-initiated sends on the<br/>same channel, at any time,<br/>without a request."]
+        Q2["2. A browser as a first-class<br/>client."]
+        Q3["3. Per-message delivery guarantees,<br/>retained state or offline queues<br/>from the transport."]
+        Q4["4. Tolerance for losing a message<br/>to gain latency."]
+    end
+
+    subgraph SSE["Server-Sent Events"]
+        direction TB
+        S1["Server to client only.<br/>text/event-stream over ordinary<br/>HTTP. Reconnect and Last-Event-ID<br/>replay are in the browser, not<br/>application code."]
+        S2["Choose it for dashboards,<br/>notifications, progress bars,<br/>LLM token streaming. Every CDN,<br/>proxy and corporate firewall<br/>already passes it."]
+        S3["Against it: text only, no binary<br/>without base64, and over HTTP/1.1<br/>it consumes one of six connections<br/>per origin."]
+    end
+
+    subgraph WS["WebSocket"]
+        direction TB
+        W1["Bidirectional, message-framed,<br/>text or binary, universal browser<br/>support since 2011."]
+        W2["Choose it for chat, collaborative<br/>editing, multiplayer, trading UIs,<br/>anything where the client speaks<br/>as often as the server."]
+        W3["Against it: channels,<br/>acknowledgement, replay, presence<br/>and authentication refresh are all<br/>application work, built in place<br/>or bought from a library."]
+    end
+
+    subgraph GRPC["gRPC streaming"]
+        direction TB
+        G1["Four call shapes over HTTP/2:<br/>unary, server streaming, client<br/>streaming, bidirectional.<br/>Protobuf schema, generated stubs,<br/>deadlines and cancellation<br/>built in."]
+        G2["Choose it between services under<br/>one owner, where a schema and a<br/>code generator are an asset."]
+        G3["Against it in a browser:<br/>gRPC-Web supports unary and<br/>server streaming only. Client<br/>streaming and bidirectional<br/>streaming are not supported,<br/>and a proxy such as Envoy sits<br/>in the path."]
+    end
+
+    subgraph MQTT["MQTT 5.0"]
+        direction TB
+        M1["OASIS Standard, 7 March 2019.<br/>Publish and subscribe with a<br/>broker, topics with wildcards,<br/>three QoS levels, retained<br/>messages, last will, session<br/>expiry, and a 2-byte fixed<br/>header."]
+        M2["Choose it for devices: sensors,<br/>vehicles, meters, anything on a<br/>flaky link or a battery, and<br/>anything that needs at-least-once<br/>or exactly-once delivery from the<br/>transport rather than the app."]
+        M3["In a browser it runs over<br/>WebSocket using the registered<br/>mqtt subprotocol, so it is a<br/>layer above, not a rival to,<br/>WebSocket."]
+    end
+
+    subgraph WT["WebTransport over HTTP/3"]
+        direction TB
+        T1["Multiple independent streams plus<br/>unreliable datagrams over QUIC,<br/>with no head-of-line blocking<br/>between streams and survival<br/>across a network change."]
+        T2["Choose it for game state, live<br/>media, and anything where a stale<br/>packet is worth less than a<br/>prompt one."]
+        T3["Against it, August 2026:<br/>draft-ietf-webtrans-http3-16 is in<br/>working group last call, not an<br/>RFC. UDP is blocked on many<br/>corporate networks and there is<br/>no automatic fallback."]
+    end
+
+    Q --> SSE
+    Q --> WS
+    Q --> GRPC
+    Q --> MQTT
+    Q --> WT
+
+    style Q fill:#eceff1,stroke:#37474f,stroke-width:3px
+    style SSE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style WS fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style GRPC fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MQTT fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style WT fill:#e0f7fa,stroke:#00695c,stroke-width:2px
