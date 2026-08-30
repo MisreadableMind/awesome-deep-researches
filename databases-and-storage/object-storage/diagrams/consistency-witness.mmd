@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant W as Writer
+    participant FE as Front end
+    participant Cache as Metadata cache
+    participant Wit as Witness<br/>in memory, no disk
+    participant Persist as Persistence tier<br/>ordered per-object log
+    participant R as Reader
+
+    Note over W,R: Before 1 December 2020
+
+    W->>FE: PUT key, version 2
+    FE->>Persist: Write and replicate
+    Persist-->>FE: Durable
+    FE-->>W: 200 OK
+    R->>FE: GET key
+    FE->>Cache: Lookup
+    Cache-->>FE: Version 1, stale
+    FE-->>R: Version 1
+    Note over R: Overwrites and deletes were eventually consistent.<br/>A GET issued before a first PUT could poison the cache<br/>and return 404 after the object existed.
+
+    Note over W,R: After 1 December 2020
+
+    W->>FE: PUT key, version 3
+    FE->>Persist: Write and replicate
+    Persist-->>FE: Durable, ordered
+    Persist->>Wit: Notify: key changed
+    FE-->>W: 200 OK
+
+    R->>FE: GET key
+    FE->>Cache: Lookup
+    Cache-->>FE: Version 2, possibly stale
+    FE->>Wit: Read barrier: is my view of this key current?
+
+    alt Witness says the cache is current
+        Wit-->>FE: Current
+        FE-->>R: Serve from cache, no extra I/O
+    else Witness says the cache is stale
+        Wit-->>FE: Stale
+        FE->>Persist: Read the authoritative record
+        Persist-->>FE: Version 3
+        FE->>Cache: Refill
+        FE-->>R: Version 3
+    end
+
+    Note over Wit: The witness is a cache coherence protocol<br/>for object metadata. It holds no durable state,<br/>so a failed witness is replaced, not recovered.

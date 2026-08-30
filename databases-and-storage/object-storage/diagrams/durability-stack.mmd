@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L1["Layer 1 - Redundancy on write"]
+        A1["Split the value into k data shards<br/>plus m parity shards"]
+        A2["Place every shard in a different<br/>failure domain: disk, host, rack,<br/>power feed, Availability Zone"]
+        A3["Acknowledge only after enough<br/>shards are durable on distinct domains"]
+    end
+
+    subgraph L2["Layer 2 - Detect corruption everywhere"]
+        B1["Checksum on the client<br/>CRC64NVME by default"]
+        B2["Re-verify at the front end before storing"]
+        B3["Checksum per shard on disk"]
+        B4["Scrubber re-reads shards at rest<br/>and re-verifies them continuously"]
+        B5["Verify again on every read path"]
+    end
+
+    subgraph L3["Layer 3 - Repair faster than failure arrives"]
+        C1["A missing shard is rebuilt from<br/>the surviving shards"]
+        C2["Mean time to repair, not mean time<br/>to failure, sets the durability number"]
+        C3["Spread the rebuild across thousands<br/>of drives so one drive never gates it"]
+    end
+
+    subgraph L4["Layer 4 - Correctness of the code itself"]
+        D1["ShardStore written in Rust<br/>for memory and type safety"]
+        D2["Reference model roughly 1 percent<br/>the size of the real implementation"]
+        D3["Property-based and stateful testing<br/>against the model, including crash injection"]
+        D4["Durability reviews: a written threat model<br/>for every change that can touch bytes"]
+    end
+
+    subgraph NotCovered["What eleven nines does not cover"]
+        E1["A DELETE you authorised"]
+        E2["A lifecycle rule you wrote"]
+        E3["Credentials an attacker stole"]
+        E4["Loss of the whole Region"]
+        E5["One Zone classes: loss of the single AZ"]
+    end
+
+    L1 --> L2 --> L3 --> L4
+    L4 -.->|"none of this helps against"| NotCovered
+
+    style L1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NotCovered fill:#ffebee,stroke:#b71c1c,stroke-width:3px

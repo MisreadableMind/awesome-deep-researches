@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Obj["One 1 GB object"]
+
+    subgraph Rep["Three-way replication"]
+        R1["Copy 1 - 1 GB"]
+        R2["Copy 2 - 1 GB"]
+        R3["Copy 3 - 1 GB"]
+        RC["Raw stored: 3.00 GB<br/>Overhead: 3.00x<br/>Tolerates 2 losses<br/>Repair reads 1 GB<br/>Any single copy serves a read"]
+    end
+
+    subgraph RS["Reed-Solomon 12 plus 4"]
+        S1["12 data shards<br/>85.3 MB each"]
+        S2["4 parity shards<br/>85.3 MB each"]
+        SC["Raw stored: 1.33 GB<br/>Overhead: 1.33x<br/>Tolerates 4 losses<br/>Repair of one shard reads 12 shards<br/>Every read touches 12 disks"]
+    end
+
+    subgraph LRC["Local Reconstruction Code 12,2,2"]
+        L1["12 data shards in 2 groups of 6"]
+        L2["2 local parities,<br/>one per group of 6"]
+        L3["2 global parities<br/>over all 12"]
+        LC["Raw stored: 1.33 GB<br/>Overhead: 1.33x<br/>16 fragments total<br/>Repair of one shard reads 6 shards<br/>Tolerates any 3 losses and<br/>every 4-loss pattern that is<br/>information-theoretically decodable"]
+    end
+
+    Obj --> Rep
+    Obj --> RS
+    Obj --> LRC
+
+    Note1["Reed-Solomon arithmetic runs in GF 2 to the 8.<br/>Each byte is a field element. Encoding multiplies the<br/>k data shards by a k plus m by k Vandermonde or<br/>Cauchy matrix. Decoding inverts the submatrix of<br/>whichever k shards survived. Any k of the k plus m<br/>shards reconstruct the object exactly."]
+
+    Note2["Measured MTTF in the Azure study<br/>3-replication: 3.5 x 10^9 years<br/>Reed-Solomon 6,3: 6.1 x 10^11 years<br/>LRC 6,2,2: 2.6 x 10^12 years"]
+
+    RS --> Note1
+    LRC --> Note2
+
+    style Rep fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style RS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LRC fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Note1 fill:#eceff1,stroke:#37474f,stroke-width:1px
+    style Note2 fill:#eceff1,stroke:#37474f,stroke-width:1px

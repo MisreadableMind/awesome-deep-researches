@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph States["The three bucket states"]
+        U["Unversioned<br/>the default"]
+        E["Versioning enabled"]
+        S["Versioning suspended"]
+        U -->|"PutBucketVersioning Enabled"| E
+        E -->|"Suspended"| S
+        S -->|"Enabled"| E
+        E -.->|"impossible"| U
+    end
+
+    subgraph Stack["What a versioned key looks like after four operations"]
+        direction TB
+        V4["Delete marker - CURRENT<br/>version id 3HL4kqCxf3vjVBH40Nrjfkd<br/>zero bytes, zero storage cost"]
+        V3["Version 3 - noncurrent<br/>version id qUgvHmXTGiEqFnj4Zk0R6M<br/>billed in full"]
+        V2["Version 2 - noncurrent<br/>version id 8fA1cLpQ2Zx7YtRbNw9Ke3<br/>billed in full"]
+        V1["Version 1 - noncurrent<br/>version id null, written before<br/>versioning was enabled<br/>billed in full"]
+        V4 --> V3 --> V2 --> V1
+    end
+
+    subgraph Deletes["The two DELETE forms"]
+        D1["DELETE with no version id<br/>Returns 200 OK<br/>Inserts a delete marker<br/>Nothing is actually removed<br/>GET now returns 404"]
+        D2["DELETE with a version id<br/>Removes that version permanently<br/>Blocked by Object Lock with 403"]
+    end
+
+    subgraph Lock["Object Lock - requires versioning"]
+        L1["Governance mode<br/>Removable by a principal holding<br/>s3:BypassGovernanceRetention plus the<br/>header x-amz-bypass-governance-retention: true"]
+        L2["Compliance mode<br/>Not removable by anyone, root included,<br/>until the Retain Until Date passes.<br/>The only escape is closing the AWS account."]
+        L3["Legal hold<br/>No expiry. Independent of retention.<br/>Removed with s3:PutObjectLegalHold."]
+        L4["Retention is per object version.<br/>A locked version never blocks a new version<br/>or a delete marker on top of it."]
+    end
+
+    States --> Stack --> Deletes
+    Stack --> Lock
+
+    Trap["The cost trap: an expiration lifecycle rule written<br/>for an unversioned bucket only adds delete markers<br/>once versioning is on. Noncurrent versions accumulate<br/>forever and are billed in full. The fix is a<br/>NoncurrentVersionExpiration rule."]
+
+    Deletes --> Trap
+
+    style States fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Stack fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Deletes fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Lock fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Trap fill:#ffebee,stroke:#b71c1c,stroke-width:2px

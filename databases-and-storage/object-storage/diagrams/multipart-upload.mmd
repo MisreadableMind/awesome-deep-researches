@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application
+    participant SDK as SDK transfer manager
+    participant S3 as S3 front end
+    participant IDX as Index subsystem
+    participant SN as Storage nodes
+
+    App->>SDK: PutObject, 12 GB file
+    Note over SDK: Above the threshold, so<br/>switch to multipart
+
+    SDK->>S3: POST /key?uploads<br/>x-amz-checksum-algorithm: CRC64NVME
+    S3->>IDX: Reserve an upload id
+    IDX-->>S3: UploadId
+    S3-->>SDK: 200 with UploadId
+
+    Note over SDK,SN: 96 parts of 128 MiB, uploaded in parallel.<br/>Part size must be 5 MiB to 5 GiB except the last.<br/>Part numbers run 1 to 10,000.
+
+    par Parts in flight
+        SDK->>S3: PUT /key?partNumber=1&uploadId=...
+        S3->>SN: Write shards, verify checksum
+        S3-->>SDK: 200, ETag of part 1
+    and
+        SDK->>S3: PUT /key?partNumber=2&uploadId=...
+        S3->>SN: Write shards, verify checksum
+        S3-->>SDK: 200, ETag of part 2
+    and
+        SDK->>S3: PUT /key?partNumber=96&uploadId=...
+        S3->>SN: Write shards, verify checksum
+        S3-->>SDK: 200, ETag of part 96
+    end
+
+    Note over SDK,S3: Parts already exist as storage and<br/>already cost money. The object does not exist yet.<br/>No LIST or GET can see it.
+
+    SDK->>S3: POST /key?uploadId=...<br/>CompleteMultipartUpload with all 96 part numbers and ETags<br/>If-None-Match: *
+    S3->>S3: Verify every part ETag<br/>Compute composite object ETag<br/>MD5 of the concatenated part digests, suffix -96
+    S3->>IDX: Conditional index write
+
+    alt Key is free
+        IDX-->>S3: Committed
+        S3-->>SDK: 200, ETag "a3f1...c9-96"
+        Note over IDX: Only now is the object visible.<br/>The commit is atomic and strongly consistent.
+    else Key already taken
+        IDX-->>S3: Key exists
+        S3-->>SDK: 412 Precondition Failed
+        Note over SDK: The conditional write lost.<br/>Re-read state and decide.<br/>The upload id is still valid.
+    else A concurrent operation raced the commit
+        IDX-->>S3: ConditionalRequestConflict
+        S3-->>SDK: 409 Conflict
+        Note over SDK: The upload id is dead.<br/>Restart with CreateMultipartUpload<br/>and re-upload every part.
+    end
+
+    Note over SDK,SN: If the client dies mid-upload the parts persist<br/>and are billed until an AbortIncompleteMultipartUpload<br/>lifecycle rule removes them.

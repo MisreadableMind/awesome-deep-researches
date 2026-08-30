@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Ed as Editing workstation
+    participant SDK as AWS SDK
+    participant FE as S3 front end
+    participant KMS as AWS KMS
+    participant IDX as Index subsystem
+    participant EC as Erasure coder
+    participant SN as Storage nodes
+    participant LC as Lifecycle engine
+
+    Note over Ed,SN: Day 0 - upload a 12 GB master file
+
+    Ed->>SDK: put ep-0417-master.mov
+    SDK->>SDK: 12 GB over the 100 MB threshold,<br/>split into 96 parts of 128 MiB
+    SDK->>FE: CreateMultipartUpload
+    FE->>IDX: Reserve upload id
+    FE-->>SDK: UploadId
+
+    loop 96 parts, 8 at a time
+        SDK->>FE: UploadPart with CRC64NVME
+        FE->>FE: Recompute the checksum, compare
+        FE->>KMS: GenerateDataKey once per bucket key window
+        KMS-->>FE: Plaintext and wrapped data key
+        FE->>EC: Encrypt with AES-256, then split
+        EC->>SN: Write k data shards plus m parity shards<br/>each into a different AZ and rack
+        SN-->>FE: Durable
+        FE-->>SDK: 200, part ETag
+    end
+
+    SDK->>FE: CompleteMultipartUpload, 96 ETags, If-None-Match *
+    FE->>IDX: Conditional index commit
+    IDX-->>FE: Committed, version id assigned
+    FE-->>SDK: 200, ETag "a3f1...c9-96"
+    Note over IDX: 98 PUT-class requests billed at<br/>0.005 USD per 1,000 = 0.00049 USD
+
+    Note over Ed,LC: Days 1 to 30 - S3 Standard
+    Note over SN: 12 GB x 0.023 USD = 0.276 USD per month
+
+    Note over LC: Day 30 - lifecycle rule fires
+    LC->>IDX: Transition to Standard-IA
+    LC->>SN: Rewrite placement, keep the same key and version
+    Note over LC: 1 transition request at 0.01 USD per 1,000 = 0.00001 USD<br/>New rate 12 GB x 0.0125 USD = 0.15 USD per month
+
+    Note over LC: Day 120 - second rule fires
+    LC->>IDX: Transition to Glacier Flexible Retrieval
+    Note over LC: 1 transition request at 0.03 USD per 1,000<br/>New rate 12 GB x 0.0036 USD = 0.0432 USD per month<br/>plus 40 KB of per-object metadata
+
+    Note over Ed,SN: Day 400 - a lawyer asks for the master
+    Ed->>FE: RestoreObject, Tier Bulk, Days 7
+    FE-->>Ed: 202 Accepted
+    Note over FE: Bulk restore from Glacier Flexible Retrieval<br/>completes in 5 to 12 hours and is free
+    FE->>SN: Stage a temporary copy at S3 Standard rates
+    Ed->>FE: GET the restored copy
+    FE-->>Ed: 200, 12 GB
+    Note over Ed: Egress to the internet<br/>12 GB x 0.09 USD = 1.08 USD<br/>which is 25 months of Glacier storage

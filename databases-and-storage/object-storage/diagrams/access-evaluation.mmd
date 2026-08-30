@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Req["Request arrives<br/>principal, action, resource, context"]
+
+    D1{"Explicit Deny anywhere<br/>in any policy?"}
+    D2{"Service control policy<br/>and resource control policy<br/>allow the action?"}
+    D3{"Block Public Access<br/>at organization, account,<br/>bucket or access point?"}
+    D4{"Same account as<br/>the bucket owner?"}
+    D5{"Identity policy OR<br/>bucket policy allows?"}
+    D6{"Identity policy AND<br/>bucket policy both allow?"}
+    D7{"Object owned by another<br/>account and ACLs enabled?"}
+
+    Allow["200 - request proceeds"]
+    Deny["403 Access Denied"]
+
+    Req --> D1
+    D1 -->|"yes"| Deny
+    D1 -->|"no"| D2
+    D2 -->|"no"| Deny
+    D2 -->|"yes"| D3
+    D3 -->|"blocks it"| Deny
+    D3 -->|"does not block"| D4
+    D4 -->|"yes"| D5
+    D4 -->|"no, cross account"| D6
+    D5 -->|"neither allows"| D7
+    D5 -->|"one allows"| Allow
+    D6 -->|"either is silent"| Deny
+    D6 -->|"both allow"| Allow
+    D7 -->|"an ACL grants it"| Allow
+    D7 -->|"no"| Deny
+
+    Presign["Presigned URL<br/>Carries X-Amz-Algorithm, X-Amz-Credential,<br/>X-Amz-Date, X-Amz-Expires, X-Amz-SignedHeaders<br/>and X-Amz-Signature in the query string.<br/>It grants exactly the permissions the signer held<br/>at the moment of use, not at the moment of signing.<br/>Maximum life: 604,800 seconds with long-term keys,<br/>12 hours from the console,<br/>and never past the expiry of the STS session."]
+
+    Defaults["Modern defaults<br/>New buckets: all four Block Public Access settings on,<br/>Object Ownership set to bucket owner enforced,<br/>ACLs disabled. Directory, table and vector buckets<br/>cannot turn Block Public Access off at all."]
+
+    Allow -.-> Presign
+    D3 -.-> Defaults
+
+    style Allow fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Deny fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Presign fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Defaults fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

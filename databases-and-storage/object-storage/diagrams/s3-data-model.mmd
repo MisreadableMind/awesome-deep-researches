@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Account["AWS account"]
+        subgraph Bucket["Bucket - Region bound, globally unique name"]
+            direction TB
+            BN["Name: 3 to 63 characters,<br/>lowercase letters, digits, hyphen, period.<br/>No uppercase, no underscore,<br/>not an IP address."]
+            BCfg["Bucket-level configuration<br/>policy, versioning, lifecycle,<br/>default encryption, Object Lock,<br/>Block Public Access, replication"]
+        end
+    end
+
+    subgraph Key["Object key - the only addressing unit"]
+        K1["media/2026/08/ep-0417-master.mov"]
+        K2["Up to 1,024 bytes of UTF-8.<br/>Case sensitive.<br/>Sorted lexicographically by byte value."]
+        K3["The slash carries no meaning to S3.<br/>Prefix plus delimiter is a LIST argument,<br/>not a directory."]
+    end
+
+    subgraph Version["Version ID"]
+        V1["Unversioned bucket: no version ID"]
+        V2["Versioning enabled: every write gets<br/>a new opaque version ID"]
+        V3["Pre-existing objects and<br/>versioning-suspended writes: null"]
+    end
+
+    subgraph Payload["Value and metadata"]
+        P1["Value: 0 bytes to 50 TB,<br/>opaque to S3"]
+        P2["System metadata: Content-Type, ETag,<br/>Last-Modified, storage class,<br/>encryption headers, checksum.<br/>Capped at 2 KB."]
+        P3["User metadata: x-amz-meta-* headers.<br/>Capped at 2 KB inside an 8 KB PUT header.<br/>Immutable after write."]
+        P4["Tags: up to 10 key-value pairs.<br/>Mutable, usable in IAM and lifecycle."]
+        P5["Annotations: named payloads up to<br/>1 MB, attached after upload."]
+    end
+
+    Bucket --> Key --> Version --> Payload
+
+    style Bucket fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Key fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Version fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Payload fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

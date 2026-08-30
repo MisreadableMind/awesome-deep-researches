@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Meters["Four independent meters, US East N. Virginia, August 2026"]
+        M1["Storage<br/>GB-month at the class rate.<br/>0.023 USD Standard down to<br/>0.00099 USD Deep Archive"]
+        M2["Requests<br/>0.005 USD per 1,000 PUT, COPY, POST, LIST<br/>0.0004 USD per 1,000 GET and all others.<br/>Failed requests are billed too."]
+        M3["Retrieval<br/>0.01 USD per GB from Standard-IA,<br/>0.03 USD per GB from Glacier Instant Retrieval.<br/>Zero from Standard and Intelligent-Tiering."]
+        M4["Data transfer out to the internet<br/>0.09 USD per GB to 10 TB<br/>0.085 USD per GB for the next 40 TB<br/>0.07 USD per GB for the next 100 TB<br/>0.05 USD per GB above 150 TB<br/>First 100 GB per month free"]
+    end
+
+    subgraph Ratio["The ratio that dictates architecture"]
+        R1["Store 1 GB for a month: 0.023 USD"]
+        R2["Send that same 1 GB out once: 0.09 USD"]
+        R3["Egress of one copy costs 3.9 months of storage"]
+        R1 --> R3
+        R2 --> R3
+    end
+
+    subgraph Consequences["What the ratio makes people build"]
+        C1["CloudFront in front of every public bucket.<br/>S3 to CloudFront transfer is free."]
+        C2["Compute moved into the same Region<br/>as the data. Same-Region traffic is free."]
+        C3["Formats that push predicates down.<br/>Parquet and Iceberg exist partly to<br/>avoid paying for bytes you discard."]
+        C4["Multi-cloud read paths that never<br/>cross a provider boundary twice"]
+        C5["Zero-egress competitors priced to attack<br/>exactly this line item"]
+    end
+
+    subgraph Escapes["Escape hatches"]
+        E1["Cloudflare R2: 0.015 USD per GB-month,<br/>zero egress, 4.50 USD per million class A,<br/>0.36 USD per million class B"]
+        E2["AWS waives egress for customers leaving<br/>AWS entirely, announced 5 March 2024,<br/>90 days to complete since 30 September 2025"]
+        E3["EU Data Act, applicable 12 September 2025,<br/>requires switching charges including egress<br/>to be withdrawn after a transitional period"]
+    end
+
+    Meters --> Ratio --> Consequences
+    Ratio --> Escapes
+
+    style Meters fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Ratio fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Consequences fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Escapes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
