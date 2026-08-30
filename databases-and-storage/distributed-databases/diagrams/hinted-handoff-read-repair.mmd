@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant CO as Coordinator
+    participant R1 as replica_1
+    participant R2 as replica_2 (restarting)
+    participant R3 as replica_3
+
+    rect rgb(232, 245, 233)
+        Note over C,R3: WRITE PATH - HINTED HANDOFF. Best effort.
+        C->>CO: INSERT, CL = LOCAL_QUORUM, RF = 3
+        CO->>R1: mutation
+        CO->>R3: mutation
+        CO--xR2: mutation, no response
+        R1-->>CO: ack
+        R3-->>CO: ack
+        Note over CO: 2 of 3 acked. Quorum met.
+        CO-->>C: success. The client believes the write<br/>is durable and visible. It is.
+
+        Note over CO: t2: after write_request_timeout (2000ms)<br/>the coordinator declares replica_2 unavailable<br/>and writes a HINT to its local filesystem.
+        Note over CO: Hint contents: hint id, target replica,<br/>the serialized mutation as a blob, the mutation<br/>timestamp, and the Cassandra version used<br/>to serialize it. LZ4Compressor by default.<br/>$CASSANDRA_HOME/data/hints
+
+        R2->>CO: t3: back up, gossip announces it
+        CO->>R2: t4: replay hints, one segment at a time,<br/>throttled to 1024 KiB/s per delivery thread,<br/>2 delivery threads by default
+        Note over R2: Hints carry the ORIGINAL mutation timestamp,<br/>so replay is idempotent and cannot<br/>overwrite a newer value.
+    end
+
+    rect rgb(255, 235, 238)
+        Note over CO,R2: THE GAP<br/>max_hint_window defaults to 3h.<br/>If replica_2 stays down longer, the hint is<br/>DROPPED and replica_2 is permanently out of<br/>sync until read repair or anti-entropy repair<br/>happens to touch that data.
+    end
+
+    rect rgb(227, 242, 253)
+        Note over C,R3: READ PATH - BLOCKING READ REPAIR. Best effort, but synchronous.
+        C->>CO: SELECT, CL = QUORUM
+        CO->>R1: FULL read (fastest replica, dynamic snitch)
+        CO->>R3: DIGEST read (hash only)
+        R1-->>CO: full data, hash H1
+        R3-->>CO: digest H3
+        Note over CO: H1 != H3. Replicas disagree.
+        CO->>R3: promote to a FULL read
+        R3-->>CO: full data
+        Note over CO: Reconcile per column by mutation timestamp.<br/>Build the merged, most recent row.
+        CO->>R1: write back the merged value
+        Note over CO: read_repair = BLOCKING (the default):<br/>WAIT for the repair writes to reach CL<br/>before replying. This is what provides<br/>MONOTONIC QUORUM READS.<br/>read_repair = NONE: reconcile but do not<br/>write back. Preserves partition-level write<br/>atomicity, loses monotonic quorum reads.
+        CO-->>C: merged row
+    end
+
+    rect rgb(255, 243, 224)
+        Note over R1,R3: ANTI-ENTROPY REPAIR - the only real guarantee.<br/>Each node builds Merkle trees per token range.<br/>Compare roots, descend only into mismatched branches,<br/>stream only the differing ranges.<br/>Full, sub-range, and incremental variants.<br/>Operator-scheduled. If nobody runs it, nothing converges.
+    end

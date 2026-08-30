@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Cl as Client
+    participant CL as Coordinator leader<br/>(group A, also a participant)
+    participant PA as Group A replicas
+    participant PL as Participant leader<br/>(group B)
+    participant PB as Group B replicas
+    participant TT as TrueTime
+
+    Note over Cl,PB: Read-write transaction. Pessimistic. Wound-wait to avoid deadlock.<br/>Reads take locks at the leaders and buffer writes at the client.
+
+    Cl->>CL: read k1, acquire read lock
+    Cl->>PL: read k2, acquire read lock
+    Note over Cl: Client buffers all writes locally and<br/>keepalives the leaders to hold locks.
+
+    Cl->>PL: PREPARE (buffered writes for group B)
+    PL->>TT: TT.now()
+    TT-->>PL: [earliest, latest]
+    Note over PL: Choose prepare timestamp<br/>s_prepare >= any previously assigned<br/>timestamp in this group.
+    PL->>PB: Paxos: log the prepare record
+    PB-->>PL: quorum acked
+    PL-->>CL: prepared, s_prepare(B)
+
+    Cl->>CL: COMMIT (buffered writes for group A)
+    CL->>TT: TT.now()
+    TT-->>CL: [earliest, latest]
+
+    Note over CL: START RULE<br/>s = max(<br/>  TT.now().latest,<br/>  all s_prepare from participants,<br/>  s_max of this leader<br/>)
+
+    CL->>PA: Paxos: log the commit record with timestamp s
+    PA-->>CL: quorum acked
+
+    rect rgb(255, 243, 224)
+        Note over CL,TT: COMMIT WAIT<br/>Block until TT.after(s) is true.<br/>Expected wait >= 2 * epsilon, about 8 ms at epsilon = 4 ms.<br/>Overlapped with the Paxos round trip above.
+        CL->>TT: TT.after(s)?
+        TT-->>CL: false
+        CL->>TT: TT.after(s)?
+        TT-->>CL: true
+    end
+
+    CL-->>Cl: committed at timestamp s
+    CL->>PL: commit at s
+    PL->>PB: Paxos: log outcome
+    PL->>PL: apply at s, release locks
+    CL->>CL: apply at s, release locks
+
+    Note over Cl,PB: MEASURED, OSDI 2012 Table 3, 4 KB operations:<br/>1 replica, commit wait disabled: 9.4 +/- 0.6 ms<br/>1 replica, commit wait on:       14.4 +/- 1.0 ms<br/>3 replicas:                      13.9 +/- 0.6 ms<br/>5 replicas:                      14.4 +/- 0.4 ms<br/>Commit wait is about 5 ms. Paxos is about 9 ms.<br/>Latency is FLAT in replica count.

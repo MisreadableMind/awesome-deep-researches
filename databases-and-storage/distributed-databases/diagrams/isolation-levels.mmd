@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    SS["STRICT SERIALIZABLE<br/>serializable AND the serial order agrees<br/>with real time<br/>= Spanner external consistency<br/>NOT totally available"]
+
+    SER["SERIALIZABLE<br/>equivalent to SOME serial order.<br/>Says nothing about which one.<br/>A system may legally order T2 before T1<br/>even if T1 finished before T2 started.<br/>NOT totally available"]
+
+    LIN["LINEARIZABLE<br/>single-object version of strict serializable.<br/>Every op takes effect at one instant between<br/>invocation and response.<br/>This is CAP's C.<br/>NOT totally available"]
+
+    SI["SNAPSHOT ISOLATION<br/>reads from a consistent snapshot,<br/>writes conflict-check on write-write only.<br/>PERMITS WRITE SKEW (A5B).<br/>NOT totally available"]
+
+    RR["REPEATABLE READ<br/>no dirty or non-repeatable reads.<br/>Spanner implements this AS snapshot isolation."]
+
+    SEQ["SEQUENTIAL<br/>a total order consistent with each<br/>process's own program order,<br/>but not with real time.<br/>NOT totally available"]
+
+    RC["READ COMMITTED, no dirty reads.<br/>MONOTONIC ATOMIC VIEW<br/>MONOTONIC READS<br/>MONOTONIC WRITES<br/>WRITES FOLLOW READS<br/>TOTALLY AVAILABLE"]
+
+    CAUSAL["CAUSAL<br/>operations ordered consistently with<br/>the happens-before relation.<br/>The strongest model that is<br/>STICKY AVAILABLE"]
+
+    RYW["READ YOUR WRITES<br/>PRAM<br/>STICKY AVAILABLE: the guarantee holds<br/>only while the client keeps talking<br/>to the same server"]
+
+    SS --> SER
+    SS --> LIN
+    SER --> SI
+    SER --> RR
+    SI --> RC
+    RR --> RC
+    LIN --> SEQ
+    SEQ --> CAUSAL
+    CAUSAL --> RYW
+
+    NOTE1["WHAT THE DISTRIBUTED SETTING ADDS:<br/>a serializable system may reorder<br/>transactions relative to real time.<br/>Spanner's banking example: deposit $200<br/>commits, THEN debit $150 is issued.<br/>Under plain serializability the system may<br/>order the debit first and charge a penalty.<br/>External consistency forbids that."]
+
+    NOTE2["AVAILABILITY, per Bailis et al.,<br/>Highly Available Transactions, VLDB 2014:<br/>everything at or above snapshot isolation,<br/>sequential, or cursor stability CANNOT be<br/>totally available on an asynchronous network.<br/>Read committed and monotonic reads/writes CAN.<br/>Causal needs stickiness."]
+
+    SS -.-> NOTE1
+    RC -.-> NOTE2
+    CAUSAL -.-> NOTE2
+
+    style SS fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style SI fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CAUSAL fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style NOTE1 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NOTE2 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

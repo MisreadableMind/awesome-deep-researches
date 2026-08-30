@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Universe["Spanner universe"]
+        direction TB
+        UM["Universe master<br/>console over all zones"]
+        PD["Placement driver<br/>moves data between groups<br/>every few minutes"]
+    end
+
+    subgraph Zone1["Zone 1 - unit of administrative deployment and physical isolation"]
+        ZM1["Zonemaster<br/>assigns data to spanservers"]
+        LP1["Location proxies<br/>clients use these to find data"]
+        SS1["Spanservers<br/>100 to several thousand per zone<br/>each serves 100 to 1000 tablets"]
+    end
+
+    subgraph Zone2["Zone 2"]
+        SS2["Spanservers"]
+    end
+
+    subgraph Zone3["Zone 3"]
+        SS3["Spanservers"]
+    end
+
+    subgraph Group["One Paxos group - the unit of replication"]
+        direction TB
+        PL["Paxos LEADER<br/>holds the lock table for 2PC<br/>holds the transaction manager<br/>lease default 10 seconds"]
+        PR1["Replica in zone 2"]
+        PR2["Replica in zone 3"]
+        TAB["Tablet: bag of mappings<br/>from (key string, timestamp int64)<br/>to a value string, on Colossus"]
+    end
+
+    subgraph TT["TrueTime - the part that is hardware"]
+        direction TB
+        GPS["GPS time masters<br/>majority of masters<br/>dedicated antennas<br/>separated physically"]
+        ARM["Armageddon masters<br/>atomic clocks<br/>uncorrelated failure modes<br/>vs GPS"]
+        DAEMON["Timeslave daemon on every machine<br/>polls a variety of masters<br/>Marzullo's algorithm rejects liars<br/>poll interval 30 s<br/>applied drift rate 200 us/s"]
+        API["TT.now() returns (earliest, latest)<br/>TT.after(t), TT.before(t)<br/>epsilon = half the interval width<br/>sawtooth 1 ms to 7 ms<br/>~4 ms most of the time"]
+    end
+
+    UM --> Zone1
+    PD --> Zone1
+    ZM1 --> SS1
+    LP1 --> SS1
+    SS1 --> Group
+    SS2 --> Group
+    SS3 --> Group
+    PL --> TAB
+    PL -.replicates via Paxos.-> PR1
+    PL -.replicates via Paxos.-> PR2
+
+    GPS --> DAEMON
+    ARM --> DAEMON
+    DAEMON --> API
+    API -.every commit calls this.-> PL
+
+    style TT fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Group fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Universe fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

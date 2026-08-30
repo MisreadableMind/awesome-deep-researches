@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    F["FOLLOWER<br/>passive. Responds to RequestVote<br/>and AppendEntries. Never initiates."]
+    C["CANDIDATE<br/>currentTerm++, votedFor = self,<br/>reset election timer,<br/>send RequestVote to all peers"]
+    L["LEADER<br/>reinitialise nextIndex per follower<br/>to lastLogIndex + 1, matchIndex to 0.<br/>Send an empty AppendEntries at once,<br/>then heartbeat every half the<br/>minimum election timeout."]
+
+    F -->|"election timeout expires,<br/>randomised in 150 to 300 ms,<br/>no AppendEntries heard"| C
+    C -->|"votes from a MAJORITY,<br/>including its own"| L
+    C -->|"AppendEntries received from a leader<br/>whose term is at least currentTerm"| F
+    C -->|"election timeout again:<br/>split vote, new term, retry"| C
+    L -->|"sees any RPC carrying a term<br/>greater than currentTerm"| F
+
+    RV["RequestVote RPC<br/>args: term, candidateId,<br/>lastLogIndex, lastLogTerm<br/>reply: term, voteGranted"]
+    AE["AppendEntries RPC<br/>args: term, leaderId, prevLogIndex,<br/>prevLogTerm, entries, leaderCommit<br/>reply: term, success"]
+
+    C -.sends.-> RV
+    L -.sends.-> AE
+
+    RESTRICT["ELECTION RESTRICTION<br/>A voter refuses if its own log is more<br/>up to date than the candidate's: compare<br/>lastLogTerm first, then lastLogIndex.<br/>A candidate therefore cannot win without<br/>holding every committed entry, so a new<br/>leader never fetches missing entries."]
+
+    TIMING["TIMING REQUIREMENT<br/>broadcastTime much less than electionTimeout,<br/>much less than MTBF.<br/>Paper measurements, 5 servers, 15 ms broadcast:<br/>no randomness: elections over 10 s<br/>150 to 155 ms: 287 ms median downtime<br/>150 to 200 ms: 513 ms worst of 1000 trials<br/>12 to 24 ms: 35 ms mean, 152 ms longest<br/>Recommended: 150 to 300 ms."]
+
+    RV --> RESTRICT
+    AE --> TIMING
+
+    style L fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style C fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style F fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RESTRICT fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style TIMING fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant L as Leader (term 4)
+    participant F1 as Follower 1
+    participant F2 as Follower 2 (log behind)
+    participant SM as State machine
+
+    C->>L: SET x = 7
+    Note over L: Append to local log at index 9.<br/>Entry = {term: 4, index: 9, command: "SET x=7"}<br/>Do NOT reply to the client yet.
+
+    L->>F1: AppendEntries(term=4, leaderId=L,<br/>prevLogIndex=8, prevLogTerm=4,<br/>entries=[{4,"SET x=7"}], leaderCommit=8)
+    L->>F2: AppendEntries(term=4, leaderId=L,<br/>prevLogIndex=8, prevLogTerm=4,<br/>entries=[...], leaderCommit=8)
+
+    Note over F1: CONSISTENCY CHECK<br/>Does my log[8] exist with term 4?<br/>Yes. Append and fsync.
+    F1-->>L: {term: 4, success: true}
+
+    Note over F2: My log[8] has term 3, not 4.<br/>Log Matching Property would be violated.<br/>REFUSE.
+    F2-->>L: {term: 4, success: false}
+
+    Note over L: matchIndex[F1] = 9.<br/>Leader plus F1 is a majority of 3.<br/>Entry 9 is from term 4 = currentTerm,<br/>so counting replicas is legal here.<br/>commitIndex = 9.
+
+    L->>SM: apply log[9]
+    SM-->>L: ok
+    L-->>C: OK
+
+    Note over L,F2: BACKTRACKING<br/>decrement nextIndex[F2] and retry until<br/>the consistency check passes, then send<br/>every entry from that point forward.
+
+    L->>F2: AppendEntries(prevLogIndex=7, prevLogTerm=3,<br/>entries=[{4,...},{4,"SET x=7"}], leaderCommit=9)
+    Note over F2: log[7] has term 3. Match.<br/>DELETE conflicting suffix from index 8,<br/>append the leader's entries.
+    F2-->>L: {term: 4, success: true}
+
+    Note over L,F2: THE FIGURE 8 RULE<br/>A leader NEVER commits an entry from an<br/>earlier term by counting replicas. It commits<br/>such an entry only once an entry from its OWN<br/>term is committed on top of it. Ignoring this<br/>lets a committed entry be overwritten.

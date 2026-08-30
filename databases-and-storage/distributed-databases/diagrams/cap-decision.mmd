@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    START["A write arrives at node N1.<br/>N2 holds a replica.<br/>The link between them is down."]
+
+    Q{"Does N1 respond<br/>to the client?"}
+
+    A["YES: accept the write locally<br/>and acknowledge"]
+    C["NO: refuse, or block until<br/>the partition heals"]
+
+    A --> A1["N1 and N2 now disagree.<br/>A read at N2 returns the old value."]
+    A1 --> A2["ATOMIC CONSISTENCY VIOLATED<br/>No total order exists that explains<br/>both the acknowledged write and<br/>the stale read."]
+    A2 --> AP["This is an AP system.<br/>Cassandra at CL=ONE.<br/>Dynamo. Riak."]
+
+    C --> C1["The client at N1 gets an error<br/>or waits indefinitely."]
+    C1 --> C2["AVAILABILITY VIOLATED<br/>A non-failing node returned<br/>no response."]
+    C2 --> CP["This is a CP system.<br/>Spanner. CockroachDB.<br/>etcd. ZooKeeper. HBase."]
+
+    START --> Q
+    Q -->|"choose A"| A
+    Q -->|"choose C"| C
+
+    NOTE["THE THEOREM SAYS NOTHING<br/>ABOUT THE OTHER 99.99% OF TIME.<br/>With no partition, a system may be<br/>both consistent and available.<br/>That is what PACELC covers."]
+
+    AP -.-> NOTE
+    CP -.-> NOTE
+
+    style A2 fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style C2 fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style AP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NOTE fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

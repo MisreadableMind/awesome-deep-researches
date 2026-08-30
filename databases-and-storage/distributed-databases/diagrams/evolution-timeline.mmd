@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Theory<br/>1978-2002"]
+        direction TB
+        E1A["1978: Lamport, Time, Clocks and<br/>the Ordering of Events.<br/>happens-before and logical clocks"]
+        E1B["1978: Gray, Notes on Data Base<br/>Operating Systems.<br/>1979: Lampson and Sturgis.<br/>Two-phase commit written down"]
+        E1C["1985: FLP impossibility.<br/>JACM 32(2) 374-382.<br/>No deterministic consensus with<br/>one possible crash failure"]
+        E1D["1990: Lamport submits<br/>The Part-Time Parliament.<br/>Published TOCS 1998"]
+        E1E["2002: Gilbert and Lynch prove CAP.<br/>SIGACT News 33(2) 51-59"]
+    end
+
+    subgraph Era2["Google and Amazon publish<br/>2006-2012"]
+        direction TB
+        E2A["2006: Bigtable and Chubby, OSDI.<br/>Range partitioning and<br/>production Paxos"]
+        E2B["2007: Dynamo, SOSP.<br/>Consistent hashing, sloppy quorums,<br/>vector clocks, hinted handoff"]
+        E2C["2008: Cassandra at Facebook.<br/>Dynamo ring plus Bigtable data model"]
+        E2D["2010: Percolator, OSDI.<br/>2PC over Bigtable with<br/>a timestamp oracle"]
+        E2E["2012: Spanner, OSDI.<br/>TrueTime and commit-wait.<br/>Abadi publishes PACELC"]
+    end
+
+    subgraph Era3["Reimplementation outside Google<br/>2014-2020"]
+        direction TB
+        E3A["2014: Raft, USENIX ATC.<br/>Consensus you can implement"]
+        E3B["2014: Kulkarni et al.<br/>Hybrid logical clocks, OPODIS"]
+        E3C["2017: Cloud Spanner and<br/>CockroachDB 1.0.<br/>Geo-distributed SQL as a product"]
+        E3D["2019: Parallel Commits.<br/>One consensus round trip to commit"]
+        E3E["2020: CockroachDB paper,<br/>SIGMOD, pp 1493-1509"]
+    end
+
+    subgraph Era4["Consolidation<br/>2024-2026"]
+        direction TB
+        E4A["Sep 2024: Cassandra 5.0 GA"]
+        E4B["Dec 2024: Aurora DSQL announced.<br/>DynamoDB multi-Region<br/>strong consistency announced"]
+        E4C["2025: CockroachDB Leader leases<br/>remove the node liveness<br/>single point of failure"]
+        E4D["Aug 2026: Cassandra 5.0.9.<br/>Accord still pre-GA"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
