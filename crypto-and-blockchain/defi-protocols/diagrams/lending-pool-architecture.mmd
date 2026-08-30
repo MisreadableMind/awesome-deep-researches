@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph USERS["Users"]
+        SUP["Supplier"]
+        BOR["Borrower"]
+        LQ["Liquidator"]
+    end
+
+    subgraph CORE["Aave v3 core, aave-v3-origin"]
+        POOL["Pool.sol<br/>supply · withdraw · borrow · repay<br/>liquidationCall · flashLoan · setUserEMode"]
+        SL["SupplyLogic · BorrowLogic<br/>LiquidationLogic · FlashLoanLogic"]
+        VL["ValidationLogic<br/>GenericLogic.calculateUserAccountData"]
+        RL["ReserveLogic<br/>updateState, updateInterestRates"]
+    end
+
+    subgraph TOKENS["Tokenised positions"]
+        AT["aToken (ERC-20)<br/>rebasing claim, balance = scaled * liquidityIndex"]
+        VT["variableDebtToken<br/>non-transferable, balance = scaled * borrowIndex"]
+    end
+
+    subgraph PARAMS["Configuration"]
+        PC["PoolConfigurator<br/>behind a governance timelock"]
+        IRS["DefaultReserveInterestRateStrategyV2<br/>optimalUsageRatio, base, slope1, slope2"]
+        CFG["ReserveConfiguration bitmap<br/>LTV · LT · bonus · decimals · caps · flags"]
+    end
+
+    subgraph EXT["External dependencies"]
+        AO["AaveOracle<br/>one Chainlink aggregator per reserve"]
+        UMB["Umbrella<br/>staked cover that burns to clear deficit"]
+    end
+
+    SUP -->|"supply"| POOL
+    POOL -->|"mint"| AT
+    BOR -->|"borrow"| POOL
+    POOL -->|"mint"| VT
+    LQ -->|"liquidationCall"| POOL
+    POOL --> SL --> VL
+    SL --> RL --> IRS
+    VL --> AO
+    VL --> CFG
+    PC --> CFG
+    PC --> IRS
+    POOL -.->|"uncovered deficit"| UMB
+
+    style POOL fill:#e3f2fd,stroke:#1565c0
+    style AO fill:#fff3e0,stroke:#e65100
+    style UMB fill:#e8f5e9,stroke:#2e7d32

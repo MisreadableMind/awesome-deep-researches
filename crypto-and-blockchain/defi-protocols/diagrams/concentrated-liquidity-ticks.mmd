@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph PRICE["Tick space, WETH/USDC at 4,000, 0.05% tier, tick spacing 10"]
+        T1["tick 80,060<br/>P = 3,000.7"]
+        T2["tick 81,890<br/>P = 3,599.65<br/>position lower bound"]
+        T3["tick 82,940<br/>P = 3,998.14<br/>current tick"]
+        T4["tick 83,890<br/>P = 4,396.57<br/>position upper bound"]
+        T5["tick 85,170<br/>P = 4,997.6"]
+    end
+
+    subgraph POS["Three overlapping positions"]
+        PA["LP A: 81,890 to 83,890<br/>active, earns every fee"]
+        PB["LP B: 80,060 to 85,170<br/>active, wider, thinner per dollar"]
+        PC["LP C: 83,890 to 85,170<br/>out of range, 100% WETH, earns nothing"]
+    end
+
+    subgraph AGG["What the pool stores"]
+        L["liquidity = sum of L for every position<br/>spanning the current tick"]
+        BM["tickBitmap: one bit per tick,<br/>set when a position boundary is initialised"]
+        TI["Per-tick liquidityNet:<br/>signed delta applied when the tick is crossed"]
+        FG["feeGrowthGlobal0X128 / 1X128:<br/>fees per unit of liquidity, ever"]
+    end
+
+    T1 --- T2 --- T3 --- T4 --- T5
+    PA --> L
+    PB --> L
+    PC -.->|"contributes 0"| L
+    L --> BM
+    L --> TI
+    L --> FG
+
+    style T3 fill:#fff3e0,stroke:#e65100
+    style PC fill:#eceff1,stroke:#607d8b
+    style L fill:#e8f5e9,stroke:#2e7d32

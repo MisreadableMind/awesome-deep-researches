@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph CALLER["Integrator"]
+        RT["Universal Router / PositionManager<br/>or any custom contract"]
+    end
+
+    subgraph MGR["PoolManager singleton"]
+        UL["unlock(data)<br/>sets the transient lock"]
+        CB["unlockCallback(data)<br/>caller does whatever it wants"]
+        OPS["swap · modifyLiquidity · donate<br/>take · settle · mint · burn · sync"]
+        DELTA["CurrencyDelta in transient storage<br/>one signed int256 per (caller, currency)"]
+        CHK["On return: every delta must be zero<br/>else revert CurrencyNotSettled"]
+    end
+
+    subgraph STATE["Pool state, keyed by PoolId = keccak(PoolKey)"]
+        S0["Slot0: sqrtPriceX96, tick,<br/>protocolFee, lpFee"]
+        LIQ["liquidity, tickBitmap,<br/>ticks, positions"]
+    end
+
+    subgraph HOOK["Hook contract, permissions in its address bits"]
+        H1["beforeSwap → may override the fee<br/>and return a BeforeSwapDelta"]
+        H2["afterSwap → may charge a hook fee"]
+        H3["beforeAddLiquidity / afterAddLiquidity"]
+        H4["beforeInitialize / afterInitialize"]
+    end
+
+    subgraph USES["What hooks are actually used for"]
+        U1["Dynamic fees that tax the<br/>first swap in a block"]
+        U2["On-chain limit orders<br/>filled when a tick is crossed"]
+        U3["Custom curves that bypass<br/>concentrated liquidity entirely"]
+        U4["Auction of the right to<br/>arbitrage the pool each block"]
+    end
+
+    RT --> UL --> CB --> OPS
+    OPS --> DELTA --> CHK
+    OPS --> S0
+    OPS --> LIQ
+    OPS -->|"if the flag bit is set"| H1
+    OPS --> H2
+    OPS --> H3
+    OPS --> H4
+    H1 --> U1
+    H1 --> U2
+    H1 --> U3
+    H1 --> U4
+
+    style DELTA fill:#fff3e0,stroke:#e65100
+    style CHK fill:#e8f5e9,stroke:#2e7d32
+    style HOOK fill:#f3e5f5,stroke:#6a1b9a

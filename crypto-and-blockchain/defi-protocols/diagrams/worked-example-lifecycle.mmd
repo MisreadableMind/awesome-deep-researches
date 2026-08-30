@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant AL as Alice
+    participant P as Aave v3 Pool
+    participant AT as aWETH
+    participant VD as variableDebtUSDC
+    participant OR as AaveOracle
+    participant K as Keeper bot
+    participant DX as Uniswap v3 WETH/USDC 0.05%
+
+    Note over AL,DX: Day 0, ether at $4,000
+    AL->>P: approve(WETH, 100e18)
+    AL->>P: supply(WETH, 100e18, AL, 0)
+    P->>AT: mint scaled balance against liquidityIndex
+    P->>P: updateInterestRates for the WETH reserve
+    Note over AL: Collateral $400,000. Max borrow 80.5% = $322,000.
+
+    AL->>P: borrow(USDC, 240,000e6, mode 2, 0, AL)
+    P->>OR: getAssetPrice(WETH), getAssetPrice(USDC)
+    P->>P: calculateUserAccountData:<br/>collateral 400,000, debt 240,000,<br/>HF = 400,000 * 0.83 / 240,000 = 1.38333
+    P->>VD: mint scaled debt against variableBorrowIndex
+    P->>AL: 240,000 USDC
+    Note over P: USDC utilisation rises. Borrow APR moves<br/>along 4.1% * U / 0.92 until U passes 92%.
+
+    Note over AL,DX: Alice's liquidation price is fixed by arithmetic
+    Note over AL: 100 * P * 0.83 = 240,000 gives P = $2,891.57
+
+    Note over AL,DX: Day 41, ether falls to $2,850
+    OR->>OR: Chainlink round: deviation threshold breached
+    K->>P: getUserAccountData(AL)
+    P-->>K: collateral $285,000, debt $240,000, HF 0.98562
+
+    K->>P: flashLoanSimple(USDC, 120,000)
+    P->>K: executeOperation, premium 60 USDC
+    K->>P: liquidationCall(WETH, USDC, AL, 120,000e6, false)
+    P->>P: HF 0.98562 above 0.95 and both legs above $2,000<br/>so close factor 50%, max repay 120,000
+    P->>P: seize = 120,000 * 1.05 / 2,850 = 44.210526 WETH
+    P->>VD: burn 120,000 of Alice's debt
+    P->>AT: burn 44.210526 of Alice's aWETH
+    P-->>K: 44.000000 WETH, after the 10% liquidationProtocolFee on the bonus
+    K->>DX: exactInputSingle(44.000000 WETH)
+    DX-->>K: 125,211.90 USDC after 0.05% fee and ~0.1% impact
+    K->>P: repay 120,060 USDC to close the flash loan
+
+    Note over AL: 55.789474 WETH left, $120,000 debt, HF 1.09975.<br/>Cost of the liquidation to Alice: $6,000.

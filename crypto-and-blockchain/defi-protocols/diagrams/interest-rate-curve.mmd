@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph INPUT["The single input"]
+        U["U = totalDebt / (availableLiquidity + totalDebt)<br/>USDC on Aave v3 Ethereum: 90.09% on 30 Aug 2026"]
+    end
+
+    subgraph SEG1["Below the kink, U at or under 92%"]
+        A["borrowRate = 0 + 4.1% * U / 0.92<br/>gradient 0.045 points of rate per point of U"]
+        A2["At U = 90.09%: 4.015% APR<br/>Cheap. The pool is comfortable."]
+    end
+
+    subgraph SEG2["Above the kink, U over 92%"]
+        B["borrowRate = 0 + 4.1% + 10% * (U - 0.92) / 0.08<br/>gradient 1.25 points of rate per point of U"]
+        B2["At U = 98%: 11.60% APR<br/>At U = 100%: 14.10% APR<br/>Expensive. Repay or be squeezed."]
+    end
+
+    subgraph OUT["What the borrower rate becomes"]
+        S["supplyRate = borrowRate * U * (1 - reserveFactor)<br/>= 4.015% * 0.9009 * 0.90 = 3.255% APR"]
+        T["reserveFactor 10% goes to the DAO treasury<br/>The other 90% goes to suppliers"]
+    end
+
+    subgraph EQ["Why the kink works"]
+        E1["Rate rises → borrowers repay → U falls"]
+        E2["Rate rises → suppliers deposit → U falls"]
+        E3["Equilibrium sits just under the kink<br/>for any asset with real borrowing demand"]
+        E4["Failure case: a borrower who cannot repay<br/>and collateral that cannot be sold.<br/>Then U stays at 100% and suppliers are trapped."]
+    end
+
+    U --> A --> A2
+    U --> B --> B2
+    A2 --> S --> T
+    B2 --> E1
+    B2 --> E2
+    E1 --> E3
+    E2 --> E3
+    E3 --> E4
+
+    style B fill:#ffebee,stroke:#c62828
+    style E4 fill:#ffebee,stroke:#c62828
+    style A fill:#e8f5e9,stroke:#2e7d32

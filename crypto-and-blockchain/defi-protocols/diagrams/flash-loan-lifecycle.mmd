@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant EOA as Externally owned account
+    participant R as Receiver contract<br/>implements executeOperation
+    participant P as Aave v3 Pool
+    participant AT as aToken reserve
+    participant X as Anything at all
+
+    EOA->>R: initiate()
+    R->>P: flashLoanSimple(receiver = R, asset, amount, params, 0)
+    P->>P: ValidationLogic.validateFlashloan<br/>reserve exists, not paused, flashLoanEnabled
+    P->>P: totalPremium = amount.percentMulCeil(FLASHLOAN_PREMIUM_TOTAL)
+    P->>AT: transferUnderlyingTo(R, amount)
+    P->>R: executeOperation(asset, amount, premium, initiator, params)
+
+    rect rgb(255, 243, 224)
+        Note over R,X: The borrower now holds protocol capital.<br/>Anything callable is callable here.
+        R->>X: Arbitrage, liquidate, refinance, collateral swap,<br/>governance vote, or an exploit
+        X-->>R: Proceeds
+    end
+
+    R->>P: approve(Pool, amount + premium)
+    R-->>P: return true
+    P->>R: transferFrom(R, aToken, amount + premium)
+    P->>P: reserve.accruedToTreasury += totalPremium<br/>100% of the premium, no supplier share
+    P->>P: updateInterestRates
+    Note over P: If the pull fails for one wei,<br/>the entire transaction reverts and<br/>none of the middle ever happened.

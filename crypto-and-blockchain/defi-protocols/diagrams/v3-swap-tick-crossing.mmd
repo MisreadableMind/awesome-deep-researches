@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant R as SwapRouter
+    participant P as UniswapV3Pool
+    participant BM as TickBitmap
+    participant TK as Tick storage
+    participant O as Observations array
+    participant C as Callback (payer)
+
+    R->>P: swap(recipient, zeroForOne, amountSpecified,<br/>sqrtPriceLimitX96, data)
+    P->>P: Load slot0: sqrtPriceX96, tick, observationIndex,<br/>feeProtocol, unlocked. Set unlocked = false.
+
+    loop while amountRemaining != 0 and price != limit
+        P->>BM: nextInitializedTickWithinOneWord(tick, tickSpacing, zeroForOne)
+        BM-->>P: next initialised tick, or the word boundary
+        P->>P: SwapMath.computeSwapStep:<br/>how much fits before that tick,<br/>at the current liquidity, net of fee
+        alt step consumes the whole remaining amount
+            P->>P: Move sqrtPriceX96 partway, exit loop
+        else step reaches the tick
+            P->>TK: tick.cross(feeGrowthGlobal0X128, feeGrowthGlobal1X128)
+            TK-->>P: liquidityNet for that tick
+            P->>P: liquidity += liquidityNet (sign flips by direction)
+            Note over P: Positions bounded here activate or<br/>deactivate. Gas rises with each crossing.
+        end
+        P->>P: feeGrowthGlobalXX128 += feeAmount * Q128 / liquidity
+    end
+
+    P->>O: write(observationIndex, blockTimestamp, tick, liquidity)
+    Note over O: tickCumulative += tick * secondsElapsed<br/>secondsPerLiquidityCumulativeX128 += secondsElapsed * Q128 / liquidity
+    P->>P: Update slot0 with the final sqrtPriceX96 and tick
+    P->>C: uniswapV3SwapCallback(amount0Delta, amount1Delta, data)
+    C->>P: transfer the owed token
+    P->>P: require balance increased by the owed amount, unlocked = true
