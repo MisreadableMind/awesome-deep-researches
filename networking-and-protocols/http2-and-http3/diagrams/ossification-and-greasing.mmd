@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph TCPO["What ossified in TCP"]
+        direction TB
+        O1["TCP options: middleboxes strip unknown<br/>ones, so a new option must survive<br/>every device on every path.<br/>Multipath TCP took over a decade and<br/>is still not universally usable."]
+        O2["Sequence number rewriting: some NATs<br/>and accelerators renumber segments,<br/>so any extension keyed to sequence<br/>numbers breaks."]
+        O3["ECN: routers and firewalls cleared or<br/>mangled the two IP bits for years.<br/>Deployment stalled for over a decade."]
+        O4["Result: TCP Fast Open, designed to<br/>save a round trip, is unusable on a<br/>large share of paths because<br/>middleboxes drop SYNs carrying data."]
+    end
+
+    subgraph QUICV["What QUIC exposes on the wire"]
+        direction TB
+        V1["Visible always: UDP ports, IP header,<br/>packet length, timing"]
+        V2["Visible on long-header packets:<br/>version, connection ID lengths,<br/>connection IDs. These are the<br/>RFC 8999 invariants, the only fields<br/>promised to be stable across versions."]
+        V3["Visible on short-header packets:<br/>the destination connection ID and<br/>the optional spin bit. Nothing else."]
+        V4["Encrypted or authenticated:<br/>packet numbers, frame types, frame<br/>contents, stream IDs, offsets,<br/>acknowledgement ranges, flow-control<br/>limits, and the first byte's low bits<br/>via header protection."]
+    end
+
+    subgraph Greasing["Active anti-ossification measures"]
+        direction TB
+        G1["RFC 9287, Greasing the QUIC Bit:<br/>negotiate permission to send the<br/>Fixed Bit as 0, so no device can<br/>classify QUIC by it always being 1."]
+        G2["RFC 9369, QUIC version 2:<br/>version 0x6b3343cf, different salt<br/>0x0dede3def700a6db819381be6e269dcbf9bd2ed9,<br/>quicv2 HKDF labels, and reshuffled<br/>packet type bits. Its stated purpose<br/>is to exercise version negotiation<br/>and stop v1 from becoming the format."]
+        G3["Reserved codepoint patterns:<br/>0x1f * N + 0x21 for HTTP/3 frame<br/>types, settings, and stream types.<br/>Endpoints send them so peers must<br/>tolerate the unknown."]
+        G4["Spin bit disabled on a random subset<br/>of connections so it cannot become<br/>a reliable tracking identifier."]
+    end
+
+    subgraph Incident["The incident that proved the point"]
+        direction TB
+        I1["Oct 2016: Google changes 1 bit in the<br/>gQUIC public flags field."]
+        I2["One firewall brand used that field to<br/>identify QUIC. It had been blocking<br/>QUIC correctly, causing clean TCP<br/>fallback."]
+        I3["After the change it let initial<br/>packets through and dropped the rest,<br/>a black hole that defeated the<br/>fallback logic. Google reverted."]
+        I4["Stated lesson: 'deploying a protocol<br/>change widely requires it to work<br/>through a huge range of middleboxes,<br/>but middleboxes only change behavior<br/>in response to wide deployment of<br/>the change.'"]
+    end
+
+    TCPO --> QUICV
+    QUICV --> Greasing
+    Greasing --> Incident
+
+    style TCPO fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style QUICV fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Greasing fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Incident fill:#fff3e0,stroke:#e65100,stroke-width:3px

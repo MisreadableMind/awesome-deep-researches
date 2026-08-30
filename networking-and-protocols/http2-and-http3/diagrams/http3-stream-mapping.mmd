@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Req["Request streams: client-initiated bidirectional"]
+        direction TB
+        R1["Stream 0, 4, 8, 12 ...<br/>one HTTP exchange per stream,<br/>request on the client side,<br/>response on the server side"]
+        R2["Frame sequence:<br/>HEADERS (0x01), then zero or more<br/>DATA (0x00), then optional trailing<br/>HEADERS. Stream FIN ends the message.<br/>No END_STREAM flag exists; QUIC's<br/>FIN bit does that job."]
+        R3["Cancellation: RESET_STREAM at the<br/>QUIC layer with an HTTP/3 error<br/>code. RST_STREAM does not exist<br/>in HTTP/3."]
+    end
+
+    subgraph Uni["Unidirectional streams, each prefixed with a type varint"]
+        direction TB
+        U1["0x00 Control stream.<br/>Exactly one per direction, opened<br/>first, never closed. SETTINGS MUST<br/>be its first frame. Closing it is<br/>H3_CLOSED_CRITICAL_STREAM."]
+        U2["0x01 Push stream.<br/>Carries a push ID then the response."]
+        U3["0x02 QPACK encoder stream.<br/>0x03 QPACK decoder stream."]
+        U4["0x1f * N + 0x21 reserved.<br/>Grease values an endpoint sends to<br/>keep peers tolerant of the unknown."]
+    end
+
+    subgraph Frames["HTTP/3 frames, RFC 9114 section 7.2"]
+        direction TB
+        F1["0x00 DATA - request or response body<br/>0x01 HEADERS - QPACK field section<br/>0x03 CANCEL_PUSH - withdraw a push"]
+        F2["0x04 SETTINGS - control stream only,<br/>first frame, sent once<br/>0x05 PUSH_PROMISE - announce a push<br/>0x07 GOAWAY - graceful shutdown<br/>0x0d MAX_PUSH_ID - raise the push ceiling"]
+        F3["Deleted from HTTP/2:<br/>PRIORITY (deprecated anyway),<br/>RST_STREAM (QUIC RESET_STREAM),<br/>WINDOW_UPDATE (QUIC MAX_DATA),<br/>PING (QUIC PING),<br/>CONTINUATION (a QUIC stream has no<br/>frame size limit to spill over)."]
+    end
+
+    subgraph Set["HTTP/3 settings"]
+        direction TB
+        S1["0x06 SETTINGS_MAX_FIELD_SECTION_SIZE,<br/>default unlimited"]
+        S2["0x01 SETTINGS_QPACK_MAX_TABLE_CAPACITY,<br/>default 0, which disables the<br/>QPACK dynamic table entirely"]
+        S3["0x07 SETTINGS_QPACK_BLOCKED_STREAMS,<br/>default 0, which forbids the encoder<br/>from creating any blocked stream"]
+        S4["Both QPACK defaults being 0 means a<br/>server that sends no SETTINGS gets<br/>static-table-only compression."]
+    end
+
+    Req --> Frames
+    Uni --> Frames
+    Frames --> Set
+
+    style Req fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Uni fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Frames fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Set fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

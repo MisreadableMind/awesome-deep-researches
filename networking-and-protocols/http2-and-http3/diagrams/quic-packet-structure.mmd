@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Nest["The nesting, outside in"]
+        direction TB
+        N1["IP datagram"]
+        N2["UDP datagram, 8-byte header,<br/>ports 443 by convention"]
+        N3["One or more QUIC packets.<br/>Several may be coalesced into<br/>one datagram, which is how the<br/>Initial and Handshake packets<br/>share a flight."]
+        N4["QUIC packet header, partly<br/>encrypted (header protection)"]
+        N5["Packet payload: one or more frames.<br/>A frame never spans packets."]
+        N1 --> N2 --> N3 --> N4 --> N5
+    end
+
+    subgraph Long["Long header, RFC 9000 section 17.2"]
+        direction TB
+        L1["bit 0: Header Form = 1<br/>bit 1: Fixed Bit = 1 (0 only for<br/>Version Negotiation)<br/>bits 2-3: Long Packet Type<br/>bits 4-7: type-specific"]
+        L2["Version (32 bits).<br/>0x00000001 = QUIC v1.<br/>0x6b3343cf = QUIC v2, RFC 9369.<br/>0x00000000 = Version Negotiation."]
+        L3["DCID Length (8) + DCID (0-160 bits)<br/>SCID Length (8) + SCID (0-160 bits).<br/>Max 20 bytes each in v1."]
+        L4["Types: 0x00 Initial, 0x01 0-RTT,<br/>0x02 Handshake, 0x03 Retry"]
+    end
+
+    subgraph Short["Short header (1-RTT), section 17.3.1"]
+        direction TB
+        S1["bit 0: Header Form = 0<br/>bit 1: Fixed Bit = 1<br/>bit 2: Spin Bit (latency measurement)<br/>bits 3-4: Reserved, MUST be 0<br/>bit 5: Key Phase<br/>bits 6-7: Packet Number Length"]
+        S2["Destination Connection ID only.<br/>NO version field, NO source CID,<br/>NO length field. The receiver must<br/>already know the CID length."]
+        S3["Packet Number: 8, 16, 24 or 32 bits<br/>on the wire, decoded against the<br/>largest acknowledged into a full<br/>62-bit value that never repeats."]
+    end
+
+    subgraph Sizes["Hard numbers"]
+        direction TB
+        Z1["Any datagram carrying an Initial<br/>packet MUST be at least 1200 bytes,<br/>padded with PADDING frames.<br/>This forces a path that cannot<br/>carry 1200 bytes to fail fast."]
+        Z2["Before address validation a server<br/>MUST NOT send more than 3x the<br/>bytes it has received. The<br/>anti-amplification limit."]
+        Z3["Variable-length integers: top two<br/>bits give the length.<br/>00 = 1 byte, 0-63<br/>01 = 2 bytes, 0-16,383<br/>10 = 4 bytes, 0-1,073,741,823<br/>11 = 8 bytes, 0-4,611,686,018,427,387,903"]
+    end
+
+    Nest --> Long
+    Nest --> Short
+    Long --> Sizes
+
+    style Nest fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Long fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Short fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Sizes fill:#fff3e0,stroke:#e65100,stroke-width:2px

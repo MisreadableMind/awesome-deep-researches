@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+
+    rect rgb(240,248,255)
+    Note over C,S: TCP + TLS 1.3: three round trips before the first response byte
+    C->>S: TCP SYN
+    S->>C: TCP SYN-ACK
+    C->>S: TCP ACK + TLS ClientHello
+    S->>C: ServerHello, EncryptedExtensions, Certificate,<br/>CertificateVerify, Finished
+    C->>S: Finished + HTTP request
+    S->>C: HTTP response
+    end
+
+    rect rgb(232,245,233)
+    Note over C,S: QUIC 1-RTT: the transport and crypto handshakes are the same flight
+    C->>S: Initial packet, UDP payload padded to >= 1200 bytes.<br/>CRYPTO frame: ClientHello with<br/>ALPN = h3, key_share, and the<br/>quic_transport_parameters extension (0x39)
+    S->>C: Initial + Handshake, coalesced in one datagram.<br/>ServerHello, EncryptedExtensions (ALPN = h3,<br/>transport parameters), Certificate,<br/>CertificateVerify, Finished.<br/>Capped at 3x the bytes received.
+    C->>S: Handshake Finished, coalesced with a<br/>1-RTT packet carrying the HTTP/3 request
+    S->>C: HANDSHAKE_DONE + the HTTP response
+    end
+
+    rect rgb(255,243,224)
+    Note over C,S: QUIC 0-RTT: request data in the very first flight
+    Note over C: Client holds a session ticket from<br/>a previous connection, plus the<br/>transport parameters that server<br/>advertised then.
+    C->>S: Initial (ClientHello with pre_shared_key)<br/>coalesced with a 0-RTT packet<br/>carrying GET /index.html
+    S->>C: Accept or reject the early data.<br/>On reject the client resends in 1-RTT.
+    Note over C,S: 88% of gQUIC connections from desktop<br/>achieved a 0-RTT handshake<br/>(Google, SIGCOMM 2017)
+    end
+
+    rect rgb(255,235,238)
+    Note over C,S: The replay problem
+    Note over S: 0-RTT data has NO forward secrecy and<br/>NO replay protection. An attacker who<br/>captures the first flight can resend it<br/>to the same or a different server<br/>in the cluster.
+    Note over C,S: RFC 8470 defines the HTTP profile:<br/>Early-Data: 1 marks a request that<br/>arrived in early data.<br/>425 (Too Early) tells the client to<br/>retry it after the handshake.<br/>Clients MUST retry on 425.
+    Note over C,S: Cloudflare's production policy: only<br/>GET requests with no query parameters<br/>are answered over 0-RTT, plus a<br/>Cf-0rtt-Unique header derived from the<br/>PSK binder so origins can detect replays.
+    end

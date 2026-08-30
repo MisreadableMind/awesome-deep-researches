@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant D as DNS resolver
+    participant S as Edge server
+
+    Note over B,S: RTT 40 ms. Origin www.example.com.<br/>No prior connection, no session ticket.
+
+    B->>D: A, AAAA and HTTPS (type 65) queries in parallel
+    D-->>B: A 203.0.113.10<br/>HTTPS 1 . alpn="h3,h2" ipv4hint=203.0.113.10
+    Note over B: t = 20 ms. Browser knows h3 is<br/>available before opening a socket.<br/>No Alt-Svc round trip needed.
+
+    B->>S: t = 20 ms. UDP 203.0.113.10:443, one datagram, 1200 bytes.<br/>Initial packet: DCID = 8 random bytes 0x83a4c19e07d2b155,<br/>SCID = 0 bytes, Packet Number 0.<br/>CRYPTO frame: ClientHello with ALPN "h3",<br/>key_share X25519MLKEM768, SNI www.example.com,<br/>quic_transport_parameters (ext 0x39):<br/>initial_max_data, initial_max_streams_bidi=100,<br/>active_connection_id_limit=4.<br/>PADDING to reach 1200.
+
+    Note over S: Anti-amplification budget: 3 x 1200 = 3600 bytes.
+
+    S-->>B: t = 60 ms. Three datagrams, 3552 bytes total.<br/>Initial: ServerHello with the matching key_share,<br/>SCID = 0x5f2c81aa (server routing ID).<br/>Handshake: EncryptedExtensions (ALPN h3,<br/>transport parameters), Certificate<br/>(ECDSA P-256 chain, compressed per RFC 8879<br/>from 2810 to 1490 bytes), CertificateVerify, Finished.<br/>Two NEW_CONNECTION_ID frames.
+
+    B->>S: t = 60 ms. One datagram.<br/>Handshake: CRYPTO with client Finished.<br/>1-RTT: opens four streams at once.<br/>Stream 2 (uni, type 0x00): control stream,<br/>SETTINGS with QPACK_MAX_TABLE_CAPACITY=4096,<br/>QPACK_BLOCKED_STREAMS=16.<br/>Stream 6 (uni, type 0x02): QPACK encoder.<br/>Stream 10 (uni, type 0x03): QPACK decoder.<br/>Stream 0 (bidi): HEADERS frame, FIN set.
+
+    Note over B,S: The request field section on stream 0.<br/>Prefix: Required Insert Count 0, Delta Base 0<br/>(2 bytes, static table only, cannot block).<br/>0xD1 = indexed static 17 = :method GET<br/>0xD7 = indexed static 23 = :scheme https<br/>0xC1 = indexed static 1 = :path /<br/>literal with name ref 0 = :authority www.example.com<br/>literal with name ref 95 = user-agent (Huffman coded)<br/>0xDF = indexed static 31 = accept-encoding<br/>Total on the wire: about 130 bytes for what<br/>HTTP/1.1 would send as roughly 480 bytes of ASCII.
+
+    S-->>B: t = 100 ms. HANDSHAKE_DONE, plus a NEW_TOKEN<br/>frame for a future 0-RTT connection.<br/>Server opens its own unidirectional streams:<br/>stream 3 (control, SETTINGS), stream 7 (QPACK<br/>encoder), stream 11 (QPACK decoder).<br/>Stream 0 HEADERS: 0xD9 = indexed static 25 = :status 200,<br/>content-type, cache-control, etag inserted into the<br/>QPACK dynamic table on stream 7,<br/>the server's QPACK encoder stream, first.<br/>Stream 0 DATA: first 14,720 bytes of HTML,<br/>the initial congestion window.
+
+    Note over B: t = 100 ms. First byte. Total cost<br/>from navigation: DNS 20 ms + handshake 40 ms<br/>+ request/response 40 ms = 100 ms.<br/>The same page over TCP + TLS 1.3 costs<br/>DNS 20 + TCP 40 + TLS 40 + request 40 = 140 ms.
+
+    B->>S: t = 100 ms. Parser finds style.css and app.js.<br/>Stream 4: GET /style.css, Priority: u=0<br/>Stream 8: GET /app.js, Priority: u=2<br/>Both field sections now reference dynamic<br/>table entries inserted during the first exchange,<br/>so each is roughly 40 bytes.
+
+    S-->>B: t = 140 ms. Interleaved STREAM frames.<br/>u=0 makes the server drain stream 4 first.
+
+    Note over B,S: A packet carrying stream 4 and stream 8<br/>data is lost at t = 150 ms.<br/>QUIC delivers stream 8's later bytes<br/>immediately, and only the lost frames wait<br/>for retransmission, roughly 40 ms later.<br/>Under HTTP/2 on TCP, every stream on<br/>the connection would have stalled.

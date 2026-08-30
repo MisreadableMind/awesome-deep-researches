@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Text Era<br/>1996-2009"]
+        direction TB
+        E1A["May 1996: HTTP/1.0, RFC 1945.<br/>One request per TCP connection.<br/>Connection closes after the response."]
+        E1B["Jan 1997 / Jun 1999: HTTP/1.1,<br/>RFC 2068 then RFC 2616.<br/>Persistent connections, chunked<br/>transfer, Host header, pipelining."]
+        E1C["1999-2009: pipelining ships and<br/>fails. Browsers open 6 parallel<br/>TCP connections per origin instead."]
+    end
+
+    subgraph Era2["SPDY and HTTP/2<br/>2009-2015"]
+        direction TB
+        E2A["Nov 2009: Google announces SPDY.<br/>Binary framing, multiplexing,<br/>header compression, server push,<br/>TLS required."]
+        E2B["Jan 2012: IETF httpbis rechartered<br/>for HTTP/2. SPDY draft-2 adopted<br/>as the starting point."]
+        E2C["May 2015: RFC 7540 (HTTP/2) and<br/>RFC 7541 (HPACK) published.<br/>SPDY deprecated by Google in 2016."]
+    end
+
+    subgraph Era3["gQUIC<br/>2012-2016"]
+        direction TB
+        E3A["2012-2013: Google builds QUIC as a<br/>userspace transport over UDP.<br/>Launched as a Chrome experiment<br/>in 2013."]
+        E3B["2016: gQUIC carries over 30% of<br/>Google egress bytes, an estimated<br/>7% of Internet traffic<br/>(SIGCOMM 2017)."]
+        E3C["Oct 2016: IETF QUIC working group<br/>chartered. gQUIC is split into a<br/>transport and an HTTP mapping."]
+    end
+
+    subgraph Era4["IETF QUIC and HTTP/3<br/>2021-2026"]
+        direction TB
+        E4A["May 2021: RFC 8999 invariants,<br/>RFC 9000 transport, RFC 9001 TLS,<br/>RFC 9002 recovery."]
+        E4B["Jun 2022: RFC 9114 (HTTP/3),<br/>RFC 9204 (QPACK), RFC 9218<br/>(priorities), RFC 9113 (HTTP/2<br/>revised, push retained but<br/>priority deprecated)."]
+        E4C["May 2023: RFC 9368 compatible<br/>version negotiation, RFC 9369<br/>QUIC version 2, built to keep<br/>middleboxes from ossifying on v1."]
+        E4D["Mar 2026: multipath QUIC<br/>(draft-21) reaches the RFC<br/>Editor queue."]
+    end
+
+    Era1 --> Era2
+    Era1 --> Era3
+    Era2 --> Era4
+    Era3 --> Era4
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
