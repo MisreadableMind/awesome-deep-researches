@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Fixed["The 20-byte fixed header, RFC 9293"]
+        direction TB
+        H1["Bits 0-15: Source Port<br/>Bits 16-31: Destination Port<br/>The 4-tuple of source address,<br/>source port, destination address<br/>and destination port names<br/>the connection. Nothing else does."]
+        H2["Bits 32-63: Sequence Number<br/>The byte offset of the first data<br/>byte in this segment. On a SYN it<br/>is the ISN and the SYN itself<br/>consumes one sequence number."]
+        H3["Bits 64-95: Acknowledgment Number<br/>The next byte the sender of this<br/>segment expects. Cumulative:<br/>it means 'everything below this<br/>arrived', and nothing more."]
+        H4["Bits 96-99: Data Offset<br/>Header length in 32-bit words.<br/>5 to 15, so 20 to 60 bytes,<br/>so at most 40 bytes of options.<br/>Bits 100-103: reserved, must be zero"]
+        H5["Bits 104-111: flags, one bit each<br/>CWR Congestion Window Reduced<br/>ECE ECN-Echo<br/>URG Urgent pointer is significant<br/>ACK Acknowledgment field is significant<br/>PSH Push, deliver to the app now<br/>RST Reset the connection<br/>SYN Synchronise sequence numbers<br/>FIN No more data from this sender"]
+        H6["Bits 112-127: Window<br/>Receive window in bytes,<br/>16 bits, so 65535 maximum<br/>unless the Window Scale option<br/>was agreed on both SYNs."]
+        H7["Bits 128-143: Checksum<br/>Ones-complement over the header,<br/>the payload, and a pseudo-header<br/>of source and destination address,<br/>protocol number and TCP length.<br/>Bits 144-159: Urgent Pointer"]
+    end
+
+    subgraph Opts["The 40 bytes of option space, and what competes for it"]
+        direction TB
+        O1["Kind 2, len 4: Maximum Segment Size<br/>SYN only. The largest payload this<br/>side will accept. Default if absent:<br/>536 for IPv4, 1220 for IPv6."]
+        O2["Kind 3, len 3: Window Scale<br/>One byte shift count, capped at 14.<br/>Window becomes value times 2^shift,<br/>so up to 2^30 bytes, 1 GiB.<br/>Both sides must send it on the SYN."]
+        O3["Kind 4, len 2: SACK Permitted, SYN only<br/>Kind 5, len 8n+2: SACK<br/>Each block is two 32-bit edges.<br/>40 bytes fits 4 blocks alone,<br/>3 blocks alongside timestamps."]
+        O4["Kind 8, len 10: Timestamps<br/>TSval and TSecr, 4 bytes each.<br/>Buys RTT samples on retransmitted<br/>segments and PAWS protection<br/>against wrapped sequence numbers."]
+        O5["Kind 34, variable: TCP Fast Open cookie<br/>Kind 30: Multipath TCP, RFC 8684<br/>Kind 29: TCP-AO, RFC 5925<br/>Kind 19: TCP MD5, RFC 2385, obsolete<br/>Kind 0: End of List, kind 1: NOP padding"]
+        O6["The arithmetic that ends the argument:<br/>MSS 4 plus SACK-permitted 2 plus<br/>window scale 3 plus timestamps 10<br/>plus alignment NOPs is about 20 bytes<br/>on a SYN. Half the space is gone<br/>before anything new is proposed.<br/>This is why QUIC left."]
+    end
+
+    subgraph Wire["A typical IPv4 SYN on Ethernet"]
+        direction TB
+        W1["14 bytes Ethernet<br/>20 bytes IPv4<br/>20 bytes TCP fixed<br/>20 bytes TCP options<br/>0 bytes payload<br/>= 74 bytes on the wire"]
+        W2["A typical full-size data segment:<br/>1500 MTU minus 20 IPv4<br/>minus 20 TCP minus 12 for<br/>timestamps and padding<br/>= 1448 bytes of payload.<br/>Overhead is 3.5 percent."]
+        W3["The same over IPv6:<br/>1500 minus 40 minus 20 minus 12<br/>= 1428 bytes. IPv6 costs<br/>20 bytes per segment forever."]
+    end
+
+    Fixed --> Opts --> Wire
+
+    style Fixed fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Opts fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Wire fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

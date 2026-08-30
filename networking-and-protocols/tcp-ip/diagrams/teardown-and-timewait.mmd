@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Active closer<br/>the side that closes first
+    participant B as Passive closer
+
+    Note over A,B: ESTABLISHED. TCP is full duplex, so closing is two<br/>independent half-close events, not one.
+
+    A->>B: FIN seq=X ack=Y
+    Note over A: FIN-WAIT-1. The FIN consumes one<br/>sequence number, so it is retransmitted<br/>and acknowledged like data.
+
+    B->>A: ACK ack=X+1
+    Note over A: FIN-WAIT-2
+    Note over B: CLOSE-WAIT. B may still send data.<br/>A must still receive it. A pile of<br/>sockets stuck in CLOSE-WAIT means<br/>the application never called close().
+
+    Note over B: Application finally calls close()
+    B->>A: FIN seq=Y ack=X+1
+    Note over B: LAST-ACK
+
+    A->>B: ACK ack=Y+1
+    Note over B: CLOSED. B is done immediately.
+    Note over A: TIME-WAIT for 2*MSL.<br/>RFC 9293 sets MSL at 2 minutes,<br/>so 4 minutes on paper.<br/>Linux hard-codes TCP_TIMEWAIT_LEN<br/>at 60 seconds and does not<br/>expose a sysctl for it.
+
+    rect rgb(255,243,224)
+    Note over A: TIME-WAIT does two jobs, both real:<br/>1. If the final ACK is lost, B retransmits its FIN.<br/>Someone must be there to answer, or B gets an RST<br/>and reports an error on a connection that succeeded.<br/>2. It keeps the 4-tuple unusable long enough for<br/>every stray segment from this connection to expire,<br/>so a new connection on the same 4-tuple cannot<br/>receive data addressed to the dead one.
+    end
+
+    rect rgb(232,245,233)
+    Note over A,B: Who ends up in TIME-WAIT decides who pays.<br/>The side that closes first holds the state.<br/>A server that closes HTTP connections accumulates<br/>TIME-WAIT sockets, a server that lets clients close<br/>does not. Linux ephemeral range 32768-60999 gives<br/>28232 ports, so 28232 / 60 seconds = about 470 new<br/>connections per second to one destination address<br/>and port before the tuple space is exhausted.
+    end
+
+    rect rgb(255,235,238)
+    Note over A,B: What does not fix it:<br/>SO_REUSEADDR only allows bind() over a TIME-WAIT tuple.<br/>tcp_tw_reuse=1 reuses outbound TIME-WAIT sockets, safe only<br/>because timestamps let the peer reject old segments. The<br/>default of 2 covers loopback traffic only, so on a stock<br/>kernel it does nothing for a remote backend.<br/>tcp_tw_recycle was removed from Linux in 4.12 in 2017<br/>because it broke every client behind a NAT.<br/>Lowering TIME-WAIT does not create capacity. Connection<br/>reuse does: one keep-alive connection carrying 1000<br/>requests creates one TIME-WAIT instead of 1000.
+    end

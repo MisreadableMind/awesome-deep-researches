@@ -1,0 +1,64 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Origins<br/>1969-1983"]
+        direction TB
+        E1A["1974: Cerf and Kahn publish<br/>'A Protocol for Packet Network<br/>Intercommunication'. One protocol,<br/>called TCP, does addressing,<br/>reliability and framing."]
+        E1B["Dec 1974: RFC 675, the first<br/>written TCP specification.<br/>Cerf, Dalal, Sunshine."]
+        E1C["1978: the split. Addressing and<br/>forwarding move into IP,<br/>reliability stays in TCP.<br/>Version 4 is the one that ships."]
+        E1D["Sep 1981: RFC 791 defines IPv4<br/>and RFC 793 defines TCP.<br/>Both edited by Jon Postel."]
+        E1E["1 Jan 1983: ARPANET flag day.<br/>NCP is switched off. Roughly<br/>400 hosts cut over to TCP/IP."]
+    end
+
+    subgraph Era2["Congestion Collapse<br/>1986-1992"]
+        direction TB
+        E2A["Oct 1986: throughput from LBL<br/>to UC Berkeley, three hops and<br/>400 yards, falls from 32 kbit/s<br/>to 40 bit/s. A factor of 1000."]
+        E2B["1988: Van Jacobson publishes<br/>'Congestion Avoidance and Control'.<br/>Tahoe adds slow start, congestion<br/>avoidance and fast retransmit."]
+        E2C["1990: Reno adds fast recovery.<br/>A single loss no longer collapses<br/>the window to one segment."]
+        E2D["Oct 1989: RFC 1122 fixes host<br/>behaviour: delayed ACK under<br/>500 ms, Nagle on by default,<br/>keepalives off by default."]
+        E2E["Nov 1990: RFC 1191 defines<br/>Path MTU Discovery.<br/>May 1992: RFC 1323 adds window<br/>scaling, timestamps and PAWS."]
+    end
+
+    subgraph Era3["Scaling the Window<br/>1996-2006"]
+        direction TB
+        E3A["Oct 1996: RFC 2018 adds SACK.<br/>The receiver can finally say<br/>which holes it has, not just<br/>where the first one starts."]
+        E3B["Jul 2000: RFC 2883 adds D-SACK,<br/>letting a receiver report a<br/>duplicate so the sender learns<br/>it retransmitted needlessly."]
+        E3C["Sep 2001: RFC 3168 adds ECN.<br/>A router can mark instead of<br/>drop. Deployment stalls for<br/>twenty years on broken middleboxes."]
+        E3D["Apr 1999 then Apr 2012:<br/>NewReno, RFC 2582 then RFC 6582.<br/>Partial ACKs keep fast recovery<br/>alive across multiple losses."]
+        E3E["Nov 2006: CUBIC becomes the<br/>Linux default in 2.6.19,<br/>replacing BIC. Window growth<br/>stops depending on RTT."]
+    end
+
+    subgraph Era4["Latency Becomes the Metric<br/>2010-2016"]
+        direction TB
+        E4A["Dec 2010: Jim Gettys names<br/>bufferbloat. Oversized unmanaged<br/>FIFO buffers turn loss-based<br/>congestion control into seconds<br/>of standing queue."]
+        E4B["2012: CoDel and fq_codel.<br/>fq_codel lands in Linux 3.5<br/>in July 2012 and becomes the<br/>default qdisc in most distributions."]
+        E4C["Apr 2013: RFC 6928 raises the<br/>initial window to 10 segments.<br/>Google measures 11.7 percent<br/>lower search latency."]
+        E4D["Dec 2014: RFC 7413, TCP Fast Open.<br/>Data in the SYN, guarded by a<br/>server-issued cookie. Experimental,<br/>and it stays that way."]
+        E4E["2016: Google publishes BBR.<br/>Congestion control stops inferring<br/>from loss and starts measuring<br/>bandwidth and RTT directly."]
+    end
+
+    subgraph Era5["Consolidation<br/>2017-2023"]
+        direction TB
+        E5A["Jul 2017: RFC 8200 makes IPv6<br/>an Internet Standard and forbids<br/>routers from fragmenting."]
+        E5B["Feb 2021: RFC 8985, RACK-TLP.<br/>Loss detection moves from<br/>counting duplicate ACKs to<br/>measuring time since transmission."]
+        E5C["May 2021: RFC 9000 ships QUIC.<br/>The transport moves to userspace<br/>over UDP because TCP cannot<br/>be changed on the wire."]
+        E5D["Aug 2022: RFC 9293 replaces<br/>RFC 793 as STD 7, folding in<br/>41 years of errata."]
+        E5E["Jan 2023: RFC 9330-9332 define<br/>L4S. Aug 2023: RFC 9438 puts<br/>CUBIC on the standards track."]
+    end
+
+    subgraph Era6["Now<br/>2024-2026"]
+        direction TB
+        E6A["Apr 2026: RFC 9768 standardises<br/>Accurate ECN, giving TCP more<br/>than one congestion signal<br/>per round trip."]
+        E6B["Jul 2026: draft-ietf-ccwg-bbr-06.<br/>BBR version 3 is deployed at<br/>scale and is still not an RFC,<br/>ten years after version 1."]
+        E6C["2025: HTTP/3 over QUIC carries<br/>21 percent of Cloudflare requests.<br/>HTTP/2 over TCP carries 50 percent.<br/>TCP is not going anywhere."]
+        E6D["Ongoing: TCP evolution moves<br/>into the kernel and the CDN,<br/>not the wire. Options space<br/>ran out at 40 bytes."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5 --> Era6
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Era3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era5 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era6 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

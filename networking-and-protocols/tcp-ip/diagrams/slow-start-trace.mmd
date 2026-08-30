@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Setup["Path: 100 Mbit/s bottleneck, 80 ms RTT, 64-packet FIFO.<br/>MSS 1448 bytes: 1500 MTU minus 20 IPv4 minus 20 TCP minus 12 for timestamps.<br/>Bandwidth-delay product = 12.5 MB/s times 0.08 s = 1,000,000 bytes = 690 segments.<br/>Transfer: 10,000,000 bytes = 6,906 segments. Initial window 10 per RFC 6928."]
+
+    subgraph SS["Slow start: cwnd doubles every round trip"]
+        direction TB
+        R1["Round 1, t=0 ms. cwnd 10.<br/>Sends 14,480 bytes. Cumulative 14,480."]
+        R2["Round 2, t=80 ms. cwnd 20.<br/>Sends 28,960. Cumulative 43,440."]
+        R3["Round 3, t=160 ms. cwnd 40.<br/>Sends 57,920. Cumulative 101,360."]
+        R4["Round 4, t=240 ms. cwnd 80.<br/>Sends 115,840. Cumulative 217,200."]
+        R5["Round 5, t=320 ms. cwnd 160.<br/>Sends 231,680. Cumulative 448,880."]
+        R6["Round 6, t=400 ms. cwnd 320.<br/>Sends 463,360. Cumulative 912,240."]
+        R7["Round 7, t=480 ms. cwnd 640.<br/>Sends 926,720. Cumulative 1,838,960.<br/>640 segments is 93 percent of the<br/>690-segment pipe. This is the last<br/>safe round."]
+        R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7
+    end
+
+    Over["Round 8, t=560 ms. cwnd 1280, wanting 1,853,440 bytes in flight.<br/>The pipe holds 690 segments. The buffer holds 64 more.<br/>1280 minus 690 minus 64 = 526 segments have nowhere to go and are dropped.<br/>Slow start's last act is always to overshoot by a factor of two."]
+
+    subgraph Cost["What slow start cost"]
+        direction TB
+        X1["Seven rounds, 560 ms, to deliver<br/>1.84 MB. Effective rate 26.3 Mbit/s<br/>on a 100 Mbit/s link."]
+        X2["The link was idle for most of the<br/>first half second. On a short transfer<br/>the connection never leaves slow start<br/>at all, which is why the initial<br/>window is worth 10 segments and why<br/>RFC 6928 measured an 11.7 percent<br/>latency win from raising it."]
+    end
+
+    subgraph Rec["Recovery, CUBIC"]
+        direction TB
+        Y1["W_max = 1280. cwnd drops to<br/>0.7 * 1280 = 896 segments.<br/>ssthresh = 896."]
+        Y2["K = cube root of 1280*0.3/0.4<br/>= cube root of 960 = 9.9 seconds.<br/>CUBIC would take 9.9 s to climb back<br/>to 1280 segments. Reno, adding one<br/>segment per 80 ms round trip from<br/>640, would take 51 s."]
+        Y3["But 896 is still above the 754 the<br/>path can hold, so a second loss<br/>follows within a few round trips.<br/>Fast convergence then pulls W_max<br/>down to about 641 and the flow<br/>settles into a sawtooth between<br/>roughly 530 and 750 segments."]
+        Y1 --> Y2 --> Y3
+    end
+
+    subgraph Alt["The same path with HyStart++ and with BBR"]
+        direction TB
+        Z1["HyStart++, RFC 9406: watches for the<br/>round-trip time to rise during slow<br/>start, exits into a conservative slow<br/>start at round 7 instead of blowing<br/>through it at round 8. Microsoft<br/>measured 50 percent fewer retransmitted<br/>bytes in lab tests."]
+        Z2["BBR: exits Startup on a bandwidth<br/>plateau, drains the queue it created,<br/>and cruises at 690 segments.<br/>No 526-packet loss event happens."]
+    end
+
+    Setup --> SS --> Over
+    Over --> Cost
+    Over --> Rec
+    Rec --> Alt
+
+    style Setup fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style SS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Over fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Cost fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Rec fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Alt fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

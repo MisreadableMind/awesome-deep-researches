@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Ladder["The MTU ladder a real packet walks down"]
+        direction TB
+        M1["9000: jumbo frames.<br/>Data centre and storage networks only."]
+        M2["1500: Ethernet. The number the<br/>entire internet is tuned around."]
+        M3["1492: PPPoE. 1500 minus an 8-byte<br/>PPPoE header. Most DSL lines."]
+        M4["1476 GRE over Ethernet,<br/>1420 WireGuard, 1400 typical IPsec.<br/>Every tunnel steals header bytes."]
+        M5["1280: IPv6 minimum link MTU.<br/>Guaranteed. RFC 8200."]
+        M6["576: the IPv4 datagram every host<br/>must be able to reassemble.<br/>68: the smallest IPv4 MTU allowed."]
+        M1 --> M2 --> M3 --> M4 --> M5 --> M6
+    end
+
+    subgraph Classic["Classical PMTUD, RFC 1191 and RFC 8201"]
+        direction TB
+        D1["Sender sets DF on every IPv4 packet.<br/>IPv6 has no DF bit because routers<br/>may never fragment."]
+        D2["A router whose next link is smaller<br/>drops the packet and returns<br/>ICMP type 3 code 4 Fragmentation Needed<br/>with the next-hop MTU in the<br/>low 16 bits of the unused word,<br/>or ICMPv6 type 2 Packet Too Big."]
+        D3["Sender lowers its cached PMTU for<br/>that destination and retransmits.<br/>Cache ages out after about 10 minutes<br/>so a shortened path can be rediscovered."]
+        D1 --> D2 --> D3
+    end
+
+    subgraph Blackhole["Why it fails: the PMTU black hole"]
+        direction TB
+        F1["Firewalls drop all ICMP as a policy.<br/>The sender never learns the limit."]
+        F2["Anycast and asymmetric routing send<br/>the ICMP to a different machine<br/>than the one that sent the packet."]
+        F3["Routers rate-limit ICMP generation,<br/>so under load the message is<br/>the first thing not sent."]
+        F4["Symptom: the handshake succeeds and<br/>small requests work. The first<br/>full-size response hangs forever.<br/>SSH connects, then freezes on banner."]
+        F1 --> F4
+        F2 --> F4
+        F3 --> F4
+    end
+
+    subgraph Fixes["What is actually deployed"]
+        direction TB
+        G1["MSS clamping. The router edits the<br/>MSS option inside the SYN down to<br/>PMTU minus 40. Ugly, universal,<br/>and it works. TCP only."]
+        G2["PLPMTUD, RFC 4821 for TCP and<br/>RFC 8899 for datagrams.<br/>Probe with progressively larger<br/>packets and use the transport's own<br/>ACKs as the signal. No ICMP needed."]
+        G3["Just send small. QUIC defaults to a<br/>1200-byte payload and probes upward.<br/>DNS over UDP capped itself at 1232<br/>bytes to stay under 1280 for IPv6."]
+        G4["Linux: net.ipv4.tcp_mtu_probing<br/>defaults to 0, meaning off.<br/>Set to 1 to enable probing only<br/>after a suspected black hole,<br/>2 to always probe."]
+    end
+
+    Ladder --> Classic
+    Classic --> Blackhole
+    Blackhole --> Fixes
+
+    Frag["IPv4 fragmentation itself is worse<br/>than the problem it solves:<br/>losing one fragment destroys the<br/>whole datagram, the 16-bit ID field<br/>wraps after 65536 datagrams and<br/>caps a safely fragmenting flow at<br/>about 6.4 Mbit/s per RFC 6864,<br/>and only the first fragment carries<br/>the ports that firewalls filter on."]
+
+    Fixes --> Frag
+
+    style Ladder fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Classic fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Blackhole fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Fixes fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Frag fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

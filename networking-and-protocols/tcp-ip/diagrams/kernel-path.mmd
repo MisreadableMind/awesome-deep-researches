@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph TX["Transmit path: what write() actually starts"]
+        direction TB
+        T1["write() or sendmsg()<br/>Copies user bytes into kernel<br/>socket buffers. Returns as soon as<br/>the bytes are copied, not when<br/>they are sent, and certainly not<br/>when they are acknowledged."]
+        T2["Send buffer accounting<br/>sk_wmem_queued against sk_sndbuf.<br/>Linux tcp_wmem is min 4 KB,<br/>default 16 KB, max between 64 KB<br/>and 4 MB depending on RAM.<br/>The socket blocks or returns<br/>EAGAIN when full."]
+        T3["tcp_write_xmit<br/>Sends while min(cwnd, rwnd) allows<br/>and Nagle permits. Builds segments<br/>of MSS bytes, or of gso_size bytes<br/>if offload is on."]
+        T4["TCP Small Queues<br/>tcp_limit_output_bytes, default<br/>4 MB, caps how much of one flow<br/>may sit below TCP in the qdisc<br/>and driver rings. Without it a<br/>single flow fills the local queue<br/>and destroys local latency."]
+        T5["GSO and TSO<br/>The stack hands down one buffer of<br/>up to 64 KB and the NIC, or the<br/>software fallback, splits it into<br/>MSS-sized segments and writes the<br/>per-segment TCP and IP headers.<br/>One traversal instead of 45."]
+        T6["Queueing discipline<br/>fq or fq_codel. sch_fq also paces:<br/>it releases packets at the rate the<br/>congestion control asks for rather<br/>than in a burst. BBR requires pacing<br/>and CUBIC benefits from it."]
+        T7["Driver ring and NIC<br/>DMA descriptor, checksum offload,<br/>then bytes on the wire.<br/>Completion interrupt frees the skb<br/>only after the ACK for TCP, since<br/>the data must be retained."]
+        T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7
+    end
+
+    subgraph RX["Receive path"]
+        direction TB
+        R1["NIC DMA into a ring buffer,<br/>then an interrupt, then NAPI polling<br/>so one interrupt drains many packets"]
+        R2["GRO<br/>Merges consecutive segments of the<br/>same flow into one large skb before<br/>the stack sees them. The receiver's<br/>TCP processes one 64 KB unit instead<br/>of 45 separate ones."]
+        R3["tcp_v4_rcv<br/>Looks up the socket by the 4-tuple,<br/>validates sequence and checksum,<br/>and takes one of three paths"]
+        R4["Fast path: in-order, expected,<br/>window open. Append to the receive<br/>queue and possibly delay the ACK.<br/>Slow path: out of order. Queue into<br/>the out-of-order tree and send an<br/>immediate ACK carrying SACK blocks.<br/>Backlog: the socket is locked by a<br/>reader, so queue and process later."]
+        R5["Receive buffer autotuning<br/>tcp_moderate_rcvbuf grows the buffer<br/>toward the measured bandwidth-delay<br/>product, within tcp_rmem: min 4 KB,<br/>default 128 KB, max between 128 KB<br/>and 32 MB depending on RAM.<br/>The advertised window is a fraction<br/>of that buffer, set by tcp_adv_win_scale."]
+        R6["read() or recvmsg()<br/>Copies out of the receive queue.<br/>Nothing above this point knows or<br/>cares where segment boundaries were."]
+        R1 --> R2 --> R3 --> R4 --> R5 --> R6
+    end
+
+    subgraph Sizing["The sizing arithmetic that decides single-flow throughput"]
+        direction TB
+        S1["Required buffer = rate * RTT.<br/>1 Gbit/s at 100 ms needs 12.5 MB<br/>on both ends. A default 4 MB send<br/>buffer caps that flow at<br/>4 MB / 0.1 s = 40 MB/s = 320 Mbit/s,<br/>no matter what the link can do."]
+        S2["Both ends must be large enough.<br/>The advertised window is bounded by<br/>the receiver's buffer and the sender's<br/>retained data by its own.<br/>Tuning one side changes nothing."]
+        S3["tcp_notsent_lowat, default unlimited,<br/>limits how many unsent bytes sit in<br/>the send buffer before the socket<br/>reports unwritable. Setting it to<br/>about 128 KB lets a server switch<br/>video quality without flushing<br/>megabytes of stale data first."]
+    end
+
+    subgraph Bypass["When the kernel path is the cost"]
+        direction TB
+        P1["Per-packet cost is dominated by<br/>syscalls, the socket lock, skb<br/>allocation and cache misses,<br/>not by TCP's logic."]
+        P2["MSG_ZEROCOPY, Linux 4.14, avoids<br/>the user-to-kernel copy for large<br/>sends. sendfile and splice avoid it<br/>for file-to-socket. io_uring, Linux 5.1,<br/>amortises syscalls across batches."]
+        P3["Full bypass: DPDK, AF_XDP, and<br/>vendor userspace stacks move the<br/>whole path out of the kernel.<br/>Cost: no netfilter, no tcpdump,<br/>no sysctls, and a TCP implementation<br/>the operator must get right."]
+        P4["eBPF struct_ops, Linux 5.6, lets a<br/>congestion control algorithm be loaded<br/>at runtime without a kernel module.<br/>Changing TCP behaviour no longer<br/>requires shipping a kernel."]
+    end
+
+    TX --> Sizing
+    RX --> Sizing
+    Sizing --> Bypass
+
+    style TX fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RX fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Sizing fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Bypass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

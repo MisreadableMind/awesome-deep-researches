@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph G1["Loss as the only signal<br/>1988-1999"]
+        direction TB
+        A1["Tahoe, 1988.<br/>Slow start doubles cwnd per RTT.<br/>Congestion avoidance adds one segment<br/>per RTT. Any loss sets ssthresh to<br/>half the flight and cwnd to one segment.<br/>Every loss costs a full restart."]
+        A2["Reno, 1990.<br/>Adds fast recovery. On three duplicate<br/>ACKs, halve rather than restart:<br/>cwnd becomes ssthresh + 3*SMSS and<br/>inflates by one SMSS per further<br/>duplicate ACK."]
+        A3["NewReno, RFC 2582 then RFC 6582.<br/>Tracks a 'recover' variable so a<br/>partial ACK retransmits the next hole<br/>instead of ending recovery.<br/>Survives multiple losses per window<br/>without SACK, one loss per RTT."]
+        A4["SACK-based recovery, RFC 6675.<br/>With the scoreboard the sender knows<br/>every hole at once and can repair<br/>a shredded window in one RTT."]
+    end
+
+    subgraph G2["Delay as a signal, and its problem<br/>1994-2010"]
+        direction TB
+        B1["Vegas, 1994. Compares expected and<br/>actual throughput and backs off when<br/>RTT rises, before any loss occurs."]
+        B2["It works and nobody deploys it.<br/>A delay-sensitive flow sharing a queue<br/>with a loss-based flow yields the<br/>whole link. Being polite is not a<br/>viable strategy in a shared queue."]
+        B3["Compound TCP, Microsoft, 2006.<br/>A loss-based window plus a delay-based<br/>window. Default in Windows Server<br/>through the 2008 to 2016 era."]
+    end
+
+    subgraph G3["Scaling to fat pipes<br/>2004-2023"]
+        direction TB
+        C1["The problem: Reno needs a loss rate<br/>near 2 in 10 billion packets to fill<br/>10 Gbit/s at 100 ms RTT, and 72<br/>minutes to recover its window after<br/>one loss. Linear growth cannot<br/>fill a modern pipe."]
+        C2["BIC, Linux default 2004-2006.<br/>Binary search between the last safe<br/>and last unsafe window."]
+        C3["CUBIC, Linux default from 2.6.19 in<br/>November 2006. Window is a cubic<br/>function of time since the last loss,<br/>so growth no longer depends on RTT<br/>and short-RTT flows stop starving<br/>long-RTT ones."]
+        C4["RFC 9438, August 2023, moves CUBIC<br/>onto the standards track after<br/>seventeen years of deployment.<br/>Standardisation follows shipping."]
+    end
+
+    subgraph G4["Explicit signals inside one operator<br/>2010-2023"]
+        direction TB
+        D1["DCTCP, 2010. Uses the fraction of<br/>ECN-marked packets, not their presence,<br/>to scale the reduction. Needs a shallow<br/>marking threshold and cooperating<br/>switches, so it stays inside<br/>data centres."]
+        D2["L4S, RFC 9330-9332, January 2023.<br/>Takes DCTCP's idea to the public<br/>internet using ECT(1) as a separate<br/>identifier and a dual-queue AQM<br/>that couples the two drop probabilities."]
+        D3["AccECN, RFC 9768, April 2026.<br/>Classic ECN feedback carried one bit<br/>per round trip. AccECN carries a count,<br/>which is what any scalable controller<br/>needs to work on the open internet."]
+    end
+
+    subgraph G5["Model-based control<br/>2016-2026"]
+        direction TB
+        E1["BBR, Google, 2016. Estimates the<br/>bottleneck bandwidth and the minimum<br/>RTT independently, then paces at that<br/>bandwidth with about one BDP in flight.<br/>Loss is not the control signal."]
+        E2["Why it matters: loss-based control<br/>fills whatever buffer exists.<br/>On a path with a 384 ms FIFO,<br/>CUBIC produces 384 ms of queue and<br/>BBR produces almost none."]
+        E3["BBRv3, draft-ietf-ccwg-bbr-06,<br/>July 2026. Startup pacing gain 2.77,<br/>ProbeBW cycles DOWN, CRUISE, REFILL<br/>and UP, ProbeRTT for at least 200 ms<br/>every 5 seconds, min RTT filtered<br/>over 10 seconds."]
+        E4["Still an Internet-Draft after ten<br/>years, and running on a large share<br/>of Google's traffic. The gap between<br/>deployed and standardised is the<br/>normal state of congestion control."]
+    end
+
+    G1 --> G2 --> G3 --> G4 --> G5
+
+    style G1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style G2 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style G3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style G5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

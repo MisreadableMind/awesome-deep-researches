@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Segments 1 to 8 are sent.<br/>Segment 3 is lost in the network.<br/>What does the receiver say?"]
+
+    subgraph Cum["Cumulative acknowledgement, the base mechanism"]
+        direction TB
+        C1["The ACK number is the next byte<br/>expected, not the last byte received.<br/>It means 'everything strictly below<br/>this arrived', and says nothing<br/>about anything above it."]
+        C2["Segments 4 to 8 arrive and are<br/>queued out of order. The receiver<br/>can only keep repeating<br/>ack = start of segment 3."]
+        C3["Consequence: without SACK the sender<br/>learns exactly one fact per round trip,<br/>the position of the first hole.<br/>Two losses in one window cost<br/>two round trips to discover."]
+        C1 --> C2 --> C3
+    end
+
+    subgraph Del["Delayed acknowledgement, RFC 1122 section 4.2.3.2"]
+        direction TB
+        D1["An ACK carries no data and costs a<br/>full 40-byte packet. Sending one per<br/>segment doubles the packet count and<br/>halves the useful capacity of an<br/>asymmetric access link."]
+        D2["The rule: delay is allowed, but it<br/>MUST be under 500 ms, and in a stream<br/>of full-sized segments there SHOULD be<br/>an ACK for at least every second segment."]
+        D3["In practice Linux uses TCP_DELACK_MIN<br/>of 40 ms and TCP_DELACK_MAX of 200 ms,<br/>adapting between them. Windows exposes<br/>DelayedAckTimeoutMs, settable in 10 ms<br/>steps from 10 to 600 ms."]
+        D4["An out-of-order segment or a filled<br/>hole must be acknowledged immediately.<br/>Delaying is only allowed when nothing<br/>interesting happened."]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph Dup["Duplicate ACKs and fast retransmit"]
+        direction TB
+        P1["Each of segments 4 to 8 triggers an<br/>immediate repeat of the same ACK number.<br/>The sender sees duplicate ACKs."]
+        P2["Three duplicate ACKs, meaning four<br/>identical ACKs in total, trigger fast<br/>retransmit: resend the missing segment<br/>without waiting for the RTO."]
+        P3["Why three and not one: a single<br/>duplicate ACK is what mild reordering<br/>looks like. Three was chosen in 1990<br/>as the point where loss is more likely<br/>than reordering, and it has never<br/>been changed."]
+        P1 --> P2 --> P3
+    end
+
+    subgraph Sack["Selective acknowledgement, RFC 2018 and RFC 2883"]
+        direction TB
+        K1["Kind 5. Each block is a left edge<br/>and a right edge, 8 bytes.<br/>The receiver reports the ranges it<br/>holds above the cumulative point."]
+        K2["Here: ack = start of 3, plus one<br/>SACK block covering 4 through 8.<br/>The sender now knows the exact hole<br/>after one round trip, retransmits<br/>only segment 3, and keeps the rest<br/>of the pipe full."]
+        K3["Capacity: 40 bytes of option space<br/>holds 4 blocks alone, 3 blocks when<br/>timestamps are also on. Enough for<br/>ordinary loss, not for a badly<br/>shredded window."]
+        K4["D-SACK, RFC 2883: the first block may<br/>report data already acknowledged,<br/>telling the sender it retransmitted<br/>needlessly. The sender can then undo<br/>its congestion window reduction."]
+        K1 --> K2 --> K3 --> K4
+    end
+
+    Board["The sender's scoreboard.<br/>Per outstanding segment it tracks<br/>SACKed, retransmitted, lost and<br/>the time it was last sent.<br/>Every modern loss-recovery algorithm<br/>from NewReno to RACK-TLP to PRR<br/>is a set of rules for updating<br/>this one table."]
+
+    Start --> Cum
+    Start --> Del
+    Cum --> Dup
+    Dup --> Sack
+    Sack --> Board
+    Del --> Board
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Cum fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Del fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Dup fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Sack fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Board fill:#fce4ec,stroke:#880e4f,stroke-width:3px

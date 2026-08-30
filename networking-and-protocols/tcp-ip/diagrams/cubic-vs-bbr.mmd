@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["Same path: 100 Mbit/s bottleneck, 80 ms RTT,<br/>a 64-packet FIFO buffer. Two controllers."]
+
+    subgraph CU["CUBIC, RFC 9438"]
+        direction TB
+        U1["Control signal: packet loss.<br/>Everything else is inferred."]
+        U2["State: W_max, the window in use when<br/>the last congestion event happened,<br/>and t, seconds since that event."]
+        U3["Growth: W_cubic(t) = C*(t - K)^3 + W_max<br/>with C = 0.4 and<br/>K = cube root of W_max*(1-beta)/C.<br/>Growth is a function of time,<br/>not of round trips, so a 10 ms flow<br/>and a 200 ms flow grow alike."]
+        U4["Reduction: beta_cubic = 0.7.<br/>cwnd drops to 70 percent, not 50.<br/>Reno's halving was too destructive<br/>once windows reached tens of thousands<br/>of segments."]
+        U5["Reno-friendly region: it also tracks<br/>W_est, what Reno would have done,<br/>and uses the larger of the two.<br/>On short RTT paths CUBIC behaves<br/>like Reno by construction."]
+        U6["Fast convergence: if cwnd at the loss<br/>is below the previous W_max, set<br/>W_max = cwnd*(1 + beta)/2 so an<br/>incumbent flow yields to a new one."]
+        U7["Failure mode: it must fill the buffer<br/>to learn the buffer exists.<br/>Standing queue equals buffer depth.<br/>On a deep buffer that is bufferbloat.<br/>On a shallow one it is chronic loss."]
+    end
+
+    subgraph BB["BBR version 3, draft-ietf-ccwg-bbr-06"]
+        direction TB
+        B1["Control signal: measured delivery rate<br/>and measured minimum RTT.<br/>Loss and ECN are safety limits,<br/>not the primary input."]
+        B2["State: BBR.max_bw, the windowed maximum<br/>delivery rate, and BBR.min_rtt,<br/>the minimum RTT over a 10-second window."]
+        B3["Target: pace at the estimated bandwidth<br/>and keep about one bandwidth-delay<br/>product in flight. cwnd gain 2 as a<br/>cap, not as a target."]
+        B4["Startup: pacing gain 2.77 doubles the<br/>rate per round. Exit on a bandwidth<br/>plateau, three rounds without a<br/>25 percent gain, or on excessive loss.<br/>Then Drain removes the queue<br/>startup created."]
+        B5["Steady state ProbeBW cycles four phases:<br/>DOWN drains, CRUISE matches the estimate,<br/>REFILL restores the pipe, UP probes for<br/>more capacity. ProbeRTT drops inflight<br/>to half a BDP for at least 200 ms<br/>at least every 5 seconds to<br/>re-measure the true minimum RTT."]
+        B6["Failure mode: the bandwidth estimate<br/>is a maximum filter, so it can be<br/>fooled by a token bucket or by an<br/>aggregating radio link. Version 1<br/>was unfair to CUBIC on deep buffers.<br/>Version 3 adds loss and ECN response<br/>specifically to fix that."]
+    end
+
+    subgraph Out["What each does on this path"]
+        direction TB
+        O1["CUBIC: fills the 64-packet buffer,<br/>adds 7.7 ms of queueing delay,<br/>drops packets, saws between about<br/>530 and 750 segments in flight.<br/>Throughput near 100 Mbit/s.<br/>Latency under load rises."]
+        O2["BBR: settles near 690 segments,<br/>the exact BDP, adds close to no<br/>queue, and loses almost nothing.<br/>Throughput near 100 Mbit/s.<br/>Latency under load stays flat."]
+        O3["Identical throughput, different<br/>latency. That is the whole argument<br/>for model-based control, and the<br/>reason the metric moved from<br/>megabits to milliseconds."]
+    end
+
+    Q --> CU
+    Q --> BB
+    CU --> Out
+    BB --> Out
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style CU fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style BB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Out fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
