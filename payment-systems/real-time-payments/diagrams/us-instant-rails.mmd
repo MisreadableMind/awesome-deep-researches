@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph RTP["RTP network - The Clearing House, live Nov 2017"]
+        direction TB
+        R1["Owned by ~20 of the largest US banks"]
+        R2["~1,000 participating institutions,<br/>reaching roughly 70% of<br/>US demand deposit accounts"]
+        R3["Prefunded joint account at the<br/>Federal Reserve Bank of New York.<br/>TCH holds it for all participants."]
+        R4["Settlement: real-time gross,<br/>from prefunded positions.<br/>No participant can go negative."]
+        R5["Limit 10M USD<br/>raised from 1M in Feb 2025"]
+        R6["~2.3M payments on a record day<br/>Over 98% of US instant<br/>bank-to-bank volume"]
+    end
+
+    subgraph FedNow["FedNow - Federal Reserve, live Jul 2023"]
+        direction TB
+        F1["Operated by the Federal Reserve<br/>as a public service"]
+        F2["~1,600 participating institutions,<br/>skewed to community banks<br/>and credit unions"]
+        F3["Settles directly on Fed<br/>master accounts.<br/>No joint account, no prefunding."]
+        F4["Settlement: real-time gross<br/>in central bank money"]
+        F5["Limit 10M USD since Nov 2025.<br/>Default per-institution cap<br/>stays at 100K USD."]
+        F6["~2.7M payments in Q1 2026,<br/>271B USD. Growing fast<br/>from a small base."]
+    end
+
+    subgraph Both["What both share"]
+        direction TB
+        B1["ISO 20022 messages,<br/>credit push only"]
+        B2["24x7x365, irrevocable,<br/>no chargebacks"]
+        B3["Request for Payment supported"]
+        B4["Both reached by FedLine or<br/>a service provider such as<br/>Fiserv, FIS, Jack Henry, Alacriti"]
+    end
+
+    Problem["The interoperability gap:<br/>the two networks do not talk.<br/>A bank on only one of them<br/>cannot receive from the other.<br/>Most large banks join both."]
+
+    RTP --> Both
+    FedNow --> Both
+    Both --> Problem
+
+    Why["Why two? RTP is bank-owned<br/>and moved first. The Fed built<br/>FedNow so that access does not<br/>depend on the largest banks'<br/>willingness to serve the smallest."]
+
+    Problem --> Why
+
+    style RTP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style FedNow fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Both fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Problem fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Why fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

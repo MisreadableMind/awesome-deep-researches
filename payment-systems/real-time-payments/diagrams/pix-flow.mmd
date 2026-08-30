@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Buyer
+    participant App as Nubank app
+    participant Nu as Nubank<br/>direct participant
+    participant DICT as DICT<br/>key directory
+    participant SPI as SPI<br/>settlement engine
+    participant Itau as Itau
+    participant Seller as Merchant
+
+    Note over Seller: Merchant generates a dynamic QR<br/>containing a payload URL, amount,<br/>and a transaction identifier
+    Seller->>Buyer: Show BR Code QR<br/>R$ 189.90
+
+    Buyer->>App: Scan
+    App->>Nu: Read payload from<br/>the merchant's PSP endpoint
+    Nu->>DICT: Consult key<br/>"loja@exemplo.com.br"
+    Note over DICT: Every lookup is logged and<br/>rate limited. Bulk scraping<br/>of the directory is a<br/>reportable offence.
+    DICT-->>Nu: Account, ISPB, holder name,<br/>masked CPF/CNPJ
+    Nu-->>App: "LOJA EXEMPLO LTDA<br/>CNPJ 12.345.456/0001-77"
+    App-->>Buyer: Confirm payee and amount
+
+    Buyer->>App: Biometric or password
+    App->>Nu: Authorised
+
+    Nu->>Nu: Balance check and debit
+    Nu->>Nu: Fraud score, limit check<br/>night-time limit applies 20:00-06:00
+    Nu->>SPI: pacs.008 over RSFN<br/>signed, ICP-Brasil certificate
+
+    SPI->>SPI: Verify signature and schema
+    SPI->>SPI: Check Nubank's PI account<br/>has the balance
+    SPI->>SPI: Debit Nubank PI account,<br/>credit Itau PI account<br/>settlement is final here
+    SPI->>Itau: pacs.008 forwarded
+
+    Note over Itau: Hard deadline. Silence is<br/>treated as a failure.
+    Itau->>Itau: Credit merchant account
+    Itau-->>SPI: pacs.002 accepted
+    SPI-->>Nu: pacs.002 settled
+    Nu-->>App: Paid
+    App-->>Buyer: Receipt with end-to-end ID<br/>E + ISPB + timestamp + suffix
+    Itau->>Seller: Funds available, irrevocable
+
+    Note over Buyer,Seller: Central bank SLA is 10 seconds.<br/>Typical is under 5.
+
+    alt Receiver rejects or times out
+        Itau-->>SPI: pacs.002 rejected
+        SPI->>SPI: Reverse the PI account entries
+        SPI-->>Nu: Rejected with reason code
+        Nu->>Nu: Re-credit the buyer immediately
+    end
+
+    alt Buyer disputes as fraud later
+        Buyer->>Nu: Open MED claim
+        Nu->>SPI: pacs.004 return, reason FRAUD
+        Note over SPI,Itau: Funds returned only if still<br/>sitting in the receiving account
+    end

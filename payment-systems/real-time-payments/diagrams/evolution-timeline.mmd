@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Origins<br/>1973-2000"]
+        direction TB
+        E1A["1973: Japan launches Zengin,<br/>first interbank system to credit<br/>the payee the same day"]
+        E1B["1987: Switzerland SIC,<br/>first electronic RTGS"]
+        E1C["Instant means memo-post:<br/>the payee sees funds before<br/>settlement happens"]
+        E1D["2000: Cruickshank Report<br/>attacks UK clearing as a cartel"]
+    end
+
+    subgraph Era2["The Mandate Era<br/>2001-2012"]
+        direction TB
+        E2A["2004: Mexico launches SPEI"]
+        E2B["2008: UK Faster Payments,<br/>forced on banks by regulator,<br/>built by VocaLink"]
+        E2C["2010: India launches IMPS,<br/>24x7 mobile-first transfers"]
+        E2D["2011: Nigeria NIP<br/>2012: Sweden Swish"]
+    end
+
+    subgraph Era3["The Platform Era<br/>2013-2019"]
+        direction TB
+        E3A["2014: Singapore FAST"]
+        E3B["2016: India launches UPI,<br/>an interoperable layer above<br/>bank accounts, not a rail"]
+        E3C["2017: US RTP, first new<br/>US rail in 40 years"]
+        E3D["2017: SCT Inst in Europe<br/>2018: ECB TIPS"]
+        E3E["2017: Thailand PromptPay,<br/>Singapore PayNow proxies"]
+    end
+
+    subgraph Era4["The Central Bank Era<br/>2020-2023"]
+        direction TB
+        E4A["Nov 2020: Brazil launches Pix,<br/>built and run by the central bank,<br/>mandatory for large banks"]
+        E4B["2021: Pix passes cards<br/>in transaction count"]
+        E4C["Jul 2023: FedNow goes live,<br/>US gets a public instant rail"]
+        E4D["Oct 2024: UK makes APP scam<br/>reimbursement mandatory"]
+    end
+
+    subgraph Era5["Scale and Interlinking<br/>2024-2026"]
+        direction TB
+        E5A["Jan and Oct 2025: EU Instant<br/>Payments Regulation deadlines,<br/>Verification of Payee mandatory"]
+        E5B["Jun 2025: Pix Automatico<br/>brings recurring debits"]
+        E5C["Nov 2025: FedNow limit to 10M USD,<br/>matching RTP"]
+        E5D["2025-2026: Nexus Global Payments<br/>incorporates to interlink schemes"]
+        E5E["2026: UPI passes 23 billion<br/>payments in a single month"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

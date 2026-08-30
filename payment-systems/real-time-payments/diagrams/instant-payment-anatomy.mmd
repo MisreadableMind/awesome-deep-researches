@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["What makes a payment 'instant'?<br/>Four properties, all required"]
+
+    subgraph P1["1. Irrevocable funds availability"]
+        direction TB
+        A1["The payee can spend the money<br/>in seconds, not 'sees a pending line'"]
+        A2["The sending bank cannot pull it back<br/>on its own authority"]
+        A3["This is the property users care about.<br/>Everything else is plumbing."]
+    end
+
+    subgraph P2["2. Always on"]
+        direction TB
+        B1["24 hours, 7 days, 365 days<br/>No cut-off, no bank holiday,<br/>no batch window"]
+        B2["Forces banks to give up the<br/>nightly batch maintenance window"]
+        B3["The single hardest thing to retrofit<br/>onto a 1980s core banking system"]
+    end
+
+    subgraph P3["3. Confirmed end to end"]
+        direction TB
+        C1["The payer gets a definitive<br/>yes or no within seconds"]
+        C2["No 'we will let you know tomorrow'.<br/>Ambiguity is treated as failure."]
+        C3["Timeouts must resolve deterministically,<br/>which is where most complexity lives"]
+    end
+
+    subgraph P4["4. Credit push only"]
+        direction TB
+        D1["The payer's bank initiates.<br/>Nobody pulls from an account."]
+        D2["Removes the unauthorised-debit<br/>fraud surface of direct debit"]
+        D3["Creates a new one: the payer is<br/>tricked into pushing. See APP scams."]
+    end
+
+    Q --> P1
+    Q --> P2
+    Q --> P3
+    Q --> P4
+
+    Not["What instant payments are NOT:<br/>not a card network, no chargebacks,<br/>no interchange, no issuer credit,<br/>and 'settlement' is not the same<br/>as 'funds available'"]
+
+    P1 --> Not
+    P4 --> Not
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style P1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style P4 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Not fill:#ffebee,stroke:#b71c1c,stroke-width:3px

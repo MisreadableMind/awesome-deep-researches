@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Sender as Payer<br/>insurance claimant
+    participant SB as Sending bank<br/>FedNow participant
+    participant FN as FedNow Service
+    participant MA as Fed master accounts
+    participant RB as Receiving bank
+    participant Recv as Payee
+
+    Note over SB: Bank builds the message.<br/>ISO 20022 pacs.008, with a<br/>unique end-to-end identification.
+    Sender->>SB: Instruct payment, 4,200 USD
+    SB->>SB: Debit customer, place internal hold
+    SB->>SB: OFAC screening on both parties
+    SB->>SB: Fraud scoring on the send side
+
+    SB->>FN: pacs.008 over FedLine Solution
+
+    FN->>FN: Validate format, duplicate check,<br/>confirm receiver participates and<br/>is accepting messages
+    FN->>RB: pacs.008 forwarded
+
+    Note over RB: The receiver must answer.<br/>Silence is a failure, not a maybe.
+    RB->>RB: Account open? Correct type?<br/>Not blocked? Screening clear?
+    RB->>FN: pacs.002 positive acknowledgement
+
+    Note over FN,MA: Settlement happens between the<br/>acknowledgement and the confirmation
+    FN->>MA: Debit sender's master account<br/>Credit receiver's master account
+    MA-->>FN: Settled, final and irrevocable
+
+    FN->>RB: pacs.002 with settlement confirmation
+    FN->>SB: pacs.002 with settlement confirmation
+
+    RB->>Recv: Funds available immediately
+    SB->>Sender: Confirmed, with reference
+
+    alt Receiver rejects
+        RB->>FN: Negative pacs.002 with reason
+        FN->>SB: Rejection relayed
+        SB->>Sender: Failed, hold released
+        Note over MA: Nothing was ever settled
+    end
+
+    alt Sender realises it was a mistake
+        SB->>FN: camt.056 request for return
+        FN->>RB: Relay request
+        RB-->>FN: camt.029 response
+        Note over RB: The receiving bank may cooperate.<br/>Nothing compels it to.
+    end
+
+    Note over SB,RB: Liquidity note: outside Fedwire hours,<br/>a Liquidity Management Transfer can<br/>move funds between master accounts to<br/>refill a drained position, including into<br/>the RTP joint account.

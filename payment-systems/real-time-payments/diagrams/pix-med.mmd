@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Victim is defrauded.<br/>A Pix payment was authorised<br/>by the victim, so no<br/>chargeback exists."]
+
+    Report["Victim reports to their own bank<br/>within 80 days of the payment"]
+
+    Open["Bank opens a MED claim<br/>Mecanismo Especial de Devolucao"]
+
+    Analyse{"Receiving institution<br/>has up to 7 days<br/>to analyse"}
+
+    Check{"Are the funds still<br/>in the receiving account?"}
+
+    Full["Full return<br/>funds move back via pacs.004<br/>reason code FRAUD"]
+    Partial["Partial return<br/>whatever remains"]
+    Nothing["Nothing recoverable.<br/>Money already moved<br/>through mule accounts."]
+
+    subgraph MED2["MED 2.0 - the escalation"]
+        direction TB
+        M1["Precautionary block:<br/>the receiving institution can<br/>freeze suspect funds for up to<br/>72 hours before any claim"]
+        M2["Chain tracing:<br/>funds followed across up to<br/>5 successive accounts,<br/>not just the first hop"]
+        M3["Mandatory for all participants,<br/>not an optional service"]
+    end
+
+    subgraph Prevent["Prevention layer, which matters more"]
+        direction TB
+        P1["Night-time limits<br/>default R$ 1,000 between<br/>20:00 and 06:00"]
+        P2["Cadastro de fraudes<br/>central register of accounts<br/>flagged for fraud, shared<br/>across all participants"]
+        P3["MED marks propagate:<br/>a flagged CPF or CNPJ<br/>degrades every future<br/>counterparty's risk score"]
+        P4["Special return statistics<br/>published per institution.<br/>Reputational pressure works."]
+    end
+
+    Start --> Report --> Open --> Analyse
+    Analyse --> Check
+    Check -->|Yes, in full| Full
+    Check -->|Partly| Partial
+    Check -->|No| Nothing
+
+    MED2 -.improves recovery.-> Check
+    Prevent -.reduces inflow.-> Start
+
+    Lesson["The structural lesson:<br/>irrevocable rails cannot be<br/>fixed after the fact.<br/>Defence has to sit before<br/>the payer presses send."]
+
+    Nothing --> Lesson
+    Prevent --> Lesson
+
+    style Start fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Full fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Partial fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Nothing fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style MED2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Prevent fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Lesson fill:#fce4ec,stroke:#880e4f,stroke-width:3px

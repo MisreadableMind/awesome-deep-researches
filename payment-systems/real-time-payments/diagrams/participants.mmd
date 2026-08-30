@@ -1,0 +1,66 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Users["End Users"]
+        Payer["Payer<br/>consumer or business"]
+        Payee["Payee<br/>person, merchant, biller"]
+    end
+
+    subgraph Front["Front End Layer"]
+        BankApp["Bank's own app"]
+        TPAP["Third-party app<br/>PhonePe, Google Pay, Cash App<br/>holds no accounts"]
+        PSPApp["PSP / acquirer<br/>Stripe, Adyen, Mercado Pago"]
+    end
+
+    subgraph FIs["Account-Holding Institutions"]
+        Sender["Sending institution<br/>debits the payer,<br/>owns the fraud decision"]
+        Receiver["Receiving institution<br/>credits the payee,<br/>must accept 24x7"]
+        Sponsor["Sponsor bank<br/>lends its licence and<br/>settlement account to non-banks"]
+    end
+
+    subgraph Scheme["Scheme and Infrastructure"]
+        Switch["Central switch<br/>NPCI, SPI, TCH, Vocalink<br/>routes and validates"]
+        Directory["Proxy directory<br/>UPI mapper, DICT, PayNow<br/>maps alias to account"]
+        Rulebook["Scheme rulebook owner<br/>sets timeouts, liability,<br/>message standard"]
+    end
+
+    subgraph Settle["Settlement Layer"]
+        CB["Central bank<br/>holds the settlement asset"]
+        Account["Settlement account<br/>master account, PI account,<br/>or prefunded joint account"]
+    end
+
+    subgraph Oversight["Oversight"]
+        Reg["Regulator<br/>RBI, BCB, Fed, PSR, ECB"]
+        FraudBody["Fraud and dispute bodies<br/>reimbursement rules,<br/>mule reporting"]
+    end
+
+    Payer --> BankApp
+    Payer --> TPAP
+    Payee --> PSPApp
+
+    BankApp --> Sender
+    TPAP --> Sender
+    PSPApp --> Sponsor
+    Sponsor --> Receiver
+
+    Sender --> Switch
+    Switch --> Receiver
+    Switch <--> Directory
+    Switch --> Account
+    Account --> CB
+
+    Rulebook -.governs.-> Switch
+    Rulebook -.governs.-> Sender
+    Rulebook -.governs.-> Receiver
+    Reg -.supervises.-> Rulebook
+    FraudBody -.allocates loss.-> Sender
+    FraudBody -.allocates loss.-> Receiver
+
+    Receiver --> Payee
+
+    style Users fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Front fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FIs fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Scheme fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Settle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Oversight fill:#eceff1,stroke:#37474f,stroke-width:2px

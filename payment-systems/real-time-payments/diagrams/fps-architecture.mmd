@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Access["Access - deliberately widened since 2018"]
+        Direct["47 direct participants,<br/>up from 26 in 2018"]
+        Indirect["Indirect access through<br/>a sponsor bank"]
+        NonBank["Non-bank PSPs with a<br/>Bank of England settlement account.<br/>ClearBank, Modulr, Wise."]
+    end
+
+    subgraph Core["Faster Payments System"]
+        CI["Central Infrastructure<br/>operated by Vocalink,<br/>owned by Mastercard"]
+        SIP["Single Immediate Payment<br/>the ordinary push payment"]
+        FDP["Forward Dated and<br/>Standing Order payments"]
+        DCA["Direct Corporate Access<br/>bulk file submission"]
+        Limit["Central limit 1M GBP.<br/>Banks set lower limits<br/>for their own customers."]
+    end
+
+    subgraph Safety["Fraud controls layered on top"]
+        CoP["Confirmation of Payee<br/>name check before sending.<br/>Live since 2020, near-universal."]
+        Reimb["Mandatory APP reimbursement<br/>since 7 Oct 2024.<br/>Up to 85,000 GBP, split 50/50<br/>between sending and receiving PSP."]
+        Data["Enhanced data sharing<br/>and mule account intelligence"]
+    end
+
+    subgraph Settle["Settlement - deferred net, but derisked"]
+        Cycles["Three net settlement<br/>cycles per day"]
+        Pre["Prefunding since 2016:<br/>each participant lodges its<br/>maximum net debit position<br/>at the Bank of England"]
+        BoE["Bank of England RTGS<br/>final settlement"]
+        NSC["Net Sender Cap.<br/>2026 reform makes caps<br/>flexible, cutting the collateral<br/>needed to join."]
+    end
+
+    subgraph Future["What comes next"]
+        NPA["New Payments Architecture:<br/>scoped down after years of delay"]
+        Vision["National Payments Vision, 2024,<br/>and the Payments Vision<br/>Delivery Committee.<br/>Upgrade FPS rather than<br/>replace it wholesale."]
+    end
+
+    Direct --> CI
+    Indirect --> Direct
+    NonBank --> CI
+
+    CI --> SIP
+    CI --> FDP
+    CI --> DCA
+    CI --> Limit
+
+    CoP -.gates.-> SIP
+    Reimb -.prices failure.-> SIP
+    Data -.feeds.-> CoP
+
+    CI --> Cycles --> BoE
+    Pre --> BoE
+    NSC -.constrains.-> Pre
+
+    CI -.replaced or upgraded by.-> NPA
+    NPA --> Vision
+
+    style Access fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Core fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Safety fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Settle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Future fill:#eceff1,stroke:#37474f,stroke-width:2px

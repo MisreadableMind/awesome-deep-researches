@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Anatomy["Anatomy of an authorised push payment scam"]
+        direction TB
+        S1["1. Contact<br/>Text, call, marketplace listing,<br/>dating app, fake investment site"]
+        S2["2. Pretext<br/>'Your account is compromised.<br/>Move your money to a safe account.'<br/>Or: goods that do not exist."]
+        S3["3. Coaching<br/>The victim is told what to answer<br/>if the bank asks. Warnings are<br/>pre-neutralised."]
+        S4["4. The push<br/>The victim authorises it themselves.<br/>Every control passes. The payment<br/>is genuine by every technical test."]
+        S5["5. The layering<br/>Funds hop through mule accounts<br/>within minutes, often into crypto<br/>or cross-border"]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph Why["Why instant rails are the target"]
+        direction TB
+        W1["Irrevocable: no chargeback exists"]
+        W2["Instant: no window to intervene"]
+        W3["24x7: the fraud team is asleep"]
+        W4["Free: no cost to the criminal<br/>per attempt"]
+    end
+
+    subgraph Defence["Where defence actually works"]
+        direction TB
+        D1["Before the send<br/>Name checking: Confirmation of Payee,<br/>Verification of Payee, DICT name display.<br/>Kills misdirection, not persuasion."]
+        D2["Before the send<br/>Friction on new payees, cooling-off<br/>on first payment, night-time limits,<br/>scam-specific in-app warnings"]
+        D3["At the receiving end<br/>Mule detection at account opening<br/>and on inbound velocity.<br/>The receiving bank sees the pattern first."]
+        D4["After the send<br/>Chain tracing and precautionary freezes.<br/>Recovers a minority, but the<br/>threat of it deters mules."]
+        D5["Liability<br/>Make the loss land on the firms<br/>that can prevent it. This is the<br/>only control that reliably<br/>changes bank behaviour."]
+    end
+
+    subgraph Evidence["What the evidence says"]
+        direction TB
+        E1["UK: mandatory 50/50 reimbursement<br/>from Oct 2024, capped at 85,000 GBP.<br/>APP losses over Faster Payments<br/>fell about 21% in the first year."]
+        E2["Brazil: MED plus night-time limits<br/>plus a shared fraud register.<br/>Prevention beat recovery."]
+        E3["India: collect requests throttled<br/>after mass abuse of the<br/>'approve to receive' confusion"]
+        E4["US: no reimbursement mandate.<br/>Losses sit with the consumer<br/>unless the bank chooses otherwise."]
+    end
+
+    Anatomy --> Why
+    Why --> Defence
+    Defence --> Evidence
+
+    style Anatomy fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Why fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Defence fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Evidence fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

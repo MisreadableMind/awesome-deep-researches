@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Users["Users and merchants"]
+        Cons["215 million Brazilians<br/>~175M using Pix"]
+        Merch["Merchants, from street<br/>vendors to Magazine Luiza"]
+        Gov["Government: taxes,<br/>benefits, fines"]
+    end
+
+    subgraph Parts["Participants - 800+ institutions"]
+        BigBank["Large banks<br/>Itau, Bradesco, BB, Caixa, Santander<br/>participation mandatory above<br/>500,000 active accounts"]
+        Neo["Neobanks<br/>Nubank, Inter, C6"]
+        PSPs["Payment institutions<br/>Mercado Pago, PagSeguro, Stone"]
+        Indirect["Indirect participants<br/>ride on a direct participant's<br/>connection and PI account"]
+    end
+
+    subgraph BCB["Banco Central do Brasil - builder, operator, regulator"]
+        SPI["SPI<br/>Sistema de Pagamentos Instantaneos<br/>the settlement engine.<br/>Real-time gross, ISO 20022"]
+        DICT["DICT<br/>key directory.<br/>Maps CPF, phone, email,<br/>or random UUID to an account"]
+        PIAcc["PI accounts<br/>prefunded balances held<br/>at the central bank,<br/>separate from reserves"]
+        Rules["Pix rulebook<br/>timeouts, SLAs, MED,<br/>mandatory participation"]
+    end
+
+    subgraph Net["RSFN - National Financial System Network"]
+        Private["Private network only.<br/>No public internet.<br/>ICP-Brasil certificates,<br/>signed XML per message."]
+    end
+
+    subgraph Rails["Adjacent Brazilian rails"]
+        STR["STR<br/>the classic RTGS,<br/>business hours only"]
+        Open["Open Finance Brasil<br/>consent and data sharing"]
+    end
+
+    Cons --> BigBank
+    Cons --> Neo
+    Merch --> PSPs
+    Gov --> BigBank
+    Indirect --> BigBank
+
+    BigBank --> Private
+    Neo --> Private
+    PSPs --> Private
+
+    Private --> SPI
+    Private --> DICT
+
+    SPI --> PIAcc
+    PIAcc <-->|"top up and drain<br/>during STR hours"| STR
+    Rules -.binds.-> BigBank
+    Rules -.binds.-> Neo
+    Rules -.binds.-> PSPs
+    Open -.initiation.-> SPI
+
+    style Users fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Parts fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style BCB fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Net fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Rails fill:#eceff1,stroke:#37474f,stroke-width:2px

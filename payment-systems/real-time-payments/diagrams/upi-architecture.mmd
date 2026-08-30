@@ -1,0 +1,70 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Layer4["Application layer - anyone can build here"]
+        PhonePe["PhonePe"]
+        GPay["Google Pay"]
+        Paytm["Paytm"]
+        BankApps["Bank apps<br/>iMobile, YONO, PayZapp"]
+        BHIM["BHIM<br/>NPCI's reference app"]
+    end
+
+    subgraph Layer3["PSP layer - regulated banks"]
+        PSP1["PSP bank for PhonePe<br/>issues @ybl handle"]
+        PSP2["PSP bank for Google Pay<br/>issues @okaxis, @okhdfcbank"]
+        Note1["A third-party app holds<br/>no accounts and no money.<br/>It rents a bank's handle."]
+    end
+
+    subgraph Layer2["NPCI - the switch and the rulebook"]
+        Switch["UPI central switch<br/>routes every request,<br/>enforces limits, logs everything"]
+        Mapper["Mapper<br/>VPA to account number<br/>plus IIN routing"]
+        CL["Common Library<br/>NPCI code inside every app.<br/>Captures the UPI PIN so the<br/>app never sees it."]
+        Risk["Risk and velocity engine<br/>per-user, per-app, per-bank caps"]
+    end
+
+    subgraph Layer1["Beneficiary and remitter banks"]
+        RemBank["Remitter bank core<br/>debits the payer"]
+        BenBank["Beneficiary bank core<br/>credits the payee"]
+    end
+
+    subgraph Settlement["Settlement - deferred net"]
+        NetPos["NPCI computes net position<br/>per bank, multiple cycles a day"]
+        RBI["Reserve Bank of India<br/>current accounts<br/>final settlement in<br/>central bank money"]
+    end
+
+    subgraph Stack["What UPI sits on"]
+        IMPS["IMPS switching fabric<br/>24x7 since 2010"]
+        Aadhaar["Aadhaar eKYC<br/>account opening at near-zero cost"]
+        Jan["Jan Dhan accounts<br/>500M+ new bank accounts"]
+        Mobile["Cheap data and smartphones"]
+    end
+
+    PhonePe --> PSP1
+    GPay --> PSP2
+    Paytm --> PSP2
+    BankApps --> PSP1
+    BHIM --> PSP1
+
+    PSP1 --> Switch
+    PSP2 --> Switch
+
+    Switch <--> Mapper
+    Switch <--> Risk
+    CL -.embedded in.-> PhonePe
+    CL -.embedded in.-> GPay
+
+    Switch --> RemBank
+    Switch --> BenBank
+
+    RemBank --> NetPos
+    BenBank --> NetPos
+    NetPos --> RBI
+
+    Stack -.enables.-> Layer1
+
+    style Layer4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Layer3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Layer2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Layer1 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Settlement fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Stack fill:#eceff1,stroke:#37474f,stroke-width:2px

@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant User as Customer
+    participant App as PhonePe app with<br/>NPCI Common Library
+    participant PSP as PSP bank<br/>@ybl handle
+    participant NPCI as NPCI switch
+    participant Rem as Remitter bank<br/>HDFC
+    participant Ben as Beneficiary bank<br/>SBI
+    participant Merch as Chai stall<br/>QR sticker
+
+    Note over User,Merch: One-time setup, done once per device
+    App->>PSP: Device binding: send SMS from<br/>the SIM tied to the account
+    PSP->>NPCI: ReqListAccount for that mobile number
+    NPCI->>Rem: Fetch linked accounts
+    Rem-->>NPCI: Masked account list
+    NPCI-->>App: RespListAccount
+    User->>App: Set UPI PIN using debit card<br/>last 6 digits plus expiry
+    App->>NPCI: ReqSetCre, PIN encrypted by<br/>Common Library with NPCI public key
+
+    Note over User,Merch: The payment, 5 seconds end to end
+    User->>Merch: Scan static QR<br/>encodes merchant VPA
+    App->>App: Parse VPA: chaiwala@paytm
+    App->>PSP: ReqValAdd, validate address
+    PSP->>NPCI: Resolve VPA
+    NPCI->>NPCI: Mapper lookup
+    NPCI-->>PSP: Registered name "RAMESH TEA STALL"
+    PSP-->>App: Show name and amount
+    User->>App: Enter 40 rupees, confirm
+
+    User->>App: Enter 4 or 6 digit UPI PIN
+    Note over App: Common Library encrypts the PIN.<br/>PhonePe's own code never reads it.
+    App->>PSP: Credential block plus<br/>hash of amount, refId, payer, payee, device
+    PSP->>NPCI: ReqPay
+
+    NPCI->>NPCI: Velocity and limit checks
+    NPCI->>Rem: Debit request with credential block
+    Rem->>Rem: Decrypt and verify PIN<br/>2FA complete: device + PIN
+    Rem->>Rem: Balance check, debit 40 rupees
+    Rem-->>NPCI: Debit success
+
+    NPCI->>Ben: Credit request
+    Ben->>Ben: Credit merchant account
+    Ben-->>NPCI: Credit success
+
+    NPCI-->>PSP: RespPay success
+    PSP-->>App: Success
+    App-->>User: "Paid 40 to Ramesh Tea Stall"
+    Ben->>Merch: Soundbox announces<br/>"Forty rupees received"
+
+    alt Credit leg fails after debit
+        Ben-->>NPCI: Credit declined
+        NPCI->>Rem: Reversal
+        Rem->>Rem: Auto-reverse debit
+        Note over Rem: If not reversed within the<br/>scheme window, penalty applies
+    end
+
+    Note over NPCI,Ben: Money moved on the books instantly.<br/>Interbank settlement happens later<br/>on a net basis at the RBI.

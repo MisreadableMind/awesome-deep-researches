@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph India["India - UPI: nobody pays, and that is the problem"]
+        direction TB
+        I1["Consumer pays: 0"]
+        I2["Merchant pays: 0<br/>Zero merchant discount rate<br/>mandated since Jan 2020"]
+        I3["Banks and apps pay:<br/>the full cost of running it"]
+        I4["Government partially reimburses<br/>through an incentive scheme,<br/>cut sharply in recent budgets"]
+        I5["Result: unmatched adoption,<br/>chronically unfunded infrastructure.<br/>The MDR debate never ends."]
+    end
+
+    subgraph Brazil["Brazil - Pix: free for people, priced for business"]
+        direction TB
+        B1["Consumer P2P: free by rule"]
+        B2["Merchant pays its PSP<br/>roughly 0.2% to 0.4%,<br/>against 2% to 4% on cards"]
+        B3["Central bank charges participants<br/>a fraction of a centavo per payment,<br/>enough to cover the SPI"]
+        B4["Banks lose card interchange<br/>and gain deposit stickiness<br/>and float"]
+        B5["Result: cards displaced on volume,<br/>and the economics still work"]
+    end
+
+    subgraph US["US - RTP and FedNow: priced like a utility"]
+        direction TB
+        U1["Sending bank pays the network<br/>roughly 4.5 cents per payment"]
+        U2["Receiving bank pays nothing<br/>on RTP; a small fee on FedNow<br/>for RfP messages"]
+        U3["Banks charge businesses<br/>25 cents to 1 USD,<br/>consumers usually nothing"]
+        U4["Result: cheap per item, but<br/>no interchange means no<br/>issuer incentive to push it"]
+    end
+
+    subgraph UK["UK - Faster Payments: a cost centre by design"]
+        direction TB
+        K1["Consumer pays: 0"]
+        K2["Participants pay Pay.UK<br/>scheme and infrastructure fees,<br/>a fraction of a penny per item"]
+        K3["Corporates pay their bank<br/>per file or per payment"]
+        K4["Since Oct 2024, PSPs also pay<br/>APP scam reimbursement,<br/>a real and rising cost line"]
+    end
+
+    Lesson["The pattern across all four:<br/>instant payments destroy the<br/>interchange pool that funded<br/>consumer payments. Someone has<br/>to fund the rail instead, and<br/>who that is determines whether<br/>banks promote it or tolerate it."]
+
+    India --> Lesson
+    Brazil --> Lesson
+    US --> Lesson
+    UK --> Lesson
+
+    style India fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Brazil fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style UK fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Lesson fill:#fce4ec,stroke:#880e4f,stroke-width:3px

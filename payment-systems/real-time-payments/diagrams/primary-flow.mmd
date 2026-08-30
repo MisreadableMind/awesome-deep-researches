@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Payer
+    participant App as Payer's app
+    participant SB as Sending bank
+    participant Sw as Central switch
+    participant Dir as Proxy directory
+    participant RB as Receiving bank
+    participant Payee
+
+    Payer->>App: Enter alias and amount<br/>alias = phone, email, VPA, Pix key
+    App->>SB: Payment request
+
+    SB->>Sw: Resolve alias
+    Sw->>Dir: Lookup
+    Dir-->>Sw: Account, institution, registered name
+    Sw-->>SB: Resolved details
+    SB-->>App: Show payee name for confirmation<br/>Confirmation of Payee / Verification of Payee
+    App-->>Payer: "Pay MARIA S. SANTOS, 250.00?"
+
+    Payer->>App: Authenticate<br/>PIN, biometric, device binding
+    App->>SB: Signed authorisation
+
+    Note over SB: The 200ms that decides everything
+    SB->>SB: Funds check and hold
+    SB->>SB: Sanctions screening
+    SB->>SB: Real-time fraud score
+
+    alt Blocked
+        SB-->>Payer: Rejected, funds never left
+    end
+
+    SB->>Sw: pacs.008 credit transfer<br/>signed, unique end-to-end ID
+
+    Sw->>Sw: Schema and duplicate check
+    Sw->>RB: Forward pacs.008
+
+    Note over RB: Receiver has a hard deadline,<br/>typically 4 to 20 seconds
+    RB->>RB: Validate account is open,<br/>can receive, not blocked
+    RB->>Sw: pacs.002 accept or reject
+
+    alt Accepted
+        Sw->>Sw: Move value between settlement accounts<br/>gross now, or net later depending on scheme
+        Sw->>SB: pacs.002 confirmation
+        Sw->>RB: Settlement confirmed
+        RB->>Payee: Funds available, irrevocably
+        SB-->>Payer: "Paid" with receipt reference
+    else Rejected or timed out
+        Sw->>SB: Negative pacs.002 with reason code
+        SB->>SB: Release the hold
+        SB-->>Payer: Failed, money never left your account
+    end
+
+    Note over SB,RB: No chargeback exists.<br/>Recovery requires the receiver's<br/>cooperation or a scheme fraud mechanism.
