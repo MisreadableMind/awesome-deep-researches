@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User on Ethereum
+    participant TM as TokenMessenger<br/>source domain
+    participant TMN as TokenMinter<br/>source domain
+    participant MT as MessageTransmitter<br/>source domain
+    participant ATT as Circle attestation<br/>service, off-chain
+    participant MTD as MessageTransmitter<br/>destination domain
+    participant TMD as TokenMessenger<br/>destination domain
+    participant R as Recipient on Base
+
+    U->>U: approve(TokenMessenger, amount)
+    U->>TM: depositForBurn(amount, destinationDomain,<br/>mintRecipient, burnToken, destinationCaller,<br/>maxFee, minFinalityThreshold)
+    TM->>TMN: transferFrom user, then burn
+    TMN-->>TM: USDC destroyed on Ethereum,<br/>totalSupply falls
+    TM->>MT: sendMessage with a 228-byte BurnMessageV2 body
+    MT-->>MT: emit MessageSent(bytes message)
+    TM-->>U: emit DepositForBurn(nonce, burnToken, amount,<br/>depositor, mintRecipient, destinationDomain,<br/>destinationTokenMessenger, destinationCaller)
+
+    Note over ATT: Circle observes the event and waits for the<br/>finality level the sender asked for.<br/>minFinalityThreshold 2000 is finalized:<br/>standard transfer, hard finality.<br/>1000 or lower is confirmed: fast transfer,<br/>with Circle taking the reorg risk and<br/>charging up to maxFee for it.
+    ATT->>ATT: Sign the message hash with<br/>the attester key set
+    ATT-->>U: Attestation available by message hash
+
+    U->>MTD: receiveMessage(message, attestation)
+    MTD->>MTD: Verify attester signatures,<br/>check sourceDomain, destinationDomain,<br/>and that nonce is unused
+    MTD->>TMD: handleReceiveMessage
+    TMD->>R: mint amount of native USDC
+    TMD-->>R: emit MintAndWithdraw(mintRecipient, amount, mintToken)
+
+    Note over U,R: Standard transfer on Ethereum and L2s:<br/>roughly 15 to 19 minutes, available in V1 and V2.<br/>Fast transfer: roughly 8 to 20 seconds, V2 only.

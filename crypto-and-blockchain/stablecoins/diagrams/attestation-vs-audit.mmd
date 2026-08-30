@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph ATT["ATTESTATION - agreed-upon procedures or examination"]
+        A1["Scope: one date, one schedule.<br/>Assets and liabilities at a point in time."]
+        A2["Standard: AICPA attestation standards<br/>such as AT-C 105 and AT-C 205"]
+        A3["Subject matter: management's own<br/>assertion, drafted by management"]
+        A4["Does NOT cover: the year's transactions,<br/>internal controls, going concern,<br/>related-party dealings, cash flows,<br/>or whether assets are encumbered"]
+        A5["Cannot detect: a loan taken on the<br/>reporting date and repaid the next day"]
+        A6["Output: 'nothing came to our attention'<br/>or 'the assertion is fairly stated'"]
+    end
+
+    subgraph AUD["AUDIT - financial statement audit"]
+        D1["Scope: a full financial year.<br/>Balance sheet, income statement,<br/>cash flows, changes in equity."]
+        D2["Standard: US GAAS or IFRS with ISA,<br/>under AICPA or PCAOB rules"]
+        D3["Subject matter: complete financial<br/>statements prepared to a framework"]
+        D4["Covers: existence, rights and obligations,<br/>valuation, completeness, cut-off,<br/>related parties, subsequent events"]
+        D5["Includes: physical inspection of assets,<br/>third-party confirmations, sampling<br/>across the whole period"]
+        D6["Output: an opinion. Unqualified,<br/>qualified, adverse, or disclaimer."]
+    end
+
+    TL["Tether's own record"]
+    TL --> T1["2017 to 2021: no assurance,<br/>then quarterly consolidated<br/>reserves reports"]
+    T1 --> T2["2021-10-15: CFTC finds reserves<br/>fully backed on 27.6 percent of days<br/>in a 26-month sample"]
+    T2 --> T3["2021 to 2026: quarterly attestations,<br/>MHA Cayman then BDO Italia"]
+    T3 --> T4["2026-08-13: KPMG US issues an<br/>unqualified opinion on financial<br/>statements for the year to<br/>31 December 2025"]
+
+    CIR["Circle's record"]
+    CIR --> R1["Monthly reserve attestations<br/>Grant Thornton to 2023,<br/>Deloitte and Touche since"]
+    R1 --> R2["Circle Reserve Fund audited<br/>annually by Deloitte, with an<br/>N-CSR filed with the SEC"]
+    R2 --> R3["Since June 2025, Circle files<br/>audited 10-K and reviewed 10-Q<br/>as an SEC registrant"]

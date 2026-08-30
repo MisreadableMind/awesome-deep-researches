@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["What backs one token<br/>of claimed value 1.00 USD?"]
+
+    Q --> A["Fiat-collateralised<br/>USDT, USDC, PYUSD, RLUSD, USD1"]
+    Q --> B["Crypto-collateralised<br/>DAI, USDS, GHO, crvUSD"]
+    Q --> C["Algorithmic / seigniorage<br/>UST, Basis Cash, ESD, IRON"]
+
+    A --> A1["Backing: 1.00 USD of<br/>T-bills, repo, bank deposits"]
+    A1 --> A2["Peg mechanism: issuer<br/>redeems at par, on demand,<br/>to vetted counterparties"]
+    A2 --> A3["Failure mode: the bank fails,<br/>or the issuer lies"]
+    A3 --> A4["Capital ratio 100%<br/>Peg holds unless reserves are doubted"]
+
+    B --> B1["Backing: 1.20 to 1.70 USD of<br/>ETH, staked ETH, tokenised T-bills,<br/>and other stablecoins"]
+    B1 --> B2["Peg mechanism: liquidate<br/>collateral before it falls<br/>below the debt"]
+    B2 --> B3["Failure mode: collateral gaps down<br/>faster than auctions clear"]
+    B3 --> B4["Capital ratio 120% to 170%<br/>Peg holds while auctions clear"]
+
+    C --> C1["Backing: a second token<br/>issued by the same system"]
+    C1 --> C2["Peg mechanism: burn 1 stablecoin,<br/>mint 1.00 USD of share token,<br/>and the reverse"]
+    C2 --> C3["Failure mode: demand for the<br/>share token is a function of<br/>confidence in the stablecoin"]
+    C3 --> C4["Capital ratio 0%<br/>Peg holds only while supply grows"]
+
+    A4 --> R["Survivors hold 91 percent<br/>of a 310 bn USD market"]
+    B4 --> R
+    C4 --> X["Every large instance<br/>has reached zero"]

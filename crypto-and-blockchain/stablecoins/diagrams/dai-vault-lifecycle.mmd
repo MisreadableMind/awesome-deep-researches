@@ -1,0 +1,23 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> Empty: user opens a vault
+    Empty --> Collateralised: join collateral,<br/>frob with dink > 0, dart = 0
+    Collateralised --> Borrowing: frob with dart > 0<br/>Vat mints internal DAI,<br/>DaiJoin exits it as ERC-20
+    Borrowing --> Safe: tab <= ink * spot<br/>and tab >= dust
+
+    Safe --> Safe: Jug.drip accrues the<br/>stability fee into ilk.rate
+    Safe --> Repaying: frob with dart < 0<br/>burns DAI, reduces debt
+    Repaying --> Collateralised: debt cleared
+    Collateralised --> Empty: frob with dink < 0<br/>withdraw collateral
+    Empty --> [*]
+
+    Safe --> Unsafe: oracle price falls,<br/>or the stability fee accrues,<br/>until tab > ink * spot
+    Unsafe --> Liquidating: anyone calls Dog.bark<br/>Vault is seized, a penalty<br/>is added to the debt
+    Liquidating --> Auction: Clipper starts a Dutch auction,<br/>price decays from an initial<br/>multiple of the oracle price
+    Auction --> Cleared: keeper calls Clipper.take,<br/>pays DAI, receives collateral
+    Cleared --> Surplus: leftover collateral<br/>returns to the vault owner
+    Cleared --> Deficit: proceeds do not cover the debt
+    Deficit --> BadDebt: shortfall enters the Vow,<br/>a debt auction may mint MKR
+    Surplus --> [*]
+    BadDebt --> [*]

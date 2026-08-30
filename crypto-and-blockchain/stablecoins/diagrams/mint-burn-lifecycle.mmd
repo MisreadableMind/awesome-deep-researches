@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant AP as Market maker<br/>Circle Mint customer
+    participant CM as Circle Mint<br/>API and compliance
+    participant BK as Operating bank
+    participant CRF as Circle Reserve Fund<br/>USDXX, BlackRock
+    participant MM as masterMinter
+    participant MT as Minter address
+    participant SC as FiatTokenProxy<br/>on Ethereum
+
+    Note over AP,SC: MINT. Fiat arrives first, tokens second.
+    AP->>CM: Submit mint request, 10,000,000 USD
+    CM->>CM: KYC, sanctions screening, suitability check
+    AP->>BK: Wire 10,000,000 USD to Circle's account
+    BK-->>CM: Funds credited and confirmed
+    CM->>BK: Sweep to reserve
+    BK->>CRF: Subscribe for Institutional Shares at 1.00 NAV
+    CM->>MM: Ensure minter allowance covers 10,000,000
+    MM->>SC: configureMinter(minter, allowance)
+    CM->>MT: Instruct mint
+    MT->>SC: mint(APAddress, 10000000000000)
+    Note over SC: 6 decimals, so the integer is<br/>10,000,000 * 10^6
+    SC-->>SC: totalSupply_ += amount<br/>balance[AP] += amount<br/>minterAllowed[MT] -= amount
+    SC-->>AP: Transfer(0x0, AP, amount)<br/>Mint(MT, AP, amount)
+
+    Note over AP,SC: BURN. Tokens arrive first, fiat second.
+    AP->>SC: transfer(CircleDepositAddress, 10000000000000)
+    SC-->>CM: balance[deposit address] += amount
+    AP->>CM: Submit redemption request
+    Note over CM,MT: burn destroys only the caller's own balance,<br/>so the tokens must reach a minter address first.
+    CM->>SC: transfer(MinterAddress, 10000000000000)<br/>from the deposit address
+    SC-->>MT: balance[minter] += amount
+    CM->>CM: Choose standard or basic redemption
+    CM->>CRF: Redeem fund shares for cash
+    CRF-->>BK: Cash settles
+    MT->>SC: burn(10000000000000)
+    SC-->>SC: totalSupply_ -= amount<br/>balance[minter] -= amount
+    SC-->>AP: Transfer(minter, 0x0, amount)<br/>Burn(minter, amount)
+    BK->>AP: Wire 10,000,000 USD less any fee
+
+    Note over AP,BK: Standard redemption is initiated nearly instantly.<br/>Basic redemption is initiated within two business days.<br/>Basic redemption carries no fee.

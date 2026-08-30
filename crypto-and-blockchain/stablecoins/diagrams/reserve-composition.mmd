@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph USDC["USDC reserve, structure as at 30 June 2026"]
+        C0["Total liability to holders:<br/>73.269 bn USD in circulation"]
+        C0 --> C1["Circle Reserve Fund shares<br/>61.9 bn USD"]
+        C0 --> C2["Cash at commercial banks<br/>about 11.2 bn USD, 15.3 pct<br/>of the reserve"]
+        C0 --> C3["US Treasury securities held direct<br/>150.8 m USD"]
+        C1 --> C4["Fund is an SEC-registered<br/>Rule 2a-7 government MMF.<br/>Only Circle subsidiaries<br/>may buy shares."]
+        C4 --> C5["Fund constraints:<br/>99.5 percent in cash, Treasuries<br/>and Treasury repo.<br/>Maturities 397 days or less.<br/>WAM 60 days or less.<br/>WAL 120 days or less."]
+    end
+
+    subgraph FUND["Circle Reserve Fund holdings, 30 April 2026"]
+        F0["Net assets 66,367,042,789 USD"]
+        F0 --> F1["Repurchase agreements 70.8 pct<br/>46,998,000,000 USD"]
+        F0 --> F2["US Treasury obligations 28.8 pct<br/>19,110,582,543 USD"]
+        F0 --> F3["Other assets net of liabilities 0.4 pct"]
+    end
+
+    subgraph USDT["Tether reserve, as at 30 June 2026"]
+        T0["Total assets<br/>187,751,426,411 USD"]
+        T0 --> T1["US Treasuries and repo<br/>the stated majority"]
+        T0 --> T2["Secured loans<br/>cut by 2.38 bn in the quarter,<br/>a 15 percent reduction"]
+        T0 --> T3["Physical gold<br/>more than 146 tons,<br/>up 14 tons in the quarter"]
+        T0 --> T4["Bitcoin and other investments"]
+        T0 --> T5["Total liabilities<br/>183,641,897,215 USD<br/>of which tokens issued<br/>183,622,105,630 USD"]
+        T5 --> T6["Excess reserves<br/>4,109,529,196 USD<br/>equal to 2.24 percent of liabilities"]
+    end
+
+    C5 --> COMP["The structural difference:<br/>USDC reserves sit inside a<br/>fund that cannot legally hold<br/>gold, bitcoin, or loans.<br/>Tether's reserves can and do."]
+    T3 --> COMP

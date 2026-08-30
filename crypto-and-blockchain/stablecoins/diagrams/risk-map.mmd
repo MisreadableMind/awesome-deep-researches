@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph REAL["REALISED - these have cost money"]
+        R1["Reserve bank failure<br/>USDC, March 2023<br/>3.3 bn USD stranded, price to 0.8767,<br/>43 percent of supply lost over ten months"]
+        R2["Mechanism failure<br/>UST, May 2022<br/>Roughly 18 bn USD of liability to zero<br/>in four days"]
+        R3["Issuer misrepresentation<br/>Tether, 2016 to 2018<br/>Fully backed on 27.6 percent of days<br/>in a 26-month CFTC sample"]
+        R4["Bridge compromise<br/>Ronin 624 m, Wormhole 326 m,<br/>Nomad 190 m, all in 2022"]
+        R5["Liquidation engine failure<br/>MakerDAO, 12 March 2020<br/>Auctions cleared at zero, about<br/>5.67 m USD of bad debt"]
+    end
+
+    subgraph LATENT["LATENT - plausible, not yet realised at scale"]
+        L1["Token contract bug<br/>Both major contracts are old,<br/>simple and heavily reviewed"]
+        L2["Issuer key compromise<br/>USDC caps the loss at the minter's<br/>remaining allowance.<br/>USDT has a single owner key."]
+        L3["Deep chain reorganisation<br/>would unwind transfers already<br/>treated as final"]
+        L4["Concentration<br/>Two issuers hold 83.2 percent of supply.<br/>Half of the larger sits on one chain.<br/>The smaller's reserve sits in one fund."]
+    end
+
+    subgraph MIT["MITIGATION NOW IN PLACE"]
+        M1["Reserve in a 2a-7 fund with daily<br/>liquidity, not term deposits"]
+        M2["GENIUS Act: T-bills of 93 days or less,<br/>no rehypothecation, monthly examination,<br/>CEO and CFO criminal certification"]
+        M3["MiCA: at least 30 percent in credit<br/>institution deposits, six-monthly audit<br/>for significant tokens"]
+        M4["CCTP burn-and-mint removes<br/>the bridge honeypot"]
+        M5["Dutch auctions with partial fills<br/>and flash-loan bidding"]
+        M6["Legislated ban on uncollateralised<br/>designs in both jurisdictions"]
+    end
+
+    R1 --> M1
+    R1 --> M3
+    R2 --> M6
+    R3 --> M2
+    R4 --> M4
+    R5 --> M5
+    L4 -.->|"no mitigation"| GAP["Unaddressed. Neither statute says<br/>anything about which chain a<br/>token may be issued on."]
+    L3 -.-> GAP

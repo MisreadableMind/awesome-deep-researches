@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    H["Stablecoin holders<br/>76.5 bn USD average balance,<br/>Q2 2026, USDC"]
+    H -->|"lend at zero percent,<br/>by law and by contract"| I["Circle"]
+
+    I -->|"invest"| RES["Reserve<br/>Circle Reserve Fund plus<br/>bank deposits"]
+    RES -->|"reserve return rate 3.5 pct<br/>annualised in Q2 2026"| REV["Reserve income<br/>667.7 m USD in the quarter"]
+
+    OTH["Other revenue<br/>33.6 m USD"] --> TOT["Total revenue and reserve income<br/>701.3 m USD"]
+    REV --> TOT
+
+    TOT -->|"58.8 pct of the top line"| DIST["Distribution and transaction costs<br/>412.5 m USD<br/>paid to Coinbase, Binance and others<br/>for holding USDC on their platforms"]
+    TOT --> RLDC["Revenue less distribution costs<br/>289 m USD, a 41 pct margin"]
+
+    RLDC --> OPEX["Operating expenses 254.5 m USD<br/>compensation 134.0<br/>all other operating lines 120.5<br/>general and administrative, depreciation<br/>and amortisation, IT infrastructure,<br/>and marketing"]
+    RLDC --> OPINC["Operating income 34.4 m USD"]
+
+    OPINC --> OTHINC["Other income net 17.9 m USD"]
+    OTHINC --> PBT["Pre-tax income 52.3 m USD"]
+    PBT --> TAX["Tax 4.1 m USD"]
+    TAX --> NI["Net income 48.2 m USD"]
+
+    NI --> ARITH["The arithmetic that matters:<br/>48.2 m on 76.5 bn of float<br/>is 25 basis points annualised.<br/>The float earns 350 bp.<br/>Circle keeps 25 of them."]
+
+    T["Tether, same quarter"]
+    T --> T1["Net operating profit<br/>approximately 1.50 bn USD"]
+    T1 --> T2["On roughly 183.6 bn of tokens,<br/>that is about 327 basis points<br/>annualised, before any<br/>distribution payments"]
+    T2 --> T3["The difference is not yield.<br/>It is who is paid to distribute."]
