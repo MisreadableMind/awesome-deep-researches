@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph M1["Model 1 - Correspondent nostro"]
+        direction TB
+        A1["The bank holds foreign currency<br/>in an account at a bank abroad"]
+        A2["Payout draws down the nostro"]
+        A3["Replenished by buying the<br/>currency and wiring it in"]
+        A4["Cost: idle balances in every<br/>currency you pay in, sized for<br/>peak, earning little"]
+    end
+
+    subgraph M2["Model 2 - Operator settles with agents"]
+        direction TB
+        B1["Paying agent advances its own<br/>cash to the recipient first"]
+        B2["Operator reimburses the agent<br/>through a master agent, mostly<br/>in USD, MXN or EUR"]
+        B3["Sending agent holds collected<br/>cash for up to a week before<br/>the operator receives it"]
+        B4["Cost: credit risk in both<br/>directions plus permissible<br/>investment requirements.<br/>WU settlement assets 3,449.1 m USD<br/>at 31 Dec 2025"]
+    end
+
+    subgraph M3["Model 3 - Prefunded partner accounts"]
+        direction TB
+        C1["Provider deposits money at each<br/>disbursement partner in advance"]
+        C2["Payout debits the prefunded<br/>balance instantly"]
+        C3["Topped up on a schedule and<br/>on threshold triggers"]
+        C4["Cost: idle balances plus<br/>partner credit risk.<br/>Remitly 441.3 m USD at 31 Dec 2025,<br/>about 2.1 days of send volume"]
+    end
+
+    subgraph M4["Model 4 - Own balances plus direct scheme access"]
+        direction TB
+        D1["Provider holds its own balance<br/>in each currency and is a member<br/>of that country's payment scheme"]
+        D2["Payout is a domestic instant<br/>payment made by the provider"]
+        D3["Net position squared in the<br/>wholesale FX market"]
+        D4["Cost: capital, licences,<br/>settlement account balances,<br/>scheme membership obligations"]
+    end
+
+    subgraph M5["Model 5 - Stablecoin as the transport"]
+        direction TB
+        E1["Value moves as a token,<br/>24/7, minutes, no nostro"]
+        E2["But an off-ramp partner still<br/>needs local currency in country"]
+        E3["The prefunding moves from the<br/>sender's side to the off-ramp's side.<br/>It does not disappear."]
+    end
+
+    Constraint["The invariant across all five:<br/><br/>Someone holds local currency in the<br/>destination country before the payment<br/>is made. The models differ in WHO,<br/>HOW MUCH, and HOW OFTEN it is<br/>replenished. None of them eliminates<br/>the requirement, because a recipient<br/>can only be paid in money that is<br/>already there."]
+
+    M1 --> Constraint
+    M2 --> Constraint
+    M3 --> Constraint
+    M4 --> Constraint
+    M5 --> Constraint
+
+    style M1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style M2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style M5 fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style Constraint fill:#fce4ec,stroke:#880e4f,stroke-width:3px

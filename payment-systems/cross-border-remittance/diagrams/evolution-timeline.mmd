@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Telegraph and Correspondent<br/>1871-1990"]
+        direction TB
+        E1A["1871: Western Union sends<br/>money by telegraph.<br/>The message is the payment<br/>instruction; cash is paid<br/>locally at each end."]
+        E1B["Correspondent banking formalises:<br/>a bank abroad holds your money<br/>in a nostro account so it can be<br/>paid out in that country"]
+        E1C["1973: Swift founded.<br/>It carries instructions.<br/>It settles nothing."]
+        E1D["1940: MoneyGram's predecessor<br/>begins as Travelers Express"]
+    end
+
+    subgraph Era2["The Agent Network Era<br/>1990-2007"]
+        direction TB
+        E2A["Migration expands, agent<br/>networks scale to hundreds<br/>of thousands of storefronts"]
+        E2B["Pricing is opaque by design:<br/>a visible fee plus an<br/>invisible exchange-rate margin"]
+        E2C["2001: USA PATRIOT Act<br/>tightens MSB obligations"]
+        E2D["2007: M-Pesa launches in Kenya.<br/>The mobile wallet becomes<br/>a payout endpoint."]
+    end
+
+    subgraph Era3["Digital Entrants and Price Targets<br/>2008-2016"]
+        direction TB
+        E3B["2008: World Bank launches<br/>Remittance Prices Worldwide,<br/>measuring fee plus FX margin.<br/>The benchmark predates<br/>the 2009 target."]
+        E3A["2009: G8 L'Aquila sets a<br/>5 percent cost target"]
+        E3C["2011: TransferWise founded.<br/>2011: Remitly founded.<br/>2010: WorldRemit founded."]
+        E3D["2013: CFPB remittance rule<br/>takes effect: mandatory<br/>pre-payment disclosure of<br/>the exchange rate"]
+        E3E["2015: SDG 10.c sets<br/>3 percent by 2030"]
+    end
+
+    subgraph Era4["De-risking and Direct Access<br/>2016-2022"]
+        direction TB
+        E4A["Active correspondents fall<br/>20 percent 2011 to 2018<br/>while payment value rises"]
+        E4B["2018 onward: non-banks win<br/>direct access to domestic<br/>instant rails and central<br/>bank settlement accounts"]
+        E4C["2020: G20 Roadmap for<br/>Enhancing Cross-border Payments"]
+        E4D["2021: Wise lists in London.<br/>2021: Remitly lists on Nasdaq."]
+    end
+
+    subgraph Era5["Rails, Stablecoins, and Taxes<br/>2023-2026"]
+        direction TB
+        E5A["Feb 2023: UPI-PayNow links<br/>India and Singapore"]
+        E5B["Jun 2025: FATF revises<br/>Recommendation 16"]
+        E5C["Jul 2025: GENIUS Act creates<br/>a US payment stablecoin regime"]
+        E5D["Nov 2025: Swift retires MT<br/>for cross-border payments"]
+        E5E["Jan 2026: US imposes a 1 percent<br/>excise tax on cash-funded<br/>outbound remittances"]
+        E5F["May 2026: Wise moves its primary<br/>listing to Nasdaq as Wise Group plc<br/>and reports in US dollars"]
+        E5G["Jun 2026: MoneyGram issues<br/>MGUSD on Stellar"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

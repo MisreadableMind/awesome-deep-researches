@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Bench["The benchmarks"]
+        RPW["World Bank Remittance Prices Worldwide<br/>367 country corridors,<br/>48 sending to 105 receiving countries.<br/>Total cost = fee + FX margin<br/>on a 200 USD transfer."]
+        Target["Targets<br/>SDG 10.c: 3 percent by 2030,<br/>no corridor above 5 percent.<br/>G20 Roadmap adds speed:<br/>75 percent of remittances<br/>credited within one hour."]
+        Actual["Measured, Q3 2025:<br/>global average 6.36 percent,<br/>down from 6.49 percent in Q1 2025"]
+    end
+
+    subgraph Drivers["What actually sets a corridor's price"]
+        D1["Number of providers competing.<br/>Thin corridors price high<br/>whatever the technology."]
+        D2["Payout mix.<br/>Cash payout carries an agent<br/>commission on every transaction."]
+        D3["Currency liquidity.<br/>An illiquid pair widens the<br/>wholesale spread before any<br/>retail margin is added."]
+        D4["Capital controls and<br/>documentation requirements<br/>at the receiving end"]
+        D5["Correspondent access.<br/>A de-risked corridor has fewer<br/>routes and each one prices<br/>its scarcity."]
+        D6["Regulatory cost per transaction,<br/>which is roughly fixed and<br/>therefore punishes small<br/>average transfer sizes"]
+    end
+
+    subgraph Outcomes["The resulting spread"]
+        O1["Cheapest receiving region:<br/>South Asia, near 5 percent.<br/>Dense competition on the<br/>India, Pakistan and<br/>Bangladesh routes."]
+        O2["Most expensive receiving region:<br/>Sub-Saharan Africa, near 8 percent.<br/>Of 13 corridors above 20 percent<br/>in Q3 2025, nine originate<br/>in Sub-Saharan Africa."]
+        O3["By provider type:<br/>banks near 15 percent,<br/>digital-first operators<br/>a fraction of that on<br/>the same corridors"]
+        O4["By instrument, Q3 2025:<br/>credit or debit card cheapest<br/>to originate at 4.39 percent;<br/>debit card cheapest to<br/>receive at 3.61 percent"]
+    end
+
+    Lesson["The pattern: the corridors that need<br/>cheap remittance most are the ones<br/>where every cost driver points the<br/>wrong way. Technology reaches the<br/>corridors that were already cheap."]
+
+    Bench --> Drivers
+    Drivers --> Outcomes
+    Outcomes --> Lesson
+
+    style Bench fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Drivers fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Outcomes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Lesson fill:#fce4ec,stroke:#880e4f,stroke-width:3px

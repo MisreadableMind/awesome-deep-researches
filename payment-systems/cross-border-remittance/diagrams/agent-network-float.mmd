@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant S as Sender
+    participant SA as Sending agent<br/>grocer, pharmacy, post office
+    participant WU as Operator<br/>Western Union / MoneyGram
+    participant MA as Master agent<br/>outside the US
+    participant PA as Paying agent<br/>subagent under the master
+    participant R as Recipient
+
+    S->>SA: Cash: principal plus fee
+    SA->>WU: Enter transaction into the operator's system
+    WU->>WU: Screen sender and recipient,<br/>set the FX rate,<br/>book the settlement obligation
+    WU-->>SA: Money Transfer Control Number
+    SA-->>S: Receipt with the MTCN
+    S-->>R: Communicates the MTCN out of band<br/>phone call, message
+
+    Note over SA,WU: The agent still holds the cash.<br/>"Cash received by Western Union agents<br/>generally becomes available to the<br/>Company within one week after<br/>initial receipt by the agent."<br/>That week is agent float.
+
+    R->>PA: Presents MTCN and identification
+    PA->>WU: Validate MTCN, confirm identity match
+    WU-->>PA: Authorise payout amount in local currency
+    PA->>R: Pays cash from its own till
+
+    Note over PA,WU: "Most agents typically settle with<br/>transferees first and then obtain<br/>reimbursement from the Company."<br/>The paying agent extends credit<br/>to the operator, not the reverse.
+
+    PA->>MA: Claim reimbursement
+    MA->>WU: Aggregate settlement claim
+    WU->>MA: Settle, in USD, MXN, or EUR<br/>for the significant majority of agents
+    MA->>PA: Reimburse plus commission
+
+    SA->>WU: Remit the collected cash,<br/>net of the sending commission
+
+    Note over WU: Balance sheet effect at 31 Dec 2025:<br/>Settlement assets 3,449.1 m USD<br/>= Settlement obligations 3,449.1 m USD<br/>Receivables from agents 1,620.0 m USD<br/>Investment securities 1,445.1 m USD<br/>held to satisfy state permissible<br/>investment rules, rated A- or better

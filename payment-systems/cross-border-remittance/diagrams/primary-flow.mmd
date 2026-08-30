@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant S as Sender
+    participant F as Front end<br/>app or agent
+    participant P as Provider<br/>licensed principal
+    participant C as Compliance<br/>engine
+    participant T as Treasury
+    participant X as Payout partner<br/>bank, wallet, agent
+    participant R as Recipient
+
+    S->>F: Amount, destination, payout method
+    F->>P: Quote request
+    P->>T: Current mid-market rate plus margin
+    T-->>P: Customer rate, valid for a stated window
+    P-->>F: Pre-payment disclosure<br/>Transfer Amount, Transfer Fees,<br/>Transfer Taxes, Exchange Rate,<br/>Other Fees, Total, Total to Recipient
+    Note over F,S: In the US this disclosure is<br/>mandatory under 12 CFR 1005.31(b)(1)
+
+    S->>F: Confirm and provide recipient details
+    F->>C: Screen sender and recipient
+    C->>C: Sanctions list match, PEP check,<br/>velocity and structuring rules,<br/>device and behaviour signals
+    alt Hit or rule trip
+        C-->>S: Hold pending review, or decline
+    end
+
+    S->>P: Fund the transfer<br/>cash, card, bank debit, wallet
+    Note over P: The sender's funding may not be<br/>final for days. The payout usually is.
+
+    P->>P: Book the obligation on the internal ledger<br/>assign a reference: MTCN, transfer ID, UETR
+    P->>T: Position update in both currencies
+
+    P->>X: Payout instruction with FATF R.16 data<br/>originator name, address or ID,<br/>account, beneficiary name and account
+    X->>X: Beneficiary-side screening<br/>and account validation
+
+    alt Payout accepted
+        X->>R: Local currency delivered
+        X-->>P: Confirmation with timestamp
+        P-->>S: Receipt and status
+    else Payout rejected
+        X-->>P: Reason code
+        P->>P: Reverse the obligation
+        P-->>S: Refund or resend under the error<br/>resolution regime, 12 CFR 1005.33.<br/>Cancellation within 30 minutes is<br/>a separate right under 1005.34
+    end
+
+    Note over T: Later, and separately:<br/>net positions in each currency are<br/>squared in the wholesale FX market<br/>and settled through banks
+
+    Note over P,X: The sender's funding settles last.<br/>Everything before this point was<br/>the provider's own money at risk.

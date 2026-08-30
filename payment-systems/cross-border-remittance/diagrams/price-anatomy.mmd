@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Sender pays 200.00 USD<br/>to send to the Philippines"]
+
+    subgraph Visible["Component 1 - the explicit fee"]
+        Fee["A stated amount, in the send currency.<br/>Advertised. Comparable. Sometimes zero.<br/>Under 12 CFR 1005.31(b)(1)(ii) it must be<br/>labelled 'Transfer Fees'."]
+        FeeNote["A zero fee does not mean a zero price.<br/>It usually means the price moved."]
+    end
+
+    subgraph Hidden["Component 2 - the exchange-rate margin"]
+        Mid["Mid-market rate<br/>the midpoint between interbank<br/>bid and offer. The reference<br/>every benchmark uses."]
+        Cust["Customer rate<br/>= mid-market rate minus a margin<br/>in the provider's favour"]
+        Margin["The margin, expressed in basis points,<br/>is revenue. It is not a cost of<br/>conversion; the wholesale market<br/>charges a fraction of it."]
+    end
+
+    subgraph Third["Component 3 - deductions the sender never sees"]
+        Lifting["Correspondent lifting fees<br/>deducted from principal in transit"]
+        Recv["Receiving-institution charges<br/>and cash-out fees at the wallet<br/>or agent"]
+        Tax["Taxes. From 1 Jan 2026 a 1 percent<br/>US excise tax applies to cash-funded<br/>outbound remittances."]
+    end
+
+    Total["Total cost, the RPW definition<br/><br/>(fee + FX margin) / amount sent<br/><br/>Global average, Q3 2025: 6.36 percent<br/>on a 200 USD transfer"]
+
+    subgraph Models["How each model prices"]
+        M1["Wise: mid-market rate,<br/>explicit fee. Margin zero by policy.<br/>FY26 blended take rate 0.52 percent."]
+        M2["Remitly: fee plus margin,<br/>varying by speed tier and corridor.<br/>2025 blended 2.18 percent."]
+        M3["Western Union: fee plus margin.<br/>2025 blended 3.27 percent of<br/>consumer principal."]
+        M4["Banks: fee plus a wide margin,<br/>plus correspondent deductions.<br/>Global average near 15 percent."]
+    end
+
+    Start --> Visible
+    Start --> Hidden
+    Start --> Third
+    Fee --> FeeNote
+    Mid --> Cust
+    Cust --> Margin
+    Visible --> Total
+    Hidden --> Total
+    Third --> Total
+    Total --> Models
+
+    style Visible fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Hidden fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Third fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Total fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Models fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

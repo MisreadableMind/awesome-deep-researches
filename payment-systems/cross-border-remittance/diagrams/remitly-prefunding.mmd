@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Send["Send side - digital origination"]
+        App["Remitly app<br/>send countries concentrated in<br/>the US, Canada, UK, Europe"]
+        Fund["Funding instrument<br/>debit card, credit card,<br/>bank debit, wallet"]
+        Risk["Risk decision at quote time<br/>customer history, device,<br/>amount, corridor, speed tier"]
+    end
+
+    subgraph Balance["Remitly balance sheet, 31 Dec 2025"]
+        Pre["Disbursement prefunding<br/>441.3 m USD<br/>up from 288.9 m a year earlier"]
+        Recv["Customer funds receivable, net<br/>286.5 m USD<br/>money the sender's instrument<br/>owes but has not yet paid"]
+        Gap["The gap between these two lines<br/>IS the business model:<br/>pay out first, collect later"]
+    end
+
+    subgraph Network["Payout network - rented, not owned"]
+        Banks["Banks and aggregators<br/>direct integrations preferred,<br/>redundancy per corridor"]
+        Wallets["Mobile wallets"]
+        Cash["Cash pick-up<br/>approx 490,000 options"]
+        Reach["Reach: 5.4 bn bank accounts<br/>and mobile wallets,<br/>5,300+ corridors"]
+    end
+
+    subgraph Econ["Unit economics, 2025"]
+        Vol["Send volume 74.9 bn USD<br/>up 37 percent"]
+        Rev["Revenue 1,635.1 m USD<br/>take rate 2.18 percent"]
+        Cost["Transaction expenses 549.5 m USD<br/>0.73 percent of volume<br/>= disbursement fees,<br/>processor fees, transaction losses,<br/>chargebacks, fraud and compliance tools"]
+        Margin["Transaction margin<br/>1.45 percent of volume"]
+    end
+
+    Exposure["The exposure window<br/><br/>Payout is final in minutes.<br/>A US consumer ACH debit can be<br/>returned as unauthorised for 60 days.<br/>Between those two points Remitly is<br/>an unsecured lender to a stranger."]
+
+    App --> Fund
+    Fund --> Risk
+    Risk --> Pre
+    Fund -.creates.-> Recv
+    Pre --> Banks
+    Pre --> Wallets
+    Pre --> Cash
+    Banks --> Reach
+    Wallets --> Reach
+    Cash --> Reach
+    Recv --> Gap
+    Pre --> Gap
+    Gap --> Exposure
+    Vol --> Rev
+    Rev --> Cost
+    Cost --> Margin
+
+    style Send fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Balance fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Network fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Econ fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Exposure fill:#fce4ec,stroke:#880e4f,stroke-width:3px

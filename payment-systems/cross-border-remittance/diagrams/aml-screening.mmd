@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Txn["Inbound transfer request<br/>average principal under 400 USD"]
+
+    subgraph KYC["Customer due diligence"]
+        K1["Identify and verify the sender.<br/>For a nonbank in the US, 31 CFR<br/>1010.410(e)(2) requires identity<br/>verification and recording of the<br/>ID type and number, plus a TIN,<br/>alien ID or passport number,<br/>for transmittors who are not<br/>established customers, at 3,000 USD<br/>or more."]
+        K2["Beneficial ownership for<br/>non-individual senders"]
+        K3["Enhanced diligence for<br/>high-risk corridors and PEPs"]
+    end
+
+    subgraph Screen["Sanctions screening"]
+        S1["Match sender and recipient names<br/>against OFAC SDN, UN, EU, UK<br/>and local lists. The SDN list runs to<br/>the low tens of thousands of entries;<br/>OFAC publishes no headline count."]
+        S2["Fuzzy matching across<br/>transliterations, patronymics,<br/>and name-order conventions"]
+        S3["The structural problem:<br/>common Arabic, Slavic and Hispanic<br/>names generate list matches at a<br/>rate that makes manual review<br/>uneconomic on a 200 USD transfer"]
+    end
+
+    subgraph Travel["Payment transparency"]
+        T1["FATF Recommendation 16.<br/>Revised 18 June 2025. Threshold<br/>remains USD/EUR 1,000, set in 2012<br/>when FATF cut it from 3,000.<br/>Implementation expected by end-2030."]
+        T2["US: 31 CFR 1010.410(f) requires<br/>the transmittal order at 3,000 USD<br/>or more to carry the transmittor's<br/>name, address and account number,<br/>the amount, the execution date,<br/>the recipient institution, the<br/>recipient's details as received,<br/>and the sending institution's<br/>name or identifier."]
+        T3["Recordkeeping under 1010.410(e):<br/>five-year retention"]
+    end
+
+    subgraph Monitor["Monitoring and reporting"]
+        M1["Structuring detection:<br/>many small transfers below a<br/>threshold, many senders to one<br/>recipient, one sender to many"]
+        M2["SAR: 31 CFR 1022.320 requires a<br/>money services business to file at<br/>2,000 USD or more, within 30<br/>calendar days of initial detection.<br/>Five-year record retention.<br/>Disclosure is prohibited."]
+        M3["CTR at 10,000 USD in currency"]
+        M4["Cross-border wire records over<br/>10,000 USD under 1010.410(b) and (c)"]
+    end
+
+    Outcome1["Clear: proceed to payout"]
+    Outcome2["Hold for review:<br/>cost of review exceeds<br/>revenue on the transfer"]
+    Outcome3["Decline, and in aggregate,<br/>exit the corridor"]
+
+    Consequence["Where the corridor closes,<br/>the flow does not.<br/>It moves to informal value transfer,<br/>which is cheaper, faster, and<br/>invisible to the supervisor.<br/>De-risking removes the view,<br/>not the money."]
+
+    Txn --> KYC --> Screen --> Travel --> Monitor
+    Monitor --> Outcome1
+    Monitor --> Outcome2
+    Monitor --> Outcome3
+    Outcome3 --> Consequence
+
+    style KYC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Screen fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Travel fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Monitor fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Consequence fill:#fce4ec,stroke:#880e4f,stroke-width:3px

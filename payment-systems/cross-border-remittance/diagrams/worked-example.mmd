@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant S as Sender in Chicago
+    participant P as Provider
+    participant C as Compliance
+    participant T as Treasury
+    participant L as Local payout<br/>InstaPay / agent / wallet
+    participant R as Recipient in Cebu
+
+    Note over S,R: Assumed mid-market reference: 1 USD = 58.0000 PHP<br/>Principal: 200.00 USD
+
+    S->>P: Request quote, 200.00 USD to PHP
+    P->>T: Rate request
+    T-->>P: Customer rate = 58.0000 minus margin
+    P-->>S: Pre-payment disclosure<br/>Transfer Amount / Transfer Fees /<br/>Transfer Taxes / Exchange Rate /<br/>Other Fees / Total / Total to Recipient
+
+    S->>P: Fund by ACH debit from a US checking account
+    Note over S,P: ACH consumer debit. Returnable as<br/>unauthorised for 60 days.<br/>No 1 percent US excise tax applies:<br/>the tax hits cash, money order and<br/>cashier's-check funding, not bank debits.
+
+    P->>C: Screen sender and recipient
+    C->>C: Sanctions match, PEP, velocity,<br/>device, corridor risk
+    C-->>P: Clear
+
+    P->>P: Book the obligation.<br/>Assign transfer reference.
+    P->>L: Payout instruction plus<br/>originator and beneficiary data.<br/>Below 3,000 USD, so 31 CFR 1010.410<br/>recordkeeping and travel rule<br/>thresholds are not triggered,<br/>but scheme and FATF data<br/>requirements still apply.
+
+    L->>R: PHP delivered to bank account,<br/>wallet, or cash counter
+    L-->>P: Confirmation
+    P-->>S: Receipt
+
+    Note over T: Days later: the provider's net USD surplus<br/>and net PHP deficit are squared in the<br/>wholesale FX market and settled<br/>through banks. This is the only<br/>genuinely cross-border movement.
+
+    Note over S,R: Outcome at four price points on the same 200 USD:<br/>0.52 percent -> 11,539.7 PHP received<br/>2.18 percent -> 11,347.2 PHP received<br/>3.27 percent -> 11,220.7 PHP received<br/>6.36 percent -> 10,862.2 PHP received<br/>Spread between best and average: 677.5 PHP

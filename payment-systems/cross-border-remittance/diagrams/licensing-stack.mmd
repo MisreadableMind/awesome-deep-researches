@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph US["United States - dual federal and state"]
+        F1["Federal: register as a Money Services<br/>Business with FinCEN.<br/>31 CFR 1022.380. Renewed every<br/>two years. Registration is not<br/>a licence and confers no authority."]
+        F2["State: a money transmitter licence in<br/>each state that requires one.<br/>Remitly holds them in the 49 states<br/>where required, plus DC and territories."]
+        F3["Each state sets net worth, surety bond,<br/>and permissible investment requirements,<br/>approves controlling shareholders and<br/>senior management, approves agents,<br/>and examines the licensee."]
+        F4["CSBS Money Transmission Modernization Act<br/>harmonises those standards.<br/>31 states adopted in full or part<br/>as of early 2026."]
+        F5["Consumer conduct: CFPB Regulation E<br/>Subpart B, 12 CFR 1005.30-1005.36"]
+    end
+
+    subgraph UK["United Kingdom"]
+        U1["FCA authorisation as a payment<br/>institution or e-money institution<br/>under the PSRs 2017 and EMRs 2011"]
+        U2["Safeguarding: customer funds<br/>segregated or insured.<br/>PS25/12 supplementary regime<br/>in force 7 May 2026, moving<br/>towards a CASS-style statutory trust"]
+        U3["Direct access to Faster Payments<br/>requires a Bank of England<br/>settlement account"]
+    end
+
+    subgraph EU["European Union"]
+        E1["Payment institution or EMI authorisation<br/>in one member state under PSD2"]
+        E2["Passporting into the other 26,<br/>which is why Ireland, Lithuania,<br/>Belgium and the Netherlands host<br/>so many remittance entities"]
+        E3["PSD3 and the Payment Services Regulation:<br/>compromise texts published 24 April 2026,<br/>applicable 21 months after entry<br/>into force. Replaces PSD2 and EMD2."]
+    end
+
+    subgraph Other["Everywhere else"]
+        O1["Receiving-country authorisation:<br/>an exchange house licence, a<br/>remittance licence, or agency<br/>under a locally licensed entity"]
+        O2["Scheme-specific admission for<br/>direct rail access, which is a<br/>separate approval from the licence"]
+        O3["Central bank settlement account,<br/>rarer still and granted case by case"]
+    end
+
+    Cost["What the stack costs<br/><br/>Wise: over 70 licences globally as of<br/>September 2025, with FY2026 approvals<br/>in South Africa, the UAE and Thailand.<br/>A decade of applications.<br/><br/>Enforcement is priced in: Wise US Inc<br/>agreed a 4.2 m USD penalty in a July 2025<br/>consent order following a Multi-State<br/>MSB Examination Taskforce review."]
+
+    US --> Cost
+    UK --> Cost
+    EU --> Cost
+    Other --> Cost
+
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style UK fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style EU fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Other fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Cost fill:#fce4ec,stroke:#880e4f,stroke-width:3px

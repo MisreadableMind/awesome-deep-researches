@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Origin["Origination - typically a diaspora market"]
+        Sender["Sender in the UK, US,<br/>Gulf, or South Africa"]
+        RSP["Remittance provider<br/>WorldRemit, Sendwave, Remitly,<br/>Western Union, MoneyGram"]
+    end
+
+    subgraph Hub["Interoperability layer"]
+        Agg["Aggregator or hub<br/>Onafriq, TerraPay, Thunes<br/>one integration, many wallets"]
+        Settle["Settlement in the destination<br/>currency, prefunded with<br/>the wallet operator"]
+    end
+
+    subgraph MMO["Mobile money operator"]
+        Trust["Trust or escrow account<br/>at a licensed bank.<br/>E-money in issue must be<br/>fully backed by fiat held here."]
+        Emoney["E-money ledger<br/>wallet balances addressed<br/>by phone number"]
+        Wallet["Recipient wallet<br/>credited in seconds"]
+    end
+
+    subgraph LastMile["The last mile"]
+        Agents["Agent network<br/>roughly 500,000 agents<br/>in the M-Pesa footprint alone"]
+        CashOut["Cash-out<br/>agent hands over notes,<br/>debits the wallet"]
+        InApp["Or the money never becomes cash:<br/>merchant payment, airtime,<br/>school fees, utility bills,<br/>savings, credit repayment"]
+    end
+
+    Liquidity["The agent liquidity problem<br/><br/>An agent needs BOTH cash and e-float.<br/>Cash-out drains cash; cash-in drains e-float.<br/>Rural agents mostly pay out, so they run<br/>dry and must travel to a bank to rebalance,<br/>closing the shop while they do.<br/>The customer loss during that closure<br/>is documented but not measured."]
+
+    Commission["Commission economics<br/><br/>Cash-in and cash-out agents are usually<br/>different businesses with different<br/>economics, so operators design their<br/>commissions separately. The split of<br/>the P2P commission pool between them<br/>is set operator by operator and is<br/>not published as an industry figure."]
+
+    Scale["Scale, 2025<br/>2.3 bn registered accounts,<br/>593 m active in 30 days,<br/>over 2 trn USD transacted,<br/>1.4 trn USD of it in<br/>Sub-Saharan Africa.<br/>~45 bn USD of internationally<br/>originated remittance, three<br/>quarters into Sub-Saharan Africa."]
+
+    Sender --> RSP
+    RSP --> Agg
+    Agg --> Settle
+    Settle --> Trust
+    Trust --> Emoney
+    Emoney --> Wallet
+    Wallet --> Agents
+    Agents --> CashOut
+    Wallet --> InApp
+    Agents --> Liquidity
+    Agents --> Commission
+    MMO --> Scale
+
+    style Origin fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Hub fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MMO fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style LastMile fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Liquidity fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Commission fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style Scale fill:#eceff1,stroke:#37474f,stroke-width:2px
