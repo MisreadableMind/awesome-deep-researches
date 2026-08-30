@@ -92,16 +92,16 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | [TLS/SSL: certificate chain, handshake, cipher negotiation](networking-and-protocols/tls-and-ssl/) | 16 | ✅ Done |
 | [HTTP/2 & HTTP/3 / QUIC: multiplexing, 0-RTT, UDP transport](networking-and-protocols/http2-and-http3/) | 16 | ✅ Done |
 | [BGP Routing: AS paths, peering, route hijacking](networking-and-protocols/bgp-routing/) | 16 | ✅ Done |
-| WebSockets & Real-time: upgrade handshake, framing, heartbeat | | 🗓️ Planned |
+| [WebSockets & Real-time: upgrade handshake, framing, heartbeat](networking-and-protocols/websockets-and-realtime/) | 17 | ✅ Done |
 
 ### 🔐 [`auth-and-identity/`](auth-and-identity/) — How auth and identity work
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
 | [OAuth 2.0 / OpenID Connect: grant flows, tokens, PKCE](auth-and-identity/oauth2-and-openid-connect/) | 14 | ✅ Done |
-| PKI & Certificates: CA hierarchy, X.509, certificate transparency | | 🗓️ Planned |
-| SAML & SSO: federation, assertions, service providers | | 🗓️ Planned |
-| Passkeys / WebAuthn / FIDO2: challenge-response, attestation | | 🗓️ Planned |
+| [PKI & Certificates: CA hierarchy, X.509, certificate transparency](auth-and-identity/pki-and-certificates/) | 16 | ✅ Done |
+| [SAML & SSO: federation, assertions, service providers](auth-and-identity/saml-and-sso/) | 17 | ✅ Done |
+| [Passkeys / WebAuthn / FIDO2: challenge-response, attestation](auth-and-identity/passkeys-and-webauthn/) | 21 | ✅ Done |
 
 ### 🔍 [`search-and-data/`](search-and-data/) — How search and analytics engines work
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      29 researches (449 diagrams)
-Planned:   22 researches
+Done:      33 researches (520 diagrams)
+Planned:   18 researches
 Categories: 10
 ```
 
