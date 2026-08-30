@@ -20,7 +20,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | [Real-Time Payments: FedNow, UPI, Pix, Faster Payments](payment-systems/real-time-payments/) | 20 | ✅ Done |
 | [Mobile Wallets: Apple Pay, Google Pay internals](payment-systems/mobile-wallets/) | 13 | ✅ Done |
 | [Buy Now Pay Later: Klarna, Affirm underwriting](payment-systems/buy-now-pay-later/) | 13 | ✅ Done |
-| Cross-border Remittance: Wise, Western Union | | 🗓️ Planned |
+| [Cross-border Remittance: Wise, Western Union](payment-systems/cross-border-remittance/) | 16 | ✅ Done |
 
 ### 🏦 [`banking-infrastructure/`](banking-infrastructure/) — How banks work internally
 
@@ -49,12 +49,12 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Bitcoin Protocol: UTXO, mining, consensus, mempool | | 🗓️ Planned |
-| Ethereum & EVM: accounts, gas, smart contracts | | 🗓️ Planned |
-| Layer 2 Solutions: Lightning Network, rollups, state channels | | 🗓️ Planned |
-| Stablecoins: USDC, USDT reserve mechanics, minting/burning | | 🗓️ Planned |
-| DeFi Protocols: AMMs, lending pools, liquidation engines | | 🗓️ Planned |
-| Bridges & Cross-chain: how assets move between chains | | 🗓️ Planned |
+| [Bitcoin Protocol: UTXO, mining, consensus, mempool](crypto-and-blockchain/bitcoin-protocol/) | 16 | ✅ Done |
+| [Ethereum & EVM: accounts, gas, smart contracts](crypto-and-blockchain/ethereum-and-evm/) | 16 | ✅ Done |
+| [Layer 2 Solutions: Lightning Network, rollups, state channels](crypto-and-blockchain/layer-2-solutions/) | 16 | ✅ Done |
+| [Stablecoins: USDC, USDT reserve mechanics, minting/burning](crypto-and-blockchain/stablecoins/) | 16 | ✅ Done |
+| [DeFi Protocols: AMMs, lending pools, liquidation engines](crypto-and-blockchain/defi-protocols/) | 16 | ✅ Done |
+| [Bridges & Cross-chain: how assets move between chains](crypto-and-blockchain/bridges-and-cross-chain/) | 16 | ✅ Done |
 
 ### 🛡️ [`insurance/`](insurance/) — How risk is pooled, priced, transferred
 
@@ -78,20 +78,20 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| PostgreSQL Internals: MVCC, WAL, query planner, vacuum | | 🗓️ Planned |
-| Redis Internals: data structures, persistence, clustering | | 🗓️ Planned |
-| Distributed Databases: Spanner, CockroachDB, Cassandra consensus | | 🗓️ Planned |
-| Message Queues: Kafka, RabbitMQ partitioning, delivery guarantees | | 🗓️ Planned |
-| Object Storage: S3 internals, eventual consistency, erasure coding | | 🗓️ Planned |
+| [PostgreSQL Internals: MVCC, WAL, query planner, vacuum](databases-and-storage/postgresql-internals/) | 19 | ✅ Done |
+| [Redis Internals: data structures, persistence, clustering](databases-and-storage/redis-internals/) | 21 | ✅ Done |
+| [Distributed Databases: Spanner, CockroachDB, Cassandra consensus](databases-and-storage/distributed-databases/) | 16 | ✅ Done |
+| [Message Queues: Kafka, RabbitMQ partitioning, delivery guarantees](databases-and-storage/message-queues/) | 16 | ✅ Done |
+| [Object Storage: S3 internals, eventual consistency, erasure coding](databases-and-storage/object-storage/) | 16 | ✅ Done |
 
 ### 🌐 [`networking-and-protocols/`](networking-and-protocols/) — How data moves across networks
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| TCP/IP Deep Dive: handshake, congestion control, windowing | | 🗓️ Planned |
-| TLS/SSL: certificate chain, handshake, cipher negotiation | | 🗓️ Planned |
-| HTTP/2 & HTTP/3 / QUIC: multiplexing, 0-RTT, UDP transport | | 🗓️ Planned |
-| BGP Routing: AS paths, peering, route hijacking | | 🗓️ Planned |
+| [TCP/IP Deep Dive: handshake, congestion control, windowing](networking-and-protocols/tcp-ip/) | 16 | ✅ Done |
+| [TLS/SSL: certificate chain, handshake, cipher negotiation](networking-and-protocols/tls-and-ssl/) | 16 | ✅ Done |
+| [HTTP/2 & HTTP/3 / QUIC: multiplexing, 0-RTT, UDP transport](networking-and-protocols/http2-and-http3/) | 16 | ✅ Done |
+| [BGP Routing: AS paths, peering, route hijacking](networking-and-protocols/bgp-routing/) | 16 | ✅ Done |
 | WebSockets & Real-time: upgrade handshake, framing, heartbeat | | 🗓️ Planned |
 
 ### 🔐 [`auth-and-identity/`](auth-and-identity/) — How auth and identity work
@@ -109,7 +109,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 |-------|:-:|--------|
 | Elasticsearch / Lucene: inverted index, scoring, sharding | | 🗓️ Planned |
 | [Recommendation Systems: collaborative filtering, embeddings](search-and-data/recommendation-systems/) | 14 | ✅ Done |
-| [Data Warehouses: columnar storage, MPP, Snowflake/BigQuery](search-and-data/data-warehouses/) | 14 | ✅ Done |
+| [Data Warehouses: columnar storage, MPP, Snowflake/BigQuery](search-and-data/data-warehouses/) | 15 | ✅ Done |
 
 ---
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      13 researches (184 diagrams)
-Planned:   38 researches
+Done:      29 researches (449 diagrams)
+Planned:   22 researches
 Categories: 10
 ```
 
