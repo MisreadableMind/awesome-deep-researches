@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Origin["Where the value comes from"]
+        O1["A large swap moves a pool price.<br/>Someone can arbitrage it back"]
+        O2["A loan crosses its liquidation<br/>threshold. Someone earns the bonus"]
+        O3["A new listing or mint.<br/>Position in the block is the product"]
+    end
+
+    subgraph Search["Searchers"]
+        S1["Watch the public mempool<br/>and private feeds"]
+        S2["Simulate against pending state"]
+        S3["Emit an atomic bundle:<br/>ordered, all or nothing,<br/>with a coinbase payment or a tip"]
+    end
+
+    subgraph Builders["Builders, 30 Aug 2026 shares"]
+        B1["Titan 46.31 percent"]
+        B2["Quasar 24.44 percent"]
+        B3["Eureka 10.83 percent"]
+        B4["BuilderNet 10.20 percent"]
+        B5["bombora 6.74 percent"]
+        B6["Runs a combinatorial auction<br/>over bundles and plain transactions.<br/>Keeps a margin, bids the rest"]
+    end
+
+    subgraph Relays["Relays, 30 Aug 2026 shares"]
+        R1["ultrasound 33.16 percent"]
+        R2["bloXroute regulated 26.82 percent"]
+        R3["Titan 26.44 percent"]
+        R4["Aestus 8.11 percent"]
+        R5["Flashbots 3.06 percent"]
+        R6["Escrow: holds the body until<br/>the proposer signs the header.<br/>Trusted by both sides, bonded by neither"]
+    end
+
+    subgraph Prop["Proposer"]
+        P1["Runs mev-boost beside the<br/>consensus client"]
+        P2["Signs the highest bid blind.<br/>About 89 percent of slots<br/>are sourced this way"]
+        P3["Fallback: build locally from<br/>the public mempool"]
+    end
+
+    subgraph Fail["The failure modes"]
+        F1["Relay outage or equivocation<br/>costs the proposer the slot"]
+        F2["Two builders held 71 percent of<br/>mev-boost blocks, 63 percent of all<br/>blocks, in the 24 hours to 30 Aug 2026"]
+        F3["A censoring relay can exclude<br/>an address without breaking<br/>any protocol rule"]
+    end
+
+    Origin --> Search --> Builders --> Relays --> Prop
+    Prop --> Fail
+    Relays --> Fail
+    Builders --> Fail
+
+    style Origin fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Search fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Builders fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Relays fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Prop fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Fail fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> Deposited: Send at least 32 ETH to<br/>0x00000000219ab540356cBB839Cbe05303d7705Fa<br/>with a BLS pubkey, withdrawal credentials,<br/>and a possession signature
+    Deposited --> PendingActivation: EIP-6110 turns the deposit into an<br/>execution layer request. No 2048 block<br/>follow distance since Pectra
+    PendingActivation --> Active: Activation churn, capped at<br/>256 ETH per epoch. Queue on<br/>30 Aug 2026: 2,050,921 ETH, about 35 days
+    Active --> Active: Attest once per epoch.<br/>A 32 ETH validator proposes about<br/>once every 1.33 million slots
+    Active --> Slashed: Double proposal, or a double<br/>or surrounding attestation.<br/>Provable from two signatures
+    Active --> ExitInitiated: Voluntary exit, or a 0x01 or 0x02<br/>withdrawal address calling<br/>0x00000961Ef480Eb55e80D19ad83579A64c007002
+    Slashed --> ExitQueued: Immediate penalty of effective<br/>balance over 4096. Correlation penalty<br/>applied 4096 epochs later, about 18 days
+    ExitInitiated --> ExitQueued: Exit churn shares the same<br/>256 ETH per epoch budget
+    ExitQueued --> Withdrawable: MIN_VALIDATOR_WITHDRAWABILITY_DELAY<br/>256 epochs, about 27 hours.<br/>Slashed validators wait 8192 epochs
+    Withdrawable --> [*]: Automatic sweep credits the execution<br/>address. No transaction, no gas,<br/>and no signature
+
+    note right of Active
+        0x00 credentials are BLS and cannot withdraw
+        0x01 credentials are an execution address,
+        balance above 32 ETH swept every few days
+        0x02 credentials compound to 2048 ETH
+    end note

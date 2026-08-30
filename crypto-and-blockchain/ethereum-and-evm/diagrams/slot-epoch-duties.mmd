@@ -1,0 +1,26 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+gantt
+    title One 12 second slot and the epoch around it
+    dateFormat X
+    axisFormat %Ss
+
+    section Slot today
+    Proposer publishes the beacon block :done, a1, 0, 4
+    Reorg cutoff 1667 bps at 2.0s :milestone, m1, 2, 0
+    Attesters vote on head and source and target :active, a2, 4, 4
+    Attestation due 3333 bps at 4.0s :milestone, m2, 4, 0
+    Aggregators publish combined attestations :a3, 8, 4
+    Aggregate due 6667 bps at 8.0s :milestone, m3, 8, 0
+
+    section Slot under EIP-7732
+    Proposer publishes a bid and not a payload :done, b1, 0, 3
+    Attestation due 2500 bps at 3.0s :milestone, m4, 3, 0
+    Builder reveals the payload at 5000 bps :active, b2, 3, 3
+    Payload timeliness committee of 512 votes :b3, 6, 3
+    Payload attestation due 7500 bps at 9.0s :milestone, m5, 9, 0
+
+    section Epoch arithmetic
+    32 slots per epoch or 6.4 minutes :c1, 0, 12
+    Every validator attests exactly once :c2, 0, 12
+    Up to 64 committees per slot :c3, 0, 12

@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Env["EIP-2718 typed envelope"]
+        E["TransactionType || TransactionPayload<br/>the first byte, if below 0x7f,<br/>names the format.<br/>Anything 0xc0 or above is legacy RLP"]
+    end
+
+    subgraph T0["0x00 Legacy, since 2015"]
+        L["rlp[nonce, gasPrice, gasLimit,<br/>to, value, data, v, r, s]<br/>EIP-155 folds chainId into v"]
+    end
+
+    subgraph T1["0x01 Access list, Berlin 2021"]
+        A["rlp[chainId, nonce, gasPrice, gasLimit,<br/>to, value, data, accessList, yParity, r, s]<br/>2400 per address, 1900 per slot,<br/>paid to pre-warm state"]
+    end
+
+    subgraph T2["0x02 Fee market, London 2021"]
+        F["rlp[chainId, nonce, maxPriorityFeePerGas,<br/>maxFeePerGas, gasLimit, to, value, data,<br/>accessList, yParity, r, s]<br/>the default type today"]
+    end
+
+    subgraph T3["0x03 Blob, Dencun 2024"]
+        Bl["Adds maxFeePerBlobGas and<br/>blobVersionedHashes.<br/>to MUST NOT be empty,<br/>so no contract creation.<br/>Blobs travel outside the block"]
+    end
+
+    subgraph T4["0x04 Set code, Pectra 2025"]
+        Sc["Adds authorizationList of<br/>[chainId, address, nonce, yParity, r, s].<br/>Writes 0xef0100 || address into<br/>an EOA's code slot"]
+    end
+
+    Env --> T0
+    Env --> T1
+    Env --> T2
+    Env --> T3
+    Env --> T4
+
+    style Env fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style T0 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style T2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style T4 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

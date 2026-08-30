@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["Block header commitments"]
+        SR["stateRoot<br/>32 bytes"]
+        TR["transactionsRoot<br/>keyed by rlp index"]
+        RR["receiptsRoot<br/>keyed by rlp index"]
+        WR["withdrawalsRoot<br/>added by EIP-4895"]
+    end
+
+    subgraph MPT["World state trie, hexary Merkle Patricia"]
+        Root["Branch node<br/>17 items: 16 nibble slots<br/>plus a value slot"]
+        Ext["Extension node<br/>[hexPrefixPath, nextNodeRef]<br/>compresses a run with no branching"]
+        Leaf["Leaf node<br/>[hexPrefixPath, rlp Account]"]
+        HP["Hex prefix encoding<br/>nibble 0 extension even,<br/>1 extension odd,<br/>2 leaf even, 3 leaf odd"]
+    end
+
+    subgraph Acct["Account, 4 RLP fields"]
+        N["nonce<br/>uint64, transactions sent<br/>or contracts created"]
+        B["balance<br/>uint256, wei"]
+        S["storageRoot<br/>root of this account's own trie"]
+        C["codeHash<br/>keccak256 of the bytecode.<br/>Empty account: c5d2460186f7...5d85a470"]
+    end
+
+    subgraph Storage["Per-account storage trie"]
+        SK["Path = keccak256 of the<br/>32 byte slot number"]
+        SV["Value = rlp of the<br/>32 byte word, zeros trimmed"]
+        SD["A zero slot is absent,<br/>which is why clearing<br/>a slot earns a 4800 gas refund"]
+    end
+
+    subgraph Keys["Why keys are hashed"]
+        K1["Path into the state trie is<br/>keccak256 of the 20 byte address,<br/>not the address itself"]
+        K2["Hashing keeps the trie balanced<br/>and blocks an attacker from<br/>grinding a deep unbalanced branch"]
+        K3["Cost: iteration order is<br/>hash order, so range scans<br/>over accounts are meaningless"]
+    end
+
+    SR --> Root
+    Root --> Ext
+    Root --> Leaf
+    Ext --> Leaf
+    HP -.encodes paths in.-> MPT
+    Leaf --> Acct
+    S --> Storage
+    Keys -.applies to.-> MPT
+
+    style Header fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MPT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Acct fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Storage fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Keys fill:#eceff1,stroke:#37474f,stroke-width:2px
