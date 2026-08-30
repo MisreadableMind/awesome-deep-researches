@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant M as Merchant<br/>allowlisted, KYC'd
+    participant C as Custodian<br/>holds the BTC
+    participant DAO as WBTC DAO<br/>multisig, adds and<br/>removes members
+    participant TC as WBTC ERC-20<br/>on Ethereum
+    participant DEFI as Aave, Uniswap,<br/>Curve
+
+    Note over U,DEFI: Minting: the only path from BTC to WBTC
+    U->>M: Request mint, pass KYC and AML
+    M->>C: Initiate mint request on-chain
+    U->>C: Send BTC to the custodian address
+    C->>C: Confirm the BTC deposit<br/>6 confirmations
+    C->>TC: mint(merchant, amount)
+    TC-->>M: WBTC credited
+    M-->>U: WBTC delivered, minus the merchant fee
+
+    Note over U,DEFI: Circulation: the promise becomes collateral
+    U->>DEFI: Supply WBTC as collateral
+    DEFI->>DEFI: Price WBTC using a BTC/USD oracle<br/>The oracle prices BTC, not the promise
+
+    Note over U,DEFI: Burning: redemption is merchant-only
+    U->>M: Request redeem
+    M->>TC: burn(amount)
+    TC->>TC: totalSupply decreases
+    M->>C: Redeem request
+    C->>U: Send BTC on the Bitcoin chain
+
+    Note over DAO,TC: Governance is the real backstop
+    DAO->>C: Add or remove a custodian
+    DAO->>M: Add or remove a merchant
+
+    Note over U,DEFI: Failure: if the custodian's BTC is gone,<br/>WBTC stays at the BTC oracle price<br/>until the market notices, then goes to zero

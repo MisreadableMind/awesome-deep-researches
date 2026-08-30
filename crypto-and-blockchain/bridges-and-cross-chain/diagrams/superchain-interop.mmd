@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph CHAINA["Chain A in the dependency set"]
+        SRC["Contract emits a log:<br/>the initiating message"]
+        LOG["Log recorded in block N<br/>at index i, timestamp t"]
+        SRC --> LOG
+    end
+
+    subgraph IDENT["The Identifier that names it"]
+        I1["chainId: source chain"]
+        I2["origin: emitting contract"]
+        I3["blockNumber: N"]
+        I4["logIndex: i"]
+        I5["timestamp: t"]
+    end
+
+    subgraph CHAINB["Chain B in the dependency set"]
+        AL["EIP-2930 access list<br/>pre-declares the message:<br/>lookup entry, optional chain-id<br/>extension, checksum entry"]
+        INBOX["CrossL2Inbox.validateMessage<br/>predeploy"]
+        MSGR["L2ToL2CrossDomainMessenger<br/>calls the inbox on behalf<br/>of contracts"]
+        DST["Destination contract executes:<br/>the executing message"]
+        AL --> INBOX --> MSGR --> DST
+    end
+
+    subgraph SAFETY["Block safety, propagated across the set"]
+        S1["unsafe: gossiped only"]
+        S2["cross-unsafe: dependencies<br/>seen but not L1-derived"]
+        S3["safe: L1-derived AND every<br/>referenced initiating message<br/>is also safe"]
+        S4["finalized: derived from<br/>finalized L1 data"]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    LOG --> IDENT
+    IDENT --> AL
+    DST -.->|"a block is only safe once<br/>everything it depends on is"| SAFETY
+
+    ASSET["Assets: ETH and SuperchainERC20<br/>move by burn on the source<br/>and mint on the destination.<br/>No escrow, no wrapper."]
+    DST --> ASSET
+
+    style CHAINA fill:#e3f2fd,stroke:#1565c0
+    style CHAINB fill:#e8f5e9,stroke:#2e7d32
+    style IDENT fill:#fff3e0,stroke:#e65100
+    style SAFETY fill:#f3e5f5,stroke:#6a1b9a

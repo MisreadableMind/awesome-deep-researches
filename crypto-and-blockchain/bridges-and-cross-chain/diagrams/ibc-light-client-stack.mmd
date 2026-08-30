@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph SPEC["The IBC specification stack"]
+        direction TB
+        APP["Application layer<br/>ICS-20 fungible transfer<br/>ICS-27 interchain accounts<br/>ICS-721 NFT transfer"]
+        TAO["Transport, Authentication, Ordering<br/>ICS-26 routing and callbacks<br/>ICS-05 port allocation<br/>ICS-04 channels and packets<br/>ICS-03 connections<br/>ICS-02 client semantics"]
+        CLIENT["Client layer<br/>ICS-07 Tendermint client<br/>ICS-08 wasm client<br/>ICS-06 solo machine"]
+        COMMIT["Commitment layer<br/>ICS-23 vector commitments<br/>ICS-24 host requirements"]
+        APP --> TAO --> CLIENT --> COMMIT
+    end
+
+    subgraph CHAINA["Chain A stores a light client of B"]
+        CS_A["ClientState of B<br/>chainID, trustLevel,<br/>trustingPeriod, unbondingPeriod,<br/>maxClockDrift, frozenHeight,<br/>latestHeight, proofSpecs"]
+        CONS_A["ConsensusState of B at height h<br/>timestamp<br/>nextValidatorsHash<br/>commitmentRoot"]
+        CS_A --> CONS_A
+    end
+
+    subgraph CHAINB["Chain B stores a light client of A"]
+        CS_B["ClientState of A"]
+        CONS_B["ConsensusState of A at height h"]
+        CS_B --> CONS_B
+    end
+
+    REL["Relayer, permissionless<br/>carries headers and proofs<br/>cannot forge either"]
+
+    CHAINB -->|"signed header"| REL
+    REL -->|"MsgUpdateClient"| CS_A
+    CHAINA -->|"signed header"| REL
+    REL -->|"MsgUpdateClient"| CS_B
+
+    CONS_A -->|"commitmentRoot used by"| VERIFY["verifyMembership(path, value, proof, height)<br/>verifyNonMembership(path, proof, height)"]
+
+    style SPEC fill:#e3f2fd,stroke:#1565c0
+    style CHAINA fill:#e8f5e9,stroke:#2e7d32
+    style CHAINB fill:#fff3e0,stroke:#e65100

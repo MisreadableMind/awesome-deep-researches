@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph SEND["Source chain"]
+        APP["OApp calls endpoint.send"]
+        EP["Endpoint, immutable<br/>assigns nonce, computes guid<br/>= keccak256(nonce + path)"]
+        LIB["SendUln302<br/>encodes PacketV1: 113-byte header<br/>+ guid + message"]
+        APP --> EP --> LIB
+    end
+
+    subgraph DVNS["Verification, configured per OApp per path"]
+        D1["Required DVN 1<br/>must attest"]
+        D2["Required DVN 2<br/>must attest"]
+        O1["Optional DVN A"]
+        O2["Optional DVN B"]
+        O3["Optional DVN C"]
+        THRESH["optionalDVNThreshold = 2<br/>any 2 of the 3 suffice"]
+        O1 --> THRESH
+        O2 --> THRESH
+        O3 --> THRESH
+    end
+
+    subgraph RECV["Destination chain"]
+        RLIB["ReceiveUln302<br/>counts attestations against UlnConfig"]
+        REP["Endpoint.lzReceive"]
+        RAPP["OApp receives"]
+        RLIB --> REP --> RAPP
+    end
+
+    EXEC["Executor<br/>pays destination gas<br/>cannot forge"]
+
+    LIB -.->|"emit PacketSent"| D1
+    LIB -.-> D2
+    LIB -.-> O1
+    LIB -.-> O2
+    LIB -.-> O3
+    D1 --> RLIB
+    D2 --> RLIB
+    THRESH --> RLIB
+    EXEC --> REP
+
+    subgraph KELP["KelpDAO configuration, 18 April 2026"]
+        K1["requiredDVNCount: 1"]
+        K2["optionalDVNCount: 0"]
+        K3["optionalDVNThreshold: 0"]
+        K4["One DVN attestation, one data path<br/>116,500 rsETH, 293 m dollars"]
+        K1 --> K4
+        K2 --> K4
+        K3 --> K4
+    end
+
+    style SEND fill:#e3f2fd,stroke:#1565c0
+    style DVNS fill:#fff3e0,stroke:#e65100
+    style RECV fill:#e8f5e9,stroke:#2e7d32
+    style KELP fill:#ffebee,stroke:#c62828

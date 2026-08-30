@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph CHAIN_A["Chain A execution environment"]
+        A1["Contract code"]
+        A2["Storage: only chain A state"]
+        A3["Opcodes: arithmetic, storage,<br/>same-chain calls"]
+        A4["No network syscall<br/>No clock beyond block.timestamp<br/>No randomness beyond RANDAO"]
+    end
+
+    subgraph BOUNDARY["The determinism boundary"]
+        B1["Every validator must compute<br/>the same state root from<br/>the same inputs"]
+        B2["An external read returns<br/>different values to different<br/>validators at different times"]
+        B3["Different values<br/>equals different state roots<br/>equals a chain split"]
+    end
+
+    subgraph CHAIN_B["Chain B execution environment"]
+        C1["Its own validator set"]
+        C2["Its own finality rule"]
+        C3["Its own fork choice"]
+    end
+
+    A3 --> A4
+    A4 -.->|"cannot call"| CHAIN_B
+    B1 --> B2 --> B3
+
+    subgraph ESCAPE["The only escape: make the external fact an input"]
+        E1["A transaction carries the claim<br/>about chain B as calldata"]
+        E2["Chain A verifies the claim<br/>with a deterministic function"]
+        E3["Verification is arithmetic:<br/>signature checks, merkle proofs,<br/>ZK proof verification"]
+    end
+
+    CHAIN_B -.->|"someone observes"| E1
+    E1 --> E2 --> E3
+    E3 -->|"deterministic, replayable"| A1
+
+    style CHAIN_A fill:#e3f2fd,stroke:#1565c0
+    style CHAIN_B fill:#fff3e0,stroke:#e65100
+    style BOUNDARY fill:#ffebee,stroke:#c62828
+    style ESCAPE fill:#e8f5e9,stroke:#2e7d32

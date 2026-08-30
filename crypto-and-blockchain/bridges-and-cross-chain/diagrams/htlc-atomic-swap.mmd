@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Alice<br/>has 1 BTC, wants 15 ETH
+    participant BTC as Bitcoin chain
+    participant ETH as Ethereum chain
+    participant B as Bob<br/>has 15 ETH, wants 1 BTC
+
+    Note over A: Alice generates a random 32-byte secret s<br/>and computes H = sha256(s).<br/>Only Alice knows s.
+
+    A->>BTC: Lock 1 BTC in an HTLC.<br/>Spendable by Bob with s,<br/>or refunded to Alice after T1 = 48 hours.
+    A->>B: Publish H, not s
+
+    Note over B: Bob verifies the Bitcoin HTLC on-chain:<br/>correct amount, correct H,<br/>correct refund key, correct timeout.
+
+    B->>ETH: Lock 15 ETH in an HTLC.<br/>Spendable by Alice with s,<br/>or refunded to Bob after T2 = 24 hours.
+
+    Note over A,B: T1 must be strictly greater than T2.<br/>Standard practice is T1 = 2 x T2.
+
+    A->>ETH: Claim 15 ETH by presenting s
+    Note over ETH: s is now public in the calldata<br/>of Alice's claim transaction
+    B->>BTC: Read s from Ethereum,<br/>claim 1 BTC with s
+
+    Note over A,B: Both legs settled. No custodian.<br/>No committee. No wrapped token.
+
+    rect rgba(255,235,238,0.6)
+    Note over A,B: Failure branches
+    Note over B: If Alice never claims, Bob's ETH<br/>refunds at T2 = 24 h, and Alice's BTC<br/>refunds at T1 = 48 h. Both whole.
+    Note over A: If T2 were greater than T1, Alice could<br/>let her BTC refund at T1, then claim the ETH<br/>before T2. Bob loses everything.
+    end

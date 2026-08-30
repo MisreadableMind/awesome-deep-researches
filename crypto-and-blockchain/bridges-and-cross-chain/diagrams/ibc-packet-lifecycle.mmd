@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User on Cosmos Hub
+    participant TA as transfer module<br/>Hub
+    participant CA as IBC core<br/>Hub
+    participant R as Relayer<br/>permissionless
+    participant CB as IBC core<br/>Osmosis
+    participant TB as transfer module<br/>Osmosis
+    participant LC as Light client of Hub<br/>on Osmosis
+
+    U->>TA: MsgTransfer 100 ATOM<br/>to osmo1..., timeoutHeight,<br/>timeoutTimestamp
+    TA->>TA: source zone: denom "uatom" has no<br/>"transfer/channel-141" prefix,<br/>so escrow rather than burn
+    TA->>TA: escrow 100 ATOM to the<br/>channel escrow address
+    TA->>CA: sendPacket(sourcePort "transfer",<br/>sourceChannel "channel-141",<br/>data = FungibleTokenPacketData)
+    CA->>CA: sequence = nextSequenceSend, increment
+    CA->>CA: store hash at<br/>commitments/ports/transfer/<br/>channels/channel-141/sequences/7
+    CA-->>R: emit send_packet event
+
+    R->>CB: MsgUpdateClient with a signed<br/>Hub header at height h
+    CB->>LC: verifyClientMessage, checkForMisbehaviour
+    LC->>LC: at least trustLevel of the trusted<br/>validator set signed, and within trustingPeriod
+    LC->>LC: store ConsensusState at h:<br/>timestamp, nextValidatorsHash,<br/>commitmentRoot
+
+    R->>CB: MsgRecvPacket(packet, proofCommitment, h)
+    CB->>LC: verifyMembership(commitment path,<br/>packet hash, proof, h)
+    LC-->>CB: proof valid against commitmentRoot
+    CB->>CB: check timeoutHeight and<br/>timeoutTimestamp not passed
+    CB->>CB: write packet receipt<br/>unordered channel
+    CB->>TB: onRecvPacket
+    TB->>TB: denom "uatom" lacks the packet's<br/>source prefix "transfer/channel-141",<br/>so mint a voucher prefixed<br/>"transfer/channel-0"
+    TB->>TB: mint ibc/27394FB0... 100 units
+    TB-->>CB: acknowledgement: success
+    CB->>CB: writeAcknowledgement
+
+    R->>CA: MsgAcknowledgement(packet, ack,<br/>proofAcked, h')
+    CA->>CA: verifyMembership of the ack
+    CA->>TA: onAcknowledgementPacket
+    TA->>TA: success: escrow stays escrowed.<br/>error: refund the user
+    CA->>CA: delete the packet commitment
+
+    alt timeout instead of receipt
+        R->>CA: MsgTimeout with verifyNonMembership<br/>proving no receipt exists at the<br/>timeout height
+        CA->>TA: onTimeoutPacket
+        TA->>U: refund 100 ATOM from escrow
+    end
