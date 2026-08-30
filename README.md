@@ -17,7 +17,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | [SWIFT & SEPA](payment-systems/swift-and-sepa/) | 12 | ✅ Done |
 | [Visa & Mastercard](payment-systems/visa-and-mastercard/) | 13 | ✅ Done |
 | [ACH / Fedwire / CHIPS: US domestic rails](payment-systems/ach-fedwire-chips/) | 16 | ✅ Done |
-| Real-Time Payments: FedNow, UPI, PIX, Faster Payments | | 🗓️ Planned |
+| [Real-Time Payments: FedNow, UPI, Pix, Faster Payments](payment-systems/real-time-payments/) | 20 | ✅ Done |
 | [Mobile Wallets: Apple Pay, Google Pay internals](payment-systems/mobile-wallets/) | 13 | ✅ Done |
 | [Buy Now Pay Later: Klarna, Affirm underwriting](payment-systems/buy-now-pay-later/) | 13 | ✅ Done |
 | Cross-border Remittance: Wise, Western Union | | 🗓️ Planned |
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      12 researches (164 diagrams)
-Planned:   39 researches
+Done:      13 researches (184 diagrams)
+Planned:   38 researches
 Categories: 10
 ```
 
