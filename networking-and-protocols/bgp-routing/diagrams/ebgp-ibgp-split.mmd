@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph AS64497["AS 64497 - a transit provider"]
+        direction TB
+        R1["Border router R1<br/>eBGP to AS 64496"]
+        R2["Border router R2<br/>eBGP to AS 64498"]
+        R3["Core router R3<br/>no eBGP sessions"]
+        IGP["IS-IS or OSPF<br/>carries loopbacks and link costs.<br/>Resolves every BGP NEXT_HOP.<br/>Carries zero external prefixes."]
+        R1 <-->|"iBGP<br/>AS_PATH unchanged<br/>LOCAL_PREF carried<br/>NEXT_HOP unchanged by default"| R2
+        R1 <-->|"iBGP"| R3
+        R2 <-->|"iBGP"| R3
+        IGP -.->|"next hop reachability"| R1
+        IGP -.->|"next hop reachability"| R2
+        IGP -.->|"next hop reachability"| R3
+    end
+
+    AS64496["AS 64496<br/>customer, originates<br/>203.0.113.0/24"]
+    AS64498["AS 64498<br/>peer"]
+
+    AS64496 -->|"eBGP<br/>TTL 1 by default<br/>AS_PATH prepended on send<br/>NEXT_HOP rewritten to self<br/>LOCAL_PREF stripped"| R1
+    R2 -->|"eBGP"| AS64498
+
+    Rules["Rules that differ<br/>eBGP: prepend own ASN, set NEXT_HOP to self,<br/>never send LOCAL_PREF, MRAI 30s default.<br/>iBGP: do not prepend, do not change NEXT_HOP,<br/>send LOCAL_PREF, MRAI 5s default,<br/>never re-advertise an iBGP route to another iBGP peer."]
+
+    style AS64497 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style AS64496 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AS64498 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style IGP fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Rules fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant NW as Northwind AS64496<br/>origin
+    participant CT as Continental AS64497<br/>primary transit
+    participant MN as Meridian AS64498<br/>secondary transit
+    participant PB as Pacific AS64499<br/>transit-free
+    participant HC as Harbour AS64500<br/>eyeball network
+    participant RP as Relying party<br/>RPKI validator
+
+    Note over NW: Preparation, before any BGP
+    NW->>RP: Publish ROA: prefix 203.0.113.0/24,<br/>origin AS 64496, maxLength 24
+    NW->>NW: Register route object in an IRR:<br/>route: 203.0.113.0/24, origin: AS64496
+
+    Note over NW,CT: Session establishment
+    NW->>CT: TCP SYN to 198.51.100.1 port 179
+    CT-->>NW: TCP established
+    NW->>CT: OPEN: version 4, My AS 64496,<br/>Hold Time 90, BGP ID 203.0.113.1,<br/>capabilities 1, 2, 6, 65, 9 role Customer
+    CT->>NW: OPEN: My AS 64497, Hold Time 180,<br/>capability 9 role Provider
+    Note over NW,CT: Hold Time negotiated to 90,<br/>the lower of the two.<br/>Roles are complementary, so no<br/>Role Mismatch, OPEN subcode 11.
+    NW->>CT: KEEPALIVE
+    CT->>NW: KEEPALIVE
+    Note over NW,CT: State Established
+
+    Note over NW,CT: Announcement
+    NW->>CT: UPDATE, NLRI 18 CB 00 71<br/>ORIGIN 0 IGP, AS_PATH [64496],<br/>NEXT_HOP 198.51.100.2,<br/>COMMUNITIES 64497:100
+    CT->>CT: Inbound policy: prefix filter from IRR passes,<br/>RPKI state Valid, max-prefix 20 not exceeded,<br/>AS_PATH first ASN equals peer ASN,<br/>set LOCAL_PREF 200 for a customer route
+    Note over CT: RFC 9234: route from a Customer<br/>with no OTC attribute.<br/>OTC is not added on ingress.
+
+    Note over NW,MN: Same prefix, second provider, prepended
+    NW->>MN: UPDATE, AS_PATH [64496, 64496, 64496],<br/>NEXT_HOP 192.0.2.10
+    MN->>MN: Set LOCAL_PREF 200, customer route
+
+    Note over CT,PB: Propagation to a peer
+    CT->>PB: UPDATE, AS_PATH [64497, 64496],<br/>NEXT_HOP rewritten to Continental's<br/>address on the exchange fabric,<br/>MED 50, LOCAL_PREF stripped
+    Note over CT: RFC 9234 egress: advertising to a Peer,<br/>so OTC is added with value 64497
+    MN->>PB: UPDATE, AS_PATH [64498, 64496, 64496, 64496],<br/>MED 50, OTC 64498
+
+    Note over PB: Decision process at Pacific
+    PB->>PB: Both routes: LOCAL_PREF 100, tie.<br/>Not locally originated, tie.<br/>AS_PATH length 2 versus 4.<br/>Continental wins at step 4.
+    PB->>PB: Install 203.0.113.0/24 via AS64497.<br/>Meridian path retained as backup<br/>in the Adj-RIB-In.
+
+    Note over PB,HC: Delivery to the eyeballs
+    PB->>HC: UPDATE, AS_PATH [64499, 64497, 64496]
+    Note over PB: OTC 64497 is already present,<br/>set by Continental. RFC 9234 requires it<br/>be preserved unchanged. Advertising to a<br/>Customer is permitted. To a Provider,<br/>Peer or RS it is not.
+    HC->>HC: LOCAL_PREF 50 for a provider route.<br/>Only path available. Installed.
+    HC->>HC: FIB programmed. Packets to<br/>203.0.113.5 now leave via Pacific.
+
+    Note over NW,HC: Total elapsed time from<br/>announcement to global reachability:<br/>tens of seconds, bounded by MRAI<br/>at each eBGP hop

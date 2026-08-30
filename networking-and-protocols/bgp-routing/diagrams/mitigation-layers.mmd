@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Attack["What each attack needs to succeed"]
+        direction TB
+        A1["Origin hijack:<br/>announce someone else's prefix"]
+        A2["Sub-prefix hijack:<br/>announce a longer prefix"]
+        A3["Path forgery:<br/>fabricate AS_PATH with a<br/>legitimate origin appended"]
+        A4["Route leak:<br/>propagate a real route<br/>to the wrong neighbour"]
+    end
+
+    subgraph L1["Layer 1: filters, since 1997"]
+        F1["IRR prefix filters<br/>route and route6 objects,<br/>AS-SET expansion.<br/>Weak authentication:<br/>the Celer Bridge attacker<br/>simply created ALTDB objects."]
+        F2["Maximum prefix limits<br/>Cease subcode 1.<br/>Would have stopped the<br/>2019 Verizon leak."]
+        F3["Prefix length filters<br/>reject longer than /24 IPv4,<br/>/48 IPv6, per RFC 7454"]
+        F4["Bogon prefix and bogon ASN filters"]
+        F5["RFC 8212, Jul 2017:<br/>an eBGP session with no<br/>configured policy announces<br/>and accepts nothing"]
+    end
+
+    subgraph L2["Layer 2: origin validation, since 2012"]
+        V1["RPKI ROAs, RFC 9582<br/>63.9% of advertised IPv4<br/>address space Valid,<br/>0.4% Invalid, Aug 2026"]
+        V2["RFC 6811 states:<br/>Valid, Invalid, NotFound.<br/>Drop Invalid is standard<br/>at large IXP route servers."]
+        V3["RFC 9319: set maxLength<br/>equal to the announced length"]
+    end
+
+    subgraph L3["Layer 3: relationship validation"]
+        R1["RFC 9234 roles and OTC.<br/>Capability 9, attribute 35.<br/>No cryptography needed."]
+        R2["ASPA. Drafts at version 29<br/>and 28 as of Aug 2026.<br/>2,814 objects published."]
+    end
+
+    subgraph L4["Layer 4: path validation"]
+        P1["BGPsec, RFC 8205.<br/>Signs every hop against a<br/>named target AS.<br/>2 router certificates<br/>exist worldwide."]
+    end
+
+    A1 -->|"blocked by"| F1
+    A1 -->|"blocked by"| V1
+    A2 -->|"blocked by"| F3
+    A2 -->|"blocked by"| V3
+    A3 -->|"NOT blocked by"| V1
+    A3 -->|"blocked only by"| P1
+    A3 -->|"partly detected by"| R2
+    A4 -->|"blocked by"| F2
+    A4 -->|"blocked by"| R1
+    A4 -->|"blocked by"| R2
+    A4 -->|"NOT blocked by"| V1
+
+    style Attack fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style L1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style L2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style L3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L4 fill:#eceff1,stroke:#37474f,stroke-width:2px

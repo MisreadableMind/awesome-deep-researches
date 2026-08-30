@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Connect: ManualStart<br/>initialise ConnectRetryTimer to 120s<br/>start outbound TCP to port 179
+    Connect --> OpenSent: TCP connection succeeds<br/>send OPEN
+    Connect --> Active: TCP connection fails<br/>restart ConnectRetryTimer
+    Active --> OpenSent: inbound TCP accepted<br/>or retry succeeds, send OPEN
+    Active --> Connect: ConnectRetryTimer expires
+    OpenSent --> OpenConfirm: valid OPEN received<br/>send KEEPALIVE<br/>Hold Time is now the lower of the two proposals
+    OpenSent --> Idle: bad OPEN<br/>send NOTIFICATION code 2
+    OpenConfirm --> Established: KEEPALIVE received<br/>start HoldTimer and KeepaliveTimer
+    OpenConfirm --> Idle: NOTIFICATION or HoldTimer expiry
+    Established --> Established: UPDATE or KEEPALIVE received<br/>restart HoldTimer
+    Established --> Idle: HoldTimer expires, code 4<br/>or NOTIFICATION sent or received<br/>or TCP connection drops
+    Idle --> Idle: DampPeerOscillations<br/>IdleHoldTimer backs off repeated flaps
+
+    note right of Active
+        Active does not mean working.
+        It means the outbound TCP attempt
+        failed and the speaker is waiting
+        for an inbound connection or a retry.
+        A session stuck in Active is usually
+        a filtered port 179, a wrong peer
+        address, or an ACL.
+    end note
+
+    note right of Established
+        Only in Established do routes exist.
+        Leaving Established for any reason
+        clears the Adj-RIB-In and withdraws
+        every route learned from this peer,
+        unless graceful restart, RFC 4724,
+        was negotiated.
+    end note

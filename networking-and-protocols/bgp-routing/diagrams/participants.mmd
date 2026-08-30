@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Alloc["Address and number allocation"]
+        IANA["IANA<br/>allocates /8s and AS blocks<br/>to the five RIRs"]
+        RIRs["RIRs: ARIN, RIPE NCC, APNIC,<br/>LACNIC, AFRINIC<br/>allocate prefixes and ASNs,<br/>operate RPKI trust anchors"]
+        LIRs["LIRs and end users<br/>hold the address space<br/>and create ROAs"]
+    end
+
+    subgraph Ops["Networks that run BGP"]
+        Tier1["Transit-free networks<br/>reach everything via peering only.<br/>Roughly a dozen, including Lumen AS3356,<br/>Arelion AS1299 (formerly Telia Carrier),<br/>Cogent AS174, NTT AS2914, GTT AS3257,<br/>Zayo AS6461, Tata AS6453,<br/>Telecom Italia Sparkle AS6762,<br/>Orange AS5511"]
+        Regional["Regional and national transit<br/>buy from some, peer with others"]
+        Content["Content and cloud<br/>Google, Amazon, Meta, Microsoft,<br/>Cloudflare, Akamai, Netflix.<br/>Huge traffic, mostly outbound"]
+        Access["Access networks<br/>cable, fibre, mobile.<br/>Mostly inbound traffic"]
+        Enterprise["Multihomed enterprises<br/>66,891 origin-only ASes<br/>as of Aug 2026"]
+    end
+
+    subgraph Fabric["Interconnection"]
+        IXP["Internet exchange points<br/>1,321 registered in PeeringDB.<br/>Layer 2 fabric plus route servers"]
+        PNI["Private network interconnect<br/>a direct cross connect,<br/>usually 100G or 400G"]
+        Colo["Colocation facilities<br/>5,860 registered.<br/>Where the cables actually meet"]
+    end
+
+    subgraph Gov["Governance and measurement"]
+        IETF["IETF IDR, SIDROPS, GROW<br/>write the specifications"]
+        RIPEDB["IRR databases<br/>RADB, RIPE, ALTDB.<br/>Route objects, weakly authenticated"]
+        RPKI["RPKI repositories<br/>385,894 ROAs, 997,014 unique<br/>VRPs on 30 Aug 2026"]
+        Collect["Route collectors<br/>RIPE RIS, Route Views,<br/>bgp.potaroo.net, RIPEstat"]
+        PDB["PeeringDB<br/>35,235 networks,<br/>who peers where and how"]
+    end
+
+    IANA --> RIRs --> LIRs
+    LIRs --> Enterprise
+    RIRs -.operate.-> RPKI
+
+    Enterprise -->|"buys transit"| Regional
+    Regional -->|"buys transit"| Tier1
+    Content <-->|"settlement-free peering"| Access
+    Content --- IXP
+    Access --- IXP
+    Regional --- IXP
+    Tier1 <-->|"peers with"| Tier1
+    Content --- PNI
+    Access --- PNI
+    IXP -.hosted in.-> Colo
+    PNI -.hosted in.-> Colo
+
+    IETF -.specifies.-> Ops
+    RPKI -.filters.-> Ops
+    RIPEDB -.filters.-> Ops
+    Ops -.feeds.-> Collect
+    Ops -.registers in.-> PDB
+
+    style Alloc fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Ops fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Fabric fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Gov fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Mesh["Full mesh iBGP<br/>RFC 4271 baseline"]
+        direction TB
+        M1["Every speaker peers with<br/>every other speaker"]
+        M2["n(n-1)/2 sessions.<br/>50 routers = 1,225 sessions.<br/>200 routers = 19,900."]
+        M3["Rule that forces it:<br/>an iBGP-learned route is never<br/>re-advertised to another iBGP peer,<br/>because AS_PATH does not change<br/>inside an AS and cannot detect a loop."]
+    end
+
+    subgraph RR["Route reflection<br/>RFC 4456, April 2006"]
+        direction TB
+        R1["A reflector may re-advertise<br/>iBGP routes, under three rules"]
+        R2["From a non-client: reflect to clients only.<br/>From a client: reflect to all clients<br/>and all non-clients.<br/>From eBGP: send to everyone."]
+        R3["ORIGINATOR_ID, type 9<br/>the router ID of the originator.<br/>A speaker seeing its own ID ignores the route."]
+        R4["CLUSTER_LIST, type 10<br/>each reflector prepends its 4-octet CLUSTER_ID.<br/>A reflector seeing its own ID ignores the route.<br/>Also a tiebreaker: shorter list wins."]
+        R5["Cost: the reflector picks one best path<br/>and reflects only that. Clients lose<br/>path diversity. ADD-PATH, RFC 7911,<br/>restores it by advertising several."]
+    end
+
+    subgraph Conf["Confederations<br/>RFC 5065, August 2007"]
+        direction TB
+        C1["Split AS 64497 into member-ASes<br/>65001, 65002, 65003.<br/>Outside world still sees only 64497."]
+        C2["Between member-ASes, run eBGP<br/>with iBGP semantics:<br/>LOCAL_PREF is carried,<br/>NEXT_HOP is preserved,<br/>MED may be compared."]
+        C3["AS_CONFED_SEQUENCE, segment type 3<br/>AS_CONFED_SET, segment type 4<br/>stripped at the confederation border.<br/>Both deprecated for AS_CONFED_SET<br/>by RFC 9774, May 2025."]
+        C4["Full mesh required only inside<br/>each member-AS. Reflectors may<br/>be used there too."]
+        C5["Cost: an AS renumbering exercise<br/>and a second layer of policy.<br/>Rare outside networks built before 2006."]
+    end
+
+    Mesh -->|"does not scale past<br/>a few dozen routers"| RR
+    Mesh -->|"alternative taken by<br/>a few large carriers"| Conf
+
+    style Mesh fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style RR fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Conf fill:#fff3e0,stroke:#e65100,stroke-width:2px

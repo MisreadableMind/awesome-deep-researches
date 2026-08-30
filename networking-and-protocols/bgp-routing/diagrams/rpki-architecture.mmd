@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Anchors["Trust anchors, five of them"]
+        TA["ARIN, RIPE NCC, APNIC, LACNIC, AFRINIC<br/>Each publishes a Trust Anchor Locator.<br/>Each certificate carries RFC 3779 extensions<br/>listing the IP blocks and ASNs it covers."]
+    end
+
+    subgraph CAs["Certificate authorities"]
+        RIRCA["RIR CA<br/>issues resource certificates<br/>to members"]
+        Hosted["Hosted CA<br/>the RIR holds the key and<br/>publishes on the member's behalf.<br/>The common case."]
+        Delegated["Delegated CA<br/>the member runs its own CA<br/>and publication point.<br/>Krill and similar."]
+    end
+
+    subgraph Objects["Signed objects in the repository"]
+        ROA["ROA, RFC 9582<br/>eContentType 1.2.840.113549.1.9.16.1.24<br/>asID plus ipAddrBlocks plus optional maxLength.<br/>385,894 ROAs on 30 Aug 2026"]
+        MFT["Manifest, RFC 9286<br/>the authoritative list of files<br/>at a publication point.<br/>Number handling clarified<br/>by RFC 9981, May 2026."]
+        CRL["CRL, number handling<br/>clarified by RFC 9829, Jul 2025"]
+        ASPA["ASPA object<br/>draft-ietf-sidrops-aspa-profile,<br/>version 29, 29 Jul 2026, still a draft.<br/>2,814 published on 30 Aug 2026"]
+        RTRCert["BGPsec router certificate<br/>RFC 8209. Two exist globally<br/>on 30 Aug 2026."]
+    end
+
+    subgraph RP["Relying party, run by the network operator"]
+        Fetch["Fetch over RRDP, RFC 8182,<br/>falling back to rsync.<br/>rpki-client, Routinator, Fort, OctoRPKI"]
+        Validate["Validate the chain,<br/>check manifests and CRLs,<br/>discard anything invalid"]
+        VRP["Emit Validated ROA Payloads:<br/>tuples of prefix, maxLength, ASN.<br/>1,007,228 VRP entries,<br/>997,014 unique, 30 Aug 2026"]
+        Fetch --> Validate --> VRP
+    end
+
+    subgraph Router["Router"]
+        RTR["RTR protocol, RFC 8210<br/>TCP 323, or over SSH or TLS.<br/>Incremental updates, serial numbers,<br/>no need to reload the whole set"]
+        States["Per-route state, RFC 6811<br/>Valid: a VRP matches prefix and origin<br/>Invalid: a VRP covers the prefix<br/>but none matches<br/>NotFound: no VRP covers it"]
+        Policy["Local policy<br/>Drop Invalid is now standard practice.<br/>RFC 6811 forbids excluding a route<br/>from the decision process purely<br/>as a side effect of its state,<br/>unless explicitly configured."]
+        RTR --> States --> Policy
+    end
+
+    TA --> RIRCA
+    RIRCA --> Hosted
+    RIRCA --> Delegated
+    Hosted --> ROA
+    Delegated --> ROA
+    Hosted --> MFT
+    Hosted --> CRL
+    Delegated --> ASPA
+    Delegated --> RTRCert
+    Objects --> Fetch
+    VRP --> RTR
+
+    style Anchors fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CAs fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Objects fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RP fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Router fill:#eceff1,stroke:#37474f,stroke-width:3px

@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph P1["Pre-CIDR<br/>1988-1994"]
+        direction TB
+        G1A["Classful routing.<br/>A class B is a /16 and<br/>there are only 16,384 of them."]
+        G1B["1992: about 8,500 routes,<br/>doubling roughly every<br/>10 months"]
+        G1C["Projection at the time:<br/>router memory exhausted<br/>within a few years"]
+        G1D["1994: BGP-4 and CIDR.<br/>Growth bends immediately."]
+    end
+
+    subgraph P2["The CIDR dividend<br/>1994-2001"]
+        direction TB
+        G2A["Aggregation removes<br/>tens of thousands of routes"]
+        G2B["Growth becomes roughly<br/>linear, then accelerates<br/>with the dot-com build-out"]
+        G2C["2001: about 100,000 routes"]
+    end
+
+    subgraph P3["Steady growth<br/>2002-2013"]
+        direction TB
+        G3A["Multihoming becomes normal.<br/>Every enterprise with two<br/>providers needs an ASN."]
+        G3B["2008: about 250,000 routes"]
+        G3C["2013: about 450,000 routes"]
+    end
+
+    subgraph P4["IPv4 exhaustion and transfers<br/>2014-2020"]
+        direction TB
+        G4A["Aug 2014: the 512k day.<br/>Table crosses 512,000.<br/>Cisco 6500 and 7600 TCAM<br/>default splits 512k IPv4<br/>and 256k IPv6. Routers<br/>with the default fail."]
+        G4B["Address transfers fragment<br/>large legacy blocks into<br/>separately announced pieces"]
+        G4C["2020: about 800,000 routes"]
+    end
+
+    subgraph P5["Deaggregation-driven<br/>2021-2026"]
+        direction TB
+        G5A["Address span advertised is flat<br/>at about 3.1 billion addresses.<br/>It fell 11 million during 2025."]
+        G5B["2025: 996,000 to 1,050,000 IPv4,<br/>plus 54,000 entries, 5%.<br/>IPv6 221,500 to 241,800,<br/>plus 20,300 entries, 9%."]
+        G5C["Aug 2026: 1,076,008 to 1,121,721<br/>IPv4 depending on vantage point.<br/>52.81% of entries are more specifics.<br/>77.55% of those share the<br/>origin AS of their aggregate."]
+        G5D["Projections for Jan 2030:<br/>1,166,763 IPv4 on a linear fit,<br/>1,144,962 on a polynomial fit"]
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5
+
+    style P1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P4 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style P5 fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
