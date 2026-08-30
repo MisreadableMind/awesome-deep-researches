@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant L as Laptop<br/>client platform
+    participant QR as QR code<br/>on screen
+    participant P as Phone<br/>authenticator
+    participant T as Tunnel service<br/>cable.ua5v.com
+
+    Note over L: Generate a 16-byte qrSecret<br/>and a P-256 ECDH identity key.
+    L->>QR: Display "FIDO:/" + digitEncode(CBOR)<br/>key 0: 33-byte compressed P-256 public key<br/>key 1: 16-byte qrSecret<br/>key 2: number of assigned tunnel domains<br/>key 3: current time, epoch seconds<br/>key 4: true if state-assisted capable<br/>key 5: hint "mc", "ga", "dcp" or "dci"
+    Note over QR: Encoding: 7-byte little-endian chunks<br/>rendered as 17 decimal digits each.<br/>Uppercase scheme and digits only,<br/>because that is cheapest in a QR code.
+
+    P->>QR: Camera scan
+    P->>P: CBOR-parse. Derive keys from qrSecret<br/>with HKDF-SHA256, 32-bit little-endian<br/>purpose label:<br/>1 = EID key (64 bytes)<br/>2 = tunnel ID (16 bytes)<br/>3 = handshake PSK (32 bytes)
+
+    P->>T: Register on a tunnel, obtain a<br/>routing ID and a tunnel service ID
+    P-->>L: BLE advertisement<br/>service UUID 0000fff9-0000-1000-8000-00805f9b34fb<br/>20 bytes of service data:<br/>16 bytes AES-256 ciphertext<br/>+ 4-byte HMAC-SHA256 tag
+
+    Note over L: Trial-decrypt every advert seen.<br/>Verify the 4-byte tag with the HMAC<br/>half of the EID key, then AES-decrypt<br/>the 16 bytes with the AES half.<br/>Plaintext: 1 flags byte (zero),<br/>80-bit connection nonce,<br/>24-bit routing ID,<br/>16-bit tunnel service identifier.
+
+    L->>T: wss://cable.ua5v.com/cable/connect/<br/>{hex routingID}/{hex tunnelID}<br/>subprotocol "fido.cable"
+    Note over T: Tunnel service IDs 0 to 255 are assigned:<br/>0 = cable.ua5v.com, 1 = cable.auth.com.<br/>Values >= 256 hash to a domain via<br/>SHA-256 over a fixed label, base32,<br/>with .com, .org, .net or .info.
+
+    L->>P: Noise KNpsk0 handshake message<br/>P-256, SHA-256, AES-256-GCM.<br/>PSK derived from qrSecret and the<br/>full 16-byte advert plaintext.
+    Note over L,P: The laptop speaks first, proving it<br/>received the BLE advert. The phone<br/>pre-received the laptop's public key<br/>in the QR code. That is the K and<br/>the N in KNpsk0.
+    P-->>L: Handshake reply, then a<br/>post-handshake message with<br/>capabilities and optional<br/>linking information.
+
+    L->>P: CTAP2 authenticatorGetAssertion (0x02)<br/>inside the encrypted tunnel
+    P->>P: Biometric or screen lock,<br/>sign with the passkey
+    P-->>L: authData + signature
+
+    Note over L,P: If linking information was offered<br/>and the user consented, the laptop<br/>stores a contact ID, an 8-byte link ID,<br/>a link secret and the phone's public key.
+
+    rect rgb(232, 245, 233)
+        Note over L,T: Next time: state-assisted.<br/>No QR code.<br/>wss://.../cable/contact/{base64url contactID}<br/>with X-caBLE-Client-Payload carrying<br/>the link ID, a 16-byte client nonce<br/>and a flow hint.<br/>HTTP 410 means the user unlinked,<br/>forget the link data.<br/>Handshake becomes NKpsk0, because<br/>now it is the phone whose public key<br/>was shared in advance.
+    end

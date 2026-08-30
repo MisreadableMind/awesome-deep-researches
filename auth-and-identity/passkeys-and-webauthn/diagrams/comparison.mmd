@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Phishable["Phishable: a secret the user can hand over"]
+        direction TB
+        PH1["Password<br/>Shared secret. Reused, guessable,<br/>breached in bulk."]
+        PH2["SMS OTP<br/>Bearer token. SIM swap,<br/>SS7 interception, real-time relay."]
+        PH3["Email magic link<br/>Bearer token in the least<br/>protected channel a user owns."]
+        PH4["TOTP, RFC 6238<br/>Shared seed, 6-digit bearer token,<br/>30-second relay window."]
+        PH5["Push approval<br/>User approves a prompt they did<br/>not start. Fatigue attacks."]
+        PH6["Push with number matching<br/>Lowers the rate. Same category."]
+    end
+
+    subgraph Resistant["Phishing-resistant: origin bound"]
+        direction TB
+        PR1["U2F / CTAP1 security key<br/>Second factor only. No usernameless<br/>flow. Still origin bound."]
+        PR2["Device-bound passkey<br/>Non-exportable key. AAL3 eligible.<br/>Loss of the device is loss of<br/>the credential."]
+        PR3["Synced passkey<br/>Exportable to a sync fabric.<br/>AAL2 ceiling. Survives device loss."]
+        PR4["Smart card / PIV / CAC<br/>Certificate-based, TLS client auth.<br/>Origin bound through the TLS<br/>connection. Heavy PKI."]
+    end
+
+    subgraph Choose["When to choose which"]
+        direction TB
+        CH1["Consumer service, mass market:<br/>synced passkey, with a second<br/>passkey encouraged at enrolment."]
+        CH2["Employee sign-in, general staff:<br/>synced or device-bound passkey<br/>under an IdP policy."]
+        CH3["Administrator or executive:<br/>device-bound passkey on attested<br/>hardware, two keys per person."]
+        CH4["Air-gapped or classified:<br/>PIV or a FIPS-validated<br/>hardware authenticator."]
+        CH5["Offline, low-connectivity, or<br/>users who refuse a platform account:<br/>TOTP remains the honest answer."]
+        CH6["Machine-to-machine:<br/>none of the above. Use mTLS<br/>or a workload identity."]
+    end
+
+    Phishable -->|"relay through a proxy<br/>defeats every one"| Resistant
+    Resistant --> Choose
+
+    style Phishable fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Resistant fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Choose fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

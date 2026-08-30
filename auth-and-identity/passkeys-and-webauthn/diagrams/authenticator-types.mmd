@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Plat["Platform authenticator: attachment 'platform'"]
+        direction TB
+        PL1["Built into the device the user<br/>is signing in on. Transport<br/>value 'internal'."]
+        PL2["Apple: Secure Enclave, keys<br/>generated in and never leaving<br/>the coprocessor. Touch ID,<br/>Face ID or Optic ID unlocks."]
+        PL3["Android: TEE or a StrongBox<br/>secure element. Screen lock or<br/>biometric unlocks. Google<br/>Password Manager syncs."]
+        PL4["Windows: Windows Hello backed<br/>by TPM 2.0, or a passkey in<br/>the Microsoft account."]
+        PL5["Cannot be moved to another<br/>device except through the<br/>vendor's sync fabric."]
+    end
+
+    subgraph Roam["Roaming authenticator: attachment 'cross-platform'"]
+        direction TB
+        RO1["A separate physical device.<br/>Transports 'usb', 'nfc', 'ble',<br/>'smart-card'."]
+        RO2["USB HID: CTAPHID framing.<br/>64-byte packets, init packet<br/>carries CID, CMD, BCNTH, BCNTL;<br/>continuation packets carry CID<br/>and a 7-bit sequence number.<br/>Max payload 7609 bytes."]
+        RO3["NFC: ISO 7816 APDUs.<br/>Tap and hold, no cable."]
+        RO4["BLE: the FIDO GATT service.<br/>Requires pairing; largely<br/>displaced by hybrid."]
+        RO5["Keys never leave the device.<br/>Loss of the device is loss<br/>of every credential on it."]
+    end
+
+    subgraph Hyb["Hybrid: transport 'hybrid'"]
+        direction TB
+        HY1["A phone acts as an authenticator<br/>for a sign-in happening on a<br/>different machine."]
+        HY2["Three channels at once:<br/>a QR code carries the key<br/>material, a BLE advert proves<br/>proximity, a WebSocket tunnel<br/>carries the CTAP messages."]
+        HY3["Standardised in CTAP 2.2,<br/>14 July 2025. Previously<br/>known as caBLE v2."]
+        HY4["The BLE step is not optional.<br/>It is what stops a remote attacker<br/>displaying a QR code to the user."]
+    end
+
+    subgraph Prov["Third-party credential provider"]
+        direction TB
+        PR1["A password manager registered<br/>with the OS as a passkey store.<br/>Android 14+ Credential Manager,<br/>iOS 17+ AutoFill provider."]
+        PR2["1Password, Bitwarden, Dashlane,<br/>NordPass, Enpass. Appears to the<br/>relying party as a platform<br/>authenticator with its own AAGUID."]
+        PR3["Syncs through the vendor's own<br/>vault rather than the OS vendor's."]
+    end
+
+    Plat --> Trade["The trade in one line:<br/>platform is convenient and<br/>tied to an ecosystem, roaming<br/>is portable and losable,<br/>hybrid is a bridge, provider<br/>is a choice of custodian."]
+    Roam --> Trade
+    Hyb --> Trade
+    Prov --> Trade
+
+    style Plat fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Roam fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Hyb fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Prov fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Trade fill:#eceff1,stroke:#37474f,stroke-width:3px

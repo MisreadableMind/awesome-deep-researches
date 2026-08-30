@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph B1["Binding 1: the challenge"]
+        direction TB
+        B1A["What: 32 random bytes,<br/>issued per ceremony,<br/>stored against the session"]
+        B1B["Where: clientDataJSON.challenge,<br/>base64url encoded"]
+        B1C["Checked by: the RP server"]
+        B1D["Defeats: replay of a captured<br/>assertion, and any attempt to<br/>pre-compute a signature"]
+    end
+
+    subgraph B2["Binding 2: the origin"]
+        direction TB
+        B2A["What: the full origin of the<br/>page that called the API,<br/>written by the browser"]
+        B2B["Where: clientDataJSON.origin"]
+        B2C["Checked by: the RP server,<br/>against its own allow list"]
+        B2D["Defeats: a proxy that relays<br/>a genuine challenge from its<br/>own domain. The origin string<br/>gives it away."]
+    end
+
+    subgraph B3["Binding 3: the RP ID hash"]
+        direction TB
+        B3A["What: SHA-256 of the RP ID,<br/>computed by the authenticator<br/>over the RP ID string the client<br/>derived from the real origin"]
+        B3B["Where: authenticatorData<br/>bytes 0 to 31"]
+        B3C["Checked by: the authenticator<br/>at lookup time, and by the RP<br/>server at verification time"]
+        B3D["Defeats: the proxy earlier still.<br/>No credential exists under<br/>the attacker's RP ID, so there<br/>is nothing to sign with."]
+    end
+
+    subgraph Scope["What the client enforces about rp.id"]
+        direction TB
+        S1["Page origin: https://app.example.com"]
+        S2["rp.id 'app.example.com' - allowed<br/>rp.id 'example.com' - allowed,<br/>a registrable domain suffix<br/>rp.id 'com' - refused, a public suffix<br/>rp.id 'example.org' - refused<br/>rp.id 'evil.com' - refused"]
+        S3["Related Origin Requests, Level 3:<br/>fetch https://example.com/.well-known/webauthn<br/>and read its JSON origins array,<br/>listing https://example.co.uk<br/>and https://example.de.<br/>One RP ID covers several ccTLDs.<br/>Clients must honour at least five<br/>distinct registrable origin labels."]
+        S1 --> S2 --> S3
+    end
+
+    B1 --> Result["A proxy holding a valid<br/>password and a valid OTP<br/>obtains no usable assertion."]
+    B2 --> Result
+    B3 --> Result
+    Scope --> B3
+
+    style B1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style B2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style B3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Scope fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Result fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px

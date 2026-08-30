@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant RP as RP server<br/>example.com
+    participant JS as Page script
+    participant B as Browser
+    participant A as Authenticator
+
+    JS->>RP: POST /webauthn/login/begin
+    Note over RP: For a usernameless flow, send<br/>no allowCredentials at all.<br/>The authenticator will discover<br/>its own credentials.
+    RP-->>JS: PublicKeyCredentialRequestOptionsJSON<br/>challenge (base64url, 32 bytes)<br/>rpId: "example.com"<br/>allowCredentials: []<br/>userVerification: "required"<br/>timeout: 300000
+
+    JS->>B: navigator.credentials.get({publicKey,<br/>mediation: "conditional"})
+    Note over B: Conditional mediation puts the<br/>passkey in the autofill dropdown<br/>of an input with<br/>autocomplete="username webauthn"<br/>instead of a modal.
+    Note over B: Build CollectedClientData:<br/>{"type":"webauthn.get",<br/>"challenge":"...",<br/>"origin":"https://www.example.com",<br/>"crossOrigin":false}<br/>hash = SHA-256(clientDataJSON)
+
+    B->>A: authenticatorGetAssertion (0x02)<br/>0x01 rpId "example.com"<br/>0x02 clientDataHash<br/>0x03 allowList (omitted)<br/>0x04 extensions<br/>0x05 options {up: true}<br/>0x06 pinUvAuthParam<br/>0x07 pinUvAuthProtocol
+
+    A->>A: Look up credentials bound to<br/>the RP ID "example.com".<br/>Filter by credProtect policy.
+    A->>U: Show account picker<br/>and request the gesture
+    U-->>A: Face ID, fingerprint or PIN
+    A->>A: Build authenticatorData:<br/>rpIdHash || flags || signCount<br/>AT bit is NOT set.<br/>sig = Sign(privKey,<br/>authData || clientDataHash)
+    A-->>B: 0x01 credential {type, id}<br/>0x02 authData<br/>0x03 signature<br/>0x04 user {id}<br/>0x05 numberOfCredentials
+
+    B-->>JS: PublicKeyCredential<br/>response.clientDataJSON<br/>response.authenticatorData<br/>response.signature<br/>response.userHandle
+    JS->>RP: POST /webauthn/login/finish
+
+    Note over RP: 1. type == "webauthn.get"<br/>2. challenge matches<br/>3. origin on the allow list<br/>4. rpIdHash == SHA-256(rpId)<br/>5. UP bit set<br/>6. UV bit set if required<br/>7. BE clear implies BS clear<br/>8. Verify sig over<br/>   authData || SHA-256(cData)<br/>   using the stored public key<br/>9. Evaluate signCount<br/>10. Update record: signCount,<br/>    backupState, uvInitialized
+    RP-->>JS: Session established

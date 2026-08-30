@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Phish["Adversary-in-the-middle against a shared secret"]
+        direction TB
+        P1["Victim receives an SMS:<br/>'your Okta password expires,<br/>reset at okta-sso-help.com'"]
+        P2["Victim opens the proxy.<br/>It renders the real page<br/>by fetching it live."]
+        P3["Victim types username<br/>and password.<br/>Proxy replays them upstream."]
+        P4["Real site asks for a<br/>TOTP code. Proxy shows<br/>the same prompt."]
+        P5["Victim types the 6 digits.<br/>Proxy replays them within<br/>the 30-second window."]
+        P6["Real site issues a session<br/>cookie. Proxy keeps it.<br/>Account compromised."]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    end
+
+    subgraph Fido["The same attack against a WebAuthn credential"]
+        direction TB
+        F1["Victim opens the proxy.<br/>Browser address bar reads<br/>okta-sso-help.com"]
+        F2["Proxy relays the real site's<br/>challenge into a call to<br/>navigator.credentials.get()"]
+        F3["Browser builds clientDataJSON<br/>with origin =<br/>'https://okta-sso-help.com'"]
+        F4["Browser derives the RP ID from<br/>the page's own origin and sends<br/>that string to the authenticator"]
+        F5["Authenticator finds no credential<br/>scoped to that RP ID hash.<br/>Nothing to sign."]
+        F6["Even if a signature existed,<br/>the real server compares<br/>C.origin against its allow list<br/>and rejects it."]
+        F1 --> F2 --> F3 --> F4 --> F5 --> F6
+    end
+
+    Phish -.->|"the user is the<br/>only judge of<br/>which site this is"| Weak["Failure is structural:<br/>the secret is equally valid<br/>wherever it is typed"]
+    Fido -.->|"the browser is the<br/>judge, and it reads<br/>the address bar"| Strong["Failure is impossible without<br/>compromising the client:<br/>the signature names the origin"]
+
+    style Phish fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Fido fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Weak fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Strong fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px

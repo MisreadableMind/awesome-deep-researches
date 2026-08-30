@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph UP["User Presence: flags bit 0"]
+        direction TB
+        U1["Claim: a human is physically<br/>at the authenticator right now."]
+        U2["Gesture: a capacitive touch,<br/>a button press, an NFC tap.<br/>No identity is checked."]
+        U3["Purpose: stop a remote attacker<br/>or silent malware from harvesting<br/>signatures from a plugged-in key."]
+        U4["Default in CTAP: up = true.<br/>Sending up = false returns<br/>CTAP2_ERR_INVALID_OPTION."]
+        U1 --> U2 --> U3 --> U4
+    end
+
+    subgraph UV["User Verification: flags bit 2"]
+        direction TB
+        V1["Claim: the authenticator has<br/>checked that this is the<br/>enrolled human, or someone<br/>who knows the PIN."]
+        V2["Gesture: fingerprint, face,<br/>iris, device PIN, screen lock,<br/>or an on-key PIN."]
+        V3["Purpose: turn possession of the<br/>authenticator into possession<br/>plus knowledge or inherence,<br/>in a single act."]
+        V4["Requested via userVerification:<br/>'required', 'preferred' or 'discouraged'.<br/>'preferred' is the default and<br/>guarantees nothing."]
+        V1 --> V2 --> V3 --> V4
+    end
+
+    subgraph Mech["How CTAP actually carries UV"]
+        direction TB
+        M1["Platform obtains a pinUvAuthToken<br/>via authenticatorClientPIN (0x06):<br/>getPinUvAuthTokenUsingPinWithPermissions<br/>or ...UsingUvWithPermissions"]
+        M2["Token is scoped by permissions:<br/>mc (makeCredential),<br/>ga (getAssertion),<br/>cm (credential management),<br/>be (bio enrollment),<br/>lbw (large blob write),<br/>acfg (authenticator config)<br/>and by an RP ID."]
+        M3["Platform sends<br/>pinUvAuthParam (0x08 / 0x06)<br/>= authenticate(token, clientDataHash)<br/>plus pinUvAuthProtocol (1 or 2)."]
+        M4["Wrong or expired token yields<br/>CTAP2_ERR_PIN_AUTH_INVALID.<br/>The legacy 'uv' option key<br/>is deprecated in CTAP 2.1."]
+        M1 --> M2 --> M3 --> M4
+    end
+
+    subgraph Bug["The assurance bug"]
+        direction TB
+        E1["RP sends userVerification:<br/>'preferred' and treats every<br/>success as multi-factor."]
+        E2["An authenticator without a PIN<br/>returns UV = 0 and the ceremony<br/>succeeds anyway."]
+        E3["The RP has recorded a<br/>single-factor sign-in as<br/>if it were two factors."]
+        E4["Fix: send 'required', and<br/>verify the UV bit server-side.<br/>The request preference is a<br/>hint; the flag is the evidence."]
+        E1 --> E2 --> E3 --> E4
+    end
+
+    UP --> Mech
+    UV --> Mech
+    UV --> Bug
+
+    style UP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style UV fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Mech fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Bug fill:#ffebee,stroke:#b71c1c,stroke-width:3px

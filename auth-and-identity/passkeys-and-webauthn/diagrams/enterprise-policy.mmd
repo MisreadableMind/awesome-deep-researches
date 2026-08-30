@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Profile["An Entra ID passkey profile"]
+        direction TB
+        PF1["Target: a group, or all users.<br/>A user in several profiles passes<br/>if any one profile is satisfied."]
+        PF2["Passkey types:<br/>device-bound, synced, or both"]
+        PF3["Enforce attestation:<br/>yes or no"]
+        PF4["Key restrictions:<br/>allow or block a list of AAGUIDs"]
+        PF1 --> PF2 --> PF3 --> PF4
+    end
+
+    subgraph Limits["Hard limits, as documented"]
+        direction TB
+        L1["Up to three profiles including<br/>the default. More is 'in development'."]
+        L2["Policy size limit 20 KB.<br/>Base policy 1.44 KB.<br/>A profile with no AAGUIDs 0.4 KB.<br/>A profile with 10 AAGUIDs 0.3 KB."]
+        L3["A user must have completed MFA<br/>within the past five minutes to<br/>register a passkey."]
+        L4["Guest and B2B collaboration users<br/>cannot register passkeys in the<br/>resource tenant."]
+        L5["Enabling profiles moves the global<br/>policy into a Default profile.<br/>Microsoft states that after opting in,<br/>an organisation cannot opt out."]
+    end
+
+    subgraph Attest["What 'enforce attestation' requires of a vendor"]
+        direction TB
+        AT1["A valid packed attestation<br/>statement with a complete chain<br/>to a root in the FIDO MDS."]
+        AT2["FIDO2 certification at any level."]
+        AT3["MDS metadata declaring FIDO 2.0<br/>or higher, user verification or<br/>client PIN, resident keys, and<br/>hmac-secret or PRF."]
+        AT4["Microsoft ingests the MDS BLOB<br/>monthly; up to four weeks may pass<br/>between MDS listing and recognition."]
+        AT1 --> AT2 --> AT3 --> AT4
+    end
+
+    subgraph Split["The policy split that works"]
+        direction TB
+        SP1["Admins, executives, engineers:<br/>device-bound only,<br/>attestation enforced,<br/>AAGUID allow list."]
+        SP2["General workforce:<br/>device-bound or synced,<br/>attestation not enforced,<br/>no key restrictions."]
+        SP3["Rationale: high-privilege accounts<br/>justify hardware cost and a<br/>controlled recovery path.<br/>The rest trade control for<br/>portability and fewer tickets."]
+        SP1 --> SP3
+        SP2 --> SP3
+    end
+
+    Profile --> Limits
+    Profile --> Attest
+    Attest --> Split
+
+    style Profile fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Limits fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Attest fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Split fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

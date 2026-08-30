@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    P0["Phase 0: instrument<br/>Measure current sign-in success rate,<br/>password reset volume, MFA method mix,<br/>and account takeover incidents.<br/>Without a baseline the rollout<br/>cannot be evaluated."]
+
+    P1["Phase 1: accept passkeys<br/>Implement registration and assertion.<br/>residentKey: 'required',<br/>userVerification: 'required',<br/>attestation: 'none'.<br/>Passkey becomes an alternative,<br/>password still works.<br/>Security gain: zero."]
+
+    P2["Phase 2: make it discoverable<br/>Conditional mediation on the sign-in<br/>field: autocomplete='username webauthn'.<br/>Passkeys surface in autofill.<br/>Offer creation right after a successful<br/>password sign-in, when the user has<br/>already proven who they are.<br/>Security gain: still zero."]
+
+    P3["Phase 3: retire the phishable factor<br/>For accounts holding a passkey, stop<br/>offering SMS and TOTP as a step-up.<br/>Remove the 'use another method' link<br/>from the passkey prompt.<br/>Security gain: begins here."]
+
+    P4["Phase 4: passwordless by default<br/>New accounts get no password at all.<br/>Existing accounts are prompted to<br/>remove theirs once two passkeys<br/>are registered.<br/>Security gain: the phishable<br/>credential no longer exists."]
+
+    P5["Phase 5: fix recovery<br/>Rebuild the reset flow so it does not<br/>reintroduce a phishable path.<br/>Second passkey at enrolment,<br/>offline recovery codes,<br/>a slow high-friction fallback.<br/>Security gain: the account,<br/>not just the front door."]
+
+    P0 --> P1 --> P2 --> P3 --> P4 --> P5
+
+    subgraph Trap["The trap most deployments fall into"]
+        direction TB
+        T1["Ship phases 1 and 2.<br/>Report a passkey adoption number.<br/>Leave the password and the SMS<br/>fallback in place forever."]
+        T2["Attacker ignores the passkey<br/>entirely and phishes the password<br/>and the SMS code, exactly as before."]
+        T3["Adoption metric goes up.<br/>Account takeover rate does not<br/>go down."]
+        T1 --> T2 --> T3
+    end
+
+    subgraph Tools["What Level 3 gives the migration"]
+        direction TB
+        W1["signalAllAcceptedCredentials():<br/>tells the authenticator which<br/>credential IDs the server still<br/>accepts, so revoked passkeys<br/>disappear from the picker."]
+        W2["signalUnknownCredential():<br/>tells the authenticator a credential<br/>ID it just offered is unknown to<br/>the server, so it can clean up."]
+        W3["signalCurrentUserDetails():<br/>update the stored name and<br/>display name after a profile change."]
+        W4["getClientCapabilities():<br/>asks the browser what it supports<br/>before rendering the option."]
+    end
+
+    P3 -.->|"revocation without<br/>stale pickers"| Tools
+    P2 -.->|"the failure mode<br/>to design against"| Trap
+
+    style P1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style P2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style P5 fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style Trap fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Tools fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

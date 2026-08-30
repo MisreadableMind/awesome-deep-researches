@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Closed["Closed by construction"]
+        direction TB
+        C1["Credential phishing<br/>No secret exists to type<br/>into the wrong site."]
+        C2["Adversary-in-the-middle proxy<br/>The origin in clientDataJSON<br/>names the proxy. The RP rejects."]
+        C3["Credential stuffing and<br/>password reuse<br/>There is no password to reuse."]
+        C4["Server-side credential theft<br/>The database holds public keys.<br/>They are already public."]
+        C5["Replay of a captured assertion<br/>The challenge is single use<br/>and session bound."]
+        C6["Brute force and spraying<br/>There is no guessable secret."]
+    end
+
+    subgraph Open["Still open"]
+        direction TB
+        O1["Malware on an unlocked device<br/>An attacker who controls the OS<br/>controls the gesture and can drive<br/>the ceremony. The spec excludes<br/>a compromised client from its<br/>threat model."]
+        O2["Session token theft<br/>An assertion establishes a session.<br/>Stealing the cookie afterwards<br/>bypasses authentication entirely.<br/>Token binding was removed and<br/>marked reserved in Level 3."]
+        O3["Account recovery<br/>See section 16. The dominant<br/>real-world route."]
+        O4["Consent phishing<br/>The user is tricked into granting<br/>an OAuth scope to a hostile app.<br/>No authentication is defeated;<br/>authorisation is given away."]
+        O5["Coercion and shoulder surfing<br/>A biometric or a PIN observed<br/>or compelled in person."]
+        O6["Sync fabric account takeover<br/>Compromise the Apple, Google or<br/>Microsoft account and inherit<br/>every synced passkey."]
+        O7["Malicious or compromised RP<br/>Origin binding protects the user<br/>from impostors, not from the<br/>site they meant to visit."]
+    end
+
+    subgraph Weak["Weak or misunderstood controls"]
+        direction TB
+        K1["Signature counter<br/>Zero on every synced passkey.<br/>A risk signal for hardware keys,<br/>never an authentication decision."]
+        K2["Attestation<br/>Names a model, not a unit.<br/>Absent on synced passkeys."]
+        K3["AAGUID without attestation<br/>An unverified self-report.<br/>A policy guide, not a control."]
+        K4["userVerification 'preferred'<br/>Guarantees nothing. Check the<br/>UV flag, not the request."]
+    end
+
+    Closed --> Net["Net effect: the attacker's<br/>cheapest path moves from<br/>'send an email' to<br/>'compromise a device or<br/>a recovery flow'.<br/>That is a large economic shift<br/>and not an absolute one."]
+    Open --> Net
+    Weak --> Net
+
+    style Closed fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style Open fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Weak fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Net fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

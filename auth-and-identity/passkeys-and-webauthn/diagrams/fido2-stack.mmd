@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph RP["Relying party: the website"]
+        direction TB
+        Server["RP server<br/>Generates the challenge.<br/>Stores credential records:<br/>id, publicKey, signCount,<br/>uvInitialized, transports,<br/>backupEligible, backupState."]
+        JS["Page JavaScript<br/>navigator.credentials.create()<br/>navigator.credentials.get()"]
+    end
+
+    subgraph Client["WebAuthn client: browser or OS platform"]
+        direction TB
+        Origin["Origin check<br/>Reads the actual origin.<br/>Validates rp.id is a registrable<br/>suffix of it, or matches a<br/>related origin from<br/>/.well-known/webauthn"]
+        CD["Builds CollectedClientData:<br/>type, challenge, origin,<br/>crossOrigin, topOrigin.<br/>Serialises to clientDataJSON,<br/>hashes with SHA-256."]
+        Sel["Authenticator selection UI<br/>and credential picker.<br/>Applies hints, attachment,<br/>residentKey, userVerification."]
+    end
+
+    subgraph CTAP["CTAP2: client to authenticator"]
+        direction TB
+        Cmd["CBOR commands<br/>0x01 authenticatorMakeCredential<br/>0x02 authenticatorGetAssertion<br/>0x04 authenticatorGetInfo<br/>0x06 authenticatorClientPIN<br/>0x0A authenticatorCredentialManagement"]
+        Tr["Transports, the six WebAuthn values<br/>usb: CTAPHID, 64-byte frames<br/>nfc: ISO 7816 APDUs<br/>ble: FIDO GATT service<br/>smart-card: ISO 7816 over a reader<br/>hybrid: QR + BLE + WebSocket<br/>internal: platform IPC"]
+    end
+
+    subgraph Auth["Authenticator"]
+        direction TB
+        Store["Credentials map:<br/>(rpId, userHandle) to<br/>public key credential source"]
+        Crypto["Key generation and signing.<br/>ES256 by default.<br/>Keys in a Secure Enclave,<br/>TEE, StrongBox, secure element<br/>or a software vault."]
+        UVM["User verification:<br/>biometric matcher, PIN,<br/>or screen lock."]
+    end
+
+    Server -->|"challenge, rp, user,<br/>pubKeyCredParams"| JS
+    JS -->|"PublicKeyCredentialCreationOptions"| Origin
+    Origin --> CD --> Sel
+    Sel --> Cmd
+    Cmd --> Tr
+    Tr --> Store
+    Store --> Crypto
+    Crypto --> UVM
+    UVM -->|"authData, signature,<br/>attStmt"| Tr
+    Tr -->|"PublicKeyCredential"| JS
+    JS -->|"clientDataJSON,<br/>attestationObject or<br/>authenticatorData + signature"| Server
+
+    style RP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Client fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style CTAP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Auth fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
