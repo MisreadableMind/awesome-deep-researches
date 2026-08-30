@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    START["Row assembled by INSERT or UPDATE"]
+    Q1{"Row size larger than<br/>TOAST_TUPLE_THRESHOLD,<br/>2032 bytes on an 8kB page?"}
+    DONE1["Store inline. No TOAST work."]
+
+    P1["Pass 1: compress and move out of line<br/>the largest EXTENDED and EXTERNAL columns,<br/>biggest first, until the row fits 2032 bytes"]
+    Q2{"Row now fits?"}
+    P2["Pass 2: compress remaining<br/>EXTENDED and MAIN columns in place"]
+    Q3{"Row now fits?"}
+    P3["Pass 3: move MAIN columns out of line<br/>target is MaxHeapTupleSize, 8160 bytes"]
+    Q4{"Row now fits<br/>8160 bytes?"}
+    FAIL["ERROR: row is too big for a page.<br/>Happens with many PLAIN columns."]
+    DONE2["Store row with 18-byte TOAST pointers:<br/>2-byte varlena header and tag<br/>plus 16-byte varatt_external"]
+
+    subgraph TT["TOAST table - pg_toast.pg_toast_OID"]
+        SCHEMA["chunk_id oid, chunk_seq int4, chunk_data bytea<br/>PRIMARY KEY on chunk_id, chunk_seq<br/>TOAST_MAX_CHUNK_SIZE = 1996 bytes per chunk"]
+        CALC["A 1MB value becomes<br/>ceil(1048576 / 1996) = 526 chunks<br/>spread across roughly 132 TOAST pages"]
+    end
+
+    START --> Q1
+    Q1 -->|"no"| DONE1
+    Q1 -->|"yes"| P1 --> Q2
+    Q2 -->|"yes"| DONE2
+    Q2 -->|"no"| P2 --> Q3
+    Q3 -->|"yes"| DONE2
+    Q3 -->|"no"| P3 --> Q4
+    Q4 -->|"yes"| DONE2
+    Q4 -->|"no"| FAIL
+
+    P1 -.->|"writes chunks"| TT
+    P3 -.->|"writes chunks"| TT
+    DONE2 -.->|"pointer references"| TT
+
+    style START fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style DONE2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style FAIL fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style TT fill:#fff3e0,stroke:#e65100,stroke-width:2px

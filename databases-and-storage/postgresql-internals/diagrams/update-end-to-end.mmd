@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application
+    participant BE as Backend process
+    participant PL as Planner
+    participant BUF as shared_buffers
+    participant WAL as WAL buffers
+    participant DISK as pg_wal on disk
+    participant WS as walsender
+    participant AV as autovacuum
+
+    App->>BE: UPDATE accounts SET balance_cents = 419900<br/>WHERE id = 4711
+    BE->>BE: Parse, analyse, rewrite.<br/>No permanent XID yet - only a VXID like 4/12532.
+    BE->>PL: Plan it
+    PL->>PL: SeqScan cost = 1.0 x 93,458 + 0.01 x 10,000,000<br/>+ 0.0025 x 10,000,000 = 218,458
+    PL->>PL: IndexScan cost = 0.435 startup<br/>+ 4.0 index page + 4.0 heap page<br/>+ 0.0175 CPU = 8.45
+    PL-->>BE: Update -> Index Scan using accounts_pkey<br/>cost=0.43..8.45 rows=1
+
+    BE->>BE: First write: acquire permanent XID 91,432,006<br/>from the shared counter, register in ProcArray
+    BE->>BUF: Read index root, internal, leaf: 3 buffer lookups
+    BE->>BUF: Read heap page 42, pin it, take a content lock
+    BE->>BUF: Old tuple at (42,3): set t_xmax = 91432006,<br/>set HEAP_XMAX_LOCK_ONLY off,<br/>set HEAP_HOT_UPDATED
+    BE->>BUF: Write new tuple at (42,58): 66 bytes,<br/>t_xmin = 91432006, t_xmax = 0,<br/>t_ctid points at itself, HEAP_ONLY_TUPLE
+    BE->>BUF: Old tuple t_ctid now points at (42,58)
+    Note over BE,BUF: balance_cents is not indexed and the new<br/>version fits on page 42, so this is a HOT update.<br/>The primary key index is not touched at all.
+
+    BE->>WAL: XLogInsert RM_HEAP_ID / XLOG_HEAP_HOT_UPDATE<br/>24B record header + 4B block header<br/>+ 12B RelFileLocator + 4B block number<br/>+ 14B xl_heap_update + 4B prefix and suffix lengths<br/>+ 5B xl_heap_header + 9B changed middle of<br/>the tuple = about 76 bytes
+    Note over WAL: If page 42 has not been touched since the last<br/>checkpoint, a full-page image is attached instead:<br/>up to 8192 bytes minus the free-space hole.<br/>This is why WAL volume spikes after every checkpoint.
+    BE->>BUF: Set page 42 pd_lsn to the new record's LSN,<br/>mark BM_DIRTY, clear the all-visible bit<br/>in the visibility map
+    App->>BE: COMMIT
+    BE->>WAL: XLogInsert RM_XACT_ID / XLOG_XACT_COMMIT
+    BE->>DISK: XLogFlush: write and fsync everything<br/>up to the commit LSN
+    DISK-->>BE: durable
+    BE->>BE: Set pg_xact bits for 91432006 to<br/>TRANSACTION_STATUS_COMMITTED, remove from ProcArray
+    BE-->>App: COMMIT returns. The heap page is still<br/>dirty in memory and may not reach disk for minutes.
+
+    WS->>DISK: Read the flushed WAL
+    WS->>WS: Send 'w' XLogData to every standby.<br/>With synchronous_commit = on the COMMIT<br/>above would have waited for the standby's<br/>'r' flush LSN before returning.
+
+    Note over BUF: Some later reader touches page 42
+    BE->>BUF: heap_page_prune_opt fires because free space<br/>dropped below 10 percent: the old version's<br/>ItemId becomes LP_REDIRECT, its body is freed.<br/>A plain SELECT just dirtied a page.
+
+    AV->>BUF: Autovacuum arrives when dead tuples exceed<br/>50 + 0.2 x 10,000,000 = 2,000,050,<br/>or when age(relfrozenxid) passes 200,000,000
+    AV->>BUF: Reclaim LP_DEAD line pointers, set the<br/>free space map, set all-visible and<br/>all-frozen bits in the visibility map
+    Note over AV: Nothing is returned to the filesystem.<br/>The 730 MiB file stays 730 MiB.

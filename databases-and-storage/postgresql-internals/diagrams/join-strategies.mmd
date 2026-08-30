@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph NL["Nested Loop"]
+        direction TB
+        NL1["for each outer tuple:<br/>  rescan the inner side"]
+        NL2["Cost = outer_cost<br/>+ outer_rows x inner_cost<br/>+ cpu_tuple_cost x result_rows"]
+        NL3["Wins when the outer side is tiny<br/>and the inner side has an index on<br/>the join key, so each rescan is<br/>an index lookup, not a scan."]
+        NL4["Startup cost is near zero.<br/>The planner picks it under LIMIT<br/>even when the total cost is worse."]
+        NL5["Memoize node, PostgreSQL 14:<br/>a hash cache in front of the inner side<br/>so repeated outer keys are not rescanned.<br/>Sized by work_mem x hash_mem_multiplier."]
+        NL1 --> NL2 --> NL3 --> NL4 --> NL5
+    end
+
+    subgraph HJ["Hash Join"]
+        direction TB
+        HJ1["Build phase: read the inner side once,<br/>hash the join key into buckets"]
+        HJ2["Probe phase: stream the outer side,<br/>look each row up in the hash table"]
+        HJ3["Memory budget is<br/>work_mem x hash_mem_multiplier,<br/>4MB x 2.0 = 8MB by default."]
+        HJ4["Overflow splits into batches:<br/>a power-of-two number of temp files<br/>on both sides. EXPLAIN ANALYZE shows<br/>Batches: 8 and Disk Usage."]
+        HJ5["Equality only. No ordering produced.<br/>Parallel Hash, PostgreSQL 11, builds<br/>one shared hash table across workers."]
+        HJ1 --> HJ2 --> HJ3 --> HJ4 --> HJ5
+    end
+
+    subgraph MJ["Merge Join"]
+        direction TB
+        MJ1["Both sides must arrive sorted<br/>on the join key"]
+        MJ2["Walk the two streams in lockstep.<br/>Mark and restore on the inner side<br/>handles duplicate keys."]
+        MJ3["Free when both sides already have a<br/>btree index in the right order.<br/>Otherwise pay for two sorts:<br/>2 x cpu_operator_cost x n x log2(n)."]
+        MJ4["The only strategy that supports<br/>inequality merge conditions cheaply<br/>and preserves sort order for the<br/>node above it."]
+        MJ1 --> MJ2 --> MJ3 --> MJ4
+    end
+
+    CHOICE["The planner does not choose a strategy.<br/>It costs all legal ones and keeps the cheapest<br/>per useful sort order. A wrong join usually<br/>means a wrong row estimate, not a wrong rule."]
+
+    NL --> CHOICE
+    HJ --> CHOICE
+    MJ --> CHOICE
+
+    style NL fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style HJ fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MJ fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CHOICE fill:#fce4ec,stroke:#880e4f,stroke-width:3px

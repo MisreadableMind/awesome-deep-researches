@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph IDX["Index on accounts(id)"]
+        IE["Index entry<br/>id = 4711 points to<br/>TID (page 42, item 3)"]
+    end
+
+    subgraph P1["Heap page 42 - before pruning"]
+        direction TB
+        L3["ItemId 3<br/>LP_NORMAL"]
+        T1["Tuple v1<br/>xmin 1000, xmax 1200<br/>t_ctid to (42,7)<br/>HEAP_HOT_UPDATED"]
+        L7["ItemId 7<br/>LP_NORMAL"]
+        T2["Tuple v2<br/>xmin 1200, xmax 1350<br/>t_ctid to (42,9)<br/>HEAP_ONLY_TUPLE + HOT_UPDATED"]
+        L9["ItemId 9<br/>LP_NORMAL"]
+        T3["Tuple v3, current<br/>xmin 1350, xmax 0<br/>t_ctid to itself<br/>HEAP_ONLY_TUPLE"]
+        L3 --> T1
+        L7 --> T2
+        L9 --> T3
+        T1 -.->|"t_ctid"| L7
+        T2 -.->|"t_ctid"| L9
+    end
+
+    subgraph P2["Heap page 42 - after HOT pruning"]
+        direction TB
+        R3["ItemId 3<br/>LP_REDIRECT to 9<br/>no tuple body"]
+        D7["ItemId 7<br/>LP_UNUSED<br/>space reclaimed"]
+        N9["ItemId 9<br/>LP_NORMAL"]
+        TT3["Tuple v3 survives<br/>page defragmented,<br/>free space coalesced"]
+        R3 -.->|"redirect"| N9
+        N9 --> TT3
+    end
+
+    IE -->|"single index entry<br/>for all three versions"| L3
+    IE ==>|"after pruning, same TID<br/>still resolves"| R3
+    P1 ==>|"page has less than 10% free space<br/>or a prior UPDATE could not fit:<br/>heap_page_prune_opt fires,<br/>even inside a SELECT"| P2
+
+    RULE["HOT applies only when<br/>no indexed column changed AND<br/>the new version fits on the same page.<br/>fillfactor below 100 buys that room."]
+    P1 -.-> RULE
+
+    style IDX fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style P1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style RULE fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant T1 as Transaction 1
+    participant PG as PostgreSQL
+    participant T2 as Transaction 2
+
+    Note over T1,T2: READ COMMITTED - the default. One snapshot PER STATEMENT.
+    T1->>PG: BEGIN, then SELECT balance FROM accounts WHERE id=1
+    PG-->>T1: 1000 - snapshot taken at this statement
+    T2->>PG: BEGIN, UPDATE accounts SET balance=900 WHERE id=1, COMMIT
+    T1->>PG: SELECT balance FROM accounts WHERE id=1
+    PG-->>T1: 900 - NEW snapshot, value changed inside one transaction
+    Note over T1: Non-repeatable read. Allowed at this level.
+
+    Note over T1,T2: READ COMMITTED writes: EvalPlanQual
+    T1->>PG: UPDATE accounts SET balance=balance-100 WHERE balance > 500
+    T2->>PG: UPDATE accounts SET balance=400 WHERE id=1, then COMMIT
+    PG->>PG: T1 hits a row with a newer committed version.<br/>It waits, then RE-EVALUATES the WHERE clause<br/>against the new version. 400 fails balance > 500,<br/>so the row is skipped.
+    Note over PG: This is why a Read Committed UPDATE<br/>can act on a set no single snapshot ever saw.
+
+    Note over T1,T2: REPEATABLE READ - one snapshot for the WHOLE transaction
+    T1->>PG: BEGIN ISOLATION LEVEL REPEATABLE READ, then SELECT sum(balance)
+    PG-->>T1: 10000 - snapshot frozen here
+    T2->>PG: UPDATE accounts SET balance=0 WHERE id=1, then COMMIT
+    T1->>PG: SELECT sum(balance)
+    PG-->>T1: 10000 - unchanged. Phantoms are excluded too.
+    T1->>PG: UPDATE accounts SET balance=500 WHERE id=1
+    PG-->>T1: ERROR 40001: could not serialize access<br/>due to concurrent update
+    Note over T1: No EvalPlanQual here. The only recovery<br/>is to retry the whole transaction.
+
+    Note over T1,T2: SERIALIZABLE - Repeatable Read plus SSI
+    T1->>PG: BEGIN ISOLATION LEVEL SERIALIZABLE, then SELECT sum(value) WHERE class=1
+    PG->>PG: Take SIReadLock predicate locks on the<br/>tuples, pages or relation actually read.<br/>These never block anything.
+    T2->>PG: BEGIN ISOLATION LEVEL SERIALIZABLE, then SELECT sum(value) WHERE class=2
+    T1->>PG: INSERT INTO mytab VALUES (2, 30)
+    T2->>PG: INSERT INTO mytab VALUES (1, 300)
+    T1->>PG: COMMIT
+    PG-->>T1: OK
+    T2->>PG: COMMIT
+    PG-->>T2: ERROR 40001: could not serialize access<br/>due to read/write dependencies among transactions
+    Note over PG: SSI detected a dangerous structure: a pivot<br/>transaction with both an incoming and an<br/>outgoing rw-conflict. One of the pair is aborted.

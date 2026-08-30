@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Page["One heap page - BLCKSZ = 8192 bytes"]
+        direction TB
+        PH["Bytes 0-23: PageHeaderData<br/>pd_lsn 8B, pd_checksum 2B, pd_flags 2B,<br/>pd_lower 2B, pd_upper 2B, pd_special 2B,<br/>pd_pagesize_version 2B, pd_prune_xid 4B"]
+        LP["Bytes 24 upward: ItemIdData array<br/>4 bytes each: 15-bit offset,<br/>2-bit flags, 15-bit length<br/>grows down toward pd_lower"]
+        FREE["Free space<br/>pd_lower to pd_upper<br/>this is what fillfactor reserves"]
+        TUP["Tuples<br/>grow up from pd_upper<br/>each MAXALIGN'd to 8 bytes"]
+        SPEC["Special space<br/>pd_special to 8192<br/>empty for heap, 16 bytes<br/>of BTPageOpaqueData for btree"]
+    end
+
+    PH --> LP --> FREE --> TUP --> SPEC
+
+    subgraph Tuple["One heap tuple"]
+        direction TB
+        THDR["Bytes 0-22: HeapTupleHeaderData, 23 bytes<br/>t_xmin 4B, t_xmax 4B, t_cid/t_xvac 4B,<br/>t_ctid 6B, t_infomask2 2B, t_infomask 2B, t_hoff 1B"]
+        NULLB["Null bitmap, only if HEAP_HASNULL<br/>1 bit per column, rounded up"]
+        PAD["Padding to MAXALIGN, t_hoff must be<br/>a multiple of 8 - so 24 with no nulls"]
+        DATA["User data, column by column,<br/>each at its own type alignment"]
+    end
+
+    THDR --> NULLB --> PAD --> DATA
+
+    LIMITS["Derived limits on an 8kB page:<br/>MaxHeapTuplesPerPage = 8168 / 28 = 291<br/>MaxHeapTupleSize = 8192 - 32 = 8160 bytes<br/>TOAST_TUPLE_THRESHOLD = 2032 bytes<br/>BTMaxItemSize = 2704 bytes"]
+
+    TUP -.-> Tuple
+    Page --> LIMITS
+
+    style Page fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Tuple fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LIMITS fill:#fff3e0,stroke:#e65100,stroke-width:2px

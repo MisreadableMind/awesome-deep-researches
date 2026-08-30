@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Shared["Shared memory - sized at startup, never grows"]
+        SB["shared_buffers<br/>default 128MB<br/>array of 8kB pages plus<br/>64-byte BufferDesc per page"]
+        WB["WAL buffers<br/>wal_buffers = -1 means<br/>1/32 of shared_buffers,<br/>64kB min, 16MB max"]
+        PA["ProcArray<br/>one PGPROC per backend<br/>xmin, xid, vxid, flags"]
+        LT["Lock tables<br/>max_locks_per_transaction 64<br/>x max_connections"]
+        SLRU["SLRU caches<br/>pg_xact, pg_subtrans,<br/>pg_multixact, pg_serial,<br/>pg_commit_ts"]
+        STATS["Shared statistics<br/>in shared memory since<br/>PostgreSQL 15"]
+    end
+
+    subgraph Local["Per-backend private memory - grows and shrinks per query"]
+        WM["work_mem<br/>default 4MB<br/>PER sort, hash and<br/>Memoize node, not per query"]
+        HM["hash_mem_multiplier<br/>default 2.0<br/>hash nodes get<br/>work_mem x 2.0 = 8MB"]
+        MWM["maintenance_work_mem<br/>default 64MB<br/>VACUUM, CREATE INDEX,<br/>ALTER TABLE"]
+        TB["temp_buffers<br/>default 8MB<br/>temporary tables only"]
+        CC["catcache and relcache<br/>system catalog rows and<br/>relation descriptors,<br/>grows with schema touched"]
+        PS["Prepared statement<br/>plan cache"]
+    end
+
+    OS["Operating system page cache<br/>Postgres relies on it as a second tier.<br/>effective_cache_size, default 4GB,<br/>tells the planner how big it is"]
+
+    Shared --- Local
+    Shared --> OS
+    Local --> OS
+
+    N1["A query with 4 sorts and 2 hash joins<br/>can allocate 4 x 4MB + 2 x 8MB = 32MB,<br/>and that is per parallel worker."]
+    WM -.-> N1
+    HM -.-> N1
+
+    style Shared fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Local fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style OS fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style N1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
