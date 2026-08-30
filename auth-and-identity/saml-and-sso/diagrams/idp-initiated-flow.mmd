@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as Dana
+    participant B as Browser
+    participant IdP as Identity Provider<br/>acme.okta.com
+    participant SP as Service Provider<br/>app.example-crm.com
+
+    Note over U,SP: IdP-initiated SSO is the unsolicited Response<br/>of SAMLProf section 4.1.5. There is no AuthnRequest,<br/>so there is nothing for the SP to correlate against.
+
+    U->>IdP: Signs in to the app dashboard
+    U->>B: Clicks the CRM tile
+    IdP->>IdP: Build an Assertion with NO InResponseTo.<br/>The spec says the attribute MUST NOT be present.<br/>RelayState carries a deep link agreed with the SP.
+    IdP-->>B: Self-submitting form to the SP default ACS
+    B->>SP: POST /saml/acs
+
+    rect rgb(255, 235, 238)
+        Note over SP: What the SP cannot check
+        SP->>SP: InResponseTo is absent, so there is no<br/>request to match. CSRF protection is gone.
+        SP->>SP: No stored per-request state, so RelayState<br/>is now attacker-influenced input, not a handle
+        SP->>SP: The only replay defence left is the<br/>assertion ID cache plus the NotOnOrAfter window
+    end
+
+    SP->>SP: Verify signature, Audience, Recipient,<br/>clock window, assertion ID freshness
+    SP-->>B: Set-Cookie session, redirect to RelayState target
+    B->>SP: GET the target
+    SP-->>U: Logged in
+
+    rect rgb(255, 235, 238)
+        Note over U,SP: The attack this enables
+        Note over U,SP: An attacker who obtains any valid assertion for<br/>their OWN account posts it to a victim browser.<br/>The victim is now silently logged in as the attacker,<br/>and everything they type goes into the attacker account.<br/>This is login CSRF, and IdP-initiated SSO has<br/>no protocol-level defence against it.
+    end
+
+    Note over SP: The mitigation used in practice: the SP does not<br/>accept unsolicited Responses at all. It turns the tile<br/>click into a plain link to its own SP-initiated endpoint,<br/>which then issues a real AuthnRequest.

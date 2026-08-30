@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Sign["Signing, at the IdP"]
+        S1["1. Take the element to be signed.<br/>SAML requires an xs:ID attribute on it."]
+        S2["2. Apply the Transforms in order:<br/>enveloped-signature removes the ds:Signature<br/>subtree, then exclusive c14n serialises<br/>the remainder"]
+        S3["3. Hash the canonical octets.<br/>DigestMethod is SHA-256 in any<br/>deployment built after 2015."]
+        S4["4. Put the digest in ds:DigestValue,<br/>inside a ds:Reference whose URI is<br/>a same-document pointer, hash plus the ID"]
+        S5["5. Canonicalise ds:SignedInfo itself<br/>using CanonicalizationMethod"]
+        S6["6. Sign those octets with the private key.<br/>SignatureMethod rsa-sha256"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    end
+
+    subgraph Struct["What ships on the wire"]
+        T1["ds:Signature"]
+        T2["ds:SignedInfo<br/>CanonicalizationMethod<br/>SignatureMethod<br/>Reference URI = hash plus ID<br/>  Transforms<br/>  DigestMethod<br/>  DigestValue"]
+        T3["ds:SignatureValue<br/>base64, 344 characters<br/>for a 2048 bit RSA key"]
+        T4["ds:KeyInfo  OPTIONAL<br/>Usually an X509Certificate.<br/>SAML places no requirement on it,<br/>which is the source of a whole<br/>family of implementation bugs."]
+        T1 --> T2
+        T1 --> T3
+        T1 --> T4
+    end
+
+    subgraph Verify["Verifying, at the SP"]
+        V1["1. Canonicalise SignedInfo, check<br/>SignatureValue against the trusted<br/>public key from METADATA, never from KeyInfo"]
+        V2["2. Resolve each Reference URI to an element"]
+        V3["3. Re-apply the Transforms, re-hash,<br/>compare with DigestValue"]
+        V4["4. THE STEP EVERYONE FORGOT:<br/>confirm that the verified element is<br/>the element about to be trusted.<br/>A valid signature over SOMETHING<br/>is not a signature over the element<br/>the claims module parsed."]
+        V1 --> V2 --> V3 --> V4
+    end
+
+    Sign --> Struct --> Verify
+
+    Why["Why exclusive canonicalisation.<br/>Canonical XML 1.0, W3C Rec 15 March 2001,<br/>drags every inherited namespace declaration and<br/>xml: attribute into the signed subtree. Move that<br/>subtree into a different document and the digest<br/>changes. Exclusive c14n, W3C Rec 18 July 2002,<br/>keeps only the namespaces the subtree visibly uses,<br/>so an assertion survives being lifted out of one<br/>envelope and put into another. SAML core section<br/>5.4.3 says SHOULD use exclusive."]
+
+    Struct --> Why
+
+    Twist["The same property that makes assertions portable<br/>makes them relocatable by an attacker.<br/>Exclusive c14n is a prerequisite for<br/>signature wrapping, not a defence against it."]
+
+    Why --> Twist
+
+    style Sign fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Struct fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Verify fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style V4 fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Twist fill:#ffebee,stroke:#b71c1c,stroke-width:3px

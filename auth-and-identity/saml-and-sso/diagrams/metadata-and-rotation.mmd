@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Doc["What a metadata document carries"]
+        M1["md:EntityDescriptor<br/>entityID  required, a URI of at most<br/>1024 characters, and the primary key<br/>of the whole trust relationship"]
+        M2["validUntil  absolute expiry<br/>cacheDuration  an xs:duration<br/>The root element MUST carry one of them."]
+        M3["md:IDPSSODescriptor<br/>WantAuthnRequestsSigned<br/>md:SingleSignOnService endpoints<br/>md:SingleLogoutService endpoints"]
+        M4["md:SPSSODescriptor<br/>AuthnRequestsSigned<br/>WantAssertionsSigned<br/>md:AssertionConsumerService, indexed,<br/>with one marked isDefault<br/>md:AttributeConsumingService"]
+        M5["md:KeyDescriptor use=signing<br/>md:KeyDescriptor use=encryption<br/>Zero or more of each. The plural<br/>is what makes rotation possible."]
+        M6["ds:Signature over the whole document.<br/>Without it, metadata is just a<br/>file of unknown provenance."]
+    end
+
+    subgraph Dist["Three ways to distribute it"]
+        D1["MANUAL<br/>Paste XML into a form, or upload a<br/>certificate and type three URLs.<br/>What almost every SaaS SP does.<br/>Rotation becomes a support ticket."]
+        D2["WELL-KNOWN URL<br/>Publish at a stable HTTPS URL,<br/>refetch on cacheDuration.<br/>Works. Fails at federation scale:<br/>N times M fetches."]
+        D3["MDQ, the Metadata Query Protocol<br/>GET base plus entities plus identifier.<br/>The identifier may be the entityID<br/>percent-encoded, or the transformed<br/>form: the literal sha1 in braces followed<br/>by 40 lower-case hex digits of<br/>SHA-1 over the entityID.<br/>Content-Type application/samlmetadata+xml"]
+    end
+
+    Doc --> Dist
+
+    subgraph Fed["Federation scale, measured 30 August 2026"]
+        F1["eduGAIN: 84 participant federations,<br/>8 more in the candidate stage"]
+        F2["InCommon alone: 2,498 entities,<br/>587 identity providers and<br/>1,911 service providers"]
+        F3["A bilateral model needs an operator<br/>action per pair. A federation operator<br/>signs one aggregate, or answers<br/>one MDQ query at a time."]
+    end
+
+    Dist --> Fed
+
+    subgraph Rot["Certificate rotation, the correct sequence"]
+        R1["T minus 30 days: publish the NEW<br/>certificate as a SECOND KeyDescriptor<br/>with use=signing. Keep signing with<br/>the old key."]
+        R2["T minus 30 to T: consumers refresh<br/>metadata and now hold both keys.<br/>The Kantara interoperability profile<br/>requires trying each key in turn."]
+        R3["T: switch the signing key.<br/>Nothing breaks, because every<br/>consumer already trusts both."]
+        R4["T plus 30 days: remove the old<br/>KeyDescriptor from metadata."]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    Fed --> Rot
+
+    Fail["THE FAILURE MODE, and it is the single<br/>most common SAML outage.<br/>The SP pinned one certificate by hand at<br/>onboarding. It never refetches metadata. The<br/>IdP certificate expires, usually after the<br/>vendor default of two or three years, and every<br/>login fails at once with a signature error. There<br/>is no warning because certificate expiry is<br/>invisible to both the login flow and the<br/>uptime monitor until the moment it fires."]
+
+    Rot --> Fail
+
+    style Doc fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Dist fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fed fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Rot fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Fail fill:#ffebee,stroke:#b71c1c,stroke-width:3px

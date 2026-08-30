@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Setup["SETUP, February 2018.<br/>The attacker controls the domain evil.example<br/>and registers a legitimate account at the IdP<br/>with the identifier ceo@acme.example.evil.example.<br/>They receive a genuine, correctly signed assertion."]
+
+    Orig["ORIGINAL, signed by the IdP<br/>NameID element contains one text node:<br/>ceo@acme.example.evil.example"]
+
+    Mod["MODIFIED, by the attacker.<br/>An XML comment is inserted mid-string:<br/>ceo@acme.example then a comment then .evil.example<br/>The element now has TWO text nodes<br/>with a comment node between them."]
+
+    subgraph Two["Two components, two answers"]
+        Sig["SIGNATURE MODULE<br/>Canonicalises with the non-comment variant<br/>of exclusive c14n, which DELETES comment nodes<br/>and concatenates the remaining text.<br/>Sees: ceo@acme.example.evil.example<br/>Digest matches. VERDICT: VALID."]
+        Claims["CLAIMS MODULE<br/>Reads the NameID through a DOM helper<br/>that returns the FIRST text node child,<br/>not the concatenation of all of them.<br/>Sees: ceo@acme.example<br/>VERDICT: this is the chief executive."]
+    end
+
+    Setup --> Orig --> Mod --> Two
+
+    Why["WHY IT WORKED<br/>Nothing here is a cryptographic failure. The<br/>signature is genuine and the canonicalisation is<br/>correct. The bug is that two libraries in the same<br/>process disagree on what the text content of an<br/>element is, and only one of them is authoritative."]
+
+    Two --> Why
+
+    subgraph CVEs["Disclosed 27 February 2018"]
+        C1["CVE-2017-11427  OneLogin python-saml 2.3.0 and earlier"]
+        C2["CVE-2017-11428  OneLogin ruby-saml 1.6.0 and earlier"]
+        C3["CVE-2017-11429  Clever saml2-js 2.0 and earlier"]
+        C4["CVE-2017-11430  omniauth-saml 1.9.0 and earlier"]
+        C5["CVE-2018-0489  Shibboleth XMLTooling-C before 1.6.4,<br/>an incomplete fix for CVE-2018-0486"]
+    end
+
+    Why --> CVEs
+
+    Echo["THE PATTERN REPEATS.<br/>March 2025: CVE-2025-25291 and CVE-2025-25292.<br/>ruby-saml verifies the signature with REXML and<br/>reads the claims with Nokogiri. The two parsers<br/>build different trees from the same bytes, so the<br/>same XPath selects different elements. Same class,<br/>different pair of libraries, seven years later.<br/>Fixed in 1.12.4 and 1.18.0."]
+
+    CVEs --> Echo
+
+    style Setup fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Mod fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Sig fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Claims fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Why fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Echo fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

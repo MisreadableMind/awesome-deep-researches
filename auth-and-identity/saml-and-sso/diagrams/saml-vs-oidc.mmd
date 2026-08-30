@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Choosing between SAML and OpenID Connect"]
+
+    Q1{"Is the relying party a<br/>native mobile app or a<br/>single-page application?"}
+    Q2{"Does the integration also need<br/>delegated API access, meaning a<br/>token the client presents to a<br/>resource server on the user's behalf?"}
+    Q3{"Is the buyer an enterprise IT team<br/>that already runs an IdP and expects<br/>a metadata URL and a certificate?"}
+    Q4{"Does the counterparty run a<br/>research or education federation,<br/>or a government federation?"}
+
+    OIDC["USE OPENID CONNECT<br/>JSON and JWT over HTTP. Compact enough<br/>for a mobile redirect. PKCE, RFC 7636,<br/>handles public clients with no secret.<br/>Discovery and JWKS make key rotation<br/>automatic. The ID token and the access<br/>token are separate objects with<br/>separate purposes."]
+
+    SAML["USE SAML 2.0<br/>The enterprise default since 2005.<br/>Attribute release policy is per SP and<br/>expressive. Metadata carries endpoints,<br/>keys, and intent in one signed file.<br/>Federations of thousands of entities run<br/>on it. Every enterprise IdP supports it."]
+
+    Both["SUPPORT BOTH<br/>What every serious B2B SaaS vendor does.<br/>The protocols are a thin layer over the<br/>same session-establishment logic, so the<br/>marginal cost of the second one is small<br/>compared with the cost of losing a deal<br/>because a customer's IdP speaks the<br/>other one."]
+
+    Start --> Q1
+    Q1 -->|yes| OIDC
+    Q1 -->|no| Q2
+    Q2 -->|yes| OIDC
+    Q2 -->|no| Q3
+    Q3 -->|yes| SAML
+    Q3 -->|no| Q4
+    Q4 -->|yes| SAML
+    Q4 -->|no| Both
+
+    subgraph Diff["The differences that actually matter"]
+        D1["ENCODING<br/>SAML: XML, canonicalised, signed as a tree.<br/>OIDC: JSON, base64url, signed as a byte string.<br/>Signing a tree is why signature wrapping<br/>exists. Signing a string is why it does not."]
+        D2["KEY DISTRIBUTION<br/>SAML: metadata, often pasted by hand once.<br/>OIDC: a JWKS URL polled continuously, with<br/>a kid header naming the key. Rotation is<br/>routine in one and an outage in the other."]
+        D3["TOKEN SIZE<br/>SAML Response: roughly 7 KB of XML, about<br/>9,300 base64 characters. Must go by POST.<br/>OIDC ID token: typically under 1 KB."]
+        D4["WHAT THE PROTOCOL ANSWERS<br/>SAML: who is this and what the IdP knows<br/>about them, in one signed document.<br/>OIDC: who is this, plus here is a<br/>separate credential for calling APIs."]
+        D5["LOGOUT<br/>Both are weak. SAML Single Logout is a<br/>serial front-channel chain. OIDC has four<br/>competing logout specifications and the<br/>front-channel ones are being broken by<br/>third-party cookie removal."]
+        D6["STATUS<br/>SAML 2.0 has had no normative change since<br/>Errata 05 on 1 May 2012. There is no SAML 3.0.<br/>OIDC continues to gain extensions. Stability<br/>is a feature in one context and a symptom<br/>in the other."]
+    end
+
+    SAML --> Diff
+    OIDC --> Diff
+    Both --> Diff
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style SAML fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style OIDC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Both fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Diff fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

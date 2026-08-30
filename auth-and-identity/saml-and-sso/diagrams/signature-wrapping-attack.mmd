@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Cause["ROOT CAUSE<br/>A relying party is two modules with one boolean<br/>between them. The signature module answers<br/>'is some signature in this document valid?'<br/>The claims module asks 'who is the user?'<br/>Nothing forces them to look at the same element."]
+
+    subgraph Pre["What the attacker needs"]
+        P1["One valid signed assertion.<br/>Their OWN. It may be expired."]
+        P2["No network position. No private key.<br/>No TLS interception.<br/>Register as a normal customer<br/>of the identity provider."]
+    end
+
+    subgraph Orig["Original document, signed and honest"]
+        O1["samlp:Response<br/>  saml:Assertion ID=abc<br/>    ds:Signature Reference URI=hash-abc<br/>    Subject NameID=mallory@evil.example"]
+    end
+
+    subgraph Att["Wrapped document, still cryptographically valid"]
+        A1["samlp:Response<br/>  saml:Assertion ID=evil<br/>    Subject NameID=ceo@acme.example<br/>    saml:Advice<br/>      saml:Assertion ID=abc<br/>        ds:Signature Reference URI=hash-abc"]
+        A2["The digest still matches: the signed<br/>subtree is byte-identical, and exclusive<br/>c14n makes it position independent.<br/>The signature module says VALID.<br/>The claims module reads the FIRST<br/>Assertion and sees the CEO."]
+    end
+
+    Cause --> Pre --> Orig --> Att
+
+    subgraph Vars["The permutation space, Somorovsky et al 2012"]
+        V1["Same level, 6 permutations:<br/>evil assertion, real assertion,<br/>signature as siblings"]
+        V2["Two levels, 12 permutations:<br/>one nested inside the other"]
+        V3["Three levels, 6 permutations:<br/>full chain of nesting"]
+        V4["Hiding places that survive schema<br/>validation: saml:Advice, ds:Object,<br/>samlp:Extensions. All are xs:any."]
+    end
+
+    Att --> Vars
+
+    subgraph Result["Measured outcome, USENIX Security 2012"]
+        R1["14 frameworks analysed.<br/>11 broken. Roughly 80 percent."]
+        R2["Broken: Salesforce, Shibboleth via OpenSAML,<br/>IBM XS40, OpenAM, Higgins, Apache Axis2,<br/>JOSSO, Guanxi, OIOSAML, WSO2,<br/>the OneLogin toolkits"]
+        R3["3 of the 14 skipped signature<br/>verification entirely when the<br/>Signature element was simply deleted"]
+        R4["Salesforce patched by rejecting any<br/>message with more than one Assertion.<br/>The authors then broke the patch by<br/>hiding the original assertion inside<br/>the Audience element."]
+    end
+
+    Vars --> Result
+
+    subgraph Fix["What actually works"]
+        F1["Process only what was verified.<br/>The verifier returns the ELEMENT,<br/>not a boolean. The claims module<br/>reads nothing else."]
+        F2["One parse. One DOM. Never re-serialise<br/>and re-parse between verify and use."]
+        F3["Reject documents with more than one<br/>Assertion, and reject Assertions that<br/>are not direct children of Response"]
+        F4["Schema-validate against a hardened<br/>schema with the extension points removed"]
+        F5["Never take the key from ds:KeyInfo.<br/>Take it from metadata."]
+    end
+
+    Result --> Fix
+
+    style Cause fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Orig fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Att fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Vars fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Result fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

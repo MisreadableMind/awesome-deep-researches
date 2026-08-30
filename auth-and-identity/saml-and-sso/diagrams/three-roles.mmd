@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Roles["The three SAML roles"]
+        direction LR
+        Principal["PRINCIPAL<br/>The human, plus the user agent.<br/>Holds no keys. Signs nothing.<br/>Carries every message<br/>between the other two."]
+        IdP["IDENTITY PROVIDER<br/>Asserting party, SAML authority.<br/>Authenticates the principal.<br/>Holds the signing private key.<br/>Emits assertions."]
+        SP["SERVICE PROVIDER<br/>Relying party.<br/>Never sees the password.<br/>Holds the IdP public key.<br/>Consumes assertions."]
+    end
+
+    Principal -->|"1. requests a resource"| SP
+    SP -->|"2. AuthnRequest, via the browser"| Principal
+    Principal -->|"3. delivers AuthnRequest"| IdP
+    IdP -->|"4. Response with signed Assertion,<br/>via the browser"| Principal
+    Principal -->|"5. delivers Response"| SP
+
+    Trust["THE TRUST RELATIONSHIP<br/>is not a session and not a connection.<br/>It is two facts, configured in advance:<br/>the SP knows the IdP entityID and its<br/>signing certificate. The IdP knows the SP<br/>entityID and its Assertion Consumer Service URL.<br/>Both facts arrive as SAML metadata."]
+
+    IdP -. "metadata exchange,<br/>out of band, before any login" .- SP
+    Trust -.-> IdP
+    Trust -.-> SP
+
+    NoPath["There is NO back channel in<br/>the common Web Browser SSO profile.<br/>IdP and SP never open a socket<br/>to each other. The browser is the wire.<br/>That is why every message is signed<br/>and every assertion is time-boxed."]
+
+    Principal --> NoPath
+
+    style Principal fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style IdP fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style SP fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Trust fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NoPath fill:#ffebee,stroke:#b71c1c,stroke-width:2px

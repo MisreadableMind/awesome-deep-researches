@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Pre["Before SAML: proprietary silos, 1995 to 2000"]
+        P1["Netegrity SiteMinder, Oblix, Securant<br/>Every vendor invents its own<br/>cookie-based cross-domain SSO"]
+        P2["Cookies are same-origin.<br/>Cross-domain SSO needs a token<br/>the browser can carry."]
+    end
+
+    subgraph Birth["Standardisation, 2001 to 2003"]
+        B1["Jan 2001: OASIS Security Services TC<br/>meets for the first time"]
+        B2["Nov 2002: SAML 1.0<br/>OASIS Standard.<br/>Browser Artifact and Browser POST"]
+        B3["Sep 2003: SAML 1.1<br/>OASIS Standard"]
+        B4["Liberty Alliance builds ID-FF 1.1 and 1.2<br/>on top of SAML 1.x:<br/>federation, pseudonyms, logout"]
+        B5["Internet2 builds Shibboleth<br/>for research and education:<br/>attribute release, privacy, discovery"]
+    end
+
+    subgraph Merge["Convergence, 2005"]
+        M1["Nov 2003: Liberty contributes<br/>ID-FF 1.2 to OASIS"]
+        M2["15 Mar 2005: SAML 2.0<br/>OASIS Standard, 8 documents.<br/>Approved by members 1 Mar 2005"]
+        M3["SAML 2.0 is NOT backwards<br/>compatible with SAML 1.1.<br/>New namespaces, new schema."]
+    end
+
+    subgraph Mature["Deployment and hardening, 2005 to 2019"]
+        D1["2005: McIntosh and Austel describe<br/>XML signature element wrapping"]
+        D2["2008 onward: national federations.<br/>InCommon, UK Access Management,<br/>DFN-AAI, GakuNin, SWITCHaai"]
+        D3["1 May 2012: SAML V2.0 Errata 05,<br/>the last normative change to the standard"]
+        D4["2012: Somorovsky et al break<br/>11 of 14 frameworks at USENIX Security"]
+        D5["2019: Subject Identifier Attributes Profile<br/>retires NameID for new deployments"]
+    end
+
+    subgraph Now["The long plateau, 2019 to 2026"]
+        N1["OIDC wins new consumer<br/>and mobile integrations"]
+        N2["SAML keeps enterprise SaaS SSO.<br/>No SAML 3.0 exists or is planned."]
+        N3["Signature verification bugs keep<br/>shipping: ruby-saml 2024 and 2025,<br/>FortiOS Dec 2025"]
+    end
+
+    Pre --> Birth
+    Birth --> Merge
+    B4 --> M1
+    B5 --> M2
+    M1 --> M2
+    Merge --> Mature
+    Mature --> Now
+
+    style Pre fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Birth fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Merge fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Mature fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Now fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

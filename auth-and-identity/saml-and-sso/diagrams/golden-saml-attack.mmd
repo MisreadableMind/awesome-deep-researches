@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Premise["THE STRUCTURAL FACT<br/>An SP trusts an assertion because of one thing:<br/>a signature it can verify with the public key in<br/>metadata. Whoever holds the matching private key<br/>IS the identity provider, for every SP in the<br/>federation, for every user, with any attributes."]
+
+    subgraph Golden["Golden SAML, named by CyberArk in 2017"]
+        G1["1. Compromise the AD FS server, or the<br/>host holding its token-signing private key,<br/>or a backup of it"]
+        G2["2. Extract the token-signing certificate<br/>and private key"]
+        G3["3. Mint assertions offline. Any NameID,<br/>any groups, any AuthnContext, any<br/>SessionIndex, any validity window."]
+        G4["4. Present them to every relying party<br/>that federates with that AD FS"]
+    end
+
+    subgraph Silver["Silver SAML, Semperis, 29 February 2024"]
+        S1["Same forging technique, no AD FS needed.<br/>Targets Entra ID applications configured with<br/>an EXTERNALLY generated signing certificate"]
+        S2["The private key exists outside the IdP:<br/>in a key vault, on a build agent, in a<br/>ticket attachment, on an admin laptop"]
+        S3["Whoever obtains that key can sign responses<br/>the SP will accept, without ever touching<br/>the identity provider"]
+    end
+
+    Premise --> Golden
+    Premise --> Silver
+
+    Real["OBSERVED IN THE WILD<br/>MITRE catalogues this in ATT and CK as<br/>T1606.002, Forge Web Credentials: SAML Tokens. APT29 used<br/>stolen SAML signing certificates during the<br/>SolarWinds compromise disclosed in December 2020.<br/>AADInternals ships the capability as a function call."]
+
+    Golden --> Real
+    Silver --> Real
+
+    subgraph Why["Why the usual controls do not fire"]
+        W1["MFA is bypassed. The forged assertion simply<br/>asserts that MFA happened."]
+        W2["Password resets do nothing. No password<br/>is involved."]
+        W3["Disabling the account at the IdP does nothing.<br/>The attacker is not asking the IdP."]
+        W4["IdP sign-in logs stay clean. There is no<br/>sign-in event, because no sign-in occurred.<br/>The only trace is at the SP."]
+        W5["The forged token can carry an arbitrary<br/>NotOnOrAfter, so it need not look fresh."]
+    end
+
+    Real --> Why
+
+    subgraph Def["What actually reduces the blast radius"]
+        D1["Keep the signing key in an HSM or a<br/>managed key service that never exports it"]
+        D2["Let the IdP generate its own certificates.<br/>Never import an externally generated one."]
+        D3["Rotate signing certificates on a schedule<br/>the metadata already supports, so a stolen<br/>key has a short useful life"]
+        D4["Alert on SP-side authentications that have<br/>no matching IdP sign-in event. Correlating<br/>the two logs is the only reliable detection."]
+        D5["Treat the AD FS server and the key vault<br/>as tier zero, at the same level as a<br/>domain controller"]
+    end
+
+    Why --> Def
+
+    style Premise fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Golden fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Silver fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Real fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Why fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Def fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

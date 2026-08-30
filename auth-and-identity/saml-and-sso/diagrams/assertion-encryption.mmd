@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Forms["What SAML can encrypt. SAMLCore section 6."]
+        F1["saml:EncryptedAssertion<br/>SAMLCore 2.3.4<br/>The whole assertion"]
+        F2["saml:EncryptedID<br/>SAMLCore 2.2.4<br/>The NameID or BaseID alone.<br/>A privacy measure for when the<br/>plaintext passes an intermediary."]
+        F3["saml:EncryptedAttribute<br/>SAMLCore 2.7.3.2<br/>One attribute value"]
+        F4["All three are EncryptedElementType:<br/>one xenc:EncryptedData, required,<br/>plus zero or more xenc:EncryptedKey.<br/>EncryptedData Type SHOULD be<br/>xmlenc#Element."]
+        F1 --> F4
+        F2 --> F4
+        F3 --> F4
+    end
+
+    subgraph Hybrid["How one element is encrypted"]
+        H1["1. Generate a fresh symmetric content key"]
+        H2["2. Encrypt the element with it.<br/>Result goes in xenc:EncryptedData"]
+        H3["3. Wrap the content key under the<br/>recipient RSA public key from the<br/>SP metadata KeyDescriptor use=encryption.<br/>Result goes in xenc:EncryptedKey"]
+        H4["4. The pair replaces the plaintext<br/>element in the same location.<br/>The schema still validates."]
+        H1 --> H2 --> H3 --> H4
+    end
+
+    subgraph Order["SAMLCore 6.2. Order is normative."]
+        O1["Signed Assertion:<br/>sign FIRST, then encrypt.<br/>Verifier decrypts, then verifies."]
+        O2["Encrypted NameID or Attribute:<br/>encrypt FIRST, then sign the<br/>containing assertion.<br/>Verifier verifies, then decrypts."]
+        O3["A relying party MUST reverse<br/>the order the producer used.<br/>Getting it backwards yields a<br/>signature over ciphertext nobody checked."]
+        O1 --> O3
+        O2 --> O3
+    end
+
+    Forms --> Hybrid --> Order
+
+    Gap["SAMLCore 6.1 names no algorithm:<br/>any algorithm defined for XML Encryption MAY be used.<br/>So deployments picked CBC, and CBC is malleable."]
+
+    Order --> Gap
+
+    subgraph Attack["Jager and Somorovsky, ACM CCS 2011"]
+        A1["CBC decryption of block n+1 XORs in<br/>ciphertext block n. Flip a bit in Cn,<br/>flip the same bit in plaintext P(n+1)."]
+        A2["The receiver decrypts, then PARSES.<br/>Well-formed XML and ill-formed XML<br/>produce different responses."]
+        A3["That difference is a decryption oracle.<br/>Submit modified ciphertexts, read the<br/>responses, recover plaintext without<br/>ever holding the key."]
+        A1 --> A2 --> A3
+    end
+
+    Gap --> Attack
+
+    Fix["Two halves, and one alone is not enough.<br/>1. Authenticated encryption. XML Encryption 1.1,<br/>W3C Rec 11 April 2013, adds xmlenc11#aes128-gcm<br/>and aes256-gcm and states that AES GCM is strongly<br/>recommended over any CBC algorithm. Kantara IIP-ALG04<br/>makes GCM a MUST; IIP-ALG05 keeps CBC only for<br/>backwards compatibility, calls it broken, and requires<br/>a warning on use.<br/>2. One indistinguishable error. Decryption failure and<br/>parse failure must look identical to the sender."]
+
+    Attack --> Fix
+
+    style Forms fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Hybrid fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Order fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Attack fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Gap fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["THE PROBLEM SAML DOES NOT SOLVE<br/>An assertion arrives only when someone logs in.<br/>A leaver never logs in again. So authentication<br/>alone can create accounts and update them,<br/>but it can never deprovision one."]
+
+    subgraph JIT["Just-in-time provisioning"]
+        J1["Trigger: the assertion itself.<br/>The SP creates the local account on<br/>first successful login and updates it<br/>from the AttributeStatement on every<br/>subsequent login."]
+        J2["Cost: zero extra integration.<br/>No API, no token, no schedule."]
+        J3["Creates: yes<br/>Updates: yes, on login only<br/>Deactivates: NEVER<br/>Groups: only if the IdP sends them<br/>Pre-creates for sharing or mentions: no"]
+        J4["Failure mode: an employee leaves,<br/>the IdP account is disabled, and the<br/>SP account stays active and licensed<br/>forever. Any local password or API<br/>token on that account still works."]
+    end
+
+    subgraph SCIM["SCIM 2.0, RFC 7642, 7643, 7644, September 2015"]
+        S1["Trigger: a change in the IdP directory.<br/>Push, on a schedule or on an event.<br/>Independent of whether the user logs in."]
+        S2["Transport: REST over HTTPS, JSON.<br/>Endpoints /Users /Groups /Me<br/>/ServiceProviderConfig /ResourceTypes<br/>/Schemas /Bulk and .search<br/>Methods GET POST PUT PATCH DELETE"]
+        S3["Schema: urn:ietf:params:scim:schemas:<br/>core:2.0:User plus the enterprise<br/>extension carrying employeeNumber,<br/>department, costCenter, manager"]
+        S4["Filters: userName eq some-value,<br/>and active eq false, evaluated by the<br/>service provider. Operators and<br/>attribute names are case insensitive."]
+        S5["Deactivates: yes. PATCH active to false,<br/>which is the entire reason SCIM exists."]
+    end
+
+    Problem --> JIT
+    Problem --> SCIM
+
+    Split["THE DIVISION OF LABOUR IN A REAL DEPLOYMENT<br/>SAML answers 'is this person who they claim, right now'.<br/>SCIM answers 'which accounts should exist at all'.<br/>They share the IdP as the source of truth and share<br/>nothing else. Neither is a substitute for the other,<br/>and a deployment with SAML but no SCIM has an<br/>offboarding gap measured in months."]
+
+    JIT --> Split
+    SCIM --> Split
+
+    Gap["THE SEAM<br/>SAML sends attribute names as URIs or as vendor<br/>strings. SCIM sends them as JSON paths against a<br/>registered schema. The two vocabularies are not<br/>the same and there is no standard mapping between<br/>them, so every connector hand-maps twice: once for<br/>the assertion and once for the provisioning payload."]
+
+    Split --> Gap
+
+    style Problem fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style JIT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SCIM fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Split fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Gap fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
