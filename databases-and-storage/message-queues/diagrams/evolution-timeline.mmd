@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+timeline
+    title Two lineages of message brokers, 2003 to 2026
+    section The AMQP lineage
+        2003 : AMQP started by John O'Hara at JPMorgan Chase in London
+        2005 : AMQP working group formed with Cisco, IONA, iMatix, Red Hat and TWIST, later 23 companies
+        2007 : Rabbit Technologies founded as a joint venture of LShift and CohesiveFT
+        2008-11 : AMQP 0-9-1 published, the version RabbitMQ implements
+        2011-10-30 : AMQP 1.0 released, exchanges and queues removed from the specification
+        2012-10-31 : AMQP 1.0 approved as an OASIS standard
+        2014-04 : AMQP 1.0 published as ISO/IEC 19464
+    section The log lineage
+        2011-01 : Kafka open sourced from LinkedIn by Kreps, Narkhede and Rao
+        2012-10-23 : Kafka graduates from the Apache Incubator to a top-level project
+        2013 : Kafka 0.8 adds intra-cluster replication and the ISR
+        2017-06 : Kafka 0.11 adds record batch v2, idempotent producers and transactions
+        2019-10 : LinkedIn reports 7 trillion messages a day across 4,000 brokers
+    section Replication and consensus
+        2019 : RabbitMQ 3.8 adds quorum queues on Raft
+        2021 : RabbitMQ 3.9 adds streams, an append-only log with non-destructive reads
+        2022-10 : Kafka 3.3 declares KRaft production ready
+        2024-09-18 : RabbitMQ 4.0 removes classic mirrored queues and makes AMQP 1.0 a core protocol
+        2024-11 : Kafka 3.9 ships tiered storage GA and is the last release with ZooKeeper mode
+    section The current generation
+        2025-03-18 : Kafka 4.0 removes ZooKeeper entirely, KIP-848 rebalance protocol GA
+        2025-09-02 : Kafka 4.1 previews share groups, enables Eligible Leader Replicas by default
+        2025-10-27 : RabbitMQ 4.2 adds SQL filter expressions for streams and makes Khepri the default metadata store
+        2026-02-17 : Kafka 4.2 makes share groups production ready
+        2026-04-23 : RabbitMQ 4.3 makes Khepri the only metadata store
+        2026-05-22 : Kafka 4.3 released, the current feature release

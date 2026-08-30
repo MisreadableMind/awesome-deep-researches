@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    IN["Message delivered to a consumer<br/>basic.deliver with a delivery-tag<br/>(monotonic per channel)"]
+
+    DECIDE{"Consumer outcome"}
+
+    ACK["basic.ack<br/>multiple=true acknowledges every<br/>outstanding tag up to this one"]
+    DELETED["Message DELETED from the queue.<br/>No replay is possible, ever."]
+
+    NACKR["basic.nack requeue=true<br/>or basic.reject requeue=true"]
+    REQ["Back on the queue.<br/>x-delivery-count incremented."]
+
+    NACKD["basic.nack requeue=false<br/>or basic.reject requeue=false"]
+
+    TIMEOUT["No ack within consumer_timeout<br/>= 1,800,000 ms (30 minutes).<br/>Since 4.3 only QUORUM queues evaluate this:<br/>classic queues and streams never do."]
+    CHCLOSE["Deliveries returned to the queue (4.3).<br/>Pre-4.3: channel closed, PRECONDITION_FAILED,<br/>ALL unacked deliveries on it requeued.<br/>A job that occasionally runs 31 minutes<br/>produces a requeue storm either way."]
+
+    LIMIT{"x-delivery-count exceeds<br/>delivery-limit?<br/>(default 20 on quorum queues<br/>since RabbitMQ 4.0)"}
+
+    DLX["Dead letter exchange<br/>x-dead-letter-exchange<br/>x-dead-letter-routing-key<br/>(or the dead-letter-exchange policy)"]
+
+    REASONS["Exactly four dead-letter reasons:<br/>rejected | expired | maxlen | delivery_limit<br/>recorded in the x-death header with<br/>queue, reason, count, time, exchange, routing-keys<br/>plus x-first-death-* and x-last-death-*"]
+
+    subgraph RETRY["The retry pattern that actually works"]
+        direction TB
+        RT1["Working queue dead-letters to exchange 'retry'"]
+        RT2["Retry queue has a TTL (say 30s) and<br/>dead-letters BACK to the working exchange"]
+        RT3["Message waits out the TTL, returns,<br/>x-death.count records the attempt"]
+        RT4["Count over threshold, or delivery-limit hit<br/>-> terminal parking queue, nothing consumes it"]
+        RT1 --> RT2 --> RT3 --> RT4
+    end
+
+    ATMOST["CAVEAT: dead-lettering is AT-MOST-ONCE by default.<br/>No publisher confirm between source and target.<br/>If the target queue is unavailable the message is LOST.<br/>Quorum queues support at-least-once dead-lettering.<br/>Use it when the DLQ is a compliance record."]
+
+    KAFKA["Kafka has NO equivalent primitive.<br/>Retry and DLQ topics are an application pattern:<br/>the consumer produces the record to topic.retry.5s<br/>and a second consumer reads it after a delay.<br/>The broker knows nothing about any of it."]
+
+    IN --> DECIDE
+    DECIDE -->|"success"| ACK --> DELETED
+    DECIDE -->|"transient failure"| NACKR --> REQ --> LIMIT
+    DECIDE -->|"permanent failure"| NACKD --> DLX
+    DECIDE -->|"hang"| TIMEOUT --> CHCLOSE --> REQ
+    LIMIT -->|"no"| IN
+    LIMIT -->|"yes"| DLX
+    DLX --> REASONS
+    DLX --> RETRY
+    DLX -.-> ATMOST
+    DELETED -.-> KAFKA
+
+    style ACK fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DLX fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RETRY fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style CHCLOSE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ATMOST fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style KAFKA fill:#fce4ec,stroke:#880e4f,stroke-width:2px

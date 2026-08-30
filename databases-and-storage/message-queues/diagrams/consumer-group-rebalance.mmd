@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph EAGER["1. Eager rebalance - the original, RangeAssignor"]
+        direction TB
+        EA["Any member joins, leaves, or fails"]
+        EB["ALL members revoke ALL partitions.<br/>Processing stops group-wide."]
+        EC["JoinGroup: coordinator waits for every member<br/>= the global synchronization barrier"]
+        ED["Group leader computes the assignment CLIENT-side"]
+        EE["SyncGroup distributes it. Processing resumes."]
+        EA --> EB --> EC --> ED --> EE
+    end
+
+    subgraph COOP["2. Cooperative incremental - KIP-429, Kafka 2.4"]
+        direction TB
+        CA["Member joins or leaves"]
+        CB["Rebalance 1: everyone keeps what they hold,<br/>reports current ownership"]
+        CC["Leader computes the target; members revoke<br/>ONLY the partitions that actually move"]
+        CD["Rebalance 2: freed partitions are assigned"]
+        CE["Members whose assignment is unchanged<br/>never stopped processing"]
+        CA --> CB --> CC --> CD --> CE
+    end
+
+    subgraph NEW["3. KIP-848 consumer protocol - GA in Kafka 4.0"]
+        direction TB
+        NA["ConsumerGroupHeartbeat, apiKey 68<br/>replaces JoinGroup + SyncGroup + Heartbeat"]
+        NB["Coordinator computes the target with a<br/>SERVER-side assignor: uniform (default) or range"]
+        NC["Each member reconciles INDEPENDENTLY:<br/>revoke -> ack -> bump MemberEpoch -> receive"]
+        ND["No global barrier. A member whose assignment<br/>does not change is not disturbed at all."]
+        NA --> NB --> NC --> ND
+    end
+
+    STATIC["Static membership - KIP-345, Kafka 2.3<br/>group.instance.id makes a restart within<br/>session.timeout.ms (45000 ms) reclaim the same<br/>partitions with NO rebalance at all.<br/>Orthogonal to all three protocols above."]
+
+    OFFSETS["Offsets live in __consumer_offsets:<br/>50 partitions, replication factor 3, COMPACTED.<br/>Coordinator = leader of partition<br/>hash(groupId) % 50.<br/>Stored offset is the NEXT record to read."]
+
+    TRAP["The most common production failure:<br/>processing 500 records (max.poll.records)<br/>takes longer than max.poll.interval.ms = 300000.<br/>The member is evicted mid-batch, the group<br/>rebalances, and it never makes progress."]
+
+    ROLLOUT["As of Kafka 4.3 the client default is still<br/>group.protocol=classic.<br/>KIP-1274: 5.0 defaults to consumer,<br/>6.0 removes classic from KafkaConsumer."]
+
+    EAGER --> COOP --> NEW
+    NEW -.-> ROLLOUT
+    EAGER -.-> STATIC
+    NEW -.-> OFFSETS
+    EAGER -.-> TRAP
+
+    style EAGER fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style COOP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style NEW fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TRAP fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style OFFSETS fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

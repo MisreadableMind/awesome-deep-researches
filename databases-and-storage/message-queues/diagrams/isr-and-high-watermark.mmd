@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph NORMAL["Steady state - replication.factor=3, min.insync.replicas=2"]
+        direction TB
+        LEAD["Leader, broker 1<br/>log end offset 84,231,910"]
+        FOL1["Follower, broker 2<br/>log end offset 84,231,910<br/>IN SYNC"]
+        FOL2["Follower, broker 3<br/>log end offset 84,231,904<br/>IN SYNC, lagging 6 records"]
+        HW["High watermark = min(LEO across the ISR)<br/>= 84,231,904<br/>Consumers may read up to HERE and no further."]
+        LEAD -->|"follower FETCH"| FOL1
+        LEAD -->|"follower FETCH"| FOL2
+        LEAD -.-> HW
+    end
+
+    LAGCHECK{"Has a follower failed to reach<br/>the leader's log end offset within<br/>replica.lag.time.max.ms = 30000?"}
+    SHRINK["ISR shrinks to 2.<br/>ISR size still >= min.insync.replicas,<br/>so acks=all writes still succeed."]
+    SHRINK2["ISR shrinks to 1.<br/>ISR size < min.insync.replicas.<br/>acks=all writes now FAIL with<br/>NotEnoughReplicasException.<br/>This is the system refusing to accept<br/>data it cannot protect."]
+
+    ALLDEAD{"All replicas offline"}
+
+    subgraph ELECT["Leader election order, Kafka 4.0 and later"]
+        direction TB
+        E1["1. ISR is non-empty -> elect from the ISR.<br/>Zero data loss."]
+        E2["2. ISR empty, ELR non-empty -> elect an<br/>unfenced Eligible Leader Replica.<br/>Provably holds every committed record.<br/>KIP-966, default on for clusters created on 4.1+."]
+        E3["3. Nothing else -> last known leader if unfenced.<br/>Pre-4.0 behaviour."]
+        E1 --> E2 --> E3
+    end
+
+    UNCLEAN["unclean.leader.election.enable = false (default since 0.11.0.0)<br/>Partition stays UNAVAILABLE until an ISR member returns.<br/>Set it to true and the first replica back becomes truth:<br/>the log truncates, committed records vanish,<br/>and NO error is raised to anyone."]
+
+    QUORUM["Why not majority vote?<br/>2f+1 replicas to tolerate f failures.<br/>Kafka's ISR needs f+1 for the same f.<br/>Tolerating 2 failures: 5 copies vs 3.<br/>The design doc calls 5x disk and 1/5 throughput<br/>impractical for large volume data."]
+
+    NORMAL --> LAGCHECK
+    LAGCHECK -->|"yes, one follower"| SHRINK
+    LAGCHECK -->|"yes, both followers"| SHRINK2
+    SHRINK2 --> ALLDEAD
+    ALLDEAD --> ELECT
+    E3 -.-> UNCLEAN
+    NORMAL -.-> QUORUM
+
+    style NORMAL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ELECT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SHRINK2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style UNCLEAN fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style QUORUM fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

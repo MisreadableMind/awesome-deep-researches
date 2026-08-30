@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph QUEUE["QUEUE model - RabbitMQ classic and quorum queues"]
+        direction TB
+        QP["Publisher"] --> QX["Exchange routes by binding"]
+        QX --> QQ["Queue holds messages<br/>Broker tracks per-message state:<br/>unacked, redelivered, delivery count"]
+        QQ -->|"one message to one consumer"| QC1["Consumer A"]
+        QQ -->|"competing consumer"| QC2["Consumer B"]
+        QC1 -->|"basic.ack"| QDEL["Message DELETED<br/>gone forever"]
+        QC2 -->|"basic.nack requeue=false"| QDLX["Dead letter exchange"]
+        QNOTE["Read is destructive.<br/>Depth is a live number.<br/>Add consumers, get throughput.<br/>Replay is impossible."]
+        QQ -.-> QNOTE
+    end
+
+    subgraph LOG["LOG model - Kafka topic partition"]
+        direction TB
+        LP["Producer"] --> LPART["Partition = append-only file<br/>offsets 0,1,2,...,84231904"]
+        LPART -->|"read at offset 1200"| LC1["Group ledger-writer<br/>committed offset 1200"]
+        LPART -->|"read at offset 84000000"| LC2["Group fraud-scoring<br/>committed offset 84000000"]
+        LPART -->|"read from 0, replay"| LC3["Group backfill<br/>committed offset 0"]
+        LKEEP["Records stay until retention.ms<br/>default 7 days, or retention.bytes.<br/>Reading changes nothing."]
+        LPART -.-> LKEEP
+        LNOTE["Read is a cursor move.<br/>Broker stores one integer per group per partition.<br/>Parallelism is capped at the partition count.<br/>Replay is a seek."]
+        LPART -.-> LNOTE
+    end
+
+    style QUEUE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LOG fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style QDEL fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style LKEEP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    PUB["Publisher<br/>basic.publish<br/>exchange = 'payments'<br/>routing key = 'payment.authorized.card.us'<br/>Knows NOTHING about queues."]
+
+    subgraph EX["Exchange types"]
+        direction TB
+        DIRECT["direct<br/>routing key == binding key, exactly.<br/>Several queues may share one key;<br/>each gets a copy."]
+        FANOUT["fanout<br/>routing key IGNORED.<br/>Every bound queue gets a copy."]
+        TOPIC["topic<br/>dot-separated words.<br/>* = exactly one word<br/># = zero or more words<br/>routing key max 255 bytes"]
+        HEADERS["headers<br/>matches message headers, not the key.<br/>x-match = all | any | all-with-x | any-with-x"]
+        DEFAULT["default exchange, name = ''<br/>a direct exchange where EVERY queue is<br/>auto-bound by its own name.<br/>Looks like publishing to a queue. It is not."]
+    end
+
+    subgraph BIND["Bindings on the topic exchange 'payments'"]
+        direction TB
+        B1["payment.authorized.# -> queue 'ledger'<br/>MATCHES"]
+        B2["payment.*.card -> queue 'card-ops'<br/>NO MATCH: * is exactly one word,<br/>so this needs 3 words, not 4"]
+        B3["payment.#.us -> queue 'us-reporting'<br/>MATCHES"]
+        B4["refund.# -> queue 'refunds'<br/>NO MATCH"]
+    end
+
+    subgraph QT["Queue types, RabbitMQ 4.x"]
+        direction TB
+        QQ["QUORUM queue<br/>Raft, 3 members by default<br/>(x-quorum-initial-group-size)<br/>always durable, delivery-limit 20,<br/>priorities 0-31, no exclusivity,<br/>no global QoS"]
+        CQ["CLASSIC queue<br/>single node, CQv2 storage only<br/>(CQv1 removed in 4.3).<br/>Mirroring REMOVED in 4.0."]
+        ST["STREAM<br/>append-only log, non-destructive reads.<br/>x-stream-max-segment-size-bytes<br/>default 500,000,000<br/>x-max-age, x-max-length-bytes<br/>separate binary protocol"]
+    end
+
+    UNROUTED["No matching binding?<br/>The message is SILENTLY DISCARDED,<br/>unless the publisher set mandatory=true,<br/>in which case basic.return sends it back.<br/>This is the #1 cause of<br/>'RabbitMQ lost my message'."]
+
+    PUB --> TOPIC
+    TOPIC --> BIND
+    B1 --> QQ
+    B3 --> ST
+    B2 -.-> UNROUTED
+    B4 -.-> UNROUTED
+
+    style PUB fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style EX fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style BIND fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style QT fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style UNROUTED fill:#fce4ec,stroke:#880e4f,stroke-width:3px
