@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Rev["What the user pays, and where it splits"]
+        direction TB
+        V1["One L2 transaction fee, quoted as gas<br/>but built from two unrelated numbers"]
+        V2["L2 execution fee<br/>gas used x L2 base fee.<br/>Pays for the sequencer's CPU.<br/>Effectively free to produce."]
+        V3["L1 data fee<br/>Intrinsic, not user-adjustable.<br/>Fjord formula, OP Stack:<br/>l1FeeScaled = l1BaseFeeScalar x l1BaseFee x 16<br/>+ l1BlobFeeScalar x l1BlobBaseFee<br/>estimatedSizeScaled = max(100e6,<br/>-42,585,600 + 836,500 x fastlzSize)<br/>l1Fee = estimatedSizeScaled x l1FeeScaled / 1e12"]
+        V4["Priority fee and ordering rights<br/>First-come-first-served, or auctioned.<br/>Arbitrum Timeboost sells a 60-second<br/>express lane at second-price."]
+    end
+
+    subgraph Cost["What the operator pays"]
+        direction TB
+        C1["Blob gas to Ethereum.<br/>Largest line when blobs are contested.<br/>Since EIP-7918 the floor is a reserve of<br/>1/16 of the L1 execution base fee, so a<br/>blob costs about 2.1 US cents at 1 gwei."]
+        C2["L1 execution gas for batch transactions,<br/>state root proposals, and proof verification"]
+        C3["Proving, ZK chains only.<br/>OP Succinct measured 0.61 cents per<br/>transaction on Base, 1.34 on OP Mainnet.<br/>Ethproofs tracks 0.54 to 0.79 cents<br/>per whole-L1-block proof."]
+        C4["Bonds locked in dispute contracts.<br/>Arbitrum One: 3,600 ETH per assertion,<br/>555 + 79 = 634 ETH of challenge bonds.<br/>Base: 0.05 ETH per AggregateVerifier game."]
+        C5["Infrastructure: RPC, archive nodes,<br/>indexers, and the engineering headcount<br/>to keep a single sequencer up"]
+    end
+
+    subgraph Margin["The margin, and why it is large"]
+        direction TB
+        M1["Measured user prices, l2fees.info, Aug 2026:<br/>send ETH 0.09 USD on Optimism and Arbitrum One,<br/>0.07 on zkSync Era, 0.19 on Starknet,<br/>against 1.10 on Ethereum L1"]
+        M2["A blob costs 131,072 x blob_base_fee wei.<br/>At the EIP-7918 reserve, one sixteenth of<br/>the L1 execution base fee, that is about<br/>2.1 US cents at a 1 gwei base fee,<br/>and it carries about 10,900 transfers."]
+        M3["Below the target blob count the marginal<br/>L1 cost of one more transaction is about<br/>0.0000019 USD, and the sequencer keeps<br/>almost the whole 9-cent fee"]
+        M4["Above the target, blob base fee compounds<br/>at most 1.082x per block since Pectra.<br/>Tenfold takes 30 blocks, six minutes,<br/>and the same fee schedule turns loss-making"]
+    end
+
+    subgraph Where["Where the money ends up"]
+        direction TB
+        W1["Sequencer operator<br/>Offchain Labs, OP Labs, Coinbase,<br/>Matter Labs, StarkWare"]
+        W2["Fee vaults on OP Stack chains split<br/>sequencer, base and L1 fees into<br/>separate on-chain addresses"]
+        W3["Superchain standard chains remit a<br/>governance-set share of sequencer revenue<br/>to the Optimism Collective. Base left the<br/>Superchain on 4 March 2026 and no longer does."]
+        W4["Token holders receive governance rights.<br/>Fee accrual to a token is the exception,<br/>not the rule, on the largest chains."]
+    end
+
+    Punchline["The business, stated plainly:<br/>buy blob space wholesale, sell blockspace retail,<br/>and keep the spread. It is a margin business whose<br/>input price is set by an auction the operator<br/>does not control, and whose only moat is that<br/>users and liquidity are expensive to move."]
+
+    Rev --> Cost --> Margin --> Where --> Punchline
+
+    style Rev fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cost fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Margin fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Where fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Punchline fill:#fce4ec,stroke:#880e4f,stroke-width:3px

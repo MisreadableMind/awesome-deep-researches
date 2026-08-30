@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Asym["Why the two sides hold different transactions"]
+        direction TB
+        A1["Alice holds commitment #42<br/>to_local: Alice, delayed by to_self_delay<br/>to_remote: Bob, 1-block CSV under<br/>option_anchors, immediate on legacy"]
+        A2["Bob holds commitment #42<br/>to_local: Bob, delayed by to_self_delay<br/>to_remote: Alice, 1-block CSV under<br/>option_anchors, immediate on legacy"]
+        A3["Whoever broadcasts waits.<br/>The other side does not.<br/>That asymmetry is the punishment lever."]
+    end
+
+    subgraph Script["The to_local script, BOLT 3"]
+        direction TB
+        S1["OP_IF<br/>&nbsp;&nbsp;&lt;revocationpubkey&gt;<br/>OP_ELSE<br/>&nbsp;&nbsp;&lt;to_self_delay&gt; OP_CHECKSEQUENCEVERIFY OP_DROP<br/>&nbsp;&nbsp;&lt;local_delayedpubkey&gt;<br/>OP_ENDIF<br/>OP_CHECKSIG"]
+        S2["Branch 1: revocation key, no delay.<br/>Branch 2: own key, after to_self_delay blocks."]
+    end
+
+    subgraph Rev["Revocation: making the past worthless"]
+        direction TB
+        R1["Each new state, both sides hand over<br/>the per-commitment secret of the OLD state<br/>in revoke_and_ack"]
+        R2["That secret plus the counterparty's<br/>revocation_basepoint derives revocationpubkey"]
+        R3["Old commitments are not deleted.<br/>They are made suicidal to publish."]
+        R4["Commitment number is obscured in the locktime:<br/>upper 8 bits 0x20, lower 48 bits XORed with<br/>SHA256(payment_basepoint_A || payment_basepoint_B).<br/>An observer cannot read the channel's age."]
+    end
+
+    subgraph Tower["Watchtowers: outsourcing the vigil"]
+        direction TB
+        T1["Problem: the penalty only works if you<br/>are watching. A phone that is off for a week<br/>cannot defend itself."]
+        T2["Client pre-signs the justice transaction<br/>for every revoked state, then encrypts it<br/>using the breach transaction's own txid as the key"]
+        T3["It ships the tower the ciphertext plus<br/>the first half of that txid as a hint"]
+        T4["The tower learns nothing: not the balance,<br/>not the channel, not the counterparty.<br/>Only that some update happened."]
+        T5["On seeing a matching txid on chain, the tower<br/>now has the decryption key, decrypts, and<br/>broadcasts the justice transaction"]
+        T6["LND ships altruistic towers only:<br/>no fee, no guarantee, no accountability.<br/>Reward towers remain unstandardised."]
+    end
+
+    Breach["Alice broadcasts revoked commitment #17"]
+    Window["Bob has to_self_delay blocks to react.<br/>Typical values: 144 blocks (~1 day)<br/>to 2016 blocks (~2 weeks)."]
+    Justice["Justice transaction sweeps<br/>to_local, and every HTLC output,<br/>via the revocation branch.<br/>Alice loses the whole channel."]
+
+    Asym --> Script --> Rev
+    Rev --> Breach
+    Breach --> Window
+    Tower --> Window
+    Window --> Justice
+
+    style Asym fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Script fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Rev fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tower fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Breach fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Justice fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

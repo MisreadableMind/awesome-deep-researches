@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Same["What both do: turn 'I executed 10,000<br/>transactions correctly' into an object a<br/>contract can check in fixed gas, whatever<br/>the batch size. Succinctness, not privacy."]
+
+    subgraph SNARK["SNARK family: Groth16, PLONK, Halo2"]
+        direction TB
+        S1["Hardness: elliptic curve pairings<br/>over BN254 or BLS12-381"]
+        S2["Proof size: hundreds of bytes.<br/>Groth16 is three group elements."]
+        S3["Verification: constant, and cheap.<br/>Roughly 500,000 gas per Vitalik's<br/>2021 rollup guide; pairing precompiles<br/>at 0x06 to 0x08 do the arithmetic."]
+        S4["Trusted setup: Groth16 needs one per<br/>circuit; PLONK and Halo2 need one<br/>universal ceremony, or none.<br/>Leaked toxic waste means forged proofs."]
+        S5["Quantum: broken by Shor.<br/>Discrete log is the whole security."]
+        S6["Used by: zkSync Era, Polygon zkEVM,<br/>Scroll, Linea"]
+    end
+
+    subgraph STARK["STARK family: FRI-based"]
+        direction TB
+        T1["Hardness: collision resistance of a<br/>hash function. Nothing else."]
+        T2["Proof size: tens to hundreds of KB.<br/>Ethproofs tracks a 600 KiB target<br/>for whole-block proofs."]
+        T3["Verification: more gas than a SNARK,<br/>which is why STARK chains wrap the<br/>STARK in a SNARK before it hits L1"]
+        T4["Trusted setup: none. Transparent.<br/>Public randomness only."]
+        T5["Quantum: resistant, on current<br/>understanding. Hash-based."]
+        T6["Used by: Starknet (Cairo, SHARP, S-two),<br/>StarkEx, and most zkVMs"]
+    end
+
+    subgraph Cost["What actually costs money, Aug 2026"]
+        direction TB
+        C1["Proving a full Ethereum L1 block:<br/>0.54 to 0.79 US cents per proof<br/>across the provers Ethproofs tracks"]
+        C2["Latency: 35.4% of tracked proofs land<br/>under 10 seconds. The programme target<br/>is 70% or better."]
+        C3["Per-transaction proving on an L2:<br/>OP Succinct measured 0.61 cents on Base<br/>and 1.34 cents on OP Mainnet.<br/>ZKsync claims under 0.01 cents with Airbender."]
+        C4["Hardware in the Ethproofs field:<br/>2 to 16 consumer RTX 5090s.<br/>Proving left the datacentre."]
+    end
+
+    Modern["Where the line has moved:<br/>the SNARK-versus-STARK argument is now<br/>an implementation detail. Production systems<br/>prove with STARKs for speed and transparency,<br/>then recursively wrap the result in a SNARK<br/>because pairing verification is cheap on L1.<br/>You get hash-based proving and<br/>constant-size settlement."]
+
+    Same --> SNARK
+    Same --> STARK
+    SNARK --> Cost
+    STARK --> Cost
+    Cost --> Modern
+
+    style Same fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style SNARK fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style STARK fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Cost fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Modern fill:#fce4ec,stroke:#880e4f,stroke-width:3px

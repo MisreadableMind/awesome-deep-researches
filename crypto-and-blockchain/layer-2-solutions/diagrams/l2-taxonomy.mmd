@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q1{"Can a user withdraw<br/>without permission from<br/>the operator?"}
+    NotL2["Not a Layer 2.<br/>A sidechain with a bridge.<br/>Polygon PoS, BNB Chain, Ronin.<br/>Security comes from its own<br/>validator set, not from L1."]
+
+    Q2{"How does L1 learn the<br/>new state root is correct?"}
+    Fraud["Fraud proof<br/>Assumed correct, challengeable"]
+    Validity["Validity proof<br/>Verified before acceptance"]
+
+    Q3A{"Where does the<br/>transaction data live?"}
+    Q3B{"Where does the<br/>transaction data live?"}
+
+    Rollup["OPTIMISTIC ROLLUP<br/>Data on L1 in blobs.<br/>Anyone can rebuild state.<br/>Arbitrum One, OP Mainnet, Base<br/>Exit delay: 1 to 7 days"]
+    Optimium["OPTIMIUM<br/>Fraud proof, off-chain data.<br/>Arbitrum Nova (AnyTrust DAC), Metis.<br/>Mantle left the category when it<br/>moved to SP1 Hypercube validity proofs.<br/>Trust: the committee keeps data"]
+    ZKR["ZK / VALIDITY ROLLUP<br/>Data on L1 in blobs.<br/>Starknet, zkSync Era,<br/>Polygon zkEVM, Linea, Scroll<br/>Exit delay: proving time only"]
+    Validium["VALIDIUM<br/>Validity proof, off-chain data.<br/>StarkEx apps, Immutable X<br/>State is provably correct but<br/>possibly unreachable"]
+
+    Volition["VOLITION<br/>The user picks, per transaction:<br/>pay for blob data (rollup) or<br/>pay a committee (validium).<br/>Same proof, two data modes."]
+
+    Channels["PAYMENT / STATE CHANNELS<br/>No shared operator at all.<br/>Fixed participant set locks funds<br/>in a 2-of-2 or n-of-n contract.<br/>Lightning Network<br/>Exit delay: to_self_delay blocks"]
+
+    Plasma["PLASMA<br/>Fraud proof plus exit game,<br/>data held by the operator.<br/>Abandoned for general compute:<br/>a mass exit needs data the<br/>operator can withhold."]
+
+    Start["An off-chain execution system"]
+
+    Start --> Q1
+    Q1 -->|No| NotL2
+    Q1 -->|"Yes, unilaterally"| Q2
+    Q1 -->|"Yes, but only for<br/>the parties who<br/>funded the contract"| Channels
+    Q2 -->|Fraud proof| Q3A
+    Q2 -->|Validity proof| Q3B
+    Q3A -->|On Ethereum| Rollup
+    Q3A -->|Off-chain committee| Optimium
+    Q3A -->|"Operator only,<br/>with an exit game"| Plasma
+    Q3B -->|On Ethereum| ZKR
+    Q3B -->|Off-chain committee| Validium
+    ZKR -.per-transaction choice.-> Volition
+    Validium -.per-transaction choice.-> Volition
+
+    style NotL2 fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Rollup fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style ZKR fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Optimium fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Validium fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Volition fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Channels fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Plasma fill:#eceff1,stroke:#37474f,stroke-width:2px

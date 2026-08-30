@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Alice (payer)
+    participant B as Bob (hop 1)
+    participant C as Carol (hop 2)
+    participant D as Dave (payee)
+
+    Note over D: Dave picks a random 32-byte preimage R.<br/>payment_hash H = SHA256(R).
+    D-->>A: BOLT 11 invoice, or a BOLT 12 offer<br/>fetched over an onion message.<br/>Carries H, amount, min_final_cltv_expiry.
+
+    Note over A: Alice source-routes. She holds the whole<br/>graph from BOLT 7 gossip: channel_announcement<br/>plus channel_update per direction.
+    Note over A: Fee per hop =<br/>fee_base_msat + amount * fee_rate_ppm / 1e6.<br/>Network averages, Aug 2026: 903 msat base, 824 ppm.
+
+    Note over A: Timelocks decrement outward.<br/>Alice sets 40 + 40 + 18 = 98 blocks<br/>above current height for the first hop.
+
+    A->>B: update_add_htlc(H, 100,166 sat, cltv=h+98)<br/>onion: 1 version byte + 33-byte ephemeral key<br/>+ 1300 bytes payloads + 32-byte HMAC = 1366
+    Note over B: Bob peels one layer with ECDH.<br/>He learns only: forward to Carol, this amount,<br/>this expiry. Not the sender, not the payee,<br/>not the route length.
+    B->>C: update_add_htlc(H, 100,083 sat, cltv=h+58)
+    Note over C: Carol peels her layer. Same blindness.
+    C->>D: update_add_htlc(H, 100,000 sat, cltv=h+18)
+
+    Note over D: Dave's payload has no next hop.<br/>He is the final recipient.
+
+    D->>C: update_fulfill_htlc(R)
+    Note over C: R proves Dave was paid.<br/>Carol can now claim from Bob.
+    C->>B: update_fulfill_htlc(R)
+    B->>A: update_fulfill_htlc(R)
+    Note over A,D: Atomic. Either every hop settles<br/>or none does. The preimage is the<br/>receipt and the unlock key at once.
+
+    alt Dave never responds
+        Note over A,D: Each HTLC expires at its own height,<br/>innermost first. Every hop reclaims<br/>its funds via the OP_CHECKLOCKTIMEVERIFY<br/>branch. Alice's money is locked longest.
+        C->>C: HTLC-timeout tx at h+18
+        B->>B: HTLC-timeout tx at h+58
+        A->>A: HTLC-timeout tx at h+98
+    else Route fails mid-way
+        B-->>A: update_fail_htlc, onion-encrypted error<br/>readable only by Alice
+        Note over A: Alice retries a different path.<br/>Pathfinding is trial and error because<br/>channel balances are private.
+    end

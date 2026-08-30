@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Why["The problem EIP-4844 solved:<br/>rollup data was arriving as calldata, which<br/>every node stores forever and every contract<br/>can read. Rollups need neither property.<br/>They need the data to have been available<br/>long enough for someone to check it."]
+
+    subgraph Build["1. Build the blob"]
+        direction TB
+        B1["Batcher compresses ordered L2 transactions"]
+        B2["Pack into a blob: FIELD_ELEMENTS_PER_BLOB<br/>= 4,096 field elements of 32 bytes<br/>= 131,072 bytes = 128 KiB"]
+        B3["KZG-commit to the polynomial<br/>the blob interpolates.<br/>Commitment is 48 bytes."]
+        B4["versioned_hash =<br/>0x01 || sha256(commitment)[1:]<br/>32 bytes, EVM-readable"]
+    end
+
+    subgraph Send["2. Send it"]
+        direction TB
+        S1["Type-0x03 transaction.<br/>Execution payload carries only the<br/>versioned hashes, never the blob."]
+        S2["Blobs travel on the consensus layer<br/>as sidecars, alongside the beacon block,<br/>not inside the execution block"]
+        S3["GAS_PER_BLOB = 2^17 = 131,072 blob gas.<br/>Blob gas has its own EIP-1559 market,<br/>completely separate from execution gas."]
+    end
+
+    subgraph Market["3. The blob fee market"]
+        direction TB
+        M1["Cancun, 13 Mar 2024: target 3, max 6<br/>update fraction 3,338,477"]
+        M2["Pectra, 7 May 2025 (EIP-7691):<br/>target 6, max 9, fraction 5,007,716"]
+        M3["Fusaka, 3 Dec 2025: PeerDAS (EIP-7594)"]
+        M4["BPO1, 9 Dec 2025: target 10, max 15<br/>BPO2, 7 Jan 2026: target 14, max 21"]
+        M5["MIN_BASE_FEE_PER_BLOB_GAS = 1 wei,<br/>unreachable since EIP-7918 shipped in Fusaka.<br/>Reserve = BLOB_BASE_COST (2^13) x base_fee_per_gas<br/>/ GAS_PER_BLOB, exactly 1/16 of execution base fee.<br/>At a 1 gwei L1 base fee one blob costs<br/>0.0000082 ETH, about 2.1 US cents.<br/>Above target it rises at most 1.082x per block."]
+    end
+
+    subgraph Sample["4. PeerDAS: nobody downloads everything"]
+        direction TB
+        P1["Reed-Solomon extend each blob 2x,<br/>then cut into NUMBER_OF_COLUMNS = 128 columns<br/>of FIELD_ELEMENTS_PER_CELL = 64 elements"]
+        P2["CUSTODY_REQUIREMENT = 4:<br/>an honest node stores and serves<br/>4 of the 128 columns"]
+        P3["SAMPLES_PER_SLOT = 8:<br/>it randomly samples 8 per slot.<br/>Withholding half the data is caught<br/>with probability 1 - 2^-8 per node."]
+        P4["This is why blob capacity could rise<br/>2.3 times within five weeks of Fusaka<br/>without raising anyone's bandwidth bill"]
+    end
+
+    subgraph Read["5. Reading a blob, and forgetting it"]
+        direction TB
+        R1["Point evaluation precompile at 0x0A:<br/>prove that blob polynomial p, committed to<br/>by this versioned hash, satisfies p(z) = y.<br/>The EVM never sees the 128 KiB."]
+        R2["Consensus nodes serve data columns for<br/>MIN_EPOCHS_FOR_DATA_COLUMN_SIDECARS_REQUESTS<br/>= 4,096 epochs, about 18 days, then drop them.<br/>Same value as the Deneb blob-sidecar constant<br/>it superseded at the Fulu fork."]
+        R3["After that the data lives with whoever<br/>chose to keep it: rollup nodes, indexers,<br/>archives. Ethereum guaranteed availability,<br/>not permanence. Those are different promises."]
+    end
+
+    Arith["Capacity arithmetic at BPO2 targets:<br/>14 blobs x 131,072 bytes = 1,835,008 bytes<br/>per 12-second slot = 153 KB/sec = 13.2 GB/day.<br/>At Vitalik's 12 compressed bytes per ETH transfer,<br/>that is about 152,900 transfers per slot,<br/>or 12,700 per second, shared by every rollup."]
+
+    Why --> Build --> Send --> Market --> Sample --> Read --> Arith
+
+    style Why fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Build fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Send fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Market fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Sample fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Read fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Arith fill:#fce4ec,stroke:#880e4f,stroke-width:3px

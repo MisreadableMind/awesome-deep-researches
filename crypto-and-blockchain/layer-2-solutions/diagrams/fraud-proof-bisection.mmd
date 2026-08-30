@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["The problem: proving a rollup block wrong<br/>means re-running it. Re-running it on L1<br/>costs more gas than a block holds.<br/>You cannot afford to show the whole answer."]
+    Trick["The trick: do not prove the whole computation.<br/>Play a game that narrows the disagreement to<br/>one machine instruction, then execute that<br/>one instruction on chain."]
+
+    subgraph OP["OP Stack: FaultDisputeGame, MIPS64 via Cannon"]
+        direction TB
+        O1["Layer 1 of the tree: output roots<br/>SPLIT_DEPTH = 30<br/>2^30 = 1,073,741,824 L2 blocks addressable"]
+        O2["Layer 2 of the tree: execution trace<br/>MAX_GAME_DEPTH = 73, so 73 - 30 = 43 levels<br/>2^43 = 8.8 trillion MIPS64 instructions"]
+        O3["Moves: ATTACK creates a claim at gindex*2,<br/>DEFEND supports the parent.<br/>73 moves maximum to reach a leaf."]
+        O4["At the leaf: MIPS64.sol executes exactly one<br/>big-endian 64-bit MIPS Release 1 instruction.<br/>Contract holds no memory. It receives up to two<br/>Merkle proofs against a 59-deep keccak256 tree<br/>over the full 64-bit address space."]
+        O5["Data the instruction needs comes from<br/>PreimageOracle.sol, populated by op-challenger.<br/>Large preimages get their own 24-hour window."]
+        O6["The program under proof is kona-client,<br/>a Rust implementation of the derivation<br/>and execution rules, compiled to MIPS64."]
+    end
+
+    subgraph ARB["Arbitrum BoLD: three levels, WAVM"]
+        direction TB
+        R1["Level 0: block level.<br/>Bisect over Arbitrum blocks<br/>to isolate one block."]
+        R2["Level 1: big step.<br/>Bisect over 2^20 = 1,048,576<br/>WASM instructions."]
+        R3["Level 2: small step, down to<br/>a single WAVM instruction."]
+        R4["OneStepProof contract executes it.<br/>WAVM is WebAssembly, so the same<br/>Go code that runs the chain compiles<br/>to the thing being proved."]
+        R5["Bonds on Arbitrum One:<br/>assertion 3,600 ETH; big step 555 ETH;<br/>small step 79 ETH, so 634 ETH of<br/>challenge bonds in total.<br/>Offchain Labs prices the design so an<br/>attacker spends 6.46 USD per 1 USD defended."]
+    end
+
+    subgraph Old["What BoLD fixed, Feb 2025"]
+        direction TB
+        X1["Old protocol: allowlisted validators,<br/>one-versus-one tournaments, and a<br/>delay attack that bought a week per<br/>bond sacrificed"]
+        X2["BoLD: permissionless, all-versus-all,<br/>and the clock is bounded.<br/>Default challenge period 6.4 days:<br/>two windows plus a 2-day grace period<br/>for the Security Council."]
+    end
+
+    Assumption["The load-bearing assumption in both:<br/>at least one honest party is watching,<br/>is funded, and can get a transaction<br/>onto L1 inside the window. Not a proof.<br/>A liveness bet, priced in bonds."]
+
+    Problem --> Trick
+    Trick --> OP
+    Trick --> ARB
+    Old --> ARB
+    OP --> Assumption
+    ARB --> Assumption
+
+    style Problem fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Trick fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style OP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ARB fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Old fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Assumption fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Split["A rollup makes two separate promises.<br/>Validity: the state transition is correct.<br/>Availability: you can obtain the data<br/>needed to compute the state yourself.<br/>They are unbundled, and priced apart."]
+
+    subgraph Roll["Rollup: both promises on Ethereum"]
+        direction TB
+        RA["Proof verified on L1"]
+        RB["Data in 4844 blobs on L1"]
+        RC["Failure mode: none that leaves you stuck.<br/>If every operator disappears, anyone can<br/>replay the blobs, rebuild the state,<br/>and exit through the bridge."]
+        RD["Cost: blob gas, shared with every<br/>other rollup bidding for the same<br/>14-blob target per slot"]
+    end
+
+    subgraph Vali["Validium: validity on L1, data with a committee"]
+        direction TB
+        VA["Proof verified on L1"]
+        VB["Data held by a Data Availability Committee.<br/>Members sign an attestation that they hold it.<br/>Arbitrum's AnyTrust needs 2 of N honest."]
+        VC["Failure mode: the state is provably correct<br/>and unreachable. You cannot construct the<br/>Merkle proof your withdrawal needs, because<br/>you cannot see the leaf. Funds are frozen,<br/>not stolen. Cold comfort."]
+        VD["Cost: near zero L1 data cost.<br/>ethereum.org cites 9,000 tps or more."]
+        VE["Used by: StarkEx applications,<br/>Immutable X, Arbitrum Nova"]
+    end
+
+    subgraph Vol["Volition: the user chooses, per transaction"]
+        direction TB
+        OA["Same chain, same prover, same L1 contract.<br/>One flag decides where the data goes."]
+        OB["Rollup mode: a 50,000 USD position.<br/>Pay for blob space. Sleep."]
+        OC["Validium mode: a 3 USD in-game item.<br/>Pay the committee. Accept the risk."]
+        OD["The insight: data availability is a<br/>cost, and cost should track value at risk.<br/>Nobody pays L1 rates to move a game asset."]
+    end
+
+    subgraph Alt["The third option that appeared after 2023"]
+        direction TB
+        AA["External DA layers with their own consensus:<br/>Celestia, EigenDA, Avail, NEAR DA"]
+        AB["Cheaper than blobs, stronger than a<br/>five-member committee, weaker than Ethereum"]
+        AC["L2Beat classifies any chain that does not<br/>put data on Ethereum as a validium or an<br/>optimium, whatever it calls itself"]
+    end
+
+    Test["The one question that settles the category:<br/>if every operator, committee member and<br/>server vanishes tonight, can you still<br/>compute your balance and withdraw?<br/>Yes means rollup. No means everything else."]
+
+    Split --> Roll
+    Split --> Vali
+    Roll --> Vol
+    Vali --> Vol
+    Vali --> Alt
+    Vol --> Test
+    Alt --> Test
+
+    style Split fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Roll fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Vali fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Vol fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Alt fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Test fill:#fce4ec,stroke:#880e4f,stroke-width:3px
