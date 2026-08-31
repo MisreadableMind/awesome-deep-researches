@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Hot["Hot phase"]
+        H1["Writes land here.<br/>NVMe, most CPU, 1+ replica."]
+        H2["rollover: max_primary_shard_size 50gb,<br/>max_age 30d, max_docs"]
+        H3["Actions: rollover, set_priority,<br/>forcemerge, shrink, downsample,<br/>readonly, searchable_snapshot"]
+    end
+
+    subgraph Warm["Warm phase"]
+        W1["Read-mostly. Cheaper disk,<br/>fewer CPUs, replicas retained."]
+        W2["Actions: allocate, migrate, shrink,<br/>forcemerge, readonly, downsample,<br/>set_priority"]
+        W3["forcemerge to 1 segment here,<br/>never in hot. It rewrites the<br/>whole shard."]
+    end
+
+    subgraph Cold["Cold phase"]
+        C1["Fully mounted searchable snapshot.<br/>Index data lives in object storage,<br/>a full local copy is cached."]
+        C2["Replicas can drop to 0.<br/>Recovery comes from the snapshot,<br/>which halves storage."]
+    end
+
+    subgraph Frozen["Frozen phase"]
+        F1["Partially mounted searchable snapshot.<br/>Only the blocks a query touches<br/>are fetched from object storage."]
+        F2["Shared cache on local disk,<br/>sized as a fraction of the node.<br/>3,000 frozen shards per node<br/>against 1,000 non-frozen."]
+        F3["Seconds to minutes per query.<br/>Storage cost approaches the price<br/>of S3."]
+    end
+
+    Del["Delete phase<br/>wait_for_snapshot, then delete"]
+
+    Rules["min_age is measured from rollover,<br/>not from index creation.<br/>All actions in a phase must finish<br/>before the next phase starts.<br/>ILM polls every 10 minutes by default."]
+
+    Hot -->|min_age 7d| Warm -->|min_age 30d| Cold -->|min_age 90d| Frozen -->|min_age 365d| Del
+    Hot -.governed by.-> Rules
+
+    style Hot fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Warm fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Cold fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Frozen fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Rules fill:#eceff1,stroke:#37474f,stroke-width:2px

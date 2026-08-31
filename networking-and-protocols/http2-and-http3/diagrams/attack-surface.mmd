@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Asym["The structural asymmetry"]
+        direction TB
+        A1["One HTTP/2 frame costs the client<br/>9 bytes plus a compressed field block.<br/>It can cost the server a thread, a<br/>database query, and a buffer."]
+        A2["SETTINGS_MAX_CONCURRENT_STREAMS bounds<br/>simultaneous streams. It bounds<br/>NOTHING about the RATE at which<br/>streams are created and destroyed."]
+    end
+
+    subgraph RR["Rapid Reset, CVE-2023-44487, Aug-Oct 2023"]
+        direction TB
+        R1["Client sends HEADERS then RST_STREAM<br/>immediately. The stream reaches<br/>'closed' at once and frees its<br/>concurrency slot."]
+        R2["Backend work already started and<br/>keeps running. Concurrency never<br/>appears to exceed the limit."]
+        R3["Cloudflare peak: just above<br/>201 million requests per second.<br/>Google peak: 398 million rps,<br/>7.5x the previous record of<br/>46 million rps in 2022. CVSS 7.5."]
+        R4["Mitigation: count resets, not just<br/>open streams. Close the connection<br/>when the reset rate crosses a<br/>threshold. There is no protocol fix."]
+    end
+
+    subgraph CF["CONTINUATION Flood, VU 421644, Apr 2024"]
+        direction TB
+        C1["HEADERS without END_HEADERS, then an<br/>unbounded stream of CONTINUATION<br/>frames. RFC 9113 sets no limit on<br/>their number."]
+        C2["Server buffers the field block to<br/>decode it, or burns CPU on HPACK<br/>Huffman decoding. Neither is bounded<br/>by SETTINGS_MAX_HEADER_LIST_SIZE if<br/>the implementation checks it too late."]
+        C3["Ten CVEs across implementations:<br/>Node.js CVE-2024-27983,<br/>Envoy CVE-2024-27919 and CVE-2024-30255,<br/>Go net/http CVE-2023-45288,<br/>nghttp2 CVE-2024-28182,<br/>Apache httpd CVE-2024-27316,<br/>Apache Traffic Server CVE-2024-31309,<br/>Tempesta FW CVE-2024-2758,<br/>amphp/http CVE-2024-2653,<br/>CVE-2024-27268."]
+        C4["Does not exist in HTTP/3:<br/>there is no CONTINUATION frame."]
+    end
+
+    subgraph MYR["MadeYouReset, CVE-2025-8671, Aug 2025"]
+        direction TB
+        M1["Rapid Reset with the roles inverted.<br/>The client sends malformed frames or<br/>flow-control errors so the SERVER<br/>resets the stream."]
+        M2["Server-reset streams count as closed<br/>at the protocol level while backend<br/>processing continues, so the same<br/>unbounded concurrency appears."]
+        M3["CVSS 7.5. Defeats mitigations that<br/>only counted CLIENT-sent RST_STREAM."]
+    end
+
+    subgraph Q["QUIC-specific surface"]
+        direction TB
+        Q1["Amplification: capped structurally at<br/>3x received bytes before address<br/>validation. Retry moves state cost<br/>onto the client entirely."]
+        Q2["0-RTT replay: no transport fix exists.<br/>RFC 8470's 425 Too Early is the<br/>only complete answer, and it is an<br/>application-layer answer."]
+        Q3["Connection ID linkability: an endpoint<br/>that reuses a CID across paths lets an<br/>observer follow a user across networks.<br/>RFC 9000 requires a fresh CID per path."]
+        Q4["CPU as the attack surface: QUIC<br/>decryption happens before a packet can<br/>be discarded, so a flood of invalid<br/>packets costs the server work that a<br/>TCP checksum failure would not."]
+    end
+
+    Asym --> RR
+    Asym --> CF
+    RR --> MYR
+    Asym --> Q
+
+    style Asym fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style RR fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style CF fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MYR fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Q fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

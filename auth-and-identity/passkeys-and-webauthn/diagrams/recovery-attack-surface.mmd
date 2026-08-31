@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Acct(["An account protected<br/>by one passkey"])
+
+    Acct --> Front["Front door<br/>WebAuthn assertion.<br/>Origin bound, replay proof,<br/>no shared secret."]
+    Acct --> Back["Back door<br/>'I lost my device'"]
+
+    Front --> Safe["Phishing-resistant.<br/>Cost to attack: compromise<br/>the client or the device."]
+
+    Back --> R1["Email a reset link<br/>The account is now only as<br/>strong as the email account,<br/>which usually has a password."]
+    Back --> R2["SMS a code<br/>Defeated by SIM swap and by<br/>any adversary-in-the-middle proxy.<br/>Reintroduces the exact attack<br/>the passkey removed."]
+    Back --> R3["Knowledge questions<br/>Answers are usually public<br/>or guessable."]
+    Back --> R4["Help desk call<br/>Social engineering against a<br/>human under time pressure.<br/>The 2023 casino intrusions used<br/>this route against MFA-enabled<br/>enterprises."]
+    Back --> R5["Identity document upload<br/>Slow, expensive, and increasingly<br/>attacked with generated images."]
+
+    R1 --> Weak["Effective account security =<br/>min(front door, back door).<br/>The passkey did not raise it."]
+    R2 --> Weak
+    R3 --> Weak
+    R4 --> Weak
+    R5 --> Weak
+
+    subgraph Fix["What actually raises the floor"]
+        direction TB
+        X1["Register two or more passkeys<br/>on different authenticators at<br/>enrolment. A phone and a security<br/>key, or a phone and a laptop."]
+        X2["Rely on the sync fabric.<br/>A synced passkey survives device<br/>loss without any RP-side recovery<br/>path at all."]
+        X3["Single-use recovery codes,<br/>generated once, shown once,<br/>stored offline. Phishable in<br/>principle, but only once and<br/>only with the user's cooperation."]
+        X4["Enterprise: a Temporary Access<br/>Pass, time-boxed and issued<br/>through a verified channel,<br/>usable only to enrol a new passkey."]
+        X5["Delegated recovery: a trusted<br/>contact, or a second account,<br/>attests to the user."]
+        X6["Step-up: make recovery slow.<br/>A 72-hour hold with notification<br/>to every registered device beats<br/>most account takeover economics."]
+    end
+
+    Weak --> Fix
+
+    style Front fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style Safe fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style Back fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Weak fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px
+    style Fix fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

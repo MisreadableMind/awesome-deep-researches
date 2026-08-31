@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    STD["S3 Standard<br/>0.023 USD per GB-month<br/>3 or more AZs, 99.99 percent availability<br/>No minimum duration, no minimum size"]
+
+    INT["S3 Intelligent-Tiering<br/>0.0025 USD per 1,000 objects monitored<br/>Frequent, Infrequent at 30 days,<br/>Archive Instant Access at 90 days<br/>No retrieval fees, no minimum duration"]
+
+    SIA["S3 Standard-IA<br/>0.0125 USD per GB-month<br/>0.01 USD per GB retrieved<br/>30-day minimum, 128 KB minimum billable"]
+
+    OZ["S3 One Zone-IA<br/>0.01 USD per GB-month<br/>0.01 USD per GB retrieved<br/>1 AZ, 99.5 percent availability<br/>30-day minimum, 128 KB minimum billable"]
+
+    GIR["S3 Glacier Instant Retrieval<br/>0.004 USD per GB-month<br/>0.03 USD per GB retrieved<br/>90-day minimum, 128 KB minimum billable<br/>Millisecond access"]
+
+    GFR["S3 Glacier Flexible Retrieval<br/>0.0036 USD per GB-month<br/>Expedited 1 to 5 min, Standard 3 to 5 h,<br/>Bulk 5 to 12 h and free<br/>90-day minimum, 40 KB metadata per object"]
+
+    DA["S3 Glacier Deep Archive<br/>0.00099 USD per GB-month<br/>Standard within 12 h at 0.02 USD per GB,<br/>Bulk within 48 h at 0.0025 USD per GB<br/>180-day minimum, 40 KB metadata per object"]
+
+    STD --> INT
+    STD --> SIA
+    STD --> OZ
+    STD --> GIR
+    STD --> GFR
+    STD --> DA
+
+    SIA --> INT
+    SIA --> OZ
+    SIA --> GIR
+    SIA --> GFR
+    SIA --> DA
+
+    INT --> OZ
+    INT --> GIR
+    INT --> GFR
+    INT --> DA
+
+    OZ --> GFR
+    OZ --> DA
+
+    GIR --> GFR
+    GIR --> DA
+
+    GFR --> DA
+
+    Rules["Transitions flow one way only. Going back up<br/>requires a restore and then a copy.<br/>Since September 2024 objects below 128 KB are<br/>not transitioned at all by default, because the<br/>transition request costs more than the saving.<br/>Transition requests cost 0.01 to 0.05 USD per 1,000<br/>depending on the destination class."]
+
+    DA --> Rules
+
+    style STD fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style INT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SIA fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OZ fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style GIR fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style GFR fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style DA fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Rules fill:#ffebee,stroke:#b71c1c,stroke-width:2px

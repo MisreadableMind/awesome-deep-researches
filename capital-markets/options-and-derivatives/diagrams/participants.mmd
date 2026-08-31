@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Demand["Demand side"]
+        direction TB
+        A1["Hedger<br/>Owns the risk, wants less of it.<br/>Corporates, pension funds,<br/>asset managers, miners, airlines"]
+        A2["Speculator / yield seeker<br/>Wants the risk, or wants<br/>the premium for bearing it.<br/>Hedge funds, retail, overwriters"]
+        A3["Arbitrageur<br/>Trades the relationship,<br/>not the direction.<br/>Parity, box, dispersion, basis"]
+    end
+
+    subgraph Intermediation["Intermediation"]
+        direction TB
+        B1["Retail broker<br/>Order entry, suitability approval,<br/>Reg T margin, no principal risk"]
+        B2["Prime broker<br/>Financing, stock loan,<br/>portfolio margin, custody"]
+        B3["Market maker<br/>Two-sided quotes, delta hedges,<br/>earns the spread and<br/>exchange rebates"]
+        B4["Swap dealer / SBSD<br/>Registered OTC principal.<br/>Capital, margin, reporting duties"]
+    end
+
+    subgraph Venue["Venue and reporting"]
+        direction TB
+        C1["Options exchange<br/>Six groups run 18 US venues:<br/>Cboe, Nasdaq, NYSE, MIAX, MEMX, BOX<br/>competing on fee model<br/>and allocation rule"]
+        C2["OPRA<br/>Consolidated quote and trade feed<br/>for all US listed options"]
+        C3["SEF / MTF<br/>Execution venue for<br/>mandated OTC swaps"]
+        C4["SDR / trade repository<br/>Post-trade reporting for swaps"]
+    end
+
+    subgraph Post["Post-trade"]
+        direction TB
+        D1["Clearing member<br/>The only entity the CCP faces.<br/>Posts margin, funds the<br/>default fund, guarantees<br/>its customers"]
+        D2["CCP<br/>OCC for US listed options.<br/>CME Clearing, LCH, ICE Clear<br/>for futures and swaps.<br/>Novates every trade."]
+        D3["Custodian / settlement agent<br/>Moves shares and cash on exercise"]
+    end
+
+    A1 --> B1
+    A2 --> B1
+    A3 --> B2
+    B1 --> C1
+    B2 --> C1
+    B3 --> C1
+    B4 --> C3
+    C1 --> C2
+    C1 --> D1
+    C3 --> C4
+    C3 --> D1
+    D1 --> D2
+    D2 --> D3
+
+    Gate["Two gates.<br/>The market maker gates liquidity:<br/>no quote, no market.<br/>The clearing member gates credit:<br/>no sponsor, no access."]
+
+    B3 --> Gate
+    D1 --> Gate
+
+    style Demand fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Intermediation fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Venue fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Post fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Gate fill:#fce4ec,stroke:#880e4f,stroke-width:3px

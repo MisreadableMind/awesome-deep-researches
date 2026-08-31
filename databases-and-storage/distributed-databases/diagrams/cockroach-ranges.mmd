@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph SQL["SQL layer - any node is a gateway"]
+        GW["Gateway node<br/>parses, plans, distributes<br/>picks a transaction timestamp from its HLC"]
+    end
+
+    subgraph DIST["Distribution layer"]
+        M1["meta1 range<br/>never splits<br/>replicated 5x"]
+        M2["meta2 ranges<br/>key -> range descriptor"]
+        DS["DistSender<br/>splits a BatchRequest by range,<br/>orders replicas by expected latency,<br/>retries transparently on a stale lease"]
+    end
+
+    subgraph R1["Range covering customers 1000 to 2000"]
+        direction TB
+        LH["node1: LEASEHOLDER + RAFT LEADER<br/>Leader leases, colocated by construction<br/>serves ALL reads without Raft<br/>proposes all writes"]
+        RP2["node2: follower<br/>can serve stale reads at or below<br/>the closed timestamp"]
+        RP3["node3: follower"]
+    end
+
+    subgraph STORE["Storage layer"]
+        PEB["Pebble, an LSM tree<br/>MVCC keys: /table/index/pk/columnFamily : timestamp -> value<br/>write intents live in a separate lock-table keyspace"]
+    end
+
+    GW --> DS
+    DS --> M1
+    M1 --> M2
+    M2 --> DS
+    DS -->|"BatchRequest"| LH
+    LH -->|"Raft: propose, replicate, commit, apply"| RP2
+    LH --> RP3
+    LH --> PEB
+    RP2 --> PEB
+    RP3 --> PEB
+
+    LH -.->|"closed timestamp, piggybacked<br/>on Raft commands, lags now by<br/>a target interval of a few seconds"| RP2
+
+    NOTE["SPLIT at 512 MiB. MERGE below 128 MiB.<br/>LEASEHOLDER REBALANCING every 10 minutes in large clusters,<br/>weighted by an exponentially weighted moving average<br/>of requests per locality."]
+
+    R1 -.-> NOTE
+
+    style LH fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style NOTE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DIST fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

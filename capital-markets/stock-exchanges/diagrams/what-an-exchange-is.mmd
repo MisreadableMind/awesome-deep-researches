@@ -1,0 +1,26 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph IS["An exchange IS"]
+        M["A deterministic matching engine<br/>single-threaded per symbol group,<br/>sequenced input, sequenced output"]
+        R["A filed rulebook<br/>every order type and priority rule<br/>approved under Rule 19b-4"]
+        D["A market data publisher<br/>proprietary depth feed plus a<br/>mandatory feed to the SIPs"]
+        P["A membership perimeter<br/>registered broker-dealers only,<br/>each with a clearing firm"]
+    end
+
+    subgraph ISNOT["An exchange IS NOT"]
+        N1["NOT a counterparty<br/>it never takes the other side.<br/>NSCC novates and clears."]
+        N2["NOT a custodian<br/>it holds no shares and no cash.<br/>DTC holds the securities."]
+        N3["NOT the price<br/>it publishes ITS book.<br/>The NBBO is computed by the SIPs."]
+        N4["NOT where most volume trades<br/>50.16% of US share volume printed<br/>off-exchange in July 2026"]
+        N5["NOT uniformly price-time<br/>NYSE allocates on parity,<br/>not strict time priority"]
+    end
+
+    M --> N1
+    R --> N5
+    D --> N3
+    P --> N2
+    P --> N4
+
+    style IS fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style ISNOT fill:#ffebee,stroke:#c62828,stroke-width:3px

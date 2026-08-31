@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Assets["ASSETS - what the bank owns and is owed<br/>US industry total: 26.46 trn USD, 2026 Q2"]
+        direction TB
+        A1["Loans and leases<br/>13.94 trn, 53% of assets<br/>illiquid, long-dated, credit risk"]
+        A2["Securities<br/>5.82 trn, 22%<br/>AFS marked to market,<br/>HTM carried at cost"]
+        A3["Cash and reserves at the Fed<br/>settlement asset, IORB earning"]
+        A4["Trading assets, fed funds sold,<br/>reverse repo, premises,<br/>goodwill 462 bn"]
+    end
+
+    subgraph Liab["LIABILITIES - what the bank owes<br/>9.92 percent of the sheet is equity"]
+        direction TB
+        L1["Deposits<br/>20.72 trn, 78% of assets<br/>payable on demand at par<br/>uninsured portion is the run risk"]
+        L2["Other borrowed funds<br/>2.17 trn, incl. FHLB advances 532 bn"]
+        L3["Subordinated debt 51 bn<br/>counts as tier 2 capital"]
+        L4["Other liabilities 893 bn"]
+    end
+
+    subgraph Eq["EQUITY - the loss absorber"]
+        direction TB
+        E1["Total equity capital<br/>2.63 trn, 9.92% of assets"]
+        E2["CET1 = equity minus goodwill,<br/>intangibles, DTAs and,<br/>for the largest banks, AOCI"]
+    end
+
+    subgraph OBS["OFF BALANCE SHEET - obligations without a line"]
+        direction TB
+        O1["Unused loan commitments<br/>11.34 trn"]
+        O2["Derivatives notional<br/>305.4 trn"]
+        O3["Trust and custody assets<br/>43.5 trn, not the bank's"]
+    end
+
+    Assets --> Liab
+    Liab --> Eq
+    Assets -.-> OBS
+
+    Note1["A bank is a leveraged bond fund<br/>funded by demandable claims.<br/>Every question about banking is a<br/>question about one of these boxes."]
+
+    Eq --- Note1
+
+    style Assets fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Liab fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Eq fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style OBS fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Note1 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

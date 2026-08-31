@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Policy["Policy and coordination - nobody's traffic passes through here"]
+        ICANN["ICANN<br/>contracts registries and registrars,<br/>runs the new gTLD programme,<br/>sets consensus policy"]
+        IANA["IANA / PTI<br/>the IANA Functions Operator.<br/>Holds the root zone database,<br/>the RR type registry, the<br/>parameter registries"]
+        Verisign["Verisign<br/>Root Zone Maintainer.<br/>Edits and signs the root zone,<br/>distributes it to the operators"]
+        IETF["IETF DNSOP, DPRIVE, ADD, DELEG<br/>writes the protocol"]
+    end
+
+    subgraph Names["The naming supply chain - who sells the name"]
+        Registrant["Registrant<br/>the person or company<br/>that holds the name.<br/>Not an owner. A lessee<br/>with an annual renewal."]
+        Registrar["Registrar<br/>ICANN-accredited reseller.<br/>GoDaddy, Namecheap, Cloudflare,<br/>MarkMonitor. Speaks EPP<br/>to the registry."]
+        Registry["Registry<br/>runs one TLD's authoritative<br/>database and servers.<br/>Verisign for com and net,<br/>PIR for org, Nominet for uk."]
+        Reseller["Reseller<br/>sells under a registrar's<br/>accreditation. Invisible<br/>to the registry."]
+    end
+
+    subgraph Serving["The serving plane - who answers queries"]
+        AuthOp["Authoritative DNS operator<br/>Route 53, Cloudflare, NS1, Akamai,<br/>or the registrant's own BIND box.<br/>Often not the registrar."]
+        RecOp["Recursive resolver operator<br/>ISPs, enterprises, and the public<br/>resolvers: 1.1.1.1, 8.8.8.8,<br/>9.9.9.9, 86.54.11.1"]
+        RSO["12 root server operators<br/>13 identities, 2,004 instances.<br/>Verisign runs both A and J.<br/>No contract compels them<br/>to keep doing it."]
+    end
+
+    subgraph Edge["The client side"]
+        Stub["Stub resolver<br/>libc, systemd-resolved,<br/>or the browser, which<br/>increasingly bypasses the OS"]
+        App["Application"]
+    end
+
+    ICANN -->|"contract"| Registry
+    ICANN -->|"accredits"| Registrar
+    IANA -->|"delegation records"| Registry
+    Verisign -->|"signed root zone"| RSO
+    IANA --> Verisign
+    IETF -.specifies.-> AuthOp
+    IETF -.specifies.-> RecOp
+
+    Registrant -->|"pays, ~10-60 USD/yr"| Registrar
+    Reseller --> Registrar
+    Registrar -->|"EPP, ~10.26 USD wholesale for com"| Registry
+    Registrar -->|"0.18 USD ICANN transaction fee"| ICANN
+    Registrant -->|"points NS records at"| AuthOp
+
+    Registry -->|"publishes NS and DS"| AuthOp
+    App --> Stub --> RecOp
+    RecOp -->|"queries"| RSO
+    RecOp -->|"queries"| Registry
+    RecOp -->|"queries"| AuthOp
+
+    style Policy fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Names fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Serving fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Edge fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

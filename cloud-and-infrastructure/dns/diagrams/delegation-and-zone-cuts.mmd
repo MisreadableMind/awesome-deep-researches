@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph P["Parent zone: org - operated by Public Interest Registry"]
+        direction TB
+        PA["Apex records the parent owns<br/>org. SOA<br/>org. NS a0.org.afilias-nst.info. ...<br/>org. DNSKEY"]
+        PD["Delegation records at the cut, NOT authoritative:<br/>wikipedia.org. 3600 IN NS ns0.wikimedia.org.<br/>wikipedia.org. 3600 IN NS ns1.wikimedia.org.<br/>wikipedia.org. 3600 IN NS ns2.wikimedia.org."]
+        PDS["The one delegation record the parent DOES sign:<br/>wikipedia.org. IN DS keytag alg digesttype digest<br/>plus its RRSIG"]
+        PG["Glue - only when the nameserver name is<br/>inside the zone being delegated.<br/>ns0.wikimedia.org is NOT inside wikipedia.org,<br/>so no glue is needed here.<br/>RFC 9471 makes in-domain glue mandatory."]
+    end
+
+    Cut(["THE ZONE CUT<br/>Everything above belongs to org.<br/>Everything below belongs to wikipedia.org.<br/>Two administrations, two SOA records,<br/>two sets of servers."])
+
+    subgraph C["Child zone: wikipedia.org - operated by the Wikimedia Foundation"]
+        direction TB
+        CA["Apex records the child owns and signs<br/>wikipedia.org. SOA ns0.wikimedia.org. hostmaster... <br/>wikipedia.org. 172800 IN NS ns0/ns1/ns2.wikimedia.org.<br/>wikipedia.org. DNSKEY"]
+        CD["Everything beneath<br/>www, upload, api, m, ...<br/>plus any further delegations<br/>the child chooses to make"]
+    end
+
+    Mismatch["The failure mode nobody catches:<br/>parent NS TTL 3600, child NS TTL 172800,<br/>and the two lists are allowed to differ.<br/>Resolvers may believe either.<br/>DELEG exists to end this."]
+
+    PA --> PD
+    PD --> PDS
+    PDS --> Cut
+    PG -.-> Cut
+    Cut --> CA
+    CA --> CD
+    PD -.diverges from.-> CA
+    CA -.-> Mismatch
+
+    style P fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cut fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Mismatch fill:#ffebee,stroke:#b71c1c,stroke-width:2px

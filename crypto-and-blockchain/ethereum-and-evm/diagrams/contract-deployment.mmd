@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Dev as Deployer EOA
+    participant EL as Execution client
+    participant EVM as EVM
+    participant State as World state
+
+    Dev->>EL: Type 0x02 transaction<br/>to = empty, data = initcode || abi-encoded args
+    EL->>EL: Intrinsic gas = 21000 + 32000 create<br/>+ 4 per calldata token<br/>+ 2 per initcode word, EIP-3860
+    EL->>EL: Reject if initcode exceeds 49152 bytes
+
+    Note over EL,EVM: Address is decided before any code runs
+    EL->>EVM: CREATE: address = keccak256(rlp[sender, nonce])[12:]<br/>CREATE2: keccak256(0xff || sender || salt || keccak256(initcode))[12:]
+
+    EVM->>EVM: Execute initcode in a frame whose<br/>code is the initcode and whose<br/>address is the new account
+    EVM->>State: Constructor writes storage,<br/>immutables are patched into the<br/>returned bytes, not stored in a slot
+    EVM-->>EL: RETURN offset, length<br/>the returned bytes are the runtime code
+
+    EL->>EL: Charge 200 gas per returned byte
+    EL->>EL: Reject if runtime code exceeds 24576 bytes, EIP-170
+    EL->>EL: Reject if the first byte is 0xEF, EIP-3541,<br/>except the 0xef0100 delegation form of EIP-7702
+
+    EL->>State: Set codeHash = keccak256(runtime),<br/>nonce = 1, EIP-161
+    State-->>Dev: Receipt with contractAddress,<br/>status 1, gasUsed, logs
+
+    Note over Dev,State: Verification is off protocol.<br/>Etherscan and Sourcify recompile the source<br/>and compare bytecode. The chain never sees the ABI.

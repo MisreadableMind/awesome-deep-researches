@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Rule["The binding rule:<br/>every full node re-executes<br/>every transaction and stores<br/>the resulting state"]
+
+    subgraph Costs["What that rule costs each node"]
+        direction TB
+        C1["Compute<br/>Re-execute 100% of the work.<br/>Adding nodes adds zero throughput."]
+        C2["Bandwidth<br/>Every block must reach every node<br/>within one slot, worldwide"]
+        C3["State<br/>Every account and storage slot<br/>lives in RAM or on SSD forever.<br/>State only grows."]
+        C4["History<br/>A syncing node must replay<br/>the chain from genesis"]
+    end
+
+    subgraph Dial["The gas limit is the single dial"]
+        direction TB
+        D1["Ethereum: ~60,000,000 gas<br/>per 12-second slot after Fusaka<br/>= 5,000,000 gas per second"]
+        D2["ETH transfer: 21,000 gas<br/>ceiling = 238 transfers/sec"]
+        D3["ERC-20 transfer: ~65,000 gas<br/>ceiling = ~77 transfers/sec"]
+        D4["Uniswap v3 swap: ~150,000 gas<br/>ceiling = ~33 swaps/sec"]
+        D5["Measured L1 throughput<br/>Aug 2026: 23.95 user ops/sec"]
+    end
+
+    subgraph Bitcoin["Bitcoin: the same rule, harsher dial"]
+        direction TB
+        B1["4,000,000 weight units per block,<br/>one block per 600 seconds"]
+        B2["At 300 bytes per transaction<br/>that is under 7 tx/sec"]
+        B3["Poon and Dryja, 2016: matching Visa's<br/>47,000 tps peak needs ~8 GB blocks<br/>and over 400 TB per year"]
+    end
+
+    Raise["Raise the gas limit?<br/>Every increase raises the hardware<br/>floor for running a node. Fewer nodes<br/>means fewer independent checkers,<br/>which is the only thing the chain sells."]
+
+    Escape["The only escape:<br/>stop making every node redo<br/>the work. Let one party execute,<br/>and give every node a cheap way<br/>to check the answer."]
+
+    Two["Two cheap checks exist<br/>and only two"]
+    Fraud["Fraud proof<br/>Assume correct. Let anyone<br/>prove otherwise inside a window.<br/>Cost: a waiting period."]
+    Validity["Validity proof<br/>Verify a succinct proof that<br/>the work was done right.<br/>Cost: proving hardware."]
+
+    Rule --> Costs
+    Costs --> Dial
+    Costs --> Bitcoin
+    Dial --> Raise
+    Bitcoin --> Raise
+    Raise --> Escape
+    Escape --> Two
+    Two --> Fraud
+    Two --> Validity
+
+    style Rule fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Costs fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Dial fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Bitcoin fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Raise fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style Escape fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Fraud fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Validity fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

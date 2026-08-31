@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph T0["Trade Date - the promise"]
+        Exec["Execution<br/>price and quantity agreed<br/>in microseconds"]
+        Lock["Locked-in trade data<br/>sent by exchange or QSR<br/>to NSCC's UTC system"]
+    end
+
+    subgraph Gap["The gap - one business day"]
+        Risk["The counterparty may disappear<br/>before delivery.<br/>Four mechanisms decide who bears that risk."]
+        Fill1["Novation<br/>CCP becomes buyer to every seller"]
+        Fill2["Margin<br/>collateral sized to a 99% loss"]
+        Fill3["Netting<br/>obligations collapse by 98% of value"]
+        Fill4["Default waterfall<br/>who pays if margin is not enough"]
+    end
+
+    subgraph T1["Settlement Date - the delivery"]
+        Sec["Securities move<br/>book entry at DTC"]
+        Cash["Cash moves<br/>net, via Fedwire NSS"]
+        Final["Final and irrevocable"]
+    end
+
+    Exec --> Lock --> Risk
+    Risk --> Fill1 --> Fill2 --> Fill3 --> Fill4
+    Fill4 --> Sec
+    Fill4 --> Cash
+    Sec --> Final
+    Cash --> Final
+
+    style T0 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Gap fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style T1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

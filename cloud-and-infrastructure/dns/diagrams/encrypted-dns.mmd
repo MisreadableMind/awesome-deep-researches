@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["Plain DNS is a plaintext broadcast of<br/>everything you are about to do.<br/>DNSSEC signs it. It does not hide it."]
+
+    subgraph Transports["The transports, stub to resolver"]
+        Do53["Do53 - the default since 1987<br/>UDP or TCP port 53, cleartext.<br/>Readable and modifiable by every<br/>network between you and the resolver."]
+        DoT["DoT - RFC 7858, May 2016<br/>TLS on port 853. A dedicated port,<br/>so a network operator can see<br/>that you are doing DNS and can<br/>block the port. Android's<br/>Private DNS setting uses this."]
+        DoH["DoH - RFC 8484, October 2018<br/>DNS messages inside HTTPS on port 443.<br/>Indistinguishable from web traffic,<br/>which is the entire point and the<br/>entire objection. Firefox, Chrome,<br/>Edge, and iOS all support it."]
+        DoQ["DoQ - RFC 9250, May 2022<br/>QUIC on port 853. No head-of-line<br/>blocking, 0-RTT resumption.<br/>Also the transport for<br/>encrypted DNS between resolver<br/>and authoritative servers."]
+        ODoH["Oblivious DoH - RFC 9230<br/>A proxy sees your IP but not the<br/>query. The target sees the query<br/>but not your IP. Splits the two<br/>facts that together identify you."]
+    end
+
+    subgraph Auth["Resolver to authoritative - the unencrypted half"]
+        A1["RFC 9539: unilateral opportunistic<br/>encryption to authoritative servers.<br/>Opportunistic means it downgrades<br/>silently, so it defeats passive<br/>observation and not active attack."]
+        A2["Most authoritative traffic is still<br/>cleartext UDP in 2026. The privacy<br/>win from DoH stops at the resolver."]
+    end
+
+    subgraph Fight["The policy fight, and who is on which side"]
+        F1["For: the local network operator,<br/>the coffee shop, the ISP, and the<br/>national filter all lose the ability<br/>to read and rewrite queries."]
+        F2["Against: the same list.<br/>UK ISPs nominated Mozilla for<br/>'Internet Villain' in 2019 over<br/>DoH and child-protection filtering.<br/>Enterprises lose split-horizon DNS<br/>and DNS-based threat blocking."]
+        F3["The centralisation objection:<br/>moving resolution from thousands of<br/>ISP resolvers to a handful of global<br/>ones concentrates the log.<br/>Encryption changed who can read<br/>your queries, not whether<br/>somebody can."]
+        F4["Europe's answer: DNS4EU, run by<br/>Whalebone under EU project 101095329,<br/>public resolvers at 86.54.11.1 and<br/>three filtered variants. A sovereign<br/>resolver rather than a ban."]
+    end
+
+    Problem --> Transports
+    Transports --> Auth
+    Transports --> Fight
+
+    style Problem fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Transports fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Auth fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fight fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

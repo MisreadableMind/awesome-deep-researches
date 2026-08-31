@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph RTGS["Real-Time Gross Settlement (Fedwire)"]
+        direction TB
+        R1["Bank A sends 40B USD to Bank B"]
+        R2["Bank B sends 39B USD to Bank A"]
+        R3["Each payment settles individually,<br/>in full, on arrival"]
+        R4["Liquidity needed: 40B + 39B<br/>Settlement risk: none<br/>Finality: immediate"]
+        R1 --> R3
+        R2 --> R3
+        R3 --> R4
+    end
+
+    subgraph DNS["Deferred Net Settlement (ACH)"]
+        direction TB
+        D1["Entries accumulate in batches<br/>through the day"]
+        D2["Operator computes one net<br/>position per bank per window"]
+        D3["Net amount posts to master<br/>accounts at scheduled time"]
+        D4["Liquidity needed: net only<br/>Settlement risk: small residual<br/>Finality: deferred, returns for 60 days"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph CNS["Prefunded Continuous Netting (CHIPS)"]
+        direction TB
+        C1["Each participant prefunds an<br/>opening position each morning"]
+        C2["Algorithm searches queue for<br/>single, bilateral, multilateral offsets"]
+        C3["Matched sets release atomically,<br/>final at the moment of release"]
+        C4["Liquidity needed: a few billion<br/>for over a trillion settled<br/>Finality: immediate at release"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    Tradeoff["The tradeoff:<br/>liquidity vs speed vs finality<br/>No rail gets all three"]
+
+    RTGS --> Tradeoff
+    DNS --> Tradeoff
+    CNS --> Tradeoff
+
+    style RTGS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style DNS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CNS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tradeoff fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

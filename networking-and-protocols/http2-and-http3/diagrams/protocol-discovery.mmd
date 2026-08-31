@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph ALPN["ALPN: version selection inside the handshake, RFC 7301"]
+        direction TB
+        A1["Client lists protocol IDs in the TLS<br/>ClientHello ALPN extension, in<br/>preference order:<br/>h2, http/1.1"]
+        A2["Server picks one and echoes it in<br/>EncryptedExtensions. Zero extra<br/>round trips, and the selection is<br/>covered by the handshake transcript."]
+        A3["Registered IDs:<br/>http/1.1 = 0x68747470 2f312e31<br/>h2 = 0x6832<br/>h2c = HTTP/2 in cleartext<br/>h3 = 0x68 0x33"]
+        A4["ALPN cannot select HTTP/3 on its own:<br/>it runs inside a handshake that has<br/>already committed to TCP or to QUIC.<br/>The client must already have chosen<br/>UDP to offer h3."]
+    end
+
+    subgraph AltSvc["Alt-Svc: an in-band hint, RFC 7838"]
+        direction TB
+        B1["Response header on an existing<br/>HTTP/1.1 or HTTP/2 connection:<br/>Alt-Svc: h3=&quot;:443&quot;; ma=86400"]
+        B2["ma = max-age in seconds, default 24 hours.<br/>persist=1 asks the client to keep the<br/>entry across network changes.<br/>The value 'clear' erases the cache."]
+        B3["Cost: the FIRST connection to a new<br/>origin never uses HTTP/3. The client<br/>completes a TCP+TLS connection,<br/>reads the header, and upgrades on a<br/>LATER connection."]
+        B4["HTTP/2 also has an ALTSVC frame,<br/>type 0x0a, which delivers the same<br/>information without waiting for a<br/>response."]
+    end
+
+    subgraph DNS["HTTPS resource record: out of band, RFC 9460"]
+        direction TB
+        C1["DNS RR type 65. Queried in parallel<br/>with A and AAAA, so it costs no<br/>extra round trip."]
+        C2["example.com. 3600 IN HTTPS 1 . alpn=&quot;h3,h2&quot;<br/>ipv4hint=203.0.113.10 port=443"]
+        C3["SvcPriority 0 = AliasMode, a CNAME<br/>that works at a zone apex.<br/>SvcPriority > 0 = ServiceMode,<br/>carrying parameters."]
+        C4["Removes the first-connection penalty:<br/>the client knows h3 is available before<br/>it opens any socket. Also carries the<br/>ech parameter for Encrypted Client Hello."]
+        C5["Adoption lags: 9-10% of sites in the<br/>2024 Web Almanac crawl, against<br/>26-28% publishing Alt-Svc."]
+    end
+
+    subgraph Race["What a browser actually does"]
+        direction TB
+        D1["Chrome and Firefox race:<br/>start a TCP+TLS connection AND a QUIC<br/>connection, use whichever completes<br/>first, remember the winner."]
+        D2["QUIC is marked broken for an origin<br/>after repeated failures, with<br/>exponential backoff before retrying.<br/>This is what makes a UDP-blocking<br/>network degrade rather than break."]
+        D3["Fallback to TCP costs latency, so a<br/>network that blocks UDP silently makes<br/>every first connection slower, not<br/>merely non-HTTP/3."]
+    end
+
+    ALPN --> AltSvc
+    AltSvc --> DNS
+    DNS --> Race
+
+    style ALPN fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style AltSvc fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DNS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Race fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

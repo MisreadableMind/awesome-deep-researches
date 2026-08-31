@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> Disconnected
+
+    Disconnected --> TcpConnected: TCP connect on the agreed IP and port
+    TcpConnected --> LogonSent: send Logon 35=A<br/>98=0 EncryptMethod none<br/>108=30 HeartBtInt seconds<br/>141=Y ResetSeqNumFlag if agreed
+    LogonSent --> Disconnected: no Logon back inside<br/>the logon timeout
+
+    TcpConnected --> LogonReceived: peer initiates instead
+    LogonReceived --> Active: reply with Logon 35=A<br/>echoing HeartBtInt
+    LogonSent --> Active: Logon 35=A received
+
+    Active --> Active: idle for HeartBtInt<br/>send Heartbeat 35=0
+    Active --> Awaiting: nothing heard for HeartBtInt<br/>send TestRequest 35=1 with TestReqID 112
+    Awaiting --> Active: Heartbeat 35=0 quoting<br/>the TestReqID in tag 112
+    Awaiting --> Disconnected: nothing after a further<br/>HeartBtInt plus 20 percent<br/>then drop the transport
+
+    Active --> Recovering: inbound MsgSeqNum 34<br/>higher than expected<br/>send ResendRequest 35=2<br/>BeginSeqNo 7, EndSeqNo 16
+    Recovering --> Active: peer replays with<br/>PossDupFlag 43=Y and<br/>OrigSendingTime 122,<br/>or fills the gap with<br/>SequenceReset 35=4 GapFillFlag 123=Y
+
+    Active --> Dead: inbound MsgSeqNum 34<br/>LOWER than expected<br/>and PossDupFlag is not Y<br/>send Logout and disconnect
+    Active --> Rejecting: message fails session-level rules<br/>send Reject 35=3 with<br/>RefSeqNum 45 and SessionRejectReason 373
+    Rejecting --> Active: sequence number still<br/>consumed, session survives
+
+    Active --> LogoutSent: send Logout 35=5
+    LogoutSent --> Disconnected: Logout received back,<br/>or timeout
+    Dead --> [*]
+    Disconnected --> [*]
+
+    note right of Active
+        Sequence numbers are per session
+        and per direction. They reset only
+        by agreement, normally at the
+        start of the trading day.
+    end note
+
+    note right of Dead
+        A low sequence number is fatal by
+        design. The protocol cannot tell a
+        duplicate from a peer that lost its
+        store, so it refuses to guess.
+    end note

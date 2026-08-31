@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph LP["Listpack, one contiguous allocation"]
+        direction LR
+        HDR["6-byte header<br/>tot-bytes: uint32 little endian<br/>num-elements: uint16.<br/>65535 means unknown,<br/>LLEN then scans."]
+        E1["element 1"]
+        E2["element 2"]
+        EN["element N"]
+        EOFB["0xFF<br/>terminator"]
+    end
+
+    subgraph Entry["Each element: encoding, data, backlen"]
+        direction LR
+        ENC["encoding-type<br/>1 to 5 bytes"]
+        DAT["element-data<br/>may be absent when the<br/>value fits in the encoding byte"]
+        BL["element-tot-len<br/>1 to 5 bytes, lets the reader<br/>walk backwards"]
+    end
+
+    subgraph Enc["The encoding bytes"]
+        direction TB
+        X1["0xxxxxxx<br/>7-bit unsigned integer, 0 to 127.<br/>One byte total plus backlen."]
+        X2["10xxxxxx<br/>string up to 63 bytes"]
+        X3["110xxxxx yyyyyyyy<br/>13-bit signed integer"]
+        X4["1110xxxx yyyyyyyy<br/>string up to 4095 bytes"]
+        X5["11110000<br/>string with a 32-bit length"]
+        X6["11110001 to 11110100<br/>16, 24, 32 and 64-bit integers"]
+        X7["11111111<br/>end of listpack"]
+    end
+
+    subgraph Why["Why listpack replaced ziplist in Redis 7.0"]
+        W1["Ziplist stored the PREVIOUS entry's<br/>length in each entry. Growing one<br/>entry past 253 bytes forced the next<br/>prevlen from 1 byte to 5, which could<br/>cascade down the whole structure."]
+        W2["Listpack stores only its OWN length<br/>at the end. Every entry is parseable<br/>from local information alone.<br/>No cascade, no quadratic update."]
+    end
+
+    LP --> Entry --> Enc
+    Enc --> Why
+
+    style LP fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Entry fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Enc fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Why fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

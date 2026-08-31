@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Sched as Scheduler
+    participant Acct as Savings account<br/>0044-021-8822-04
+    participant Hist as Balance history
+    participant GL as General ledger
+    participant Cust as Customer
+
+    Note over Acct: Balance 18,500.00 USD<br/>Rate 4.10% top tier<br/>Basis ACT/365, accrue daily,<br/>capitalise last calendar day
+
+    loop Every day of the month
+        Sched->>Hist: Read closing balance for value date
+        Hist-->>Sched: 18,500.00
+        Sched->>Sched: daily = 18,500.00 x 0.0410 / 365<br/>= 2.078082191780... USD<br/>held at 6+ decimal places
+        Sched->>GL: DR 51000 Interest expense 2.078082<br/>CR 23100 Accrued interest payable 2.078082
+        Note over GL: Customer balance unchanged.<br/>Profit and loss absorbs<br/>the cost daily.
+    end
+
+    Note over Sched: 31 August 2026, capitalisation day
+    Sched->>Sched: Accrued for 31 days<br/>= 18,500.00 x 0.0410 x 31 / 365<br/>= 64.420547945... rounded to 64.42
+    Sched->>GL: DR 23100 Accrued interest payable 64.42<br/>CR 0044-021-8822-04 64.42
+    Sched->>Acct: Balance becomes 18,564.42
+    Acct-->>Cust: Statement line: INTEREST PAID 64.42
+
+    Note over Cust: APY disclosed under Reg DD:<br/>100 x [(1 + 64.42/18,500)^(365/31) - 1]<br/>= 4.18%
+
+    alt Back-value correction arrives
+        GL->>Hist: Reversal value-dated 2026-08-12
+        Hist->>Sched: Recompute accrual from 2026-08-12
+        Sched->>GL: Post accrual adjustment<br/>for the difference only
+    end

@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era0["Machine accounting<br/>1955-1963"]
+        direction TB
+        E0A["1955: SRI demonstrates ERMA<br/>for Bank of America"]
+        E0B["1958: MICR E-13B adopted<br/>as an ABA standard"]
+        E0C["1959: GE-100 production<br/>ERMA units installed.<br/>Batch begins as a<br/>hardware constraint."]
+    end
+
+    subgraph Era1["Mainframe batch<br/>1964-1987"]
+        direction TB
+        E1A["1964: IBM System/360<br/>announced, 7 April"]
+        E1B["1968: Systematics founded.<br/>IMS ships with Apollo."]
+        E1C["1969: CICS released, 8 July.<br/>The transaction monitor<br/>that still runs the biggest banks."]
+        E1D["1976: Jack Henry founded<br/>1977: Hogan packages a core<br/>1983: DB2 ships"]
+    end
+
+    subgraph Era2["Midrange and client-server<br/>1988-2005"]
+        direction TB
+        E2A["1988: Globus, the ancestor<br/>of Temenos T24.<br/>AS/400 launched."]
+        E2B["1997: i-flex FLEXCUBE<br/>1999: Infosys Finacle"]
+        E2C["2003: Temenos T24 released,<br/>30 September"]
+        E2D["Products become parameters<br/>rather than code"]
+    end
+
+    subgraph Era3["Consolidation and real time<br/>2006-2015"]
+        direction TB
+        E3A["2009: FIS acquires Metavante<br/>for 2.94bn USD"]
+        E3B["2013: Fiserv acquires<br/>Open Solutions, gains DNA"]
+        E3C["Three vendors supply most<br/>US community bank cores"]
+    end
+
+    subgraph Era4["Cloud-native<br/>2011-2026"]
+        direction TB
+        E4A["2011: Mambu founded in Berlin<br/>2014: Thought Machine founded"]
+        E4B["2016: 10x, Finxact and<br/>Pismo all founded"]
+        E4C["2022: Fiserv acquires Finxact<br/>2023: Visa agrees to buy Pismo<br/>for 1bn USD, 28 June"]
+        E4D["2026: BIAN Service Landscape 14.0<br/>rationalises service domains<br/>and deepens ISO 20022 mapping.<br/>No top-ten US bank has left<br/>its mainframe core."]
+    end
+
+    Era0 --> Era1 --> Era2 --> Era3
+    Era3 -.overlaps from 2011.-> Era4
+
+    style Era0 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era2 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era4 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

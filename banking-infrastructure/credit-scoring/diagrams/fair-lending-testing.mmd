@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Data["Step 1: get the protected class, which you are not allowed to collect"]
+        NoAsk["ECOA / Reg B 1002.5(b) generally bars a<br/>creditor from asking about race, colour,<br/>religion, national origin or sex except<br/>for HMDA-covered mortgage lending"]
+        HMDA["MORTGAGE: HMDA supplies actual<br/>race, ethnicity and sex on the application"]
+        BISG["NON-MORTGAGE: proxy.<br/>Bayesian Improved Surname Geocoding<br/>combines a surname-race distribution<br/>from the Census with a census-tract<br/>race distribution to produce a<br/>probability vector per applicant"]
+        NoAsk --> HMDA
+        NoAsk --> BISG
+    end
+
+    subgraph Test["Step 2: measure the outcome gap"]
+        AIR["ADVERSE IMPACT RATIO<br/>AIR = approval rate of protected group /<br/>approval rate of control group.<br/>The 'four-fifths rule' flag at AIR &lt; 0.80 is<br/>an EEOC employment convention borrowed<br/>into lending; it is a screen, not a standard"]
+        SMD["Standardised mean difference of score<br/>between groups; Kolmogorov-Smirnov<br/>on the score distributions"]
+        Bias["Chi-square calibration test.<br/>VantageScore's method: within each score<br/>band, test whether the group's actual<br/>default probability differs significantly<br/>from the population's. Critical value 8.844<br/>at 95%. One failing band flags the model."]
+    end
+
+    subgraph Just["Step 3: business necessity"]
+        Nec["Is the model empirically derived,<br/>demonstrably and statistically sound<br/>under 12 CFR 1002.2(p)?<br/>Is each attribute documented as<br/>predictive and logically related<br/>to creditworthiness?"]
+    end
+
+    subgraph LDA["Step 4: less discriminatory alternative search"]
+        Drop["Drop or cap the highest-disparity<br/>attributes one at a time,<br/>measure AUC lost and AIR gained"]
+        Adv["Adversarial de-biasing:<br/>train the risk model against a<br/>discriminator trying to recover<br/>the protected class from the score"]
+        Front["Build the accuracy-versus-fairness<br/>frontier and pick a point.<br/>Document why that point."]
+        Drop --> Front
+        Adv --> Front
+    end
+
+    Data --> Test --> Just --> LDA
+
+    subgraph Now["Step 5: what changed, 2025 to 2026"]
+        EO["EO 14281, 23 April 2025<br/>'Restoring Equality of Opportunity and<br/>Meritocracy'. Policy to eliminate<br/>disparate-impact liability to the maximum<br/>degree possible. Agencies deprioritise<br/>enforcement. Within 45 days, DOJ, HUD,<br/>CFPB and FTC to evaluate pending ECOA<br/>and Fair Housing Act matters relying on it."]
+        Rule["CFPB final rule, published 22 April 2026,<br/>effective 21 July 2026.<br/>12 CFR 1002.6(a) now reads: 'The Act does<br/>not provide that the effects test applies for<br/>determining whether there is discrimination<br/>in violation of the Act.'"]
+        Left["What survives: disparate treatment;<br/>state UDAP and state fair lending laws;<br/>private ECOA litigation, where courts<br/>decide the question, not the Bureau;<br/>and every lender's own model risk<br/>documentation obligations."]
+        EO --> Rule --> Left
+    end
+
+    LDA --> Now
+
+    style Data fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Test fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Just fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LDA fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Now fill:#fce4ec,stroke:#880e4f,stroke-width:3px

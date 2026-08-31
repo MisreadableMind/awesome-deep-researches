@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    SQL["SQL text arrives in a Query message<br/>or a Parse/Bind/Execute sequence"]
+
+    subgraph PARSE["1. Parser - src/backend/parser"]
+        direction TB
+        P1["scan.l and gram.y produce a raw parse tree.<br/>Syntax only. No catalog access."]
+        P2["Analysis resolves names against the catalog<br/>and produces a Query node: rtable,<br/>jointree, targetList, qual"]
+        P1 --> P2
+    end
+
+    subgraph REWRITE["2. Rewriter - rewriteHandler.c"]
+        R1["Expand views into subqueries,<br/>apply row-level security policies,<br/>apply user rules"]
+    end
+
+    subgraph PLAN["3. Planner and optimizer - src/backend/optimizer"]
+        direction TB
+        PL1["Preprocessing: constant folding,<br/>subquery pull-up, outer-join reduction,<br/>flatten UNION ALL"]
+        PL2["Size estimation per base relation:<br/>rows = reltuples x selectivity,<br/>from pg_statistic"]
+        PL3["Path generation per relation:<br/>SeqScan, IndexScan, IndexOnlyScan,<br/>BitmapHeapScan, TidScan, plus<br/>parallel variants"]
+        PL4{"Number of relations to join<br/>at or above geqo_threshold, 12?"}
+        PL5["Dynamic programming, standard_join_search.<br/>Build level by level: every pair,<br/>then every triple, keeping only the<br/>cheapest path per useful sort order"]
+        PL6["Genetic query optimizer, geqo.<br/>Randomised search, geqo_effort 5.<br/>Non-deterministic plans."]
+        PL7["Upper planner: grouping, aggregation,<br/>window functions, DISTINCT, ORDER BY, LIMIT.<br/>Path-based since PostgreSQL 9.6."]
+        PL8["create_plan: convert the cheapest Path<br/>into a Plan tree of executor nodes"]
+        PL1 --> PL2 --> PL3 --> PL4
+        PL4 -->|"fewer"| PL5
+        PL4 -->|"more"| PL6
+        PL5 --> PL7
+        PL6 --> PL7
+        PL7 --> PL8
+    end
+
+    subgraph EXEC["4. Executor - src/backend/executor"]
+        direction TB
+        E1["ExecutorStart: build the PlanState tree,<br/>open relations, take locks, set up<br/>tuple slots and expression state"]
+        E2["ExecutorRun: pull tuples through<br/>the Volcano iterator, one at a time,<br/>ExecProcNode down the tree"]
+        E3["ExecutorEnd: close relations,<br/>free the per-query memory context"]
+        E1 --> E2 --> E3
+    end
+
+    COST["Cost model constants that decide everything:<br/>seq_page_cost 1.0, random_page_cost 4.0,<br/>cpu_tuple_cost 0.01, cpu_index_tuple_cost 0.005,<br/>cpu_operator_cost 0.0025,<br/>parallel_setup_cost 1000, parallel_tuple_cost 0.1"]
+
+    COLLAPSE["from_collapse_limit 8 and join_collapse_limit 8<br/>cap how many subqueries and explicit JOINs<br/>get flattened into one search problem.<br/>Above the limit, join order is taken<br/>literally from the query text."]
+
+    SQL --> PARSE --> REWRITE --> PLAN --> EXEC
+    COST -.->|"feeds"| PL3
+    COST -.->|"feeds"| PL5
+    COLLAPSE -.->|"caps"| PL4
+
+    style PARSE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style REWRITE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style PLAN fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style EXEC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style COST fill:#fce4ec,stroke:#880e4f,stroke-width:2px

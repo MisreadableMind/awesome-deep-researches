@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Piper Alpha, 6 July 1988.<br/>167 dead. Around 1.4bn USD<br/>of insurance claims.<br/>One event, one original loss."]
+
+    subgraph Setup["What made a spiral possible"]
+        direction TB
+        S1["London market excess of loss, LMX:<br/>syndicates writing retrocession<br/>on each other's excess of loss books"]
+        S2["Nobody tracked where the underlying<br/>exposure came from. A retro contract<br/>was priced on the counterparty's<br/>loss record, not on the risks beneath it."]
+        S3["Writing retro looked like arbitrage.<br/>Premium arrived immediately;<br/>losses arrived years later, if ever."]
+        S4["The same syndicates appeared on<br/>both sides of the same risk<br/>without knowing it"]
+    end
+
+    subgraph Loop["The circulation"]
+        direction TB
+        R1["Round 1: original excess of loss<br/>layers pay the direct insurers"]
+        R2["Round 2: those layers recover from<br/>their own retrocession. New gross claim."]
+        R3["Round 3: the retrocessionaires recover<br/>from their retrocession. New gross claim."]
+        R4["Round 4 and beyond: the loss keeps<br/>finding syndicates that already<br/>paid it once, in a different capacity"]
+        R1 --> R2 --> R3 --> R4
+        R4 -.->|"Back to syndicates<br/>already hit in round 1"| R1
+    end
+
+    subgraph Result["What came out"]
+        direction TB
+        O1["Gross claims recorded across the<br/>London market ran to a multiple of<br/>the original 1.4bn USD loss"]
+        O2["Gooda Walker syndicate 298 found<br/>13,500 separate policies exposed to<br/>Piper Alpha and lost 650% of capacity"]
+        O3["Retro premium was set on a loss<br/>record that had never seen a spiral.<br/>The layers were priced for<br/>independent events."]
+        O4["Around 1,500 of 34,000 Names,<br/>4.4%, were declared bankrupt.<br/>Names carried unlimited liability:<br/>homes, pensions, everything."]
+    end
+
+    subgraph Fix["What stopped it"]
+        direction TB
+        F1["Ultimate net loss and net retained<br/>lines clauses that bar recovery on<br/>losses the cedant did not retain"]
+        F2["Exclusion of retrocession business<br/>from retrocession covers"]
+        F3["Realistic Disaster Scenarios: Lloyd's<br/>requires every syndicate to report<br/>gross and net loss against prescribed<br/>events, so accumulation is visible"]
+        F4["Collateralised retrocession.<br/>An ILS fund holds cash in trust and<br/>writes nothing else. It cannot<br/>recycle a loss it has already paid."]
+        F5["1996: Reconstruction and Renewal.<br/>Pre-1993 liabilities moved to Equitas<br/>at a cost near 21bn USD.<br/>2006: Berkshire Hathaway's National<br/>Indemnity assumes them for good."]
+    end
+
+    Start --> Setup --> Loop --> Result --> Fix
+
+    Lesson["The general rule: risk transfer<br/>that is not tracked to its origin<br/>is not transfer. It is a loop.<br/>Every market that forgets this<br/>rebuilds one."]
+
+    Fix --> Lesson
+
+    style Start fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Setup fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Loop fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Result fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Lesson fill:#fce4ec,stroke:#880e4f,stroke-width:3px

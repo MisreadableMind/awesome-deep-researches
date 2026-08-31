@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Def["The two measures"]
+        direction TB
+        V["VOLUME<br/>Number of contracts traded<br/>during a session.<br/>Resets to zero every day.<br/>Published in real time via OPRA."]
+        OI["OPEN INTEREST<br/>Number of contracts that exist<br/>and have not been closed,<br/>exercised, or expired.<br/>Computed overnight by OCC<br/>from clearing records.<br/>Published the following morning."]
+    end
+
+    subgraph Rules["What each trade does to open interest"]
+        direction TB
+        R1["Buyer OPENING, seller OPENING<br/>-&gt; a new contract exists<br/>-&gt; OI +1"]
+        R2["Buyer OPENING, seller CLOSING<br/>-&gt; the contract transfers<br/>-&gt; OI unchanged"]
+        R3["Buyer CLOSING, seller OPENING<br/>-&gt; the contract transfers<br/>-&gt; OI unchanged"]
+        R4["Buyer CLOSING, seller CLOSING<br/>-&gt; the contract is extinguished<br/>-&gt; OI -1"]
+        R5["Every case adds 1 to volume."]
+    end
+
+    Def --> Rules
+
+    subgraph Wrong["What people wrongly infer"]
+        direction TB
+        W1["'High volume means buying pressure'<br/>NO. Every trade has a buyer and a seller.<br/>Volume is symmetric by construction."]
+        W2["'Rising open interest means<br/>the market is getting long'<br/>NO. It means contracts were created.<br/>Someone is long and someone is short."]
+        W3["'Open interest shows positioning'<br/>NO. OCC publishes OI by series,<br/>not by holder. Nothing public shows<br/>who is on which side."]
+        W4["'Today's open interest'<br/>DOES NOT EXIST. OI is a<br/>clearing-record figure computed<br/>after the close."]
+    end
+
+    Rules --> Wrong
+
+    subgraph Zero["The 0DTE case makes the distinction vivid"]
+        direction TB
+        Z1["A zero-day option is created and<br/>extinguished within one session."]
+        Z2["Enormous volume, near-zero<br/>end-of-day open interest,<br/>by construction."]
+        Z3["'Record 0DTE volume' and<br/>'flat total open interest' are<br/>both true and unrelated."]
+    end
+
+    Wrong --> Zero
+
+    style Def fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Rules fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Wrong fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Zero fill:#fff3e0,stroke:#e65100,stroke-width:3px

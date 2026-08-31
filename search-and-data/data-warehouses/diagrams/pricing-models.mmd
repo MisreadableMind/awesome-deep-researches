@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph BQ["BigQuery Pricing"]
+        direction TB
+        BQS["Storage: $0.02/GB/month<br/>(active), $0.01/GB/month (long-term)"]
+        BQQ["On-demand: $6.25/TB scanned"]
+        BQF["Flat-rate: $2,500/month<br/>per 100 slots"]
+        BQI["Ingestion: Free streaming<br/>inserts up to quotas"]
+    end
+
+    subgraph SF["Snowflake Pricing"]
+        direction TB
+        SFS["Storage: $23-40/TB/month<br/>(compressed)"]
+        SFC["Compute: Credits per second<br/>XS=$2/hr, S=$4/hr,<br/>M=$8/hr, L=$16/hr, XL=$32/hr"]
+        SFT["Transfer: Egress charges<br/>vary by cloud/region"]
+    end
+
+    subgraph RS["Redshift Pricing"]
+        direction TB
+        RSR["RA3 nodes: $0.36-$13.04/hr<br/>per node (on-demand)"]
+        RSS["Managed storage:<br/>$0.024/GB/month"]
+        RSSL["Serverless: $0.375/RPU-hour<br/>Base 8-512 RPU"]
+    end
+
+    subgraph DB["Databricks SQL Pricing"]
+        direction TB
+        DBC["DBU-based: $0.22-$0.55/DBU<br/>depending on tier"]
+        DBS["Storage: Cloud provider<br/>rates (S3/ADLS/GCS)"]
+        DBP["Photon: Premium pricing<br/>for C++ vectorized engine"]
+    end
+
+    style BQ fill:#4299e1,color:#fff
+    style SF fill:#2b6cb0,color:#fff
+    style RS fill:#e53e3e,color:#fff
+    style DB fill:#38a169,color:#fff

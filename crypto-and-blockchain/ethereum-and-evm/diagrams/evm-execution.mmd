@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Frame["One execution frame"]
+        PC["Program counter<br/>steps through bytecode,<br/>jumps must land on JUMPDEST 0x5b"]
+        Stack["Stack<br/>1024 slots of 256 bits.<br/>Overflow or underflow<br/>aborts the frame"]
+        Mem["Memory<br/>byte addressable, volatile,<br/>zero initialised, priced<br/>3 per word plus words squared over 512"]
+        Tran["Transient storage<br/>TLOAD 0x5c, TSTORE 0x5d, 100 gas.<br/>Cleared at end of transaction"]
+        Gas["Gas counter<br/>decremented before every op.<br/>Hitting zero reverts everything<br/>and keeps the gas"]
+    end
+
+    subgraph Persist["Persistent state"]
+        Store["Storage<br/>256 bit to 256 bit map.<br/>SSTORE 20000 to set,<br/>2900 to change, 100 warm read"]
+        Code["Code<br/>immutable after deployment,<br/>at most 24576 bytes per EIP-170"]
+        Bal["Balance and nonce"]
+    end
+
+    subgraph Calls["Call frames"]
+        CALL["CALL<br/>new frame, new storage context,<br/>msg.sender becomes the caller"]
+        DEL["DELEGATECALL<br/>borrowed code, caller's storage,<br/>caller's msg.sender and value.<br/>This is how proxies work"]
+        STAT["STATICCALL<br/>same as CALL but any state<br/>write reverts"]
+        CREATE["CREATE and CREATE2<br/>32000 gas base, runs initcode,<br/>pays 200 gas per deployed byte"]
+        Depth["Depth limit 1024.<br/>EIP-150 forwards at most<br/>63 of every 64 gas units,<br/>so depth is bounded by gas first"]
+    end
+
+    subgraph Exits["How a frame ends"]
+        STOP["STOP or RETURN<br/>state changes committed"]
+        REVERT["REVERT 0xfd<br/>state changes undone,<br/>remaining gas returned,<br/>return data preserved"]
+        OOG["Out of gas or invalid opcode<br/>state changes undone,<br/>all gas consumed"]
+    end
+
+    PC --> Stack
+    Stack --> Mem
+    Stack --> Store
+    Frame --> Calls
+    Calls --> Exits
+    Store --> Persist
+    Gas -.governs every step.-> Frame
+
+    style Frame fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Persist fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Calls fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Exits fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["User query: 'how do I cancel my plan'"]
+
+    subgraph Lex["Lexical retriever - the inverted index"]
+        L1["Analysis, then term lookup<br/>in .tim, postings from .doc"]
+        L2["BM25 scoring with block-level<br/>impacts to skip non-competitive<br/>documents"]
+        L3["Exact on rare terms.<br/>Blind to paraphrase.<br/>'cancel' does not match 'terminate'."]
+    end
+
+    subgraph Dense["Dense retriever - HNSW graph"]
+        D1["Embed the query into<br/>a dense_vector, up to 4096 dims"]
+        D2["HNSW: multi-layer proximity graph.<br/>m = 16 links per node,<br/>ef_construction = 100 at build time,<br/>num_candidates at search time"]
+        D3["Quantization: int8 cuts memory 75%,<br/>int4 by 87%, BBQ binary by 96%.<br/>Default since 9.4 is bbq_disk where<br/>the licence allows, else bbq_hnsw<br/>at 384 dims and above, int8_hnsw below."]
+        D4["Rescore the quantized shortlist<br/>against full-precision vectors<br/>with rescore_vector.oversample"]
+        D5["Matches paraphrase.<br/>Misses exact identifiers.<br/>Recall is approximate, not exact."]
+    end
+
+    subgraph Sparse["Learned sparse - ELSER"]
+        SP1["Model expands the text into<br/>weighted term collections,<br/>stored in a sparse_vector field"]
+        SP2["Retrieved through the same<br/>inverted index machinery.<br/>First 512 tokens only."]
+    end
+
+    subgraph Fuse["Reciprocal rank fusion"]
+        RRF["score(d) = sum over retrievers of<br/>1 / (rank_constant + rank(d))<br/>rank_constant = 60 by default"]
+        RRF2["Uses ranks, not scores.<br/>No calibration between a BM25<br/>score of 14.2 and a cosine<br/>similarity of 0.87 is needed."]
+    end
+
+    RR["Optional reranker:<br/>a cross-encoder scores the<br/>top 50 to 100 fused results.<br/>Highest quality, highest latency."]
+
+    Q --> Lex
+    Q --> Dense
+    Q --> Sparse
+    L2 --> RRF
+    D4 --> RRF
+    SP2 --> RRF
+    RRF --> RRF2 --> RR
+
+    style Lex fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Dense fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Sparse fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fuse fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style RR fill:#eceff1,stroke:#37474f,stroke-width:2px

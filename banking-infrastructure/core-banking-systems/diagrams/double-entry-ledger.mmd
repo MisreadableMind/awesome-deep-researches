@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Sub["Subledger - the core holds millions of these<br/>balances shown at the close of 2026-08-17"]
+        A1["Account 0044-021-8822-01<br/>DDA-RETAIL-02<br/>credit balance 1,203.40 USD"]
+        A2["Account 0044-021-8822-04<br/>SAV-TIER-01<br/>credit balance 18,500.00 USD"]
+        A3["Account 0071-500-3391-01<br/>MTG-30Y-FIX<br/>debit balance 284,110.22 USD"]
+        Adots["...tens of millions more"]
+    end
+
+    subgraph Journal["Journal - immutable, append only"]
+        J["journal_id 20260820-0000412887<br/>value_date 2026-08-20<br/>posting_ts 2026-08-20T02:14:09Z<br/>tran_code 471 ACH DEBIT<br/><br/>DR 0044-021-8822-01  1,875.00<br/>CR GL 21400 ACH SETTLEMENT  1,875.00<br/><br/>sum(DR) = sum(CR) = 1,875.00"]
+    end
+
+    subgraph GLBox["General ledger - a few thousand control accounts"]
+        G1["10100 Cash and due from banks<br/>DEBIT normal"]
+        G2["10500 Reserves at central bank<br/>DEBIT normal"]
+        G3["14000 Loans and leases<br/>DEBIT normal"]
+        G4["21000 Demand deposits<br/>CREDIT normal"]
+        G5["21200 Savings and time deposits<br/>CREDIT normal"]
+        G6["21400 ACH settlement suspense<br/>CREDIT normal"]
+        G7["23100 Accrued interest payable<br/>CREDIT normal"]
+        G8["41000 Interest income<br/>CREDIT normal"]
+        G9["51000 Interest expense<br/>DEBIT normal"]
+    end
+
+    subgraph Proof["Daily proof"]
+        P1["Sum of subledger balances<br/>by GL class"]
+        P2["equals"]
+        P3["GL control account balance"]
+        P4["Any difference is an<br/>out-of-balance condition<br/>and blocks the date roll"]
+    end
+
+    A1 --> Journal
+    A2 --> Journal
+    A3 --> Journal
+    Journal -->|"summarised nightly"| GLBox
+    Sub --> P1
+    GLBox --> P3
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+
+    style Sub fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Journal fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style GLBox fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Proof fill:#fce4ec,stroke:#880e4f,stroke-width:2px

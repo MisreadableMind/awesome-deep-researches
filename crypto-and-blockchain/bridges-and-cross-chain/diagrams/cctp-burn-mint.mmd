@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant TM as TokenMessenger<br/>Ethereum, domain 0
+    participant USDC_E as USDC contract<br/>Ethereum
+    participant MT as MessageTransmitter<br/>Ethereum
+    participant IRIS as Circle attestation service<br/>Iris API
+    participant MTB as MessageTransmitter<br/>Base, domain 6
+    participant TMB as TokenMessenger<br/>Base
+    participant USDC_B as USDC contract<br/>Base
+
+    U->>USDC_E: approve(TokenMessenger, 100e6)
+    U->>TM: depositForBurn(100e6, 6, recipient,<br/>USDC) selector 0x6fd3504e
+    TM->>USDC_E: burn 100 USDC
+    USDC_E->>USDC_E: totalSupply decreases by 100
+    TM->>MT: sendMessage with BurnMessage body<br/>132 bytes: version, burnToken,<br/>mintRecipient, amount, messageSender
+    MT-->>IRIS: emit MessageSent, 248 bytes total
+
+    Note over IRIS: Standard: wait for hard finality.<br/>~15 to 19 minutes on Ethereum.<br/>Fast: wait for the configured<br/>minFinalityThreshold. ~8 to 20 seconds.
+
+    IRIS->>IRIS: observe, wait for the finality<br/>threshold, sign the message hash
+    U->>IRIS: GET attestation by message hash
+    IRIS-->>U: attestation signature
+
+    U->>MTB: receiveMessage(message, attestation)
+    MTB->>MTB: verify the attestation signature
+    MTB->>MTB: replay check on nonce
+    MTB->>TMB: handleReceiveMessage
+    TMB->>USDC_B: mint 100 USDC to recipient
+    USDC_B->>USDC_B: totalSupply increases by 100
+
+    Note over U,USDC_B: Global USDC supply unchanged.<br/>No escrow exists. No wrapper exists.<br/>Trust: Circle, who could mint anyway.

@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph CRL["1. CRL, RFC 5280 section 5"]
+        direction TB
+        R1["A signed list of revoked serial<br/>numbers with thisUpdate,<br/>nextUpdate, a monotonically<br/>increasing cRLNumber, and a<br/>reasonCode per entry"]
+        R2["Republish at least every 4 days,<br/>or 7 if the certificates carry an<br/>OCSP AIA, and within 24 hours of<br/>recording a revocation.<br/>CA CRLs: every 12 months"]
+        R3["Sharded, because a full list for<br/>a large CA is unusable. A live<br/>Let's Encrypt shard read on<br/>30 Aug 2026: 58,275 bytes,<br/>1,491 serials, one of at least<br/>58 shards for one intermediate"]
+        R4["Mandatory for public TLS CAs<br/>since 15 Mar 2024, ballot SC-063"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph OCSP["2. OCSP, RFC 6960"]
+        direction TB
+        O1["The client sends a CertID:<br/>hashAlgorithm, issuerNameHash,<br/>issuerKeyHash, serialNumber.<br/>The responder signs<br/>good, revoked or unknown"]
+        O2["Privacy failure: the responder<br/>and every observer learn which<br/>site the user is visiting, by IP,<br/>at the moment of the visit"]
+        O3["Soft-fail failure: hard-fail breaks<br/>the web during any responder<br/>outage, so every browser soft-fails,<br/>so an attacker with a stolen key<br/>just drops the OCSP traffic"]
+        O4["Cost failure: Let's Encrypt was<br/>serving over 4 billion OCSP<br/>requests a day at the start of<br/>2025. 180 million an hour.<br/>50,000 a second"]
+        O5["Optional since 15 Mar 2024.<br/>Let's Encrypt stopped issuing<br/>Must-Staple on 7 May 2025,<br/>dropped the OCSP AIA the same<br/>day, and shut the responders<br/>down on 6 Aug 2025"]
+        O1 --> O2 --> O3 --> O4 --> O5
+    end
+
+    subgraph Staple["3. Stapling and Must-Staple"]
+        direction TB
+        S1["OCSP stapling: the server fetches<br/>its own signed status and attaches<br/>it to the handshake through the<br/>status_request extension, RFC 6066.<br/>Fixes privacy and latency"]
+        S2["Does not fix the attacker, because<br/>omitting the staple is legal and<br/>a client that hard-failed on a<br/>missing staple would break the web"]
+        S3["Must-Staple, RFC 7633:<br/>id-pe-tlsfeature 1.3.6.1.5.5.7.1.24,<br/>value SEQUENCE OF INTEGER<br/>containing 5, the status_request<br/>extension number. Omission<br/>becomes fatal"]
+        S4["Almost nobody deployed it,<br/>because a stapling failure then<br/>takes the site down. Dead in<br/>the public Web PKI"]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    subgraph Push["4. Ship the answer to the client instead"]
+        direction TB
+        P1["Chrome CRLSets: a curated<br/>emergency blocklist built by<br/>crawling CCADB-disclosed CRLs.<br/>A subset, explicitly not complete.<br/>Chrome does not perform online<br/>OCSP or CRL checks by default"]
+        P2["Firefox CRLite: a cascade of<br/>probabilistic filters covering<br/>every known revocation, built<br/>from CT plus CRLs"]
+        P3["Measured on 30 Aug 2026:<br/>full filter 7,102,847 bytes plus<br/>a 1,834,919-byte compatibility<br/>filter, rebuilt roughly every<br/>six weeks. Deltas twice a day,<br/>190 to 206 kB each"]
+        P1 --> P2 --> P3
+    end
+
+    subgraph Short["5. The answer the industry actually chose"]
+        direction TB
+        T1["Make the certificate expire faster<br/>than a revocation could propagate.<br/>200 days now, 100 from<br/>15 Mar 2027, 47 from 15 Mar 2029"]
+        T2["Short-lived subscriber certificates<br/>need no CRLDP at all: 10 days or<br/>less until 15 Mar 2026, 7 days<br/>or less after. Let's Encrypt<br/>issues a 160-hour profile"]
+        T3["ARI, RFC 9773, turns bulk<br/>revocation into a scheduled<br/>renewal instead of a lookup.<br/>Ballot SC-089 makes an annually<br/>tested mass revocation plan<br/>mandatory from 1 Dec 2025"]
+        T1 --> T2 --> T3
+    end
+
+    CRL --> OCSP --> Staple --> Push --> Short
+
+    style CRL fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style OCSP fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Staple fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Push fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Short fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

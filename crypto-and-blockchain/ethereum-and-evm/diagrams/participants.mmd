@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Users["Users and the code they call"]
+        EOA["Externally owned account<br/>a secp256k1 key pair.<br/>Only an EOA can start a transaction."]
+        SC["Contract account<br/>code plus storage.<br/>Never acts unless called."]
+        Wallet["Wallet software<br/>MetaMask, Rabby, Safe.<br/>Signs, estimates gas, sets fees."]
+    end
+
+    subgraph Infra["Access layer"]
+        RPC["RPC providers<br/>Infura, Alchemy, QuickNode.<br/>Most wallets never touch a node."]
+        Indexer["Indexers<br/>The Graph, Dune, Etherscan.<br/>Read the chain, sell queries."]
+    end
+
+    subgraph Mempool["Order flow"]
+        Public["Public mempool<br/>gossiped to every peer"]
+        Private["Private order flow<br/>direct to builders,<br/>invisible until included"]
+        Searcher["Searchers<br/>arbitrage and liquidation bots.<br/>Bid for position in a bundle."]
+    end
+
+    subgraph Build["Block production"]
+        Builder["Block builders<br/>Titan, Quasar, BuilderNet.<br/>Assemble the payload, bid for the slot."]
+        Relay["Relays<br/>ultrasound, bloXroute, Aestus.<br/>Hold the payload until the header is signed."]
+    end
+
+    subgraph Consensus["Consensus layer"]
+        Proposer["Proposer<br/>one validator per 12 second slot,<br/>chosen by RANDAO"]
+        Attesters["Attesters<br/>the whole validator set,<br/>each votes once per epoch"]
+        Operator["Node operators and pools<br/>Lido, Coinbase, solo stakers,<br/>run the keys behind the validators"]
+    end
+
+    subgraph Clients["Software"]
+        EL["Execution clients<br/>Geth, Nethermind, Besu,<br/>Erigon, Reth"]
+        CL["Consensus clients<br/>Prysm, Lighthouse, Teku,<br/>Nimbus, Lodestar, Grandine"]
+    end
+
+    EOA --> Wallet
+    Wallet --> RPC
+    RPC --> Public
+    Wallet -.private RPC.-> Private
+    Searcher --> Private
+    Public --> Builder
+    Private --> Builder
+    Builder --> Relay
+    Relay --> Proposer
+    Proposer --> Attesters
+    Operator --> Proposer
+    Operator --> Attesters
+    EL <-->|Engine API| CL
+    Proposer --> CL
+    Builder --> EL
+    EL --> Indexer
+    SC -.called by.-> EOA
+
+    style Users fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Infra fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Mempool fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Build fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Consensus fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Clients fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

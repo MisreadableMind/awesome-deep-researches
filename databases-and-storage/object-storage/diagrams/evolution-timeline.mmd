@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+timeline
+    title Object storage, 2006 to 2026
+    section The API is invented
+        2006-03-14 : Amazon S3 launches in the United States with buckets, keys, REST and SOAP, and a 5 GB object ceiling
+        2006 : Sage Weil publishes Ceph and RADOS at OSDI, placing objects by algorithm instead of by index
+        2007-11 : S3 opens a European region, making the bucket a Region-bound object
+        2008-11 : Windows Azure Storage enters production with a three-replica append-only stream layer
+    section Cost and durability engineering
+        2010 : Rackspace and NASA open source OpenStack Swift, the ring-based clone of the S3 model
+        2010 : Google Cloud Storage opens to the public
+        2012 : Microsoft publishes Local Reconstruction Codes, cutting Azure blob overhead from 3.0x to 1.33x
+        2013-04 : S3 passes 2 trillion objects
+    section Scale and the flat-namespace era
+        2017-02-28 : A capacity command removes too many index subsystem servers and takes S3 out in us-east-1
+        2018-03-01 : Legacy 255-character uppercase bucket names stop being accepted in us-east-1
+        2020-12-01 : S3 delivers strong read-after-write consistency for every request at no extra cost
+        2021-03 : S3 passes 100 trillion objects
+        2021-10 : ShardStore, the S3 storage node key-value engine, is published at SOSP with lightweight formal proofs
+    section The object store becomes a database substrate
+        2023-01-05 : Every new S3 upload is encrypted with SSE-S3 by default
+        2023-03 : S3 passes 280 trillion objects
+        2024-03-05 : AWS waives data transfer out charges for customers leaving AWS
+        2024-09 : Lifecycle stops transitioning objects smaller than 128 KB by default
+        2024-11 : S3 passes 400 trillion objects and ships S3 Tables, a managed Apache Iceberg bucket type
+        2025-09-12 : The EU Data Act becomes applicable, putting switching charges and egress fees on a countdown
+        2026-04 : SSE-C is disabled by default on new general purpose buckets
+        2026-08 : S3 reports 700 trillion objects and more than 200 million requests per second on average

@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Global["Global tier - one instance worldwide"]
+        IAM["Identity and billing<br/>AWS IAM, Entra ID, Google Cloud IAM<br/>Single logical control plane"]
+        DNS["Authoritative DNS<br/>Route 53, Azure DNS, Cloud DNS"]
+        Backbone["Private backbone<br/>Provider-owned fibre and subsea cable<br/>AWS targets p99 hourly packet loss &lt; 0.0001%"]
+    end
+
+    subgraph Geo["Geography / partition - legal boundary"]
+        Part["AWS partitions: aws, aws-cn, aws-us-gov<br/>Azure geographies and sovereign clouds<br/>Separate IAM roots, no cross-partition ARNs"]
+    end
+
+    subgraph Region["Region - one metro, one endpoint set"]
+        RCP["Regional control plane<br/>ec2.eu-west-1.amazonaws.com<br/>Databases, workflow engines, schedulers"]
+        RDP["Regional data plane<br/>Running instances, object storage, DNS answers"]
+    end
+
+    subgraph AZ["Availability Zone - fault isolation boundary"]
+        AZ1["AZ 1<br/>1..n buildings<br/>own substation feed<br/>own generators and chillers"]
+        AZ2["AZ 2<br/>1..n buildings<br/>independent utility feed"]
+        AZ3["AZ 3<br/>1..n buildings<br/>independent utility feed"]
+    end
+
+    subgraph Cell["Cell / cluster / rack - blast radius inside an AZ"]
+        Cells["Service cells, deployment units,<br/>spread placement groups,<br/>power distribution units, racks"]
+    end
+
+    subgraph Edge["Edge tier - close to users, thin on function"]
+        POP["CDN points of presence<br/>CloudFront 750+ PoPs, 1,140+ embedded PoPs<br/>Google 200+ network edge locations"]
+        LZ["Local Zones, Edge Zones,<br/>Wavelength, Distributed Cloud"]
+        OP["On-premises extensions<br/>Outposts, Azure Stack, GDC connected"]
+    end
+
+    Global --> Geo
+    Geo --> Region
+    Region --> AZ
+    AZ --> Cell
+    Region -.serves.-> Edge
+    Edge -.origin fetch.-> Region
+
+    style Global fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Geo fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Region fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style AZ fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cell fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Edge fill:#fce4ec,stroke:#880e4f,stroke-width:2px

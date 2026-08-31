@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    User["kubectl, CI system,<br/>operator, controller<br/>client-go, HTTPS + client cert<br/>or bearer token"]
+
+    subgraph CP["Control plane - stateless except etcd"]
+        API["kube-apiserver<br/>REST over HTTPS on :6443.<br/>Authn, authz, admission,<br/>validation, versioning.<br/>The ONLY writer to etcd.<br/>Horizontally scalable"]
+        ETCD[("etcd 3.x cluster<br/>3 or 5 members, Raft.<br/>MVCC key-value store.<br/>Keys under /registry/...<br/>Default quota 2 GiB")]
+        SCHED["kube-scheduler<br/>Watches unbound pods.<br/>Filter, then score.<br/>Writes a Binding.<br/>Leader-elected"]
+        KCM["kube-controller-manager<br/>~40 controllers in one binary:<br/>deployment, replicaset, node,<br/>endpointslice, job, PV, GC,<br/>serviceaccount-token.<br/>Leader-elected"]
+        CCM["cloud-controller-manager<br/>optional.<br/>Node addresses, load balancers,<br/>routes. Cloud-specific"]
+    end
+
+    subgraph Node1["Worker node"]
+        KUBELET["kubelet<br/>Watches pods bound to THIS node.<br/>Drives CRI, CNI, CSI.<br/>Runs probes, reports status,<br/>evicts under pressure"]
+        PROXY["kube-proxy<br/>Watches Services and<br/>EndpointSlices.<br/>Programs iptables, IPVS,<br/>or nftables"]
+        CRI["Container runtime<br/>containerd or CRI-O<br/>via CRI gRPC on a unix socket"]
+        RUNC["runc / crun<br/>OCI runtime.<br/>clone, mount, pivot_root,<br/>execve, then exits"]
+        PODS["Pods<br/>pause container holds<br/>the net namespace"]
+    end
+
+    subgraph Plugins["Node plugins - out of tree"]
+        CNIP["CNI plugin binary<br/>/opt/cni/bin<br/>Calico, Cilium, VPC CNI"]
+        CSIP["CSI node plugin<br/>DaemonSet + gRPC socket<br/>under /var/lib/kubelet/plugins"]
+        DEV["Device plugin / DRA driver<br/>GPUs, NICs, FPGAs"]
+    end
+
+    User -->|"POST /apis/apps/v1/.../deployments"| API
+    API <-->|"gRPC, MVCC, watch"| ETCD
+    SCHED -->|"watch pods, POST binding"| API
+    KCM -->|"watch, create, patch status"| API
+    CCM --> API
+    KUBELET -->|"watch pods for nodeName,<br/>PATCH node status, renew Lease"| API
+    PROXY -->|"watch svc + endpointslices"| API
+    API -.->|"logs, exec, port-forward<br/>on :10250"| KUBELET
+
+    KUBELET -->|CRI| CRI
+    CRI --> RUNC
+    RUNC --> PODS
+    KUBELET -->|"exec ADD/DEL"| CNIP
+    CNIP --> PODS
+    KUBELET -->|"gRPC NodeStage/NodePublish"| CSIP
+    KUBELET --> DEV
+    PROXY -.->|"programs dataplane for"| PODS
+
+    style CP fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Node1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Plugins fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ETCD fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

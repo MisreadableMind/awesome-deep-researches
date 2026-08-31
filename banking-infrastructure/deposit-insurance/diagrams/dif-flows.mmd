@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph In["Money in"]
+        A1["Quarterly assessments<br/>2,895 m USD in Q2 2026<br/>levied on average consolidated total assets<br/>minus average tangible equity<br/>base 23.086 trn USD"]
+        A2["Interest on Treasury securities<br/>1,280 m USD in Q2 2026<br/>the fund may hold nothing else<br/>12 USC 1823(a)"]
+        A3["Special assessments<br/>after a systemic risk determination<br/>16.7 bn USD estimated recovery<br/>from SVB and Signature"]
+        A4["Receivership dividends<br/>recoveries on failed bank assets"]
+    end
+
+    DIF["DEPOSIT INSURANCE FUND<br/>161.147 bn USD at 30 Jun 2026<br/>reserve ratio 1.48 percent<br/>statutory minimum 1.35 percent<br/>FDIC long-term target 2 percent"]
+
+    subgraph Out["Money out"]
+        B1["Insurance losses on failures<br/>SVB about 20 bn USD<br/>Signature about 2.5 bn USD<br/>First Republic about 13 bn USD"]
+        B2["Operating expenses<br/>506 m USD in Q2 2026"]
+        B3["Unrealised losses on the<br/>AFS securities portfolio<br/>239 m USD in Q2 2026"]
+        B4["Interest paid on Federal Reserve<br/>borrowings by receiverships.<br/>The 2023 receiverships funded at a<br/>penalty rate for months.<br/>Amount and cost not published."]
+    end
+
+    subgraph Backstop["Liquidity backstop, not a subsidy"]
+        C1["100 bn USD Treasury line<br/>FDI Act s.14<br/>repaid from assessments"]
+        C2["Federal Financing Bank<br/>securitisation of receivership assets"]
+    end
+
+    A1 --> DIF
+    A2 --> DIF
+    A3 --> DIF
+    A4 --> DIF
+    DIF --> B1
+    DIF --> B2
+    DIF --> B3
+    DIF --> B4
+    Backstop -.->|"drawn only for timing"| DIF
+
+    DIF --> Key["Key asymmetry: the reserve ratio's denominator<br/>is insured deposits, 10.895 trn USD.<br/>The pricing base is assets, 23.086 trn USD.<br/>Losses scale with assets, not with insured deposits."]
+
+    style DIF fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style In fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Out fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Backstop fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Key fill:#fff3e0,stroke:#e65100,stroke-width:2px

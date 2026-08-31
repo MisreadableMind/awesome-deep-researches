@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph PM["PRIMARY MARKET - permissioned"]
+        direction TB
+        P1["Participants: a few hundred<br/>vetted institutions"]
+        P2["Price: exactly 1.0000 USD<br/>by contract"]
+        P3["Size: minimums in the<br/>hundreds of thousands"]
+        P4["Speed: bank hours,<br/>wire settlement"]
+        P5["Effect on supply:<br/>mint creates, burn destroys"]
+    end
+
+    subgraph SM["SECONDARY MARKET - permissionless"]
+        direction TB
+        S1["Participants: anyone with<br/>a wallet or an exchange account"]
+        S2["Price: whatever the order book<br/>or the AMM curve says"]
+        S3["Size: one cent upward"]
+        S4["Speed: seconds, 24 by 7"]
+        S5["Effect on supply: none.<br/>Tokens change owner only"]
+    end
+
+    ARB["ARBITRAGE LINK<br/>Buy below par on the secondary market,<br/>redeem at par on the primary market.<br/>Or mint at par and sell above it."]
+
+    SM -->|"discount opens"| ARB
+    ARB -->|"supply contracts,<br/>price recovers"| SM
+    PM --- ARB
+
+    BREAK["WHEN THE LINK BREAKS"]
+    B1["Banks closed<br/>weekend or holiday"]
+    B2["Issuer suspends redemption<br/>or the queue is backed up"]
+    B3["Reserve solvency in doubt,<br/>arbitrageurs will not take the risk"]
+    B4["Primary access concentrated<br/>in too few firms"]
+
+    ARB -.-> BREAK
+    BREAK --> B1
+    BREAK --> B2
+    BREAK --> B3
+    BREAK --> B4
+
+    B1 --> OUT["Secondary price becomes<br/>a pure sentiment auction.<br/>USDC traded at 0.8767 USD<br/>on 11 March 2023."]
+    B2 --> OUT
+    B3 --> OUT
+    B4 --> OUT

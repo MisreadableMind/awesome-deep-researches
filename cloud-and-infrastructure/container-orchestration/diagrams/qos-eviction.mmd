@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Node["Node capacity accounting"]
+        CAP["capacity: 16 CPU, 64 GiB"]
+        RES["minus kube-reserved (kubelet, runtime)<br/>minus system-reserved (sshd, kernel)<br/>minus eviction-hard threshold"]
+        ALLOC["allocatable: e.g. 15.8 CPU, 62.5 GiB<br/>THIS is what the scheduler sums against"]
+        CAP --> RES --> ALLOC
+    end
+
+    subgraph QoS["QoS class - assigned at admission, from requests and limits alone"]
+        direction TB
+        G["Guaranteed<br/>every container has cpu AND memory<br/>requests == limits, both non-zero.<br/>oom_score_adj = -997<br/>Eligible for exclusive CPUs under<br/>the static CPU manager policy"]
+        B["Burstable<br/>at least one request or limit set,<br/>but not Guaranteed.<br/>oom_score_adj = clamp(2, 1000 - 1000*memRequest/nodeMem, 999)<br/>A larger memory request buys a LOWER score"]
+        BE["BestEffort<br/>no requests and no limits at all.<br/>oom_score_adj = 1000<br/>First to die, every time"]
+    end
+
+    ALLOC --> QoS
+
+    subgraph CG["What the kubelet writes into cgroup v2"]
+        direction TB
+        CG1["cpu.weight  <- from CPU REQUESTS<br/>proportional share, only matters<br/>when the CPU is contended"]
+        CG2["cpu.max     <- from CPU LIMITS<br/>'quota period', period 100000 us.<br/>Exhausting quota STOPS the task until<br/>the window rolls. This is throttling."]
+        CG3["memory.max  <- from MEMORY LIMITS<br/>Breach = cgroup OOM kill, exit 137.<br/>No throttling. No warning."]
+        CG4["memory.high <- requests + factor*(limits-requests)<br/>with memoryThrottlingFactor 0.9.<br/>Only where the MemoryQoS gate is on:<br/>alpha from v1.22, beta and default-on in v1.37.<br/>Reclaim pressure before the hard kill."]
+    end
+
+    QoS --> CG
+
+    subgraph Evict["Node-pressure eviction - the kubelet, not the scheduler"]
+        direction TB
+        E1["Signals and DEFAULT hard thresholds:<br/>memory.available < 100Mi<br/>nodefs.available < 10%<br/>nodefs.inodesFree < 5%<br/>imagefs.available < 15%"]
+        E2["Hard threshold: 0s grace period.<br/>PodDisruptionBudget is NOT respected.<br/>terminationGracePeriodSeconds is NOT respected."]
+        E3["Soft threshold: honours<br/>eviction-soft-grace-period and<br/>eviction-max-pod-grace-period<br/>(default 0, must be set)"]
+        E4["Ranking: BestEffort first, then Burstable,<br/>then Guaranteed. Within a class, by usage<br/>ABOVE requests, then by pod priority."]
+        E5["Sets node condition MemoryPressure or<br/>DiskPressure, which adds a taint,<br/>which stops new pods landing.<br/>eviction-pressure-transition-period 5m<br/>prevents flapping."]
+        E1 --> E2
+        E1 --> E3
+        E2 --> E4 --> E5
+        E3 --> E4
+    end
+
+    CG --> Evict
+
+    subgraph Two["Two kill mechanisms, often confused"]
+        K1["OOM kill: the KERNEL kills a process<br/>inside the cgroup when memory.max is breached.<br/>Container exit code 137. Pod stays, container restarts.<br/>Reason: OOMKilled"]
+        K2["Eviction: the KUBELET deletes the whole pod<br/>when the NODE is under pressure.<br/>Pod phase becomes Failed, reason Evicted.<br/>The pod object survives until garbage collected."]
+    end
+
+    Evict --> Two
+
+    style Node fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style QoS fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style CG fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Evict fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Two fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

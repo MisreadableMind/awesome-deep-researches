@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph State["Cluster state - one object, one writer"]
+        CS["Version number, incremented by<br/>the elected master on every change"]
+        CS1["Index metadata: settings,<br/>mappings, aliases"]
+        CS2["Routing table: which shard copy<br/>is on which node, and its state"]
+        CS3["Node list, cluster settings,<br/>ILM policies, ingest pipelines,<br/>index templates"]
+    end
+
+    subgraph Election["Election - Zen2, since Elasticsearch 7.0"]
+        E1["Every master-eligible node can<br/>start an election after a<br/>randomised timeout"]
+        E2["A candidate needs votes from<br/>strictly more than half of the<br/>voting configuration"]
+        E3["The voting configuration is<br/>maintained automatically and<br/>kept at an odd size where possible"]
+        E4["3 master-eligible nodes tolerate<br/>1 failure. 2 tolerate none.<br/>5 tolerate 2."]
+    end
+
+    subgraph Publish["Publication - two phase, not Raft"]
+        P1["Master sends a diff against the<br/>previous version, or the full state<br/>if the node is too far behind"]
+        P2["Phase 1: nodes persist and<br/>acknowledge. Master waits for a<br/>quorum of the voting configuration."]
+        P3["Phase 2: commit message.<br/>Nodes apply the state locally."]
+        P4["cluster.publish.timeout = 30s.<br/>A node that cannot apply within<br/>cluster.follower_lag.timeout = 90s<br/>is removed from the cluster."]
+    end
+
+    subgraph Fail["Failure modes that still bite"]
+        F1["Large mappings make the state<br/>large. Every field in every index<br/>is a cluster state entry."]
+        F2["Thousands of indices make<br/>publication slow. Guidance is<br/>fewer than 3,000 indices per GB<br/>of master heap."]
+        F3["A blocked master applier thread<br/>stalls every cluster change,<br/>including shard allocation."]
+    end
+
+    CS --> CS1
+    CS --> CS2
+    CS --> CS3
+    Election --> Publish
+    State --> Publish
+    Publish --> Fail
+
+    style State fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Election fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Publish fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fail fill:#ffebee,stroke:#b71c1c,stroke-width:2px

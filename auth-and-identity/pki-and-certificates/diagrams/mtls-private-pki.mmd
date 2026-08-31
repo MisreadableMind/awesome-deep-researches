@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Diff["Private PKI is not a smaller Web PKI"]
+        direction TB
+        D1["Public: the relying party is the<br/>whole internet, so the trust store<br/>is imposed by four vendors and the<br/>rulebook is written in a forum"]
+        D2["Private: the operator owns both<br/>ends. It chooses the trust anchor,<br/>the profile, the lifetime and the<br/>revocation model, and it is the<br/>only party that suffers if<br/>it gets them wrong"]
+        D3["Consequences: no CT requirement,<br/>no CAA, no 47-day cap, no public<br/>incident reporting, and no<br/>external party to catch a<br/>mistake before it matters"]
+        D1 --> D2 --> D3
+    end
+
+    subgraph Mtls["Mutual TLS: the client presents one too"]
+        direction TB
+        T1["The server sends CertificateRequest.<br/>The client answers with a Certificate<br/>and a CertificateVerify signature<br/>over the handshake transcript"]
+        T2["Authentication becomes symmetric.<br/>The network address stops being<br/>an identity and the certificate<br/>becomes one"]
+        T3["Authorisation is separate and is<br/>where deployments fail. A valid<br/>certificate from your own CA means<br/>the peer is inside the perimeter,<br/>not that it may call this endpoint"]
+        T4["The Chrome Root Program is removing<br/>clientAuth from the public Web PKI:<br/>new subordinate CAs serverAuth-only<br/>from 15 Jun 2026, new leaves<br/>from 15 Mar 2027. Public and<br/>private mTLS are being separated<br/>by policy"]
+        T1 --> T2 --> T3 --> T4
+    end
+
+    subgraph Spiffe["SPIFFE: identity as a URI in the SAN"]
+        direction TB
+        S1["An X.509-SVID carries exactly one<br/>URI SAN, spiffe://trust-domain/path.<br/>More than one URI SAN and the<br/>validator MUST reject it"]
+        S2["Leaf: cA FALSE, keyUsage critical<br/>with digitalSignature, EKU with both<br/>serverAuth and clientAuth, URI SAN<br/>marked critical when subject is empty"]
+        S3["Signing certificate: keyCertSign,<br/>cA TRUE, SPIFFE ID without a<br/>path component. Never used<br/>for authentication itself"]
+        S4["Leaf validation adds three checks<br/>on top of RFC 5280: cA is FALSE,<br/>the scheme is spiffe, and the<br/>SPIFFE ID has a non-root path"]
+        S5["The trust bundle is JWKS, not a<br/>PEM file: entries with use set to<br/>x509-svid and the DER certificate<br/>in x5c. Rotation is a<br/>bundle fetch, not a redeploy"]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph Ops["What running one costs and how it fails"]
+        direction TB
+        O1["AWS Private CA, Aug 2026 list price:<br/>400 USD per CA per month in<br/>general-purpose mode, 50 USD in<br/>short-lived mode. Certificates<br/>0.75 USD each for the first 1,000,<br/>0.35 to 10,000, then 0.001.<br/>Short-lived mode: 0.058 flat"]
+        O2["Self-hosted: cert-manager,<br/>CNCF-graduated 12 Nov 2024,<br/>step-ca, Vault PKI, SPIRE,<br/>CNCF-graduated 20 Sep 2022"]
+        O3["Failure mode one: the expired<br/>internal root. Nothing warns you,<br/>because nothing external is<br/>watching, and every service<br/>fails at the same instant"]
+        O4["Failure mode two: cA TRUE by<br/>copy-paste, or an intermediate with<br/>no name constraints handed to a<br/>team, which turns an internal<br/>CA into a universal one<br/>inside the perimeter"]
+        O1 --> O2 --> O3 --> O4
+    end
+
+    Diff --> Mtls --> Spiffe --> Ops
+
+    style Diff fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Mtls fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Spiffe fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Ops fill:#eceff1,stroke:#37474f,stroke-width:2px

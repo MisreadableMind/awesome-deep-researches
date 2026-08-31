@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Naive["Naive retries: 3 attempts at every layer"]
+        direction TB
+        N0["Client issues 1 request"]
+        N1["Edge proxy: up to 3 attempts<br/>= 3 requests"]
+        N2["API service: up to 3 attempts each<br/>= 9 requests"]
+        N3["Auth service: up to 3 attempts each<br/>= 27 requests"]
+        N4["Database proxy: up to 3 attempts each<br/>= 81 requests"]
+        N5["The backend that is already failing<br/>now receives 81 times its normal load,<br/>at the exact moment it has the least<br/>capacity to absorb it."]
+        N0 --> N1 --> N2 --> N3 --> N4 --> N5
+    end
+
+    subgraph Curve["Why it is self-sustaining"]
+        direction TB
+        C1["1. Backend slows past its timeout"]
+        C2["2. Callers time out and retry"]
+        C3["3. Offered load rises by the retry factor"]
+        C4["4. Backend slows further"]
+        C5["5. Return to step 2.<br/>The system now cannot recover<br/>even if the original trigger is gone,<br/>because the retries are the load."]
+        C1 --> C2 --> C3 --> C4 --> C5
+        C5 -.-> C2
+    end
+
+    subgraph Fixes["The four controls, in order of importance"]
+        direction TB
+        F1["1. Retry budget, not retry count.<br/>Cap retries as a fraction of live traffic.<br/>Envoy default budget_percent 20% with<br/>min_retry_concurrency 3. Google SRE uses a<br/>per-client ratio below 10%, which holds<br/>worst-case amplification to about 1.1x<br/>instead of just under 3x."]
+        F2["2. Retry at one layer only.<br/>Google returns an explicit<br/>overloaded, don't retry status so a<br/>rejected request is retried by the layer<br/>immediately above and by nobody else."]
+        F3["3. Backoff with jitter.<br/>Exponential backoff alone re-synchronises<br/>every caller onto the same instant.<br/>Randomising the delay spreads the herd."]
+        F4["4. Circuit breaking.<br/>Envoy defaults per cluster<br/>max_connections 1024,<br/>max_pending_requests 1024,<br/>max_requests 1024, max_retries 3.<br/>When the breaker opens, the caller fails<br/>immediately instead of queueing."]
+    end
+
+    Naive --> Curve --> Fixes
+
+    style Naive fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Curve fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fixes fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

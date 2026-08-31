@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Tier["Which rule applies"]
+        T1["Under 2 bn USD deposits<br/>NO SPECIAL REQUIREMENT<br/>FDIC extracts and reconciles by hand"]
+        T2["12 CFR 360.9<br/>at least 2 bn USD deposits AND either<br/>250,000 accounts or 20 bn USD assets<br/>standard data format plus<br/>automated provisional holds"]
+        T3["12 CFR 370<br/>2 million or more deposit accounts<br/>the bank's own IT system must<br/>CALCULATE insurance coverage"]
+        T1 -.->|"graduates at"| T2
+        T2 -.->|"graduates at"| T3
+    end
+
+    Close["FDIC Cutoff Point established<br/>12 CFR 360.8(b)(1)"]
+
+    Close --> EOD["Close-of-business account balances<br/>computed using the earlier of the bank's<br/>normal cutoff time for that transaction type<br/>or the FDIC Cutoff Point<br/>12 CFR 360.8(b)(2)-(3)"]
+
+    EOD --> Files["Four pipe-delimited output files<br/>appendix B to 12 CFR part 370"]
+
+    Files --> F1["CUSTOMER FILE<br/>CS__Unique__ID, CS__Govt__ID,<br/>CS__Govt__ID__Type in SSN TIN DL ML PPT AID OTH,<br/>CS__Type in IND BUS TRT NFP GOV OTH,<br/>CS__Outstanding__Debt__Flag"]
+    Files --> F2["ACCOUNT FILE<br/>DP__Acct__Identifier, DP__Right__Capacity,<br/>DP__Prod__Cat in DDA NOW MMA SAV CDS,<br/>DP__Allocated__Amt, DP__Total__PI,<br/>DP__Insured__Amount, DP__Uninsured__Amount"]
+    Files --> F3["ACCOUNT PARTICIPANT FILE<br/>AP__Participant__ID, AP__Participant__Type,<br/>AP__Allocated__Amount<br/>trust beneficiaries, plan participants,<br/>mortgagors, bondholders"]
+    Files --> F4["PENDING FILE<br/>Pending__Reason codes<br/>A agency, B beneficiary, OI official item,<br/>RAC missing capacity code,<br/>ARB ARBN ARCRA AREBP ARM ARTR ARO"]
+
+    F1 --> Calc["Aggregate by depositor,<br/>then by ownership right and capacity code:<br/>SGL JNT REV IRR CRA EBP BUS<br/>GOV1 GOV2 GOV3 MSA PBA DIT ANC BIA DOE"]
+    F2 --> Calc
+    F3 --> Calc
+
+    Calc --> Split["Apply 250,000 USD per category.<br/>Trust deposits: 250,000 USD times the<br/>number of beneficiaries, capped at 5."]
+
+    Split --> Hold["PROVISIONAL HOLDS by 09:00 local<br/>the day after the cutoff point.<br/>hold = (balance - FDIC threshold)<br/>x FDIC hold percentage,<br/>parameters set separately for<br/>consumer/non-consumer and<br/>transaction/non-transaction"]
+
+    F4 --> Chase["FDIC contacts the record-keeper<br/>named by the pending reason code"]
+    Chase --> Iterate["Files are reissued in successive<br/>iterations as data arrives"]
+    Iterate --> Calc
+
+    Hold --> Monday["Monday 09:00: insured funds available,<br/>held portion released as recovery<br/>estimates firm up"]
+
+    style T3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Files fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Hold fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Monday fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

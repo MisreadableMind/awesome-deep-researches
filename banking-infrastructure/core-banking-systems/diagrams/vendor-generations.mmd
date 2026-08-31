@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph G1["Generation 1 - mainframe batch, 1964 to 1987"]
+        G1a["FIS Systematics<br/>z/OS, COBOL, CICS, Db2<br/>large US banks"]
+        G1b["Fiserv Premier, Signature<br/>service bureau or licensed"]
+        G1c["Hogan, Kirchman Bankway<br/>largely absorbed"]
+        G1d["Traits: batch-first,<br/>deep US product coverage,<br/>account-centric"]
+    end
+
+    subgraph G2["Generation 2 - midrange and client-server, 1988 to 2005"]
+        G2a["Jack Henry SilverLake,<br/>CIF 20/20, Symitar<br/>IBM i, RPG"]
+        G2b["Temenos Globus then T24<br/>multi-currency, multi-entity<br/>from the start"]
+        G2c["Infosys Finacle 1999,<br/>Oracle FLEXCUBE 1997,<br/>TCS BaNCS"]
+        G2d["FIS Profile on M / GT.M<br/>real-time posting"]
+        G2e["Traits: parameter-driven products,<br/>internationalisation,<br/>still monolithic"]
+    end
+
+    subgraph G3["Generation 3 - internet era, 2006 to 2015"]
+        G3a["Fiserv DNA<br/>.NET, SQL Server,<br/>open API surface"]
+        G3b["FIS Modern Banking Platform"]
+        G3c["Traits: real-time posting,<br/>service-oriented integration,<br/>relational, hosted or on-premise"]
+    end
+
+    subgraph G4["Generation 4 - cloud-native, 2011 onward"]
+        G4a["Mambu 2011<br/>SaaS, configuration-driven"]
+        G4b["Thought Machine Vault Core 2014<br/>Python smart contracts,<br/>immutable postings ledger"]
+        G4c["10x 2016, Finxact 2016,<br/>Pismo 2016, Tuum, Zeta"]
+        G4d["Fiserv CoreAdvance,<br/>Jack Henry Platform"]
+        G4e["Traits: product logic decoupled,<br/>API-first, horizontally scaled,<br/>continuous scheduled events"]
+    end
+
+    G1 --> G2 --> G3 --> G4
+    G1d -.still runs the largest banks.-> G4e
+
+    style G1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style G2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style G3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G4 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

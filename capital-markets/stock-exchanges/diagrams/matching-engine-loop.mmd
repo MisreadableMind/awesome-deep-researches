@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Ingress["1. Ingress: kernel bypass or FPGA"]
+        A1["10/40 Gb NIC in the co-location cage.<br/>Cross-connect measured in metres."]
+        A2["Kernel bypass: the frame is read from a<br/>user-space ring buffer.<br/>No syscall, no interrupt, no copy."]
+        A3["Hardware timestamp taken here.<br/>This is t0 for every latency statistic."]
+    end
+
+    subgraph Decode["2. Decode and gateway"]
+        B1["OUCH Enter Order: fixed 47-byte header<br/>plus a variable TagValue appendage.<br/>No parsing, just field offsets."]
+        B2["Port-level checks: is the OUCH account live,<br/>is UserRefNum strictly increasing,<br/>is quantity under 1,000,000"]
+        B3["Risk gate: Rule 15c3-5 credit and<br/>capital thresholds, fat-finger price collars,<br/>duplicate and message-rate limits"]
+    end
+
+    subgraph Sequence["3. Sequencer"]
+        C1["Assign a global sequence number.<br/>THIS is the moment the order 'arrives'.<br/>Everything after it is deterministic."]
+        C2["Write to the replication log.<br/>The standby engine consumes the same<br/>ordered stream and stays bit-identical."]
+    end
+
+    subgraph Match["4. Match: the single-threaded core"]
+        D1["Regulatory reprice:<br/>LULD band slide, locked/crossed slide,<br/>short sale price test, tick rounding"]
+        D2{"Marketable against<br/>the opposite side?"}
+        D3["Walk price levels from the best.<br/>At each level apply the priority rule:<br/>price-time on Nasdaq,<br/>setter-then-parity-wheel on NYSE."]
+        D4["Emit an execution per matched pair.<br/>Decrement both. Unlink the exhausted node.<br/>Update the level counter and the cached BBO."]
+        D5["Rest: append to the tail of the level,<br/>assign an order reference number,<br/>update aggregates"]
+        D6["Route out: if the order is routable and a<br/>better protected quote exists away,<br/>the router sends ISOs"]
+        D1 --> D2
+        D2 -->|yes| D3 --> D4
+        D2 -->|no| D5
+        D4 --> D6
+    end
+
+    subgraph Egress["5. Egress"]
+        E1["Private: OUCH Order Accepted / Executed<br/>back to the entering port over SoupBinTCP"]
+        E2["Public: ITCH Add / Executed / Delete<br/>over MoldUDP64 multicast"]
+        E3["Regulatory: quote and trade to the SIP.<br/>May NOT be sent to the exchange's own<br/>customers any sooner than to the SIP."]
+    end
+
+    Ingress --> Decode --> Sequence --> Match --> Egress
+
+    BUDGET["Where the microseconds go<br/>-----------------------------------<br/>Cross-connect and NIC: sub-microsecond<br/>Decode and risk gate: the largest software cost<br/>Sequencer: one write, one fsync-free append<br/>Match: a handful of cache misses<br/>Publish: serialise and hand to the NIC<br/>-----------------------------------<br/>The one absolute figure on the record:<br/>Nasdaq told the SEC in 2016 that the<br/>throughput time of its system is 40 us.<br/>IEX's deliberate delay is 350 us in and<br/>350 us out, 700 us cumulative.<br/>Wire-to-wire is the competitive number<br/>every exchange quotes and every<br/>exchange defines differently."]
+    Egress --> BUDGET
+
+    style Ingress fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Decode fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Sequence fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Match fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Egress fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style BUDGET fill:#fffde7,stroke:#f9a825,stroke-width:2px

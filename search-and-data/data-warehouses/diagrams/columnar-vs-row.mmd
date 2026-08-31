@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph LR
+    subgraph RowStore["Row-Oriented Storage (OLTP)"]
+        direction TB
+        R1["Row 1: Alice | 28 | NYC | $50K"]
+        R2["Row 2: Bob | 35 | LA | $75K"]
+        R3["Row 3: Carol | 42 | CHI | $90K"]
+        R4["Row 4: Dave | 31 | NYC | $60K"]
+        R1 --- R2 --- R3 --- R4
+    end
+
+    subgraph ColStore["Column-Oriented Storage (OLAP)"]
+        direction TB
+        C1["Name col: Alice | Bob | Carol | Dave"]
+        C2["Age col: 28 | 35 | 42 | 31"]
+        C3["City col: NYC | LA | CHI | NYC"]
+        C4["Salary col: $50K | $75K | $90K | $60K"]
+        C1 --- C2 --- C3 --- C4
+    end
+
+    subgraph Query["SELECT AVG(salary)<br/>WHERE city = 'NYC'"]
+        direction TB
+        QR["Row store: reads ALL data<br/>4 rows x 4 columns = 16 values"]
+        QC["Column store: reads 2 columns<br/>city + salary = 8 values<br/>50% less I/O"]
+    end
+
+    RowStore --> QR
+    ColStore --> QC
+
+    style RowStore fill:#e53e3e,color:#fff
+    style ColStore fill:#38a169,color:#fff
+    style Query fill:#2b6cb0,color:#fff

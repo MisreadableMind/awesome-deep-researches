@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Issuer["Issuer<br/>e.g. a listed corporation"]
+    TA["Transfer agent<br/>maintains the register of<br/>registered owners"]
+    Cede["Cede and Co<br/>DTC's nominee<br/>the sole registered owner<br/>of the deposited shares"]
+    DTC["DTC<br/>holds the position in fungible bulk<br/>no share is identifiable to anyone"]
+    P1["DTC participant<br/>clearing broker"]
+    P2["DTC participant<br/>custodian bank"]
+    B1["Introducing broker"]
+    Cust2["Sub-custodian or<br/>omnibus account"]
+    E1["Beneficial owner<br/>holds a security entitlement<br/>under UCC Article 8,<br/>not a share"]
+    E2["Beneficial owner<br/>pension fund, individual,<br/>fund vehicle"]
+    DRS["Direct registration<br/>investor named on the<br/>issuer's own books"]
+    Demat["US options, municipal and<br/>government securities:<br/>no certificate exists at all"]
+
+    Issuer --> TA
+    TA --> Cede
+    TA --> DRS
+    Cede --> DTC
+    DTC --> P1
+    DTC --> P2
+    P1 --> B1
+    P2 --> Cust2
+    B1 --> E1
+    Cust2 --> E2
+
+    Note1["Immobilisation:<br/>the certificate exists<br/>but never moves"]
+    Note2["Direct registration:<br/>book entry on the issuer's register,<br/>a certificate is still available on request"]
+    Note3["Dematerialisation:<br/>the instrument class has<br/>no certificate at all"]
+    DTC -.- Note1
+    DRS -.- Note2
+    Demat -.- Note3
+    Issuer -.- Demat
+
+    style Cede fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style DTC fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style E1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style E2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

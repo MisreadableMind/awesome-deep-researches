@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Seg["WAL segment file - 16MB by default, name is 24 hex digits"]
+        direction TB
+        NAME["000000010000002A000000B7<br/>= timeline 1, log id 0x2A, segment 0xB7"]
+        PG0["Page 0: XLogLongPageHeaderData, 40 bytes<br/>magic 0xD118 in PostgreSQL 18,<br/>plus system identifier and size cross-checks"]
+        PGN["Pages 1..2047: XLogPageHeaderData, 24 bytes<br/>xlp_magic, xlp_info, xlp_tli,<br/>xlp_pageaddr, xlp_rem_len"]
+        NAME --> PG0 --> PGN
+    end
+
+    subgraph Rec["One WAL record"]
+        direction TB
+        RH["XLogRecord header - 24 bytes<br/>xl_tot_len uint32, xl_xid uint32,<br/>xl_prev uint64, xl_info uint8,<br/>xl_rmid uint8, 2 bytes padding,<br/>xl_crc uint32 - CRC-32C"]
+        BH["XLogRecordBlockHeader - 4 bytes per block<br/>id, fork_flags, data_length.<br/>Flags: HAS_IMAGE 0x10, HAS_DATA 0x20,<br/>WILL_INIT 0x40, SAME_REL 0x80"]
+        BI["XLogRecordBlockImageHeader - 5 bytes<br/>length, hole_offset, bimg_info.<br/>Present only for a full-page image.<br/>Compression: PGLZ 0x04, LZ4 0x08, ZSTD 0x10"]
+        FPI["Full page image - up to 8192 bytes,<br/>minus the hole between pd_lower and pd_upper.<br/>Written on the FIRST touch of a page<br/>after each checkpoint, when full_page_writes = on."]
+        RLOC["RelFileLocator - 12 bytes<br/>tablespace, database, relation<br/>omitted when BKPBLOCK_SAME_REL"]
+        BLK["BlockNumber - 4 bytes"]
+        DH["Data header<br/>1+1 bytes short, or 1+4 bytes long"]
+        PAY["Resource-manager payload<br/>example: xl_heap_update is 14 bytes,<br/>then xl_heap_header 5 bytes,<br/>then the new tuple body"]
+        RH --> BH --> BI --> FPI --> RLOC --> BLK --> DH --> PAY
+    end
+
+    LSN["Every record has an LSN:<br/>a 64-bit byte offset in the log,<br/>printed as hex/hex, for example 2A/B7000148.<br/>pd_lsn on each page records the last<br/>WAL record that changed it."]
+
+    RULE["The WAL rule: a page may not reach disk<br/>before the WAL record describing its change<br/>has been flushed. XLogFlush enforces it.<br/>Up to 32 blocks per record, XLR_MAX_BLOCK_ID."]
+
+    Seg --> Rec --> LSN
+    Rec --> RULE
+
+    style Seg fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Rec fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style LSN fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RULE fill:#fce4ec,stroke:#880e4f,stroke-width:2px

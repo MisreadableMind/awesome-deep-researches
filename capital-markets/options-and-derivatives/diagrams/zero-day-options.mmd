@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Cause["Preconditions, all three needed"]
+
+    subgraph Pre["What made 0DTE possible"]
+        direction TB
+        P1["Daily SPX expirations.<br/>Monday and Wednesday added 2016,<br/>Tuesday and Thursday added 2022.<br/>Without a daily expiry there is<br/>no daily zero-day option."]
+        P2["Cash settlement.<br/>No delivery obligation, no<br/>assignment surprise, no borrow."]
+        P3["Zero commission retail brokerage<br/>and low-latency electronic access."]
+    end
+
+    Cause --> Pre
+
+    subgraph Scale["Measured scale"]
+        direction TB
+        S1["66.2% of total SPX options volume<br/>was 0DTE in July 2026 (Cboe)"]
+        S2["SPX 0DTE ADV quarterly record<br/>3.1 million contracts, Q2 2026;<br/>monthly record 3.3 million"]
+        S3["OCC, Feb-Jul 2023 window:<br/>options under one month to expiry<br/>were ~30% of daily volume;<br/>0DTE on expiration dates ~40%"]
+    end
+
+    Pre --> Scale
+
+    subgraph Math["The mathematics: ATM index option, 12% IV"]
+        direction TB
+        M1["6.5 hours left: gamma 0.008117<br/>2.0 hours left: gamma 0.014636<br/>1.0 hour left:  gamma 0.020699<br/>0.25 hours left: gamma 0.041400<br/>30 days out:    gamma 0.001773"]
+        M2["Gamma at one hour is 11.7x<br/>the gamma of a 30-day option"]
+        M3["Linearisation FAILS.<br/>At one hour to expiry, gamma x a<br/>1% move predicts a delta change<br/>of 1.345, which is impossible.<br/>Delta saturates at 0 or 1."]
+    end
+
+    Scale --> Math
+
+    subgraph Flow["Hedging flow, exact repricing per 1,000 ATM contracts on a +1% move"]
+        direction TB
+        F1["At the open (6.5h): delta 0.5099 -&gt; 0.9101<br/>= $262.7 million of index to buy"]
+        F2["One hour left: delta 0.5039 -&gt; 0.9996<br/>= $325.5 million of index to buy"]
+        F3["Fifteen minutes left: delta 0.5019 -&gt; 1.0000<br/>= $327.0 million"]
+        F4["30-day option: delta 0.5449 -&gt; 0.6562<br/>= $73.0 million"]
+    end
+
+    Math --> Flow
+
+    subgraph Real["What is and is not systemic"]
+        direction TB
+        RA["IS a real effect: intraday<br/>amplification of moves through<br/>dealer rehedging"]
+        RB["IS NOT accumulation: positions<br/>extinguish daily, so no overnight<br/>gap exposure builds up"]
+        RC["IS NOT unmargined: OCC added an<br/>Intraday Risk Charge in April 2025;<br/>FINRA replaced the pattern day<br/>trader regime with intraday margin<br/>standards in April 2026"]
+        RD["UNKNOWN: aggregate dealer<br/>positioning. Estimated by vendors,<br/>not published by anyone."]
+    end
+
+    Flow --> Real
+
+    style Pre fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Scale fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Math fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Flow fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Real fill:#fce4ec,stroke:#880e4f,stroke-width:2px

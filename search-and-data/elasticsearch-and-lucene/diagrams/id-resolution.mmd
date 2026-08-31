@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    OP["Operation arrives on the primary:<br/>index, update, or delete of _id 42"]
+
+    AUTO{"Auto-generated _id<br/>and no external version?"}
+    SKIP["addDocument: no lookup at all.<br/>The ID cannot already exist,<br/>so the engine appends.<br/>This is why bulk ingest without<br/>explicit IDs runs faster."]
+
+    LVM["Stage 1: LiveVersionMap<br/>in-memory map, _id to<br/>version, seqNo, primary term.<br/>Covers everything since<br/>the last refresh."]
+    HIT{"Present?"}
+    FOUND["Version and seqNo known.<br/>No segment holds the document yet."]
+
+    RES["Stage 2: VersionsAndSeqNoResolver.<br/>Walk the searcher's segments<br/>newest first, term lookup in<br/>the _id postings, stop at<br/>the first hit."]
+    SEG["Segment number plus internal<br/>doc ID. This is the pair that<br/>.liv indexes into."]
+    NONE["No hit anywhere:<br/>the document does not exist."]
+
+    subgraph Consequence["What the two stages buy"]
+        G1["GET /orders/_doc/42 is real-time.<br/>A stage-1 hit forces an internal<br/>refresh so the get can read it."]
+        G2["_search is near-real-time.<br/>It only ever reads the searcher,<br/>so it sees nothing until refresh."]
+        G3["Same shard, same document,<br/>two answers for one second.<br/>One lookup path, not two engines."]
+    end
+
+    OP --> AUTO
+    AUTO -- yes --> SKIP
+    AUTO -- no --> LVM --> HIT
+    HIT -- yes --> FOUND --> G1
+    HIT -- no --> RES --> SEG
+    RES -.miss.-> NONE
+    SEG --> G2
+    G1 --> G3
+    G2 --> G3
+
+    style OP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SKIP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LVM fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style RES fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NONE fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Consequence fill:#eceff1,stroke:#37474f,stroke-width:2px

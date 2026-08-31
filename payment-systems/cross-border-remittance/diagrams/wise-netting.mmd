@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph GBP["GBP pool - United Kingdom"]
+        In1["Inbound: UK senders pay<br/>Wise via Faster Payments"]
+        Pool1["Wise GBP balance<br/>held at the Bank of England<br/>and partner banks"]
+        Out1["Outbound: Wise pays UK<br/>recipients via Faster Payments"]
+    end
+
+    subgraph PHP["PHP pool - Philippines"]
+        In2["Inbound: Philippine senders<br/>pay Wise via InstaPay"]
+        Pool2["Wise PHP balance<br/>settled at BSP through<br/>PhilPaSSplus"]
+        Out2["Outbound: Wise pays<br/>recipients via InstaPay<br/>and PESONet"]
+    end
+
+    subgraph EUR["EUR pool - euro area"]
+        In3["Inbound: SEPA credit transfer"]
+        Pool3["Wise EUR balance"]
+        Out3["Outbound: SEPA and<br/>SEPA Instant"]
+    end
+
+    Ledger["Wise internal ledger<br/><br/>A GBP-to-PHP transfer is two<br/>domestic events plus one<br/>ledger entry. No message and<br/>no value crosses a border for<br/>that customer's payment."]
+
+    Netting["Daily netting<br/><br/>GBP in minus GBP out = net position.<br/>PHP in minus PHP out = net position.<br/>Only the residual has to move."]
+
+    FX["Wholesale FX<br/><br/>Wise sells the surplus currency<br/>and buys the deficit currency<br/>in the interbank market, then<br/>settles that trade through banks.<br/>This IS a cross-border movement.<br/>It happens once per net position,<br/>not once per customer."]
+
+    Direct["Direct scheme membership,<br/>8 systems as of FY2026:<br/>UK Faster Payments, SEPA,<br/>Hungary RPS, Singapore FAST,<br/>Australia NPP, Philippines InstaPay,<br/>Brazil Pix, Japan Zengin.<br/>First non-bank to settle directly<br/>with the Bank of Japan."]
+
+    In1 --> Pool1
+    Pool1 --> Out1
+    In2 --> Pool2
+    Pool2 --> Out2
+    In3 --> Pool3
+    Pool3 --> Out3
+
+    Pool1 <--> Ledger
+    Pool2 <--> Ledger
+    Pool3 <--> Ledger
+
+    Ledger --> Netting
+    Netting --> FX
+    FX -.rebalances.-> Pool1
+    FX -.rebalances.-> Pool2
+    FX -.rebalances.-> Pool3
+
+    Direct -.enables.-> Pool1
+    Direct -.enables.-> Pool2
+    Direct -.enables.-> Pool3
+
+    Result["Result, FY2026:<br/>243.5 bn USD volume,<br/>0.52% average take rate,<br/>75% of Q4 payments<br/>completed in under 20 seconds"]
+
+    FX --> Result
+
+    style GBP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PHP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style EUR fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Ledger fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Netting fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style FX fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    style Direct fill:#eceff1,stroke:#37474f,stroke-width:2px

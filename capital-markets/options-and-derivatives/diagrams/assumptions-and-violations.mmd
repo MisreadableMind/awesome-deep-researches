@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph A["Assumption"]
+        direction TB
+        A1["1. Lognormal returns<br/>geometric Brownian motion"]
+        A2["2. Constant volatility"]
+        A3["3. Continuous trading,<br/>zero transaction cost"]
+        A4["4. Constant known<br/>risk-free rate"]
+        A5["5. No dividends, or a<br/>known continuous yield"]
+        A6["6. European exercise"]
+        A7["7. Unlimited borrowing<br/>and short selling"]
+        A8["8. No arbitrage,<br/>frictionless markets"]
+    end
+
+    subgraph V["Violation"]
+        direction TB
+        V1["Jumps and fat tails.<br/>Equity indices gap.<br/>Crashes are not 20-sigma<br/>events in the real distribution."]
+        V2["Volatility clusters, mean-reverts,<br/>and spikes. VIX exists because<br/>volatility is a traded quantity."]
+        V3["Hedging happens N times, not<br/>continuously. Base case:<br/>hedging error sd 0.451 at 30<br/>rebalances vs 0.094 at 750."]
+        V4["A term structure exists.<br/>Post-2008, collateralised trades<br/>discount on OIS, uncollateralised<br/>on a funding curve."]
+        V5["Dividends are discrete and<br/>uncertain. Special dividends<br/>trigger contract adjustment."]
+        V6["US listed equity options<br/>are American. Base case put<br/>early-exercise premium: $0.021782."]
+        V7["Borrow is not free.<br/>Hard-to-borrow names carry<br/>a negative rebate that shows up<br/>as a violation of put-call parity."]
+        V8["Bid-ask spreads, margin,<br/>capital charges, and position<br/>limits all bind."]
+    end
+
+    subgraph R["What practitioners do"]
+        direction TB
+        R1["Quote a different implied<br/>volatility per strike.<br/>The smile IS the correction."]
+        R2["Stochastic volatility models:<br/>Heston, SABR. Or a local<br/>volatility surface via Dupire."]
+        R3["Widen the quote.<br/>Leland-style volatility<br/>adjustment for costs."]
+        R4["Multi-curve framework:<br/>separate discount and<br/>forecast curves."]
+        R5["Discrete-dividend trees;<br/>escrowed dividend models."]
+        R6["Binomial or PDE with an<br/>exercise test at every node."]
+        R7["Add the borrow rate as a<br/>negative yield in q."]
+        R8["Price mid, quote a spread<br/>wide enough to cover it."]
+    end
+
+    A1 --> V1 --> R1
+    A2 --> V2 --> R2
+    A3 --> V3 --> R3
+    A4 --> V4 --> R4
+    A5 --> V5 --> R5
+    A6 --> V6 --> R6
+    A7 --> V7 --> R7
+    A8 --> V8 --> R8
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style V fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style R fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

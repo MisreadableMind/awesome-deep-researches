@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Sender["Sending host"]
+        direction TB
+        SA["Application<br/>calls write or sendmsg"]
+        SB["Socket layer<br/>copies into the send buffer,<br/>blocks or returns EAGAIN"]
+        SC["TCP sender<br/>holds every unacknowledged byte,<br/>owns cwnd, RTO and the scoreboard"]
+        SD["IP layer<br/>routes, sets TTL, fragments only<br/>if the sender allows it"]
+        SE["Queueing discipline and NIC<br/>pacing, TSO, checksum offload"]
+        SA --> SB --> SC --> SD --> SE
+    end
+
+    subgraph Path["The path: stateless by design, stateful in practice"]
+        direction TB
+        P1["Access router / CPE<br/>Usually the bottleneck.<br/>Usually the deepest buffer.<br/>Usually the source of bufferbloat."]
+        P2["ISP edge and core<br/>Forwards on the destination prefix.<br/>Keeps no per-flow state.<br/>Drops when a queue fills."]
+        P3["NAT<br/>Rewrites addresses and ports.<br/>Holds per-flow state with a timeout,<br/>typically 2 to 30 minutes for TCP."]
+        P4["Firewall and DPI<br/>Holds connection state, may drop<br/>unknown TCP options, may reset<br/>on policy match"]
+        P5["Load balancer / TCP proxy<br/>Terminates the connection or<br/>splices it. Two congestion<br/>control loops instead of one."]
+        P1 --> P2 --> P3 --> P4 --> P5
+    end
+
+    subgraph Receiver["Receiving host"]
+        direction TB
+        RE["NIC and GRO<br/>coalesces arriving segments<br/>before the stack sees them"]
+        RD["IP layer<br/>reassembles fragments,<br/>checks the header"]
+        RC["TCP receiver<br/>reorders, generates ACKs and SACKs,<br/>advertises rwnd, autotunes the buffer"]
+        RB["Socket layer<br/>receive queue and out-of-order queue"]
+        RA["Application<br/>calls read or recvmsg"]
+        RE --> RD --> RC --> RB --> RA
+    end
+
+    subgraph Governance["Who decides what any of this means"]
+        direction TB
+        G1["IETF<br/>TCPM, CCWG, TSVWG, INTAREA,<br/>6MAN working groups.<br/>Rough consensus and running code."]
+        G2["IANA<br/>Owns the registries: port numbers,<br/>TCP option kinds, IP protocol<br/>numbers, ICMP types"]
+        G3["Implementers<br/>Linux, Windows, FreeBSD, Apple,<br/>lwIP, and userspace stacks<br/>on DPDK and io_uring.<br/>De facto behaviour lives here."]
+        G4["Operators and CDNs<br/>Google, Cloudflare, Akamai, Meta.<br/>They ship congestion control<br/>changes to a billion sockets<br/>without any RFC."]
+    end
+
+    Sender ==>|"packets"| Path
+    Path ==>|"packets"| Receiver
+    Receiver -.->|"ACKs travel back the same gauntlet"| Sender
+    Governance -.specifies.-> Sender
+    Governance -.specifies.-> Receiver
+
+    style Sender fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Path fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Receiver fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Governance fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant PM as Pension fund PM
+    participant Algo as Broker algo<br/>(VWAP / IS engine)
+    participant SOR as Smart order router
+    participant Dark as NMS stock ATS<br/>(midpoint dark pool)
+    participant NDQ as Nasdaq<br/>matching engine
+    participant Away as NYSE Arca, EDGX,<br/>MEMX, IEX
+    participant SIP as UTP SIP
+    participant NSCC as NSCC / DTC
+
+    PM->>Algo: Buy 50,000 XYZ, limit 190.10,<br/>participate 10% of volume
+    Note over Algo: Parent order never touches a venue.<br/>The algo slices it into child orders.
+
+    Algo->>SOR: Child order 1: buy 2,000, limit 190.04
+    SOR->>SIP: Read NBBO: 190.03 x 190.04, 1,200 offered
+    SOR->>Dark: 500 shares, midpoint peg, MinQty 100
+    Dark-->>SOR: Filled 500 @ 190.035<br/>Half a cent better than the offer
+    Note over Dark: Non-displayed. No pre-trade quote.<br/>Prints to a FINRA TRF, tape only.
+
+    SOR->>NDQ: OUCH Enter Order: buy 1,200 @ 190.04,<br/>TIF=3 (IOC), ISO=Y, Display=Y
+    SOR->>Away: Simultaneous ISOs to every venue<br/>showing a protected offer at 190.04
+    Note over SOR,Away: Rule 611(b)(5): the ISO marking asserts<br/>the router swept every better protected quote.<br/>The receiving venue may execute immediately.
+
+    NDQ->>NDQ: Sequencer assigns a global sequence number
+    NDQ->>NDQ: Walk the ask side from 190.04.<br/>Price-time: fill the head of the queue first.
+    NDQ-->>SOR: OUCH Order Executed: 700 @ 190.04, liquidity flag = remove
+    NDQ-->>SOR: OUCH Order Executed: 500 @ 190.04, liquidity flag = remove
+    NDQ->>SIP: Trade report: 1,200 @ 190.04
+    NDQ->>NDQ: ITCH multicast: two Order Executed 'E'<br/>messages, then Order Delete 'D'<br/>for the exhausted orders
+
+    Note over NDQ,SIP: The offer at 190.04 is now empty.<br/>The book's best offer advances to 190.05.<br/>The cached BBO is bumped, not recomputed.
+
+    NDQ->>SIP: Quote update: new Nasdaq BBO
+    SIP->>SIP: Recompute the NBBO across all venues
+    SIP-->>Away: New NBBO 190.03 x 190.05
+
+    Algo->>SOR: Child order 2: post 1,500 @ 190.03,<br/>post-only, MaxFloor 200, RandomReserves
+    SOR->>NDQ: OUCH Enter Order: Display=Y, PostOnly=P,<br/>MaxFloor=200, RandomReserves=100
+    NDQ-->>SOR: Order Accepted, Order Reference Number 4471829
+    NDQ->>NDQ: ITCH Add Order 'A': 200 shares @ 190.03<br/>Only the displayed 200 appears on the feed.<br/>1,300 shares are invisible.
+
+    Note over Algo: The algo repeats this for six hours.<br/>50,000 shares becomes roughly 120 child orders<br/>across 8 venues and 3 dark pools.
+
+    NDQ->>NSCC: End-of-day trade file
+    Dark->>NSCC: End-of-day trade file
+    NSCC->>NSCC: Novate, net to a single position<br/>per member per symbol
+    NSCC->>NSCC: Settle T+1

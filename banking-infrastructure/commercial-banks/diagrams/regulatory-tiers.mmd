@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Tiers["THE FIVE TIERS OF US BANK REGULATION"]
+        direction TB
+        T5["COMMUNITY BANKS<br/>3,190 institutions below 1 bn USD<br/>hold 1.06 trn, 4.0% of industry assets<br/>May opt into the community bank<br/>leverage ratio: 8% since 1 July 2026,<br/>down from 9%, with a four-quarter<br/>grace period. Opting in removes<br/>risk-based capital reporting entirely."]
+        T4["CATEGORY IV<br/>100 bn to 250 bn USD<br/>Supervisory stress test every other year,<br/>reduced LCR only if weighted short-term<br/>wholesale funding is 50 bn or more,<br/>AOCI opt-out available"]
+        T3["CATEGORY III<br/>250 bn or more, or 75 bn on a<br/>risk factor. Full LCR and NSFR,<br/>annual stress test,<br/>AOCI opt-out available since 2019"]
+        T2["CATEGORY II<br/>700 bn or more in assets,<br/>or 75 bn in cross-jurisdictional activity.<br/>Full standards, advanced approaches"]
+        T1["CATEGORY I - the eight US G-SIBs<br/>Everything, plus the G-SIB surcharge,<br/>TLAC, resolution planning,<br/>the enhanced supplementary leverage ratio"]
+        T5 --> T4 --> T3 --> T2 --> T1
+    end
+
+    subgraph Scale["WHAT THE TIERING IS ABOUT"]
+        S1["18 institutions above 250 bn USD<br/>hold 16.85 trn of 26.46 trn.<br/>That is 63.7% of the industry<br/>in 0.4% of the charters."]
+        S2["543 institutions below 100 m USD<br/>hold 34 bn between them.<br/>That is 0.13% of the industry."]
+        S3["The same rulebook cannot govern<br/>a 3 trillion dollar dealer and a<br/>60 million dollar bank in Nebraska.<br/>Tailoring is the answer, and where<br/>the line falls is the permanent fight."]
+    end
+
+    subgraph History["THE LINE HAS MOVED TWICE"]
+        H1["2010 Dodd-Frank:<br/>enhanced standards at 50 bn USD"]
+        H2["2018 EGRRCPA:<br/>raised to 250 bn USD, with<br/>discretion from 100 bn"]
+        H3["2019 tailoring rule:<br/>created Categories I to IV"]
+        H4["2023: SVB was a Category IV firm.<br/>The post-mortem debate is whether<br/>the 2018 change mattered, or whether<br/>supervisors simply did not act on<br/>findings they had already made."]
+        H1 --> H2 --> H3 --> H4
+    end
+
+    Tiers --> Scale
+    Scale --> History
+
+    style Tiers fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Scale fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style History fill:#fff3e0,stroke:#e65100,stroke-width:2px

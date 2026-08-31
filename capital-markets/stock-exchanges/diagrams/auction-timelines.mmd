@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+gantt
+    title Auction timelines, US Eastern Time, 2026
+    dateFormat HH:mm:ss
+    axisFormat %H.%M
+
+    section NYSE open
+    Pillar gateways open, orders queue        :06:30:00, 90m
+    Imbalance published every 1 second        :08:00:00, 90m
+    DMM opens the security, may be later      :milestone, 09:30:00, 0m
+
+    section Nasdaq open
+    On-open orders accepted from 4am          :04:00:00, 325m
+    NOII every 10 seconds, open               :09:25:00, 3m
+    MOO cutoff                                :milestone, 09:28:00, 0m
+    NOII every 1 second, open                 :09:28:00, 2m
+    LOO cutoff                                :milestone, 09:29:30, 0m
+    Opening Cross sets the NOOP               :milestone, 09:30:00, 0m
+
+    section Nasdaq close
+    NOII every 10 seconds, close              :15:50:00, 5m
+    MOC cutoff                                :milestone, 15:55:00, 0m
+    NOII every 1 second, close                :15:55:00, 5m
+    LOC cutoff                                :milestone, 15:58:00, 0m
+    Closing Cross sets the NOCP               :milestone, 16:00:00, 0m
+    Extended Trading Close, NOII every 5s     :16:00:00, 5m
+
+    section NYSE close
+    MOC and LOC cutoff, imbalance every 1s    :15:50:00, 10m
+    Only offsetting MOC and LOC accepted      :15:50:00, 10m
+    D-Orders frozen ten seconds before        :milestone, 15:59:50, 0m
+    NYSE Closing Auction                      :milestone, 16:00:00, 0m
+
+    section NYSE Arca close
+    Imbalance published from 3pm              :15:00:00, 59m
+    Closing freeze period                     :15:59:00, 1m
+    Arca Closing Auction within collars       :milestone, 16:00:00, 0m

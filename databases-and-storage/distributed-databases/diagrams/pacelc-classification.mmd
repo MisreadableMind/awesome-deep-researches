@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Q1["PA / EL"]
+        direction TB
+        Q1D["Partition: keep serving, diverge.<br/>Normal: answer from the nearest replica,<br/>accept staleness."]
+        Q1S["Cassandra at ONE or LOCAL_ONE<br/>Dynamo, Riak, Voldemort<br/>DynamoDB eventually consistent reads"]
+    end
+
+    subgraph Q2["PC / EC"]
+        direction TB
+        Q2D["Partition: refuse on the minority side.<br/>Normal: pay the consensus round trip<br/>on every write and every strong read."]
+        Q2S["Spanner, CockroachDB, YugabyteDB<br/>etcd, ZooKeeper, HBase, VoltDB<br/>Cassandra at QUORUM/ALL"]
+    end
+
+    subgraph Q3["PC / EL"]
+        direction TB
+        Q3D["Partition: refuse rather than diverge.<br/>Normal: serve reads from an async replica<br/>because latency matters more."]
+        Q3S["PNUTS, per Abadi's classification<br/>Any master-per-item design with<br/>async replicas serving reads"]
+    end
+
+    subgraph Q4["PA / EC"]
+        direction TB
+        Q4D["Partition: elect a new master and lose<br/>the old master's unreplicated writes.<br/>Normal: consistent reads and writes."]
+        Q4S["MongoDB, per Abadi's classification<br/>of the original rollback-directory design"]
+    end
+
+    RULE["The E half applies at all times.<br/>The P half applies during an outage.<br/>Most production pain is E, not P."]
+
+    Q1 --> RULE
+    Q2 --> RULE
+    Q3 --> RULE
+    Q4 --> RULE
+
+    style Q1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Q2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Q3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Q4 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style RULE fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

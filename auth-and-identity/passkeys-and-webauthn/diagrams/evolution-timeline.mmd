@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Hardware Era<br/>2013-2016"]
+        direction TB
+        E1A["Feb 2013: FIDO Alliance launches.<br/>Goal: kill the shared secret,<br/>keep the key on the device."]
+        E1B["9 Oct 2014: U2F 1.0 Proposed Standard.<br/>A second factor only. One button,<br/>one key-wrapped credential,<br/>origin bound by the browser."]
+        E1C["8 Dec 2014: UAF 1.0 Proposed Standard.<br/>Passwordless, but a separate<br/>protocol with no browser API."]
+        E1D["12 Nov 2015: FIDO 2.0 submitted<br/>to the W3C. The browser API<br/>becomes someone else's problem."]
+    end
+
+    subgraph Era2["Standards Era<br/>2017-2021"]
+        direction TB
+        E2A["27 Sep 2017: CTAP 2.0.<br/>CBOR over USB HID, NFC and BLE.<br/>Discoverable credentials and<br/>user verification arrive."]
+        E2B["4 Mar 2019: WebAuthn Level 1<br/>becomes a W3C Recommendation.<br/>navigator.credentials.create()<br/>is now a web platform feature."]
+        E2C["8 Apr 2021: WebAuthn Level 2.<br/>Apple attestation format,<br/>large blob, credential properties."]
+        E2D["15 Jun 2021: CTAP 2.1.<br/>Credential management, enterprise<br/>attestation, credProtect, always-UV."]
+    end
+
+    subgraph Era3["Passkey Era<br/>2022-2024"]
+        direction TB
+        E3A["5 May 2022: Apple, Google and<br/>Microsoft commit to syncing FIDO<br/>credentials and to cross-device<br/>sign-in. The word 'passkey' ships."]
+        E3B["2022-2023: iCloud Keychain,<br/>Google Password Manager and<br/>Windows Hello carry passkeys.<br/>The credential stops being<br/>a property of one device."]
+        E3C["Oct 2024: Credential Exchange<br/>Protocol and Format drafts.<br/>Portability between providers<br/>becomes a stated goal."]
+    end
+
+    subgraph Era4["Scale Era<br/>2025-2026"]
+        direction TB
+        E4A["14 Jul 2025: CTAP 2.2.<br/>Hybrid transport, JSON message<br/>encoding, third-party payment,<br/>persistent PIN/UV tokens."]
+        E4B["31 Jul 2025: NIST SP 800-63B-4.<br/>Syncable authenticators allowed<br/>at AAL2, forbidden at AAL3."]
+        E4C["7 May 2026: FIDO Alliance counts<br/>5 billion passkeys in use,<br/>90% consumer awareness."]
+        E4D["25 Aug 2026: WebAuthn Level 3<br/>becomes a W3C Recommendation.<br/>Signal methods, related origins,<br/>conditional create, hints."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era4 fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant VC as VC and tech depositors
+    participant SVB as Silicon Valley Bank
+    participant Mkt as Markets and short sellers
+    participant Sup as Federal Reserve supervisors
+    participant FDIC as FDIC and CDFPI
+
+    rect rgb(232, 245, 233)
+    Note over VC,SVB: 2019 to 2021 - THE INFLOW
+    VC->>SVB: Deposits triple. Assets grow from<br/>71 bn to over 211 bn USD.<br/>Growth of 271% from YE2018 to YE2021<br/>against 29% for the banking industry.
+    SVB->>SVB: Invests inflows in long-dated<br/>agency MBS, mostly classified<br/>held-to-maturity
+    end
+
+    rect rgb(255, 243, 224)
+    Note over SVB,Sup: 2017 to 2022 - THE UNMANAGED RISK
+    SVB->>SVB: Breaches its own long-term interest<br/>rate risk limits on and off since 2017
+    SVB->>SVB: April 2022: changes deposit duration<br/>assumptions to cure the limit breach<br/>rather than the risk
+    SVB->>SVB: Removes interest rate hedges<br/>while rates are rising
+    Sup->>SVB: 2021 and 2022: MRAs and MRIAs on<br/>liquidity, governance and IRR modelling.<br/>Downgrade to IRR in progress at failure.
+    end
+
+    rect rgb(227, 242, 253)
+    Note over SVB: 31 December 2022 - THE POSITION
+    Note over SVB: Securities 55% of assets, peers 25%<br/>HTM 78% of securities, peers 42%<br/>HTM weighted-average duration 6.2 years<br/>Uninsured deposits 94% of total, peers 41%<br/>CET1 12%, peers 10%
+    end
+
+    rect rgb(255, 235, 238)
+    Note over SVB,FDIC: 8 to 10 March 2023 - THE RUN
+    SVB->>Mkt: 8 March: announces sale of 21 bn of AFS<br/>securities for a 1.8 bn after-tax loss,<br/>plus a 2.25 bn equity raise
+    Mkt-->>VC: Read as distress. Silvergate announces<br/>wind-down the same day.
+    VC->>SVB: 9 March: over 40 bn USD withdrawn<br/>in a single day, coordinated over<br/>group chats and social media
+    SVB->>Sup: Evening of 9 March: warns of a further<br/>100 bn USD of outflows expected on 10 March
+    SVB->>SVB: Not enough cash or collateral.<br/>Total demand exceeds 140 bn<br/>against 175 bn of deposits.
+    FDIC->>SVB: 10 March, morning: closed by the<br/>California DFPI, FDIC appointed receiver
+    end
+
+    Note over SVB,FDIC: 69 days from a 12% CET1 ratio to receivership.<br/>Capital was never the binding constraint.<br/>It was duration on the asset side and<br/>concentration on the liability side.

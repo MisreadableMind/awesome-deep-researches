@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Charter["CHARTERING - who lets you exist"]
+        OCC["OCC<br/>national banks and<br/>federal savings associations"]
+        State["50 state banking departments<br/>state charters"]
+        NCUA["NCUA<br/>federal credit unions"]
+    end
+
+    subgraph Prudential["PRUDENTIAL SUPERVISION - who examines you"]
+        Fed["Federal Reserve<br/>holding companies, state member<br/>banks, Category I to IV standards"]
+        FDIC2["FDIC<br/>state non-member banks,<br/>deposit insurer, receiver"]
+        OCC2["OCC<br/>national banks"]
+    end
+
+    subgraph Conduct["CONDUCT AND CRIME"]
+        CFPB["CFPB<br/>consumer rules,<br/>banks above 10 bn USD"]
+        FinCEN["FinCEN<br/>BSA and AML"]
+        OFAC["OFAC<br/>sanctions"]
+    end
+
+    subgraph Bank["THE BANK - 4,238 FDIC-insured institutions, 2026 Q2"]
+        Core["Core banking system<br/>the general ledger of record.<br/>Fiserv, FIS, Jack Henry<br/>run it for most small banks"]
+        Treasury["Treasury and ALCO<br/>owns the duration gap,<br/>the funding plan and the LCR"]
+        Credit["Credit function<br/>underwriting, ratings,<br/>CECL allowance"]
+    end
+
+    subgraph Funding["FUNDING COUNTERPARTIES"]
+        Depositors["Depositors<br/>20.72 trn, of which<br/>roughly 7.6 trn uninsured"]
+        FHLB["Federal Home Loan Banks<br/>532 bn of advances<br/>collateralised, super-lien"]
+        DW["Federal Reserve discount window<br/>lender of last resort"]
+        Brokers["Deposit brokers, listing services,<br/>reciprocal networks"]
+    end
+
+    subgraph Rails["PAYMENT AND CLEARING"]
+        Fedwire["Fedwire Funds<br/>ISO 20022 since 14 July 2025"]
+        ACH["FedACH and EPN"]
+        CHIPS["CHIPS<br/>ISO 20022 since April 2024"]
+        SWIFTn["SWIFT<br/>MT retired 22 Nov 2025"]
+        Corr["Correspondent banks<br/>nostro and vostro accounts"]
+    end
+
+    Charter --> Bank
+    Prudential --> Bank
+    Conduct --> Bank
+    Funding --> Bank
+    Bank --> Rails
+
+    FDIC2 -.insures.-> Depositors
+    Fed -.operates.-> DW
+    Fed -.operates.-> Fedwire
+
+    style Bank fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Prudential fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Charter fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Funding fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Rails fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Conduct fill:#fce4ec,stroke:#880e4f,stroke-width:2px

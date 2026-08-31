@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Hdr["BGP message header, 19 octets<br/>Marker 16 octets of 0xFF, Length 2 octets, Type 1 octet<br/>Length: 19 to 4096, or to 65535 with RFC 8654 capability 6"]
+
+    subgraph Open["Type 1: OPEN, minimum 29 octets"]
+        direction TB
+        O1["Version, 1 octet, always 4"]
+        O2["My Autonomous System, 2 octets<br/>23456 if the real ASN is 32-bit"]
+        O3["Hold Time, 2 octets<br/>proposed; the lower of the two wins.<br/>0 or 3 or more. 1 and 2 are illegal."]
+        O4["BGP Identifier, 4 octets<br/>a router ID, not necessarily an address"]
+        O5["Optional Parameters Length, 1 octet"]
+        O6["Optional Parameters: capabilities per RFC 5492<br/>1 multiprotocol, 2 route refresh, 6 extended message,<br/>7 BGPsec, 9 role, 64 graceful restart, 65 four-octet AS,<br/>69 ADD-PATH"]
+    end
+
+    subgraph Upd["Type 2: UPDATE, minimum 23 octets"]
+        direction TB
+        U1["Withdrawn Routes Length, 2 octets"]
+        U2["Withdrawn Routes: prefixes as length plus<br/>only the significant octets"]
+        U3["Total Path Attribute Length, 2 octets"]
+        U4["Path Attributes: flags, type code, length, value"]
+        U5["NLRI: the prefixes this attribute set applies to.<br/>No length field; it is whatever remains."]
+    end
+
+    subgraph Notif["Type 3: NOTIFICATION, minimum 21 octets"]
+        direction TB
+        N1["Error code, 1 octet"]
+        N2["Error subcode, 1 octet"]
+        N3["Data, variable"]
+        N4["Sending it always closes the session.<br/>There is no recoverable error in base BGP.<br/>RFC 7606 later added treat-as-withdraw."]
+    end
+
+    subgraph Keep["Type 4: KEEPALIVE, exactly 19 octets"]
+        direction TB
+        K1["Header only. No payload.<br/>Sent every KeepaliveTime,<br/>default one third of HoldTime."]
+    end
+
+    subgraph RR["Type 5: ROUTE-REFRESH, 23 octets"]
+        direction TB
+        RR1["AFI 2 octets, Reserved 1 octet, SAFI 1 octet.<br/>Asks the peer to resend its Adj-RIB-Out<br/>so a policy change can be applied<br/>without bouncing the session."]
+    end
+
+    Hdr --> Open
+    Hdr --> Upd
+    Hdr --> Notif
+    Hdr --> Keep
+    Hdr --> RR
+
+    style Hdr fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Open fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Upd fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Notif fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Keep fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style RR fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

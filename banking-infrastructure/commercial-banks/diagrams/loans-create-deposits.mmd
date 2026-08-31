@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant B as Borrower
+    participant MB as Meridian National Bank
+    participant Fed as Federal Reserve
+    participant SB as Seller's bank
+    participant S as House seller
+
+    Note over MB: Before: assets 10,000.0m<br/>loans 6,500.0m, reserves 450.0m<br/>deposits 8,400.0m, equity 800.0m
+
+    B->>MB: Applies for a 400,000 USD mortgage
+    MB->>MB: Underwrite: credit, capacity, collateral<br/>LTV 80%, DTI 34%, FICO 742
+
+    rect rgb(232, 245, 233)
+    Note over MB: ORIGINATION - the money is created here
+    MB->>MB: Debit: loans +400,000<br/>Credit: borrower deposit +400,000
+    MB->>B: 400,000 appears in the account
+    end
+
+    Note over MB: After: assets 10,000.4m<br/>loans 6,500.4m, reserves 450.0m<br/>deposits 8,400.4m, equity 800.0m<br/>No existing deposit was consumed.<br/>No reserve was consumed.<br/>Broad money is 400,000 larger.
+
+    B->>S: Buys the house, pays 400,000
+    MB->>Fed: Fedwire settlement, 400,000 of reserves
+    Fed->>SB: Reserves credited
+    SB->>S: Deposit credited 400,000
+
+    Note over MB: After settlement: assets 10,000.0m<br/>loans 6,500.4m, reserves 449.6m<br/>deposits 8,400.0m
+
+    Note over MB,SB: The deposit did not vanish. It moved.<br/>System-wide, broad money is still<br/>400,000 higher than before the loan.<br/>Reserves were redistributed, not destroyed.
+
+    alt Meridian runs short of reserves
+        MB->>Fed: Borrow at the discount window,<br/>or in fed funds, or from the FHLB
+        Fed-->>MB: Supplied on demand, at a price<br/>the central bank sets
+    end
+
+    Note over Fed: The binding constraint is the PRICE<br/>of reserves, not their quantity.

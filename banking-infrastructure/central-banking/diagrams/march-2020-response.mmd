@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Problem["The dash for cash - the Treasury market stops working"]
+        direction TB
+        P1["Every asset class is sold at once,<br/>including the asset normally bought<br/>in a panic. Treasury yields rise<br/>while equities fall."]
+        P2["Dealer balance sheets cannot absorb<br/>the flow. Bid-ask spreads on<br/>off-the-run Treasuries blow out."]
+        P3["Prime money market funds face<br/>redemptions. Commercial paper<br/>issuers cannot roll."]
+        P4["This is a market functioning problem<br/>wearing the costume of a<br/>monetary policy problem."]
+    end
+
+    Problem --> Rate
+
+    subgraph Rate["15 March 2020 - the price tools"]
+        direction TB
+        R1["Target range cut to 0 to 0.25 percent.<br/>Mester dissents, preferring 0.50 to 0.75."]
+        R2["Primary credit rate cut to 0.25 percent,<br/>term extended to 90 days"]
+        R3["Reserve requirement ratios cut to zero,<br/>effective 26 March 2020.<br/>They have never been restored."]
+        R4["Dollar swap line pricing cut and<br/>maturities extended with five<br/>other major central banks"]
+    end
+
+    Rate --> Qty
+
+    subgraph Qty["15 to 23 March 2020 - the quantity tools"]
+        direction TB
+        Q1["15 Mar: at least 500 billion USD<br/>of Treasuries and at least<br/>200 billion USD of agency MBS"]
+        Q2["23 Mar: the caps are removed.<br/>Purchases 'in the amounts needed<br/>to support smooth market functioning'.<br/>Agency CMBS added."]
+        Q3["Balance sheet: 4,158,637 million USD<br/>on 26 February, 7,168,936 million<br/>on 10 June. Plus 3.01 trillion<br/>in fifteen weeks."]
+        Q4["This was not stimulus. It was a<br/>dealer of last resort buying the<br/>inventory nobody else could hold."]
+    end
+
+    Qty --> Credit
+
+    subgraph Credit["The Section 13(3) facilities"]
+        direction TB
+        C1["CPFF, PDCF, MMLF<br/>the 2008 playbook, restarted"]
+        C2["PMCCF and SMCCF<br/>corporate bonds, primary and secondary.<br/>New in 2020 and legally novel."]
+        C3["TALF, MLF, Main Street Lending, PPPLF<br/>consumer ABS, municipalities,<br/>mid-sized firms, PPP lenders"]
+        C4["Treasury supplied 30 billion USD of<br/>equity from the Exchange Stabilization Fund<br/>to absorb first losses on up to<br/>300 billion USD of new financing"]
+        C5["Announcement did most of the work.<br/>Several facilities repaired their<br/>markets while lending almost nothing."]
+    end
+
+    Credit --> Legacy
+
+    subgraph Legacy["What March 2020 left behind"]
+        direction TB
+        L1["31 Mar 2020: the FIMA repo facility,<br/>so foreign central banks could raise<br/>dollars without dumping Treasuries"]
+        L2["Jul 2021: the standing repo facility<br/>made permanent alongside it"]
+        L3["A demonstrated willingness to buy<br/>credit risk that changed how markets<br/>price a tail event, and how<br/>much leverage they carry into one"]
+        L4["The unanswered question:<br/>whether Treasury market fragility<br/>is a capacity problem the Fed<br/>must keep solving every few years"]
+    end
+
+    style Problem fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Rate fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Qty fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Credit fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Legacy fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

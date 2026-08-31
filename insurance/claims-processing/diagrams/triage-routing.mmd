@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    In["Claim at setup<br/>coverage confirmed"] --> Model["Segmentation engine<br/>runs at FNOL, re-runs on<br/>every material change"]
+
+    Model --> S1["Severity score<br/>predicted ultimate incurred"]
+    Model --> S2["Complexity score<br/>parties, coverages, jurisdiction"]
+    Model --> S3["Fraud score<br/>rules plus supervised model"]
+    Model --> S4["Litigation propensity<br/>attorney at FNOL, venue,<br/>injury type, prior representation"]
+
+    S1 --> Route{"Routing decision"}
+    S2 --> Route
+    S3 --> Route
+    S4 --> Route
+
+    Route -->|"Low severity, no injury,<br/>no third party, photos clean"| STP["Straight-through processing<br/>no adjuster touches the file"]
+    Route -->|"Under fast-track threshold"| Fast["Fast track desk unit<br/>high caseload, phone and photo only"]
+    Route -->|"Inspection needed"| Field["Field or virtual inspection<br/>staff adjuster or IA assignment"]
+    Route -->|"Large loss or coverage issue"| Complex["Complex or major case unit<br/>general adjuster, low caseload"]
+    Route -->|"Fraud indicators fire"| SIU["Special Investigation Unit<br/>referral, statutory in many states"]
+    Route -->|"Attorney represented<br/>or suit filed"| Lit["Litigation unit<br/>panel counsel assigned"]
+    Route -->|"CAT event code matched"| CAT["Catastrophe queue<br/>surge staffing, advance payments"]
+
+    STP --> Cap1["Caseload: unbounded<br/>Cost per claim: model inference"]
+    Fast --> Cap2["Caseload: 150 to 300 open files<br/>Cost driver: contacts per claim"]
+    Field --> Cap3["Caseload: 60 to 120 open files<br/>Cost driver: travel and re-inspection"]
+    Complex --> Cap4["Caseload: 15 to 40 open files<br/>Cost driver: experts and time"]
+    Lit --> Cap5["Caseload: 40 to 80 suits<br/>Cost driver: defence counsel"]
+
+    Note["Misroute cost is asymmetric.<br/>A complex claim in fast track leaks indemnity.<br/>A simple claim in the complex unit leaks expense."]
+    Route -.-> Note
+
+    style In fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Route fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Note fill:#fff9c4,stroke:#f57f17,stroke-width:2px

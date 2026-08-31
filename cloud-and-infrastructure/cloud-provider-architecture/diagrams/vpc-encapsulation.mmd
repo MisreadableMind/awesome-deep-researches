@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Guest["What the guest sends - the inner packet"]
+        G1["Ethernet header<br/>src MAC 02:aa:.. dst MAC 02:bb:.."]
+        G2["IP header<br/>src 10.0.1.15  dst 10.0.2.40<br/>customer address space, overlaps<br/>with thousands of other tenants"]
+        G3["TCP header<br/>src port 51234  dst port 443"]
+        G4["Payload"]
+        G1 --> G2 --> G3 --> G4
+    end
+
+    subgraph Card["Offload card rewrites the packet"]
+        C1["1. Match flow in the local flow table<br/>five-tuple lookup"]
+        C2["2. Miss? Ask the mapping service:<br/>which physical host holds 10.0.2.40<br/>in virtual network vpc-0a1b2c?"]
+        C3["3. Enforce security group and ACL<br/>stateful, in hardware"]
+        C4["4. Apply metering and rate limits"]
+        C5["5. Encapsulate"]
+        C1 --> C2 --> C3 --> C4 --> C5
+    end
+
+    subgraph Wire["What travels the physical fabric - the outer packet"]
+        W1["Outer Ethernet header<br/>physical MACs, ToR switch next hop"]
+        W2["Outer IP header<br/>src 100.72.4.9  dst 100.72.19.3<br/>provider substrate addresses,<br/>routable on the real fabric"]
+        W3["Outer UDP header<br/>VXLAN dst port 4789 (RFC 7348)<br/>or Geneve dst port 6081 (RFC 8926)<br/>src port = hash of inner flow,<br/>so ECMP spreads the flow"]
+        W4["Tunnel header<br/>24-bit VNI or VSID<br/>identifies the tenant network<br/>16.7 million possible networks"]
+        W5["The entire inner packet, unchanged"]
+        W1 --> W2 --> W3 --> W4 --> W5
+    end
+
+    Guest -->|"leaves the guest as normal Ethernet"| Card
+    Card -->|"leaves the host as substrate traffic"| Wire
+
+    Note["MTU consequence:<br/>outer headers cost 50-100 bytes.<br/>AWS VPC supports 9001-byte jumbo frames<br/>inside a VPC, 1500 to the internet.<br/>Google VPC defaults to 1460, max 8896.<br/>A 1500-byte guest MTU on a 1500-byte<br/>physical link fragments or blackholes."]
+    Wire -.-> Note
+
+    style Guest fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Card fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Wire fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Note fill:#fce4ec,stroke:#880e4f

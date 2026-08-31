@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trad["Traditional path"]
+        T1["Sender funds in USD"]
+        T2["Correspondent chain<br/>or prefunded partner"]
+        T3["FX at the conversion point"]
+        T4["Local payout"]
+        T5["Elapsed: minutes to days.<br/>Cost: 2 to 15 percent.<br/>Prefunding: held by the<br/>provider in every currency."]
+    end
+
+    subgraph Stable["Stablecoin path"]
+        S1["On-ramp<br/>USD to a dollar token.<br/>Costs a spread and a fee."]
+        S2["Transfer on chain<br/>seconds, 24/7, cost measured<br/>in cents at the network level"]
+        S3["Off-ramp partner<br/>token to local currency"]
+        S4["Local payout, usually into<br/>the same domestic instant<br/>scheme the traditional path uses"]
+        S5["The prefunding did not vanish.<br/>The off-ramp holds local currency<br/>instead of the sender's provider."]
+    end
+
+    subgraph Rails["Instant-rail path"]
+        R1["Domestic instant scheme<br/>at each end, linked bilaterally<br/>or through a hub"]
+        R2["UPI-PayNow, live 21 Feb 2023.<br/>INR 60,000 daily cap.<br/>P2P only, for maintenance of<br/>relatives abroad and gifts."]
+        R3["Nexus Global Payments,<br/>incorporated 2025 by the central<br/>banks of India, Malaysia, the<br/>Philippines, Singapore and Thailand.<br/>One connection per scheme<br/>instead of n-squared links."]
+        R4["Still unsolved: sanctions screening<br/>in seconds against different lists,<br/>whose consumer rules apply,<br/>who carries FX risk between legs,<br/>destination liquidity at 3am"]
+    end
+
+    subgraph Reg["The regulatory frame"]
+        G1["GENIUS Act, PL 119-27,<br/>signed 18 July 2025.<br/>Issuance limited to permitted<br/>payment stablecoin issuers.<br/>At least 1 USD of permitted<br/>reserves per 1 USD issued:<br/>currency, insured deposits,<br/>short-dated T-bills, repo,<br/>government money market funds.<br/>Effective the earlier of<br/>18 Jan 2027 or 120 days after<br/>final implementing rules."]
+        G2["A stablecoin does not replace<br/>a money transmitter licence.<br/>The on-ramp and off-ramp are<br/>regulated activities in every<br/>jurisdiction that matters."]
+    end
+
+    Live["What is actually live<br/><br/>MoneyGram Access, since 2022:<br/>cash in and cash out for Stellar<br/>USDC at MoneyGram counters.<br/><br/>MGUSD on Stellar, 2 June 2026,<br/>issued by Bridge, M0 mint and burn,<br/>Fireblocks wallet infrastructure.<br/>Launched in the US first; the<br/>~500,000-location network is the<br/>intended, not the current, footprint.<br/><br/>The cash-out network is the asset.<br/>The token is the transport."]
+
+    Trad --> Stable
+    Stable --> Reg
+    Rails --> Reg
+    Reg --> Live
+
+    style Trad fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Stable fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    style Rails fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Reg fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Live fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

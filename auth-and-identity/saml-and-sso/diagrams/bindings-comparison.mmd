@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["A binding answers one question:<br/>how does this XML get from A to B?"]
+
+    subgraph Redir["HTTP-Redirect  bindings:HTTP-Redirect"]
+        R1["Message is DEFLATE compressed per RFC 1951,<br/>base64 encoded, then URL encoded"]
+        R2["Query parameters: SAMLRequest or SAMLResponse,<br/>RelayState, SigAlg, Signature"]
+        R3["The XML ds:Signature is REMOVED first.<br/>The signature covers the concatenated<br/>query string, not the XML."]
+        R4["Signed octet order is fixed:<br/>SAMLRequest=v and RelayState=v and SigAlg=v.<br/>Verify against the received encoding,<br/>never a re-encoding."]
+        R5["Used for: AuthnRequest, LogoutRequest,<br/>LogoutResponse. Too small for a signed Response."]
+    end
+
+    subgraph Post["HTTP-POST  bindings:HTTP-POST"]
+        P1["Message is base64 encoded and placed in a<br/>hidden form control, auto-submitted by script"]
+        P2["Form fields: SAMLRequest or SAMLResponse,<br/>plus RelayState"]
+        P3["The XML ds:Signature stays inside the message.<br/>Assertions MUST be signed."]
+        P4["SP MUST cache used assertion IDs until<br/>NotOnOrAfter passes, to block replay"]
+        P5["Used for: almost every real SAML Response<br/>in production today"]
+    end
+
+    subgraph Art["HTTP-Artifact  bindings:HTTP-Artifact"]
+        A1["Only a 44 byte reference crosses the browser:<br/>TypeCode 0x0004 plus EndpointIndex plus<br/>20 byte SourceID plus 20 byte MessageHandle"]
+        A2["SourceID is the SHA-1 of the issuer entityID.<br/>Base64 of 44 bytes is 60 characters."]
+        A3["SP dereferences it with ArtifactResolve over<br/>the SOAP binding, on a mutually authenticated<br/>TLS back channel"]
+        A4["Costs: a direct IdP to SP network path,<br/>plus server-side state while the artifact is<br/>outstanding, which fights load balancing"]
+    end
+
+    subgraph Other["The rest"]
+        O1["SOAP  bindings:SOAP<br/>Back channel only. Carries<br/>ArtifactResolve and queries."]
+        O2["PAOS  bindings:PAOS<br/>Reverse SOAP. Powers the<br/>Enhanced Client or Proxy profile."]
+        O3["URI  bindings:URI<br/>Dereference an assertion by URL.<br/>Almost never deployed."]
+    end
+
+    Q --> Redir
+    Q --> Post
+    Q --> Art
+    Q --> Other
+
+    Rule["RelayState is capped at 80 bytes in every<br/>front-channel binding. It is not integrity<br/>protected together with the message, so it<br/>carries an opaque handle, never a return URL."]
+
+    Redir --> Rule
+    Post --> Rule
+    Art --> Rule
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Redir fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Post fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Art fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Other fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Rule fill:#ffebee,stroke:#b71c1c,stroke-width:2px

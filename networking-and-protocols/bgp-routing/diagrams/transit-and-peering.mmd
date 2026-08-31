@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Core["Transit-free core, roughly a dozen networks"]
+        T1["Lumen AS3356"]
+        T2["Arelion AS1299"]
+        T3["Cogent AS174"]
+        T4["NTT AS2914"]
+        T1 <-->|"settlement-free peering<br/>no money either way"| T2
+        T2 <-->|"settlement-free"| T3
+        T3 <-->|"settlement-free"| T4
+        T1 <-->|"settlement-free"| T4
+    end
+
+    subgraph Mid["Regional transit and large access networks"]
+        M1["National carrier"]
+        M2["Cable or fibre access network"]
+        M1 <-->|"settlement-free<br/>if ratios and footprint match"| M2
+    end
+
+    subgraph Edge["Content, cloud, and enterprise"]
+        C1["Hyperscale content network<br/>mostly outbound traffic"]
+        C2["Multihomed enterprise<br/>203.0.113.0/24"]
+    end
+
+    M1 -->|"pays transit<br/>USD per Mbps per month<br/>100 GigE low end 0.05 in<br/>competitive markets, Q2 2025"| T1
+    M2 -->|"pays transit"| T3
+    C2 -->|"pays transit"| M1
+    C2 -->|"pays transit<br/>second provider for<br/>redundancy and leverage"| M2
+    C1 <-->|"settlement-free peering<br/>at an IXP or over private<br/>cross connects"| M2
+    C1 -->|"paid peering where<br/>the access network has<br/>enough leverage"| M2
+    C1 -->|"buys a small amount of transit<br/>for the long tail"| T2
+
+    Policy["Export policy that produces valley-free paths<br/>To a customer: announce everything.<br/>To a peer: announce own and customer routes only.<br/>To a provider: announce own and customer routes only.<br/>Announcing a peer or provider route upstream<br/>is a route leak, RFC 7908."]
+
+    style Core fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Mid fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Edge fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Policy fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

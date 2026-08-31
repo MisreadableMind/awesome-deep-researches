@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant CL as Chainlink aggregator<br/>ETH/USD
+    participant AO as AaveOracle
+    participant P as Aave v3 Pool
+    participant K as Keeper bot
+    participant FL as Aave flashLoanSimple
+    participant DEX as Uniswap v3 0.05% pool
+    participant B as Borrower
+
+    Note over B: 100 WETH collateral, 240,000 USDC debt<br/>LT 83%, HF 1.3833 at $4,000
+
+    CL->>CL: Off-chain OCR round: price deviates<br/>past the feed's deviation threshold
+    CL->>AO: New answer 2,850, updatedAt = now
+    K->>P: getUserAccountData(borrower)
+    P->>AO: getAssetPrice(WETH)
+    AO-->>P: 2,850
+    P-->>K: collateral $285,000, debt $240,000, HF 0.98562
+
+    Note over K: HF under 1. Above 0.95, both legs above $2,000,<br/>so close factor is 50%.
+
+    K->>FL: flashLoanSimple(asset = USDC, amount = 120,000)
+    FL->>K: executeOperation(120,000 USDC, premium 60)
+    K->>P: liquidationCall(WETH, USDC, borrower, 120,000, false)
+    P->>P: Validate HF under 1, cap repay at close factor
+    P->>P: seize = 120,000 * 1.05 / 2,850 = 44.210526 WETH
+    P->>P: Burn 120,000 of variableDebtUSDC<br/>Burn 44.210526 of aWETH from the borrower
+    P->>P: Split the $6,000 bonus: the 10% liquidationProtocolFee<br/>to the treasury, the other 90% to the keeper
+    P-->>K: 44.000000 WETH
+
+    K->>DEX: exactInputSingle(44.210526 WETH -> USDC)
+    DEX-->>K: 125,211.90 USDC after 0.05% fee and impact
+    K->>FL: Approve and repay 120,060 USDC
+    Note over K: Net $5,144.78 after ~$7 of gas at 5 gwei.<br/>Keeper capital deployed: zero.
+
+    P->>B: Position now 55.789474 WETH vs 120,000 debt<br/>HF restored to 1.09975

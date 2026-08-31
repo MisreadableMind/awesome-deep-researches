@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trading["Trading Layer"]
+        Inv["Institutional investor<br/>investment adviser<br/>allocates the block"]
+        Retail["Retail investor<br/>owns an entitlement,<br/>never a certificate"]
+        Exch["Exchange or ATS<br/>submits locked-in trades"]
+        EB["Executing broker"]
+    end
+
+    subgraph Match["Matching Layer - no risk taken"]
+        CMSP["Central matching service<br/>DTCC ITP: CTM, TradeSuite ID, ALERT<br/>allocation, confirmation, affirmation"]
+    end
+
+    subgraph Clearing["Clearing Layer"]
+        CB["Clearing broker<br/>NSCC Member,<br/>posts the margin"]
+        CCP["CCP - NSCC<br/>novates, nets, guarantees"]
+        FICCG["FICC / GSD<br/>Treasuries"]
+        FICCM["FICC / MBSD<br/>agency MBS"]
+    end
+
+    subgraph Settle["Settlement Layer"]
+        CSD["CSD - DTC<br/>book-entry securities,<br/>Cede and Co is the registered owner"]
+        Fed2["Fedwire Securities<br/>Treasuries and agencies,<br/>DVP Model 1, gross"]
+        SB["Settling bank<br/>acknowledges the net-net balance"]
+        Fed["Federal Reserve<br/>National Settlement Service"]
+    end
+
+    subgraph Custody["Custody and Servicing"]
+        Cust["Global custodian<br/>holds for the asset owner"]
+        TA["Transfer agent and issuer<br/>keeps the register"]
+    end
+
+    Inv --> EB
+    Retail --> EB
+    EB --> Exch
+    Inv <--> CMSP
+    EB <--> CMSP
+    Exch --> CCP
+    EB --> CB
+    CB --> CCP
+    CCP --> CSD
+    FICCG --> Fed2
+    FICCM --> CSD
+    Cust --> CSD
+    CSD --> SB
+    SB --> Fed
+    CSD -.registered holder.-> TA
+    Cust -.records entitlement.-> Inv
+
+    style Trading fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Match fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Clearing fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Settle fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Custody fill:#eceff1,stroke:#37474f,stroke-width:2px

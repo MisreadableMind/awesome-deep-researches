@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["Transaction prefix"]
+        V["nVersion<br/>4 bytes LE<br/>1 = legacy, 2 = BIP68 timelocks,<br/>3 = TRUC per BIP431"]
+        M["marker 0x00 + flag 0x01<br/>2 bytes, SegWit only.<br/>Absent means no witness.<br/>Counted at 1 WU each."]
+    end
+
+    subgraph Inputs["Inputs, count as CompactSize"]
+        I1["outpoint txid, 32 bytes<br/>internal byte order,<br/>displayed reversed"]
+        I2["outpoint index, 4 bytes LE"]
+        I3["scriptSig length, CompactSize<br/>0x00 for native SegWit inputs"]
+        I4["scriptSig, variable<br/>legacy unlocking script"]
+        I5["nSequence, 4 bytes LE<br/>< 0xFFFFFFFF enables locktime,<br/>< 0xFFFFFFFE signals BIP125 RBF,<br/>BIP68 relative timelock if v>=2"]
+    end
+
+    subgraph Outputs["Outputs, count as CompactSize"]
+        O1["value, 8 bytes LE, satoshis<br/>max 2,100,000,000,000,000"]
+        O2["scriptPubKey length, CompactSize"]
+        O3["scriptPubKey, variable<br/>22 bytes P2WPKH,<br/>34 bytes P2TR,<br/>25 bytes P2PKH"]
+    end
+
+    subgraph Witness["Witness, SegWit only, one stack per input"]
+        W1["stack item count, CompactSize"]
+        W2["per item: length CompactSize + data<br/>P2TR key path: one 64-byte signature<br/>P2WPKH: 71-72 byte sig + 33-byte pubkey"]
+    end
+
+    subgraph Tail["Suffix"]
+        L["nLockTime, 4 bytes LE<br/>< 500,000,000 = block height<br/>>= 500,000,000 = Unix timestamp"]
+    end
+
+    Header --> Inputs --> Outputs --> Witness --> Tail
+
+    subgraph Ids["Two identifiers"]
+        T1["txid = SHA256d over<br/>the serialisation WITHOUT<br/>marker, flag, witness"]
+        T2["wtxid = SHA256d over<br/>the FULL serialisation.<br/>Used for relay dedup and<br/>the witness merkle root."]
+    end
+
+    Tail --> Ids
+
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Inputs fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Outputs fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Witness fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Tail fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Ids fill:#ffebee,stroke:#c62828,stroke-width:2px

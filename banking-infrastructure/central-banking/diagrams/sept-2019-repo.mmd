@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Setup["The setup - a slow drain nobody priced"]
+        direction TB
+        A1["Reserves peaked at 2.81 trillion USD<br/>on 3 September 2014 and fell for five years"]
+        A2["Balance sheet normalisation ended<br/>in August 2019. Reserves kept falling<br/>because currency and the TGA kept growing."]
+        A3["Primary dealer net Treasury positions<br/>hit an all-time high in early 2019.<br/>Every position needs repo funding."]
+        A4["Reserves on 11 September 2019:<br/>1,456,796 million USD"]
+    end
+
+    Setup --> Trigger
+
+    subgraph Trigger["16 September 2019 - two drains on one day"]
+        direction TB
+        B1["Quarterly corporate tax payments<br/>move from bank and money fund<br/>accounts into the Treasury General Account"]
+        B2["54 billion USD of long-term Treasury<br/>debt settles, landing on dealer<br/>balance sheets that must fund it"]
+        B3["Reserves fall about 120 billion USD<br/>across two business days"]
+        B4["More collateral to finance,<br/>less cash to finance it with"]
+    end
+
+    Trigger --> Break
+
+    subgraph Break["16 to 17 September - the break"]
+        direction TB
+        C1["16 Sep: SOFR prints 2.43 percent,<br/>23 bp above the previous business day"]
+        C2["16 Sep: EFFR prints 2.25 percent,<br/>11 bp higher, at the top of<br/>the 2.00 to 2.25 percent target range"]
+        C3["17 Sep: EFFR prints 2.30 percent,<br/>5 bp ABOVE the top of the range.<br/>The floor system loses control."]
+        C4["17 Sep: SOFR rises above 5 percent,<br/>more than double the policy rate,<br/>on fully collateralised overnight lending"]
+    end
+
+    Break --> Fix
+
+    subgraph Fix["The response and the lesson"]
+        direction TB
+        D1["17 Sep: one overnight operation,<br/>up to 75 bn USD, dealers only,<br/>2.10 percent minimum bid, delayed<br/>to 09:55 by technical difficulties"]
+        D2["20 Sep: daily overnight operations of<br/>at least 75 bn through 10 October, plus<br/>three 14-day term operations of at least<br/>30 bn each. The term legs carried quarter-end."]
+        D2B["Oct 2019: the Fed begins buying<br/>60 billion USD of Treasury bills a month<br/>to rebuild reserves, insisting<br/>it is not QE. Mechanically it was not."]
+        D3["Jul 2021: the standing repo facility<br/>is made permanent, so the ceiling<br/>no longer has to be improvised<br/>in the middle of a break."]
+        D4["The lesson: 'ample' is not a number<br/>the central bank chooses.<br/>It is a level the banking system<br/>reveals, and only by breaking."]
+    end
+
+    style Setup fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Trigger fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Break fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Fix fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

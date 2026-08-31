@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application<br/>getaddrinfo
+    participant Stub as Stub resolver<br/>libc, systemd-resolved,<br/>the browser's own client
+    participant Rec as Recursive resolver<br/>1.1.1.1, 8.8.8.8, ISP box
+    participant RootS as Root server<br/>198.41.0.4
+    participant TLD as org servers<br/>199.249.112.1
+    participant Auth as wikipedia.org servers<br/>208.80.154.238
+
+    App->>Stub: "connect me to www.wikipedia.org"
+    Stub->>Rec: QNAME=www.wikipedia.org QTYPE=A<br/>RD=1, one question, 16-bit ID
+
+    Note over Rec: Cache miss. Recursion begins.<br/>The resolver starts at the deepest<br/>delegation it already holds.
+
+    Note over Rec,RootS: This trace runs without QNAME minimisation,<br/>so every referral is legible. RFC 9156 would<br/>have the resolver ask the root only about<br/>'org' and never send the label 'www'.
+
+    Rec->>RootS: www.wikipedia.org A, RD=0
+    RootS-->>Rec: REFERRAL, no answer<br/>AUTHORITY: 6 NS for org<br/>ADDITIONAL: 12 glue + OPT<br/>448 bytes, 36 ms
+
+    Rec->>TLD: www.wikipedia.org A, RD=0
+    TLD-->>Rec: REFERRAL<br/>AUTHORITY: 3 NS for wikipedia.org<br/>ADDITIONAL: 6 glue + OPT<br/>242 bytes, 39 ms
+
+    Rec->>Auth: www.wikipedia.org A, RD=0
+    Auth-->>Rec: AA=1, ANSWER: 1<br/>www.wikipedia.org CNAME dyna.wikimedia.org<br/>75 bytes, 97 ms
+
+    Note over Rec,Auth: A CNAME is not an answer.<br/>wikimedia.org is a separate zone with its<br/>own delegation in org. The earlier glue was<br/>addresses, not the wikimedia.org NS RRset,<br/>so the resolver goes back up for it.
+
+    Rec->>TLD: dyna.wikimedia.org A, RD=0
+    TLD-->>Rec: REFERRAL<br/>AUTHORITY: 3 NS for wikimedia.org<br/>ADDITIONAL: 6 glue + OPT<br/>233 bytes, 39 ms
+
+    Rec->>Auth: dyna.wikimedia.org A, RD=0
+    Auth-->>Rec: AA=1, ANSWER: 1<br/>dyna.wikimedia.org A 185.15.58.224 TTL 180<br/>63 bytes, 102 ms
+
+    Rec-->>Stub: RA=1, both records, TTLs attached
+    Stub-->>App: 185.15.58.224
+
+    Note over Rec,Auth: Cold path: 5 queries, 1,061 bytes, 313 ms of<br/>server time. Warm path from cache: 7 ms.<br/>The whole design exists to make<br/>the second number the common one.

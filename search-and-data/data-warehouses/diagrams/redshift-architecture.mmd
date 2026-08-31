@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Clients["Client Applications"]
+        JDBC["JDBC / ODBC<br/>Connections"]
+        RSAPI["Redshift Data API<br/>HTTP/REST"]
+        QE["Query Editor v2<br/>Web console"]
+    end
+
+    subgraph Leader["Leader Node"]
+        SQL["SQL Parser &<br/>Query Planner"]
+        DISTPLAN["Distribution<br/>Planner"]
+        RESULTS["Result<br/>Aggregation"]
+        METADATA["Catalog &<br/>Metadata"]
+    end
+
+    subgraph Cluster["Compute Nodes"]
+        subgraph CN1["Compute Node 1"]
+            S1A["Slice 1A"]
+            S1B["Slice 1B"]
+        end
+        subgraph CN2["Compute Node 2"]
+            S2A["Slice 2A"]
+            S2B["Slice 2B"]
+        end
+        subgraph CN3["Compute Node 3"]
+            S3A["Slice 3A"]
+            S3B["Slice 3B"]
+        end
+    end
+
+    subgraph ManagedStorage["Redshift Managed Storage (RMS)"]
+        HOT["Hot data<br/>Local SSD cache"]
+        WARM["Warm data<br/>S3 with auto-tiering"]
+        SPECTRUM["Redshift Spectrum<br/>Query S3 data lakes<br/>directly"]
+    end
+
+    Clients --> Leader
+    Leader --> Cluster
+    Cluster --> ManagedStorage
+
+    style Clients fill:#4299e1,color:#fff
+    style Leader fill:#e53e3e,color:#fff
+    style CN1 fill:#38a169,color:#fff
+    style CN2 fill:#38a169,color:#fff
+    style CN3 fill:#38a169,color:#fff
+    style ManagedStorage fill:#805ad5,color:#fff

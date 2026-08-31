@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Bad["Sequential keys - one partition absorbs everything"]
+        direction TB
+        BK["logs/2026-08-30T14:00:01Z<br/>logs/2026-08-30T14:00:02Z<br/>logs/2026-08-30T14:00:03Z"]
+        BP["A single index partition owns the range<br/>logs/2026-08-30T14:*"]
+        BR["Ceiling: 3,500 writes per second<br/>and 5,500 reads per second"]
+        B503["Exceeding it returns<br/>HTTP 503 Slow Down"]
+        BK --> BP --> BR --> B503
+    end
+
+    subgraph Split["What S3 does about it"]
+        direction TB
+        S1["Sustained load on one range triggers a split"]
+        S2["The partition is divided at a key boundary<br/>and the halves move to different servers"]
+        S3["Splitting is gradual, not instantaneous.<br/>503s appear while it happens."]
+        S1 --> S2 --> S3
+    end
+
+    subgraph Good["High-cardinality prefixes - load spreads on write"]
+        direction TB
+        GK["logs/a41f/2026-08-30T14:00:01Z<br/>logs/9c02/2026-08-30T14:00:02Z<br/>logs/f7d8/2026-08-30T14:00:03Z"]
+        GP["Many independent partitions from<br/>the first request"]
+        GR["16 hex prefixes give roughly<br/>56,000 writes and 88,000 reads per second<br/>with no warm-up"]
+        GK --> GP --> GR
+    end
+
+    Bad -.->|"the split eventually fixes it,<br/>but only after the errors"| Split
+    Split -.->|"a leading hash avoids<br/>needing the split at all"| Good
+
+    Note["The 3,500 and 5,500 limits are per partitioned prefix,<br/>not per bucket. There is no limit on the number of<br/>prefixes in a bucket. Directory buckets remove the<br/>prefix ceiling entirely and quote 100,000 write TPS<br/>and 200,000 read TPS per bucket."]
+
+    Good --> Note
+
+    style Bad fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Split fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Good fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Note fill:#eceff1,stroke:#37474f,stroke-width:1px

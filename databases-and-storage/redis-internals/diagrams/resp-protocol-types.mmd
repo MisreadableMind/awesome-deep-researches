@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Req["Every request is the same shape"]
+        RQ["A RESP array of bulk strings.<br/>SET user:42 alice becomes<br/>*3 CRLF $3 CRLF SET CRLF<br/>$7 CRLF user:42 CRLF<br/>$5 CRLF alice CRLF<br/>= 37 bytes on the wire"]
+    end
+
+    subgraph R2["RESP2, the default since Redis 2.0"]
+        A1["+ simple string, +OK CRLF"]
+        A2["- simple error, -WRONGTYPE ... CRLF"]
+        A3[": integer, :1000 CRLF"]
+        A4["$ bulk string, $5 CRLF hello CRLF.<br/>Capped at proto-max-bulk-len,<br/>512 MB by default"]
+        A5["* array, *2 CRLF then two elements"]
+        A6["Null is overloaded:<br/>$-1 CRLF for a missing string,<br/>*-1 CRLF for a missing array"]
+    end
+
+    subgraph R3["RESP3, opt-in since Redis 6.0 via HELLO 3"]
+        B1["_ null, one form for everything"]
+        B2["# boolean, #t or #f"]
+        B3[", double, ,1.23 and ,inf and ,nan"]
+        B4["Open paren: big number,<br/>values beyond signed 64-bit"]
+        B5["! bulk error, length-prefixed"]
+        B6["= verbatim string, =15 CRLF txt:..."]
+        B7["% map, replaces the flat array<br/>that RESP2 used for hashes"]
+        B8["~ set, unordered and unique"]
+        B9["Pipe: attribute, out-of-band<br/>metadata attached to the next reply"]
+        B10["&gt; push, server-initiated.<br/>Lets pub/sub, client-side caching<br/>invalidation and monitoring share<br/>one connection with normal commands."]
+    end
+
+    subgraph Hand["The handshake"]
+        H1["HELLO 3 replies with a map:<br/>server, version, proto, id,<br/>mode standalone|sentinel|cluster,<br/>role master|replica, modules"]
+        H2["HELLO 4 gets -NOPROTO.<br/>An old server gets<br/>-ERR unknown command 'HELLO'.<br/>Either way the client falls back."]
+    end
+
+    subgraph Parse["Why RESP parses like a binary protocol"]
+        P1["Every bulk payload is length-prefixed,<br/>so no scanning for delimiters,<br/>no quoting, no escaping"]
+        P2["Read the length one digit at a time<br/>until CR, then one read of exactly<br/>that many bytes"]
+        P3["Inline commands still work:<br/>anything not starting with * is<br/>split on spaces. That is why telnet<br/>PING returns +PONG."]
+    end
+
+    Req --> R2 --> R3 --> Hand --> Parse
+
+    style Req fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style R2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style R3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Hand fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Parse fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

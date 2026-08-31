@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    DIR["Directory: payments.authorized-13<br/>one directory per partition replica"]
+
+    subgraph SEGS["Segments, named by 20-digit base offset"]
+        direction LR
+        S1["00000000000000000000<br/>CLOSED"]
+        S2["00000000000084100000<br/>CLOSED, 1 GiB"]
+        S3["00000000000085240000<br/>ACTIVE, appends land here"]
+        S1 --> S2 --> S3
+    end
+
+    subgraph FILES["Files in one segment"]
+        direction TB
+        F1[".log - record batches, 61-byte header each"]
+        F2[".index - 8 bytes per entry:<br/>4-byte relative offset + 4-byte file position<br/>one entry per index.interval.bytes = 4096"]
+        F3[".timeindex - 12 bytes per entry:<br/>8-byte timestamp + 4-byte relative offset"]
+        F4[".txnindex - aborted transaction ranges<br/>read by read_committed consumers"]
+        F5[".snapshot - producer id state<br/>rebuilds idempotence after restart"]
+    end
+
+    subgraph LOOKUP["Reading offset 84,231,904"]
+        direction TB
+        L1["1. Binary search segment base offsets<br/>-> segment 00000000000084100000"]
+        L2["2. Relative offset = 84,231,904 - 84,100,000 = 131,904"]
+        L3["3. Binary search the mmapped .index<br/>-> largest indexed entry &lt;= 131,904"]
+        L4["4. Scan the .log forward from that byte position<br/>at most ~4096 bytes"]
+        L1 --> L2 --> L3 --> L4
+    end
+
+    ROLL["Segment rolls when:<br/>segment.bytes = 1 GiB reached, OR<br/>segment.ms = 7 days elapsed, OR<br/>the offset index fills (segment.index.bytes = 10 MiB)"]
+
+    DEL["Deletion is per whole segment.<br/>Time retention uses the LARGEST timestamp<br/>in the segment, not file mtime.<br/>Reading a record deletes nothing."]
+
+    FSYNC["log.flush.interval.messages = Long.MAX_VALUE.<br/>Kafka does NOT fsync per write.<br/>Durability comes from replication<br/>to other machines' page caches."]
+
+    DIR --> SEGS
+    S3 --> FILES
+    FILES --> LOOKUP
+    SEGS -.-> ROLL
+    SEGS -.-> DEL
+    F1 -.-> FSYNC
+
+    style DIR fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SEGS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LOOKUP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FSYNC fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style DEL fill:#fce4ec,stroke:#880e4f,stroke-width:2px

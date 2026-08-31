@@ -1,0 +1,77 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+erDiagram
+    PARTY ||--o{ PARTY_ACCOUNT_ROLE : "holds"
+    PARTY ||--o{ PARTY_RELATIONSHIP : "related to"
+    PARTY ||--o{ PARTY_IDENTIFIER : "identified by"
+    PARTY ||--o{ KYC_STATE : "screened as"
+    ACCOUNT ||--o{ PARTY_ACCOUNT_ROLE : "held by"
+    PRODUCT ||--o{ ACCOUNT : "instantiated as"
+    PRODUCT ||--o{ PRODUCT_PARAMETER : "configured by"
+    PRODUCT ||--o{ GL_MAPPING : "posts to"
+    ACCOUNT ||--o{ BALANCE : "has"
+    ACCOUNT ||--o{ BALANCE_HISTORY : "closed each day at"
+    ACCOUNT ||--o{ HOLD : "encumbered by"
+    ACCOUNT ||--o{ ENTRY : "moved by"
+    JOURNAL ||--|{ ENTRY : "contains"
+    TRAN_CODE ||--o{ JOURNAL : "typed by"
+    TRAN_CODE ||--o{ GL_MAPPING : "resolves through"
+
+    PARTY {
+        string party_id PK
+        string legal_name
+        string party_type "individual or organisation"
+        date   date_of_birth
+        string residency_country
+        string risk_rating
+        string status
+    }
+    PARTY_IDENTIFIER {
+        string party_id FK
+        string id_type "TIN, passport, LEI, national id"
+        string id_value
+        string issuing_country
+    }
+    PARTY_ACCOUNT_ROLE {
+        string party_id FK
+        string account_id FK
+        string role "owner, joint, signatory, POA, beneficiary"
+        date   effective_from
+    }
+    ACCOUNT {
+        string account_id PK
+        string product_code FK
+        string currency "ISO 4217"
+        string status "open, dormant, blocked, closed"
+        date   open_date
+        string branch_code
+        string gl_class
+        string statement_cycle
+        string interest_plan
+        string fee_plan
+    }
+    PRODUCT {
+        string product_code PK
+        string product_family "DDA, SAV, TD, LOAN, CARD"
+        string day_count_basis
+        string accrual_frequency
+        string capitalisation_cycle
+        string permitted_tran_codes
+        string dormancy_rule
+    }
+    BALANCE {
+        string account_id FK
+        string balance_type "ledger, available, cleared, hold"
+        decimal amount
+        string currency
+    }
+    ENTRY {
+        string journal_id FK
+        int    entry_seq
+        string account_id FK
+        string dr_cr
+        decimal amount
+        string currency
+        date   value_date
+        date   posting_date
+    }

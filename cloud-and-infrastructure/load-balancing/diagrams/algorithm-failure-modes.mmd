@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Stateless["Stateless: no feedback from the backend"]
+        direction TB
+        RR["Round robin<br/>Next server in order, weighted.<br/>FAILURE: distributes requests,<br/>not work. One 8 vCPU box and one<br/>2 vCPU box get equal shares.<br/>A 2 ms request and a 2 s request<br/>count the same."]
+        WRR["Weighted round robin<br/>Static weights per server.<br/>FAILURE: the weight is set by a human<br/>at deploy time and is wrong the moment<br/>the fleet becomes heterogeneous,<br/>or a noisy neighbour appears."]
+        RAND["Random, one draw<br/>Uniform draw over the pool.<br/>Balls and bins with m = n gives a<br/>maximum load of about log n / log log n.<br/>FAILURE: for m much larger than n the<br/>excess over the mean keeps growing.<br/>1,000 servers, 100,000 in flight:<br/>mean 100, standard deviation 10,<br/>maximum near 131. A 31% peak-to-mean<br/>gap, widening as the square root<br/>of the mean."]
+    end
+
+    subgraph Feedback["Feedback: reads backend state"]
+        direction TB
+        LC["Least connections<br/>Fewest in-flight connections wins.<br/>FAILURE 1: a restarted server has zero<br/>connections and absorbs the entire<br/>arrival rate at once.<br/>FAILURE 2: a server failing fast holds<br/>the fewest connections, so it wins<br/>every decision. A black hole."]
+        LRT["Least response time / EWMA<br/>Lowest smoothed latency wins.<br/>FAILURE: same black hole, faster.<br/>An instant 500 is the lowest latency<br/>in the pool. Also oscillates: the<br/>winner is flooded, slows, loses,<br/>and the herd moves as a block."]
+        P2C["Power of two choices, d = 2<br/>Sample 2 at random, take the lighter.<br/>Azar, Broder, Karlin and Upfal, 1994:<br/>maximum load is m/n plus log log n / log d.<br/>The excess carries no m term, so at 1,000<br/>servers it is about 2.8 whether 100,000 or<br/>1,000,000 requests are in flight.<br/>Each choice past the second divides that<br/>excess by log d / log 2 and costs one more<br/>state read, which is why HAProxy, nginx<br/>and Envoy all default to 2.<br/>FAILURE: the bound assumes each decision<br/>sees current load. Independent balancers on<br/>stale counters converge on the same idle<br/>server. Also cannot express affinity."]
+    end
+
+    subgraph Deterministic["Deterministic: derived from the request"]
+        direction TB
+        MOD["Hash modulo N<br/>server = hash(key) mod N.<br/>FAILURE: adding one server remaps<br/>(N-1)/N of all keys. At N=10 that is<br/>90% of a cache invalidated at once."]
+        CH["Consistent hashing<br/>Ring with virtual nodes.<br/>FAILURE: balances keys, not load.<br/>One hot key still lands on one server.<br/>Arc lengths are uneven: at 65,537 ring<br/>slots and 1,000 backends, Karger needs<br/>29.7% overprovisioning, rendezvous 49.5%."]
+        MAG["Maglev hashing<br/>Prime lookup table, size 65537.<br/>FAILURE: trades minimal disruption for<br/>even spread. Concurrent backend failures<br/>change more table entries than a<br/>classic ring would."]
+    end
+
+    subgraph Bounded["The synthesis"]
+        CHBL["Consistent hashing with bounded loads<br/>Ring, plus a per-server cap of<br/>ceil((1+e) x m/n). Overflow walks clockwise.<br/>Movement per update is O(1/e squared).<br/>FAILURE: with e too small the probe walk<br/>lengthens and affinity decays under load."]
+    end
+
+    Stateless --> Feedback --> Deterministic --> Bounded
+
+    style Stateless fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Feedback fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Deterministic fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Bounded fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant LB as Load balancer
+    participant E1 as Edge node A
+    participant E2 as Edge node B
+    participant BUS as Pub/sub bus
+    participant ST as Replay store
+
+    C->>E1: WebSocket open, subprotocol v3.chat.example.com
+    E1->>BUS: subscribe eng-general
+    BUS-->>E1: seq 4711 deploy is green
+    E1-->>C: message, seq 4711
+    Note over C: persist lastSeq = 4711
+
+    Note over E1: deploy rolls node A
+    E1-->>C: Close 1012 service restart,<br/>reason carries a suggested<br/>backoff window
+    Note over C: onclose, wasClean true, code 1012
+
+    Note over C: Backoff with full jitter.<br/>base 500 ms, cap 30,000 ms.<br/>delay = random(0, min(cap, base * 2^attempt))<br/>attempt 0 gives 0 to 500 ms<br/>attempt 3 gives 0 to 4,000 ms<br/>attempt 6 and beyond gives 0 to 30,000 ms
+
+    Note over C,LB: Jitter is the whole point. Without it,<br/>100,000 clients reconnect in the same<br/>500 ms window and take out the tier<br/>that just came back.
+
+    C->>LB: reconnect after 2,730 ms
+    LB->>E2: route to a healthy node
+    C->>E2: resume message, lastSeq 4711,<br/>session token from the previous connection
+
+    alt Gap is inside the retention window
+        E2->>ST: fetch eng-general from 4712
+        ST-->>E2: seq 4712, 4713, 4714
+        E2-->>C: replay 4712 to 4714, flagged as replayed
+        E2->>BUS: subscribe eng-general
+        Note over C: continuity preserved.<br/>The application never sees a hole.
+    else Gap exceeds retention or the token expired
+        E2-->>C: resume rejected, full state required
+        C->>E2: fetch a snapshot over ordinary HTTP
+        Note over C: reconcile snapshot with live<br/>stream, discard messages at or<br/>below the snapshot sequence
+    end
+
+    Note over C,ST: Three rules that make this work.<br/>1. Monotonic per-channel sequence numbers.<br/>2. Idempotent application of a message,<br/>because replay after an acknowledgement<br/>that was lost is normal.<br/>3. A bounded retention window,<br/>stated to the client, so the client knows<br/>when to stop resuming and start over.

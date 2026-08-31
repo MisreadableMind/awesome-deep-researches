@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Structure["The DER structure, RFC 5280"]
+        direction TB
+        St1["Certificate ::= SEQUENCE {<br/>  tbsCertificate  TBSCertificate,<br/>  signatureAlgorithm AlgorithmIdentifier,<br/>  signatureValue  BIT STRING }"]
+        St2["TBSCertificate ::= SEQUENCE {<br/>  version [0] v3 (value 2),<br/>  serialNumber INTEGER (>= 64 bits<br/>    of CSPRNG output per the BRs),<br/>  signature AlgorithmIdentifier,<br/>  issuer Name,<br/>  validity { notBefore, notAfter },<br/>  subject Name,<br/>  subjectPublicKeyInfo,<br/>  extensions [3] Extensions }"]
+        St1 --> St2
+    end
+
+    subgraph Ext["The extensions that decide validation"]
+        direction TB
+        X1["subjectAltName 2.5.29.17<br/>The ONLY place hostnames are read.<br/>commonName has been ignored by<br/>Chrome since 2017."]
+        X2["basicConstraints 2.5.29.19<br/>cA TRUE or FALSE, pathLenConstraint.<br/>The single most important bit:<br/>a leaf with cA=TRUE would be<br/>a universal signing key."]
+        X3["keyUsage 2.5.29.15<br/>digitalSignature, keyEncipherment,<br/>keyCertSign, cRLSign"]
+        X4["extKeyUsage 2.5.29.37<br/>id-kp-serverAuth 1.3.6.1.5.5.7.3.1<br/>Chrome: new sub-CAs serverAuth only<br/>from 15 Jun 2026, new leaves<br/>from 15 Mar 2027."]
+        X5["authorityKeyIdentifier 2.5.29.35<br/>subjectKeyIdentifier 2.5.29.14<br/>Hints for path building, not proof"]
+        X6["authorityInfoAccess 1.3.6.1.5.5.7.1.1<br/>caIssuers URL (fetch the missing<br/>intermediate) and OCSP URL<br/>(increasingly absent)"]
+        X7["cRLDistributionPoints 2.5.29.31<br/>Required in subordinate CA certs and<br/>in subscriber certs that are neither<br/>short-lived nor carry an OCSP AIA.<br/>BR 7.1.2.11.2, since 15 Mar 2024."]
+        X8["SCT list 1.3.6.1.4.1.11129.2.4.2<br/>Embedded Certificate Transparency<br/>proofs. Chrome will not accept<br/>the certificate without them."]
+        X9["CT poison 1.3.6.1.4.1.11129.2.4.3<br/>Critical extension that makes a<br/>precertificate unusable in TLS"]
+    end
+
+    subgraph Chain["Path building at the client"]
+        direction TB
+        C1["Leaf: CN/SAN = example.com<br/>issuer = 'R11'"]
+        C2["Intermediate: subject = 'R11'<br/>issuer = 'ISRG Root X1'<br/>basicConstraints cA=TRUE"]
+        C3["Root: subject = issuer =<br/>'ISRG Root X1', self-signed.<br/>Its signature is never checked.<br/>Trust comes from being in<br/>the trust store."]
+        C1 -->|"signed by"| C2 -->|"signed by"| C3
+    end
+
+    subgraph Checks["What the client verifies, in order"]
+        direction TB
+        V1["1. Build a path to a trust anchor.<br/>Not a chain lookup: a graph search.<br/>Multiple valid paths often exist."]
+        V2["2. Each signature verifies with the<br/>issuer's public key"]
+        V3["3. notBefore <= now <= notAfter,<br/>at every level"]
+        V4["4. basicConstraints and pathLen<br/>permit each CA to sign the next"]
+        V5["5. keyUsage and EKU permit<br/>server authentication"]
+        V6["6. A SAN dNSName matches the<br/>requested host, wildcards only<br/>at the leftmost label"]
+        V7["7. CT policy satisfied:<br/>2 SCTs for lifetimes <= 180 days,<br/>3 above, from >= 2 operators"]
+        V8["8. Not revoked, per whatever<br/>revocation data the client has"]
+        V1 --> V2 --> V3 --> V4 --> V5 --> V6 --> V7 --> V8
+    end
+
+    Structure --> Ext --> Chain --> Checks
+
+    style Structure fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Ext fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Chain fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Checks fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Apple["Apple: iCloud Keychain"]
+        direction TB
+        A1["Syncing identity: a P-384 key pair<br/>per device, stored in that device's<br/>keychain. Each device keeps a<br/>signed list of the others.<br/>Lists live in CloudKit."]
+        A2["Legacy syncing circle: the public<br/>key is placed in a circle signed<br/>twice, once by the syncing identity<br/>and once by a P-256 key derived<br/>from the Apple Account password."]
+        A3["Joining: either sponsorship by an<br/>existing device, which issues a<br/>signed voucher, or keychain recovery."]
+        A4["Only items marked<br/>kSecAttrSynchronizable sync.<br/>Third-party app keychain items<br/>do not sync by default."]
+        A5["Escrow: the keychain is wrapped in<br/>an asymmetric keybag, itself wrapped<br/>with the iCloud Security Code and<br/>with the public key of an HSM cluster."]
+        A6["Recovery requires the Apple Account<br/>password, an SMS reply to a<br/>registered number, and the security<br/>code (or, with two-factor accounts,<br/>the device passcode).<br/>The code is proven via SRP;<br/>Apple never receives it."]
+        A7["Ten attempts. On the tenth failure<br/>the HSM cluster destroys the escrow<br/>record and the keychain is gone.<br/>The admin cards that could change<br/>the HSM firmware were destroyed."]
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7
+    end
+
+    subgraph Google["Google: Google Password Manager"]
+        direction TB
+        G1["Private keys are uploaded only in<br/>encrypted form, under a key that<br/>exists only on the user's devices.<br/>At rest on device they are encrypted<br/>with a hardware-protected key."]
+        G2["A screen lock is mandatory to create<br/>or use a GPM passkey. It is both the<br/>local gate and the recovery factor."]
+        G3["New device by transfer: the<br/>end-to-end encryption keys move<br/>directly from the old device."]
+        G4["New device without transfer:<br/>the user enters the screen lock<br/>PIN, pattern or password of an<br/>existing device that held the keys."]
+        G5["The verification data lives in<br/>secure hardware enclaves on Google<br/>servers. Google cannot read the<br/>screen lock and cannot exceed the<br/>attempt cap even internally."]
+        G6["At most 10 consecutive failures per<br/>device, sometimes fewer. Other devices'<br/>screen locks remain usable. Changing an<br/>existing device's screen lock resets<br/>the counter for that device."]
+        G7["A removed screen lock stays valid<br/>for recovery for up to 64 days.<br/>Changing it instead of removing it<br/>revokes the old one immediately."]
+        G1 --> G2 --> G3 --> G4 --> G5 --> G6 --> G7
+    end
+
+    subgraph MS["Microsoft"]
+        direction TB
+        M1["Two products. Device-bound passkeys<br/>in Microsoft Authenticator, stored in<br/>the Secure Enclave or Secure Element,<br/>and Windows Hello backed by TPM 2.0."]
+        M2["Synced passkeys in the Microsoft<br/>account, and synced passkeys accepted<br/>by Entra ID under a passkey profile<br/>from March 2026."]
+        M3["Roughly one million passkeys are<br/>registered daily across Microsoft<br/>accounts, reported 1 May 2025."]
+        M1 --> M2 --> M3
+    end
+
+    subgraph Signal["What the relying party can see"]
+        direction TB
+        S1["BE flag, authData bit 3:<br/>this credential is backup eligible.<br/>Fixed at registration. Never changes."]
+        S2["BS flag, authData bit 4:<br/>this credential is currently<br/>backed up. Changes between<br/>ceremonies. Store it, and compare<br/>it when backup state drives policy."]
+        S3["BE clear with BS set is invalid.<br/>The RP must reject it."]
+        S4["That is the entire visibility.<br/>There is no field naming the<br/>provider, and no attestation to<br/>prove one."]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    Apple --> Signal
+    Google --> Signal
+    MS --> Signal
+
+    style Apple fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Google fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Signal fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["One question splits the whole market:<br/>does the reinsurer share the premium,<br/>or sell a limit for a price?"]
+
+    subgraph Prop["Proportional: share the premium"]
+        direction TB
+        P1["The reinsurer takes a percentage<br/>of every premium and pays the<br/>same percentage of every loss"]
+        P2["Quota share<br/>Same percentage on every risk.<br/>25% cession on 1.20bn USD of premium<br/>cedes 300m USD and 25% of all losses."]
+        P3["Surplus<br/>Percentage varies by size.<br/>Retention 500k USD, 9 lines.<br/>A 5m USD risk cedes 90%.<br/>A 400k USD risk cedes nothing."]
+        P4["Reinsurer pays a ceding commission<br/>back, typically 25% to 35%,<br/>to fund the cedant's acquisition<br/>cost and overhead"]
+        P5["Follows the cedant's fortunes.<br/>Alignment is automatic.<br/>Underwriting quality is the only<br/>thing the reinsurer is buying."]
+    end
+
+    subgraph NonProp["Non-proportional: sell a limit"]
+        direction TB
+        N1["The reinsurer pays nothing until<br/>loss exceeds the retention, then<br/>pays up to the limit"]
+        N2["Per-risk excess of loss<br/>4.5m USD excess of 500k USD.<br/>A 2m USD single-risk loss<br/>recovers 1.5m USD."]
+        N3["Catastrophe excess of loss<br/>250m USD excess of 150m USD,<br/>each and every loss occurrence,<br/>72-hour hours clause"]
+        N4["Aggregate excess of loss<br/>Annual accumulation, not one event"]
+        N5["Stop loss<br/>Attaches on a loss ratio.<br/>Pays above 80% of net premium,<br/>up to 100%."]
+        N6["No commission. Price is quoted as<br/>rate on line: premium divided by limit.<br/>22% rate on line is a 4.5-year payback."]
+    end
+
+    subgraph Effect["What each one actually does to the cedant"]
+        direction TB
+        E1["Quota share removes premium volume<br/>and therefore removes required capital.<br/>It does not cut the tail: 25% of<br/>a 2.1bn USD event is still 525m USD."]
+        E2["Excess of loss leaves premium volume<br/>alone and cuts the tail directly.<br/>It buys no relief on attritional loss."]
+        E3["Most cedants buy both. Quota share<br/>for surplus relief, excess of loss<br/>for the event that ends the company."]
+    end
+
+    Q --> Prop
+    Q --> NonProp
+    Prop --> Effect
+    NonProp --> Effect
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Prop fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NonProp fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Effect fill:#fce4ec,stroke:#880e4f,stroke-width:3px

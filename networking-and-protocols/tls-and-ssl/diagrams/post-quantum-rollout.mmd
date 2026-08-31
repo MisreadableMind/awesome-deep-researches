@@ -1,0 +1,66 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Threat["The threat, split in two"]
+        direction TB
+        T1["Key exchange: HARVEST NOW,<br/>DECRYPT LATER. An adversary records<br/>ciphertext today and breaks the<br/>X25519 exchange whenever a<br/>cryptographically relevant quantum<br/>computer arrives. The data is<br/>already stolen."]
+        T2["Signatures: no retroactive risk.<br/>A forged signature is only useful<br/>during a live connection. A CA can<br/>switch algorithms the day it becomes<br/>necessary, provided the ecosystem<br/>can accept the new format."]
+        T3["Consequence: key exchange is urgent<br/>and signatures are not. The rollout<br/>order follows exactly that."]
+        T1 --> T3
+        T2 --> T3
+    end
+
+    subgraph KEX["Stage 1: hybrid key agreement, RFC 10024, Aug 2026"]
+        direction TB
+        K1["X25519MLKEM768, codepoint 0x11EC = 4588<br/>Client key share 1216 bytes<br/>Server key share 1120 bytes<br/>Shared secret 64 bytes:<br/>ML-KEM secret || X25519 secret"]
+        K2["SecP256r1MLKEM768 = 0x11EB<br/>SecP384r1MLKEM1024 = 0x11ED<br/>ECDHE secret first in these two,<br/>for FIPS reasons"]
+        K3["Hybrid, not pure: an attack on<br/>ML-KEM leaves X25519 standing,<br/>and vice versa. ML-KEM is 6 years old.<br/>X25519 is 20."]
+        K4["Cost: about 1.1 to 1.2 kB extra in<br/>the ClientHello. Chrome measured a<br/>4% slowdown in handshake time.<br/>The ClientHello no longer fits<br/>in one packet."]
+        K1 --> K3 --> K4
+        K2 --> K3
+    end
+
+    subgraph Deploy["Deployment as measured"]
+        direction TB
+        D1["Apr 2024: Chrome 124 on by<br/>default, desktop"]
+        D2["Nov 2024: Chrome on Android,<br/>Firefox on desktop"]
+        D3["8 Apr 2025: OpenSSL 3.5 LTS ships<br/>with X25519MLKEM768 preferred<br/>BY DEFAULT. Two OpenSSL 3.5 peers<br/>negotiate PQ with zero configuration."]
+        D4["Sep-Oct 2025: Apple ships in<br/>iOS 26 and macOS 26. Four days after<br/>release, PQ share of iOS requests to<br/>Cloudflare went from under 2% to 11%."]
+        D5["Cloudflare human traffic:<br/>29% (Jan 2025) to 52% (Dec 2025)<br/>Origins supporting PQ: ~10% (Feb 2026)"]
+        D1 --> D2 --> D3 --> D4 --> D5
+    end
+
+    subgraph Sig["Stage 2: signatures, the hard half"]
+        direction TB
+        S1["ML-DSA-44, FIPS 204, in X.509<br/>via RFC 9881 (Oct 2025):<br/>signature 2420 bytes,<br/>public key 1312 bytes"]
+        S2["Compare: ECDSA P-256 is 64-byte<br/>signatures and 64-byte keys;<br/>RSA-2048 is 256 and 256"]
+        S3["A Web PKI handshake carries about<br/>5 signatures and 2 public keys:<br/>leaf sig, intermediate sig,<br/>CertificateVerify, 2 SCTs, leaf key,<br/>intermediate key. Swap all of them<br/>for ML-DSA and one handshake passes<br/>10 kB."]
+        S4["That breaks the TCP initial<br/>congestion window of 10 segments,<br/>about 14.6 kB, and it breaks<br/>middleboxes that only parse<br/>the first packet."]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    subgraph Fixes["What is being built instead"]
+        direction TB
+        F1["Merkle Tree Certificates,<br/>draft-ietf-plants-merkle-tree-certs,<br/>IETF PLANTS working group.<br/>One signature covers a whole batch;<br/>the relying party holds a tree head<br/>and the server sends an inclusion proof.<br/>Result: 1 signature, 1 public key,<br/>1 proof. Smaller than today's<br/>classical handshake."]
+        F2["Trust Anchor Identifiers,<br/>draft-ietf-tls-trust-anchor-ids:<br/>the client says which roots it trusts,<br/>so the server sends one chain instead<br/>of a chain that satisfies everyone"]
+        F3["RFC 8879 certificate compression:<br/>already deployed, buys back some<br/>of the bytes"]
+        F4["Let's Encrypt: MTC staging<br/>targeted for late 2026,<br/>production 2027"]
+    end
+
+    subgraph Mandate["The clocks that force it"]
+        direction TB
+        M1["NIST IR 8547: RSA, ECDSA, ECDH,<br/>and FFDH deprecated after 2030,<br/>disallowed after 2035. Hybrids that<br/>include an approved PQ algorithm<br/>are not caught by the 2035 rule."]
+        M2["NSA CNSA 2.0: ML-KEM-1024 and<br/>ML-DSA-87. Operating systems prefer<br/>CNSA 2.0 by 2027; networking gear<br/>exclusive by 2030; browsers and<br/>cloud services exclusive by 2033."]
+    end
+
+    Threat --> KEX --> Deploy
+    Threat --> Sig --> Fixes
+    Deploy --> Mandate
+    Fixes --> Mandate
+
+    style Threat fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style KEX fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Deploy fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Sig fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fixes fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Mandate fill:#eceff1,stroke:#37474f,stroke-width:2px

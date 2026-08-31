@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Att as Attacker
+    participant Vic as Victim resolver<br/>caching, 2008 vintage
+    participant Auth as Real com servers
+
+    Note over Att,Auth: The old attack: guess the answer to<br/>www.bank.com. One shot. If it fails,<br/>the real answer is cached for hours<br/>and you must wait. Kaminsky removed the wait.
+
+    Att->>Vic: Query aaaa001.bank.com
+    Note over Vic: Not in cache, and never will be.<br/>The resolver must ask upstream.
+    Vic->>Auth: aaaa001.bank.com A, txid 41273, sport 53
+
+    par Race
+        Att-->>Vic: Flood of forged responses<br/>spoofed from the com server's IP<br/>txid 00000, 00001, 00002, ...
+    and
+        Auth-->>Vic: The real NXDOMAIN, eventually
+    end
+
+    Note over Att: The forgery does not answer the question.<br/>It carries a REFERRAL in the AUTHORITY section:<br/>bank.com. NS ns.attacker.example<br/>plus glue ns.attacker.example A 6.6.6.6<br/>The prize is the delegation, not the name.
+
+    alt A forged packet arrives first with the right txid
+        Vic->>Vic: Cache the poisoned NS set<br/>for the entire bank.com zone
+        Note over Vic: Every name under bank.com now<br/>resolves through the attacker.
+    else The real answer wins
+        Att->>Vic: Query aaaa002.bank.com
+        Note over Att,Vic: Try again immediately.<br/>A fresh nonexistent name means<br/>a fresh race, unlimited attempts.
+    end
+
+    Note over Att,Vic: 2008 arithmetic: 16 bits of txid only.<br/>65,536 possibilities, one query per race,<br/>thousands of races per second.<br/>Practical time to poison: seconds to minutes.
+
+    Note over Vic,Auth: The fix shipped 8 July 2008 as a<br/>coordinated multi-vendor release, CERT VU#800113.<br/>RFC 5452 codified it: randomise the UDP<br/>source port, which adds about 16 bits,<br/>randomise 0x20 case in the query name,<br/>accept only in-bailiwick data,<br/>and drop duplicate outstanding queries.<br/>Roughly 2^32 instead of 2^16.<br/>Harder, not impossible. Only DNSSEC<br/>makes the forgery detectable rather than unlikely.

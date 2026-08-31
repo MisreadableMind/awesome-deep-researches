@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trigger["The trigger is always small"]
+        T1["A typed command<br/>S3, Feb 2017"]
+        T2["Adding capacity<br/>Kinesis, Nov 2020"]
+        T3["An automated scaling action<br/>us-east-1, Dec 2021"]
+        T4["A race between two<br/>redundant DNS writers<br/>DynamoDB, Oct 2025"]
+        T5["A policy row with blank fields<br/>Google Service Control, Jun 2025"]
+        T6["A key removed during rotation<br/>Azure AD, Mar 2021"]
+    end
+
+    subgraph Amp["The amplifier is always a dependency nobody drew"]
+        A1["Index and placement subsystems<br/>share a fate"]
+        A2["Threads scale with fleet size,<br/>so growth breaks the fleet"]
+        A3["Retries with broken backoff<br/>turn congestion into collapse"]
+        A4["Every service in the region<br/>resolves the same endpoint"]
+        A5["Metadata replicates globally<br/>in seconds, so does the crash"]
+        A6["Every token validation in the<br/>world checks the same key set"]
+    end
+
+    subgraph Blind["The response is always slowed by the same thing"]
+        B1["Monitoring depends on the<br/>system that is down"]
+        B2["The status dashboard depends<br/>on the system that is down"]
+        B3["Recovery requires the control<br/>plane, which is the thing broken"]
+        B4["Restarting the fleet re-creates<br/>the load that broke it"]
+    end
+
+    Trigger --> Amp --> Blind
+
+    subgraph Lesson["What each one changed"]
+        L1["Cellularise: shrink the blast radius"]
+        L2["Static stability: recover without the control plane"]
+        L3["Velocity controls: rate limit the automation"]
+        L4["Progressive rollout: validate before global replication"]
+        L5["Independent status: the dashboard must not share fate"]
+    end
+
+    Blind --> Lesson
+
+    style Trigger fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Amp fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Blind fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Lesson fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

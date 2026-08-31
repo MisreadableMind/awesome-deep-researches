@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Limits["The four hard limits, in the order they bite"]
+        direction TB
+        L1["1. File descriptors.<br/>One connection is one descriptor.<br/>Per-process soft ulimit is 1024 on<br/>many distributions. System-wide<br/>fs.file-max and fs.nr_open must<br/>both be raised. Phoenix used<br/>fs.file-max 12,000,500 and<br/>fs.nr_open 20,000,500 to reach<br/>two million."]
+        L2["2. Memory per connection.<br/>Linux tcp_rmem default is 131,072<br/>bytes and tcp_wmem default is<br/>16,384. At one million sockets<br/>that budget alone is 147 GB.<br/>Phoenix cut both to 4,096 and<br/>capped max at 16,384, which is<br/>about 8 KB of socket buffer per<br/>connection."]
+        L3["3. Ephemeral ports, on the<br/>client side only.<br/>Default ip_local_port_range is<br/>32768 to 60999, so 28,232 ports.<br/>One load generator IP reaches one<br/>server IP and port at most 28,232<br/>times. One million connections<br/>needs at least 36 distinct source<br/>addresses or destination pairs."]
+        L4["4. Fan-out CPU.<br/>Delivering one message to N<br/>subscribers costs N writes.<br/>Discord measured 30 to 70<br/>microseconds per inter-process<br/>send, so a 30,000-member channel<br/>took 900 ms to 2.1 s to publish<br/>from a single process."]
+    end
+
+    subgraph Arch["The architecture that survives"]
+        direction TB
+        subgraph Edge["Edge tier: connection holders"]
+            E1["Stateless except for the socket.<br/>Terminates TLS, parses frames,<br/>enforces the heartbeat, holds the<br/>subscription set. Scales with<br/>connection count."]
+        end
+        subgraph Bus["Fan-out tier: pub/sub bus"]
+            B1["Redis pub/sub, NATS, Kafka, or a<br/>sharded in-process registry.<br/>Publishes are cheap. Deliveries<br/>are the cost, and they land on<br/>the edge tier."]
+        end
+        subgraph App["Application tier"]
+            AP1["Authorises, persists, emits<br/>events. Never holds a socket.<br/>Scales with write volume, which<br/>is orders of magnitude below<br/>connection count."]
+        end
+        Edge --> Bus
+        Bus --> Edge
+        App --> Bus
+    end
+
+    subgraph Sticky["Session affinity: when it is needed and when it is not"]
+        direction TB
+        S1["Not needed for a raw WebSocket.<br/>One TCP connection reaches one<br/>server and stays there by<br/>construction."]
+        S2["Needed for HTTP long-polling<br/>fallback, because successive<br/>requests must reach the process<br/>holding the session. Socket.IO<br/>documents this as a hard<br/>requirement and it fails with<br/>a transport close error."]
+        S3["Needed for the handshake phase<br/>of any protocol that upgrades<br/>from polling, which includes<br/>Socket.IO by default."]
+        S4["Affinity is a scaling liability:<br/>it defeats least-connection<br/>balancing and it makes a rolling<br/>deploy a correlated event.<br/>Prefer a shared bus and no<br/>affinity where the transport<br/>allows it."]
+    end
+
+    subgraph Evidence["Published datapoints"]
+        direction TB
+        V1["Phoenix, November 2015:<br/>2,000,000 WebSocket connections on<br/>one 40-core, 128 GB box. The<br/>bottleneck at 1,300,000 was the<br/>pub/sub registry, fixed by<br/>sharding by subscriber process id."]
+        V2["Discord, July 2017:<br/>close to 5,000,000 concurrent<br/>users. One Erlang VM held up to<br/>500,000 live sessions. A crashed<br/>session server spent about 30<br/>seconds on ring lookups to recover.<br/>Moving the ring into ETS cut a<br/>read to 7 us and the total to<br/>17.5 s. FastGlobal, which reads<br/>from the VM shared heap without<br/>copying, cut the read to 0.3 us<br/>and the total to 750 ms."]
+        V3["Dan Kegel's C10K page, 1999:<br/>10,000 concurrent clients on a<br/>1000 MHz machine with 2 GB of RAM.<br/>The claim was that hardware had<br/>stopped being the constraint.<br/>It has been true ever since."]
+    end
+
+    Limits --> Arch --> Sticky --> Evidence
+
+    style Limits fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Arch fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Sticky fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Evidence fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

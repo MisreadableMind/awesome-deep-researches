@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Def["What the extension is, RFC 5280 section 4.2.1.10"]
+        direction TB
+        D1["nameConstraints, OID 2.5.29.30.<br/>Legal only in a CA certificate.<br/>Conforming CAs MUST mark it<br/>critical. The Baseline Requirements<br/>relax that to SHOULD, because<br/>some legacy stacks reject it"]
+        D2["permittedSubtrees and<br/>excludedSubtrees, each a<br/>SEQUENCE OF GeneralSubtree.<br/>minimum MUST be 0 and<br/>maximum MUST be absent"]
+        D3["A constraint applies only when<br/>a name of that type is present.<br/>If no name of the type appears,<br/>the certificate is acceptable.<br/>This is the trap: constrain dNSName<br/>and forget iPAddress and the<br/>sub-CA can issue for any IP"]
+        D4["Excluded beats permitted.<br/>Any name matching excludedSubtrees<br/>is invalid regardless of<br/>permittedSubtrees"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph Rules["How the Baseline Requirements close the trap"]
+        direction TB
+        B1["A Technically Constrained TLS<br/>Subordinate CA MUST have<br/>permittedSubtrees containing at<br/>least one dNSName, one iPAddress<br/>and one directoryName GeneralSubtree,<br/>unless that whole name type is<br/>excluded instead"]
+        B2["To exclude all IPv4, put an<br/>iPAddress of 8 zero octets in<br/>excludedSubtrees, which is<br/>0.0.0.0/0. For IPv6, 32 zero<br/>octets, which is ::/0"]
+        B3["To exclude all DNS names, put a<br/>zero-length dNSName in<br/>excludedSubtrees"]
+        B4["Every dNSName in permittedSubtrees<br/>must itself be validated: the CA<br/>confirms the applicant registered<br/>the domain or is authorised by<br/>the registrant"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph Effect["What it buys"]
+        direction TB
+        E1["A technically constrained sub-CA<br/>does not have to be disclosed in<br/>CCADB or separately audited,<br/>because it cannot harm anyone<br/>outside its own namespace"]
+        E2["An enterprise can be handed a<br/>publicly trusted issuing CA<br/>limited to its own domains,<br/>rather than a private root<br/>every device must install"]
+        E3["A government can be included as<br/>a trust anchor for its own<br/>country-code namespace without<br/>being able to issue for<br/>anyone else's"]
+        E1 --> E2 --> E3
+    end
+
+    subgraph Reality["Why it is used far less than it should be"]
+        direction TB
+        Y1["Client support is uneven.<br/>RFC 5280 requires processing<br/>only for directoryName, and<br/>merely recommends it for<br/>dNSName, rfc822Name, iPAddress<br/>and uniformResourceIdentifier"]
+        Y2["URI name constraints in particular<br/>are so poorly supported that the<br/>SPIFFE X.509-SVID specification<br/>declines to require them,<br/>despite wanting them"]
+        Y3["A critical extension that an old<br/>client cannot parse turns into a<br/>hard failure, so CAs mark it<br/>non-critical, so a client that<br/>ignores it silently accepts<br/>an unconstrained certificate"]
+        Y4["The result: the mechanism that<br/>would most directly shrink the<br/>blast radius of a CA compromise<br/>is the one the ecosystem<br/>deploys least"]
+        Y1 --> Y2 --> Y3 --> Y4
+    end
+
+    Def --> Rules --> Effect --> Reality
+
+    style Def fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Rules fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Effect fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Reality fill:#ffebee,stroke:#c62828,stroke-width:2px

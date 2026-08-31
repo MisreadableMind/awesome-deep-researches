@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Channels<br/>2015-2018"]
+        direction TB
+        E1A["Feb 2015: Poon and Dryja circulate<br/>the Lightning draft. Bitcoin does<br/>7 tps; Visa peaked at 47,000."]
+        E1B["Jan 2016: Lightning paper<br/>v0.5.9.2 published"]
+        E1C["Aug 2017: SegWit fixes transaction<br/>malleability, which channels needed"]
+        E1D["2018: Lightning mainnet.<br/>lnd, c-lightning, eclair<br/>interoperate over the BOLTs"]
+    end
+
+    subgraph Era2["Plasma and the dead end<br/>2017-2019"]
+        direction TB
+        E2A["Aug 2017: Plasma paper,<br/>Poon and Buterin.<br/>Child chains, exit games"]
+        E2B["2018: generalized state channels.<br/>Counterfactual, Perun, Raiden"]
+        E2C["The data availability problem<br/>kills both for general computation.<br/>You cannot exit state you cannot see."]
+        E2D["2019: Loopring and zkSync Lite<br/>ship application-specific ZK rollups"]
+    end
+
+    subgraph Era3["The rollup-centric turn<br/>2020-2023"]
+        direction TB
+        E3A["Oct 2020: Ethereum adopts a<br/>rollup-centric roadmap. Sharding<br/>is redefined as data, not execution."]
+        E3B["Aug 2021: Arbitrum One<br/>Nov 2021: Starknet Alpha<br/>Dec 2021: Optimism public"]
+        E3C["Aug 2022: Arbitrum Nitro replaces<br/>the custom AVM with Geth plus WASM"]
+        E3D["Mar 2023: zkSync Era and<br/>Polygon zkEVM. Jun 2023: OP Bedrock.<br/>Aug 2023: Base."]
+    end
+
+    subgraph Era4["Blobs and proofs<br/>2024-2025"]
+        direction TB
+        E4A["13 Mar 2024: Dencun ships EIP-4844.<br/>Blobs cut L2 data cost by<br/>one to two orders of magnitude"]
+        E4B["Jun 2024: OP Mainnet turns on<br/>permissionless fault proofs.<br/>Oct 2024: Base follows"]
+        E4C["Feb 2025: Arbitrum deploys BoLD,<br/>permissionless and delay-bounded"]
+        E4D["7 May 2025: Pectra raises blobs<br/>to target 6 / max 9 (EIP-7691)"]
+        E4E["29 Apr 2025: Base reaches Stage 1<br/>through a Security Council. Base, Arbitrum One,<br/>OP Mainnet and Starknet all sit at Stage 1.<br/>None sits at Stage 2."]
+    end
+
+    subgraph Era5["Sampling and stages<br/>Dec 2025-2026"]
+        direction TB
+        E5A["3 Dec 2025: Fusaka ships PeerDAS.<br/>Nodes sample columns instead of<br/>downloading every blob"]
+        E5B["9 Dec 2025 BPO1: max 15 blobs<br/>7 Jan 2026 BPO2: max 21 blobs"]
+        E5C["4 Mar 2026: Base leaves the Superchain.<br/>26 May 2026: Base Azul ships a multiproof<br/>of TEE attestations and SP1 ZK proofs."]
+        E5D["Aug 2026: rollups clear roughly<br/>69x Ethereum's own throughput.<br/>Sequencers remain single operators."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Era3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era4 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Era5 fill:#fff3e0,stroke:#e65100,stroke-width:2px

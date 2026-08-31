@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L2["Rollup sequencer"]
+        R1["Batch a few thousand<br/>L2 transactions, compress"]
+        R2["Split into blobs.<br/>One blob = 4096 field elements<br/>x 32 bytes = 131,072 bytes"]
+        R3["Compute a KZG commitment<br/>per blob over BLS12-381"]
+    end
+
+    subgraph Tx["Type 0x03 transaction"]
+        T1["blobVersionedHashes:<br/>0x01 || keccak256(commitment)[1:]"]
+        T2["maxFeePerBlobGas"]
+        T3["to MUST NOT be empty.<br/>The blobs themselves never<br/>enter the EVM"]
+    end
+
+    subgraph Price["Blob fee market, independent of gas"]
+        P1["GAS_PER_BLOB 131,072<br/>target 14 blobs, max 21<br/>since BPO2 on 7 Jan 2026"]
+        P2["excessBlobGas updates<br/>like EIP-1559, exponential,<br/>UPDATE_FRACTION 11,684,671"]
+        P3["MIN_BASE_FEE_PER_BLOB_GAS = 1 wei.<br/>Blob fees collapse to nothing<br/>whenever demand sits below target"]
+        P4["EIP-7918 reserve price:<br/>BLOB_BASE_COST 8192 gas<br/>priced at the execution base fee<br/>stops the free fall"]
+    end
+
+    subgraph Avail["Availability, not storage"]
+        A1["Consensus clients hold blobs for<br/>MIN_EPOCHS_FOR_DATA_COLUMN_SIDECARS_REQUESTS<br/>4096 epochs, about 18 days"]
+        A2["PeerDAS, EIP-7594:<br/>erasure code into 128 columns,<br/>NUMBER_OF_CUSTODY_GROUPS 128"]
+        A3["A plain node custodies 4 groups,<br/>one sixteenth of the data.<br/>A validating node custodies 8,<br/>one eighth. Both sample 8 per slot."]
+        A4["50 percent of columns<br/>reconstructs the whole matrix"]
+    end
+
+    subgraph EVM["What a contract can see"]
+        E1["BLOBHASH 0x49, 3 gas,<br/>returns the i-th versioned hash"]
+        E2["Point evaluation precompile 0x0A,<br/>50,000 gas: prove that<br/>blob(z) = y against the commitment"]
+        E3["BLOBBASEFEE 0x4a, 2 gas"]
+        E4["Contracts never read blob bytes.<br/>They verify claims about them"]
+    end
+
+    L2 --> Tx --> Price
+    Tx --> Avail
+    Avail --> EVM
+
+    style L2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tx fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Price fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Avail fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style EVM fill:#fce4ec,stroke:#880e4f,stroke-width:2px

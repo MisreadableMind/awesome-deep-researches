@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Fail["Chartering authority issues the<br/>closing order and appoints<br/>the FDIC receiver"]
+
+    Fail --> Bids{"Did the marketing process<br/>produce a conforming bid<br/>cheaper than liquidation?"}
+
+    Bids -->|"No bid, or every bid<br/>costs more than liquidation"| Payout["DEPOSIT PAYOUT<br/>FDIC pays insured balances directly<br/>by cheque or transfer.<br/>Uninsured get receivership certificates.<br/>Franchise value is destroyed.<br/>Most expensive outcome."]
+
+    Payout --> DINB["DINB variant<br/>Deposit Insurance National Bank<br/>a temporary charter that keeps<br/>transaction accounts working.<br/>Used for SVB, 10 March 2023"]
+
+    Bids -->|"Yes, and it can be<br/>executed over the weekend"| PA["PURCHASE AND ASSUMPTION<br/>the default outcome"]
+
+    PA --> PAvar{"Which deposits<br/>does the bid assume?"}
+
+    PAvar -->|"All deposits"| AllDep["ALL-DEPOSIT P and A<br/>uninsured depositors are made whole<br/>by the acquirer, not by the FDIC.<br/>Only permitted if it is also least cost."]
+
+    PAvar -->|"Insured deposits only"| InsOnly["INSURED-DEPOSIT-ONLY P and A<br/>uninsured depositors take losses<br/>net of receivership recoveries.<br/>Three US failures 2024-2026."]
+
+    PA --> Assets{"How much of the<br/>asset side moves?"}
+    Assets --> Whole["Whole bank P and A<br/>acquirer takes substantially all assets<br/>at a discount<br/>First Republic: substantially all assets,<br/>price and discount not published"]
+    Assets --> Clean["Basic or clean P and A<br/>acquirer takes cash and securities;<br/>the receivership keeps the loans<br/>Signature: 60 bn USD of loans retained"]
+    Assets --> LossShare["Loss share P and A<br/>FDIC absorbs an agreed share of<br/>losses on covered loan pools<br/>SVB and First Republic both used this"]
+
+    Bids -->|"No buyer yet, but the<br/>franchise must keep operating"| Bridge["BRIDGE BANK<br/>FDI Act s.11(n), added by CEBA 1987.<br/>A new national bank owned by the FDIC.<br/>Up to 2 years plus three 1-year extensions.<br/>Silicon Valley Bridge Bank 13-27 Mar 2023<br/>Signature Bridge Bank 12-20 Mar 2023"]
+
+    Bridge --> Melt["Cost: the melting ice cube.<br/>Deposits keep leaving a bank<br/>everyone knows has failed.<br/>The FDIC now treats a bridge bank<br/>as an undesirable outcome."]
+
+    Bids -->|"Systemic risk determination<br/>under 12 USC 1823(c)(4)(G)"| OBA["OPEN BANK ASSISTANCE or<br/>ALL-DEPOSIT RESOLUTION<br/>outside the least-cost test.<br/>Loss must be recovered by a<br/>special assessment."]
+
+    style PA fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Payout fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Bridge fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OBA fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style InsOnly fill:#ffebee,stroke:#c62828,stroke-width:2px

@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    PH["Policyholder<br/>Buys a homeowners or liability policy.<br/>Has no contract with anyone below<br/>this line and, absent a cut-through<br/>clause, no claim against them."]
+
+    subgraph Cede["The ceding side"]
+        direction TB
+        C1["Cedant (primary insurer)<br/>Pays 100% of the claim to the<br/>policyholder, then collects from<br/>its reinsurers. Remains liable<br/>if they fail."]
+        C2["Outwards reinsurance manager<br/>Buys the programme. Sits between<br/>the underwriters who create the<br/>exposure and the capital that absorbs it."]
+        C3["Appointed actuary<br/>Signs the reserves, gross and net"]
+    end
+
+    subgraph Inter["The intermediaries"]
+        direction TB
+        B1["Reinsurance broker<br/>Aon, Guy Carpenter, Gallagher Re,<br/>Howden Re, BMS Re, Lockton Re.<br/>Builds the submission, models it,<br/>markets the slip, collects the money.<br/>Paid by the reinsurer, works for the cedant."]
+        B2["Managing general agent / coverholder<br/>Writes business on someone else's paper<br/>under delegated authority"]
+    end
+
+    subgraph Assume["The assuming side"]
+        direction TB
+        R1["Lead reinsurer<br/>Quotes the price and the terms.<br/>Everyone else follows or declines."]
+        R2["Following market<br/>Takes a percentage line at the<br/>leader's terms. No separate negotiation."]
+        R3["Lloyd's syndicate<br/>An annual venture of capital providers<br/>run by a managing agent"]
+        R4["Retrocessionaire<br/>Reinsures the reinsurer"]
+        R5["ILS fund / cat bond investor<br/>Fully collateralised capacity.<br/>144.5bn USD of ILS capital at<br/>30 June 2026 (Aon)."]
+    end
+
+    subgraph Infra["Who sets the rules and the numbers"]
+        direction TB
+        I1["Catastrophe model vendors<br/>Verisk, Moody's RMS, CoreLogic,<br/>Karen Clark & Company, Oasis LMF"]
+        I2["Rating agencies<br/>AM Best, S&P, Fitch, Moody's.<br/>A downgrade below A- removes a<br/>reinsurer from most panels."]
+        I3["Regulators<br/>PRA, NAIC states, BMA, EIOPA.<br/>Decide whether a cession earns<br/>capital credit at all."]
+        I4["Loss index providers<br/>PCS in the US, PERILS in Europe.<br/>Turn an event into a number that<br/>a contract can reference."]
+    end
+
+    PH --> C1
+    C1 --> C2
+    C2 --> B1
+    B1 --> R1
+    R1 --> R2
+    R1 --> R3
+    R1 --> R4
+    R1 --> R5
+    I1 --> B1
+    I1 --> R1
+    I2 --> R1
+    I3 --> C1
+    I4 --> R5
+
+    style PH fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Cede fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Inter fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Assume fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Infra fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

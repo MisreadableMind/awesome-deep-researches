@@ -1,0 +1,72 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph EndParties["End Parties"]
+        Originator["Originator<br/>Employer, biller, merchant, treasurer"]
+        Receiver["Receiver / Beneficiary<br/>Employee, customer, supplier"]
+    end
+
+    subgraph Intermediaries["Intermediaries"]
+        TPS["Third-Party Sender<br/>Payroll processor, fintech, PayFac"]
+        TPSP["Third-Party Service Provider<br/>Core processor, file transmitter"]
+    end
+
+    subgraph Banks["Depository Institutions"]
+        ODFI["ODFI<br/>Originating bank<br/>Warrants every entry"]
+        RDFI["RDFI<br/>Receiving bank<br/>Posts or returns"]
+        Corr["Correspondent Bank<br/>Rail access for others"]
+    end
+
+    subgraph Operators["Operators"]
+        FedACH["FedACH<br/>Federal Reserve"]
+        EPN["EPN<br/>The Clearing House"]
+        FedwireOp["Fedwire Funds Service<br/>Federal Reserve"]
+        CHIPSOp["CHIPS<br/>The Clearing House"]
+    end
+
+    subgraph Settlement["Settlement Layer"]
+        Master["Federal Reserve<br/>Master Accounts"]
+        NSS["National Settlement Service"]
+    end
+
+    subgraph Governance["Rules and Supervision"]
+        Nacha["Nacha<br/>ACH Operating Rules<br/>Does not operate the network"]
+        FedSup["Federal Reserve<br/>Reg J, PSR policy, Reg HH"]
+        CFPB["CFPB<br/>Reg E, EFTA"]
+        OFAC["OFAC / FinCEN<br/>Sanctions, BSA"]
+    end
+
+    Originator --> TPS
+    Originator --> ODFI
+    TPS --> ODFI
+    TPSP -.supports.-> ODFI
+    TPSP -.supports.-> Originator
+
+    ODFI --> FedACH
+    ODFI --> EPN
+    ODFI --> FedwireOp
+    ODFI --> CHIPSOp
+    Corr --> FedwireOp
+    Corr --> CHIPSOp
+
+    FedACH --> RDFI
+    EPN --> RDFI
+    FedwireOp --> RDFI
+    CHIPSOp --> RDFI
+    RDFI --> Receiver
+
+    FedACH --> Master
+    EPN --> NSS
+    NSS --> Master
+    FedwireOp --> Master
+    CHIPSOp --> Master
+
+    Nacha -.binds.-> ODFI
+    Nacha -.binds.-> RDFI
+    FedSup -.supervises.-> Operators
+    CFPB -.protects.-> Receiver
+    OFAC -.screens.-> Banks
+
+    style Settlement fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style ODFI fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Master fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px

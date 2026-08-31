@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Telegraph Era<br/>1918-1960s"]
+        direction TB
+        E1A["1918: Fed builds private<br/>telegraph network"]
+        E1B["Morse code + shared codebook"]
+        E1C["Interdistrict Settlement Fund<br/>gold certificates, no physical move"]
+        E1D["Teletype replaces Morse, 1930s"]
+    end
+
+    subgraph Era2["Paper Crisis<br/>1968-1980"]
+        direction TB
+        E2A["1968: SCOPE committee<br/>designs paperless entries"]
+        E2B["1972: first ACH goes live<br/>SF Fed as operator"]
+        E2C["1974: NACHA formed"]
+        E2D["1975: Social Security<br/>direct deposit"]
+        E2E["1970: CHIPS replaces<br/>Manhattan messengers"]
+    end
+
+    subgraph Era3["Computerization<br/>1980-2000"]
+        direction TB
+        E3A["1980: Monetary Control Act<br/>Fed must price at cost"]
+        E3B["1981: CHIPS same-day settlement"]
+        E3C["Fedwire moves to leased lines,<br/>then FedLine"]
+        E3D["Direct deposit becomes standard"]
+    end
+
+    subgraph Era4["Risk Rebuild<br/>2001-2015"]
+        direction TB
+        E4A["2001: CHIPS prefunded<br/>continuous netting<br/>unwind risk eliminated"]
+        E4B["2001-2007: check conversion<br/>ARC, BOC, POP"]
+        E4C["2004: Check 21 accelerates<br/>check decline"]
+        E4D["2011: collateralized daylight<br/>overdrafts priced at zero"]
+    end
+
+    subgraph Era5["Speed and Structure<br/>2016-present"]
+        direction TB
+        E5A["2016-2018: Same Day ACH<br/>phased in"]
+        E5B["2017: RTP launches"]
+        E5C["2022: Same Day limit<br/>raised to 1M USD"]
+        E5D["2023: FedNow launches"]
+        E5E["2024: CHIPS to ISO 20022"]
+        E5F["2025: Fedwire to ISO 20022"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

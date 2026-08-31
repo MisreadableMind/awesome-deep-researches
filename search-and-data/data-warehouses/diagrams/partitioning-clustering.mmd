@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Original["Unpartitioned Table: 1 TB sales data"]
+        FULL["Full table scan required<br/>for any query = 1 TB read"]
+    end
+
+    subgraph Partitioned["Partitioned by sale_date (monthly)"]
+        P1["2024-01<br/>85 GB"]
+        P2["2024-02<br/>78 GB"]
+        P3["2024-03<br/>92 GB"]
+        PDOTS["..."]
+        P12["2024-12<br/>88 GB"]
+    end
+
+    subgraph Query1["Query: WHERE sale_date = '2024-03-15'"]
+        PRUNE["Partition pruning:<br/>Only reads 2024-03 partition<br/>92 GB instead of 1 TB<br/>~11x less data scanned"]
+    end
+
+    subgraph Clustered["Partition 2024-03 clustered by region"]
+        CL1["Block 1: APAC rows<br/>(sorted together)"]
+        CL2["Block 2: EMEA rows<br/>(sorted together)"]
+        CL3["Block 3: NA rows<br/>(sorted together)"]
+        CL4["Block 4: LATAM rows<br/>(sorted together)"]
+    end
+
+    subgraph Query2["Query: WHERE sale_date = '2024-03-15'<br/>AND region = 'NA'"]
+        SKIP["Block pruning:<br/>Only reads NA blocks<br/>~23 GB instead of 92 GB<br/>~43x less than full scan"]
+    end
+
+    Original --> Partitioned
+    Partitioned --> Query1
+    P3 --> Clustered
+    Clustered --> Query2
+
+    style Original fill:#e53e3e,color:#fff
+    style Partitioned fill:#2b6cb0,color:#fff
+    style Query1 fill:#38a169,color:#fff
+    style Clustered fill:#805ad5,color:#fff
+    style Query2 fill:#d69e2e,color:#fff

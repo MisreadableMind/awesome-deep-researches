@@ -1,0 +1,66 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Sender["Sender<br/>migrant worker, diaspora household<br/>median transfer under 400 USD"]
+
+    subgraph SendSide["Send side"]
+        Agent["Sending agent<br/>storefront, kiosk, post office.<br/>Takes cash, keeps a commission,<br/>owes the operator within days"]
+        App["Digital front end<br/>app or web. Collects by card,<br/>bank debit, or wallet"]
+        Funding["Funding rail<br/>ACH, Faster Payments, SEPA,<br/>card network, open banking"]
+    end
+
+    subgraph Provider["Remittance provider - the principal"]
+        Licence["Licensed entity<br/>MSB plus state MTL, EMI,<br/>payment institution, exchange house"]
+        Ledger["Internal ledger<br/>holds the obligation between<br/>collection and payout"]
+        Treasury["Treasury<br/>sets the customer rate,<br/>funds payout balances,<br/>squares net FX positions"]
+        Compliance["Compliance<br/>KYC, sanctions screening,<br/>transaction monitoring,<br/>regulatory reporting"]
+    end
+
+    subgraph Middle["The middle, where models diverge"]
+        Corr["Correspondent banks<br/>nostro and vostro accounts,<br/>Swift messaging"]
+        Aggregator["Payout aggregators<br/>Thunes, TerraPay, Onafriq,<br/>Dandelion, Nium"]
+        Direct["Direct scheme membership<br/>Wise on FPS, SEPA, Pix,<br/>Zengin, NPP, FAST, InstaPay"]
+        Chain["Stablecoin rail<br/>on-ramp, transfer, off-ramp"]
+    end
+
+    subgraph PayoutSide["Payout side"]
+        PayAgent["Paying agent<br/>pays its own cash first,<br/>reimbursed by the operator"]
+        RecvBank["Receiving bank<br/>credits an account through the<br/>domestic scheme"]
+        MMO["Mobile money operator<br/>credits a wallet;<br/>cash-out through its agents"]
+    end
+
+    Recipient["Recipient<br/>often unbanked, often rural,<br/>often paid in cash"]
+
+    subgraph Oversight["Oversight"]
+        Reg["Regulators<br/>FinCEN, state regulators, CFPB,<br/>FCA, central banks, FATF"]
+        Bench["Benchmarkers<br/>World Bank RPW,<br/>FSB and CPMI KPIs"]
+    end
+
+    Sender --> Agent
+    Sender --> App
+    App --> Funding
+    Agent --> Licence
+    Funding --> Licence
+    Licence --> Ledger
+    Ledger --> Treasury
+    Ledger --> Compliance
+    Treasury --> Corr
+    Treasury --> Aggregator
+    Treasury --> Direct
+    Treasury --> Chain
+    Corr --> RecvBank
+    Aggregator --> MMO
+    Aggregator --> PayAgent
+    Direct --> RecvBank
+    Chain --> MMO
+    PayAgent --> Recipient
+    RecvBank --> Recipient
+    MMO --> Recipient
+    Reg -.supervises.-> Provider
+    Bench -.measures.-> Provider
+
+    style SendSide fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Provider fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Middle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style PayoutSide fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Oversight fill:#eceff1,stroke:#37474f,stroke-width:2px

@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["The Library<br/>1999-2009"]
+        direction TB
+        E1A["1999: Doug Cutting writes Lucene,<br/>his fifth search engine.<br/>Named after his wife's middle name."]
+        E1B["Sept 2001: joins the<br/>Apache Jakarta project"]
+        E1C["Feb 2005: Lucene becomes an<br/>Apache top-level project"]
+        E1D["2004: Shay Banon writes Compass,<br/>an object mapper over Lucene"]
+        E1E["2006: Solr donated to Apache.<br/>Merged with Lucene, March 2010."]
+    end
+
+    subgraph Era2["The Distributed Layer<br/>2010-2015"]
+        direction TB
+        E2A["Feb 2010: Elasticsearch 0.4<br/>released. Sharding, replication<br/>and a JSON REST API<br/>wrapped around Lucene."]
+        E2B["2012: Elasticsearch BV founded.<br/>2015: renamed Elastic."]
+        E2C["ELK stack forms:<br/>Logstash and Kibana acquired<br/>into the same company"]
+        E2D["2014-2015: dynamic scripting<br/>RCEs. CVE-2014-3120 and<br/>CVE-2015-1427 force scripting off<br/>by default."]
+    end
+
+    subgraph Era3["Commercial Enclosure<br/>2016-2020"]
+        direction TB
+        E3A["2016: Lucene 6.0 makes BM25<br/>the default similarity,<br/>replacing TF-IDF"]
+        E3B["2018: X-Pack source opened<br/>under the Elastic License,<br/>not open source"]
+        E3C["Oct 2018: Elastic IPO on NYSE"]
+        E3D["2019: Zen2 coordination ships<br/>in Elasticsearch 7.0.<br/>Split-brain by misconfiguration<br/>becomes impossible."]
+    end
+
+    subgraph Era4["The Fork<br/>2021-2023"]
+        direction TB
+        E4A["14 Jan 2021 announced, shipped in<br/>7.11 on 10 Feb 2021: Elasticsearch<br/>and Kibana relicensed from Apache 2.0<br/>to SSPL plus Elastic License 2.0"]
+        E4B["12 Apr 2021: AWS announces<br/>OpenSearch, forked from<br/>Elasticsearch 7.10.2"]
+        E4C["12 Jul 2021: OpenSearch 1.0 GA.<br/>26 May 2022: OpenSearch 2.0."]
+        E4D["2022: Elasticsearch 8.0.<br/>Security on by default."]
+        E4E["Aug 2022: Elasticsearch 8.4 moves<br/>kNN into the main _search API,<br/>deprecating _knn_search"]
+    end
+
+    subgraph Era5["Vectors and Reconciliation<br/>2024-2026"]
+        direction TB
+        E5A["29 Aug 2024: Elastic adds AGPL v3<br/>as a third licence option,<br/>from version 8.16"]
+        E5B["16 Sept 2024: OpenSearch moves to<br/>the Linux Foundation as the<br/>OpenSearch Software Foundation"]
+        E5C["Oct 2024: Lucene 10.0.<br/>May 2025: OpenSearch 3.0 on Lucene 10.<br/>Apr 2025: Elasticsearch 9.0."]
+        E5D["2025-2026: BBQ binary quantization<br/>becomes the default vector index<br/>above 384 dimensions"]
+        E5E["Aug 2026: Lucene 10.5.1,<br/>Elasticsearch 9.5.2,<br/>OpenSearch 3.8.0"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

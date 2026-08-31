@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    P["NETWORK PARTITION<br/>5-node cluster splits 3 + 2"]
+
+    subgraph SPAN["SPANNER - CP"]
+        direction TB
+        S1["MAJORITY SIDE (3 nodes)<br/>Paxos quorum intact.<br/>Read-write transactions COMMIT.<br/>Strong reads SUCCEED.<br/>New leader elected if needed."]
+        S2["MINORITY SIDE (2 nodes)<br/>No quorum. Writes STALL.<br/>Strong reads FAIL.<br/>Snapshot reads at timestamps BEFORE<br/>the partition still SUCCEED if a replica<br/>is present and caught up past that time."]
+        S3["CROSS-GROUP TRANSACTIONS<br/>2PC needs every touched group to have a<br/>quorum-elected leader on ONE side.<br/>Some transactions work perfectly.<br/>Some time out. All are CONSISTENT.<br/>Any read that RETURNS is consistent,<br/>even if the transaction later aborts."]
+        S1 --> S3
+        S2 --> S3
+    end
+
+    subgraph CRDB["COCKROACHDB - CP"]
+        direction TB
+        C1["MAJORITY SIDE<br/>Ranges with 2 of 3 replicas here keep<br/>their Raft quorum. Leader leases are<br/>fortified by a quorum of stores, so a<br/>partitioned leaseholder loses support and<br/>a new one is elected. Reads and writes<br/>continue."]
+        C2["MINORITY SIDE<br/>Ranges without a quorum are UNAVAILABLE<br/>for reads and writes.<br/>FOLLOWER READS still work at or below<br/>the closed timestamp, because the promise<br/>was already delivered before the split."]
+        C3["PER RANGE, NOT PER CLUSTER<br/>A 3-2 split leaves most ranges available<br/>on the majority side and a few unavailable<br/>if their replicas happened to land 1-2.<br/>The blast radius is a set of key ranges."]
+        C1 --> C3
+        C2 --> C3
+    end
+
+    subgraph CASS["CASSANDRA - tunable, per query"]
+        direction TB
+        K1["CL = ONE or LOCAL_ONE<br/>BOTH SIDES accept writes.<br/>BOTH SIDES serve reads.<br/>The two sides DIVERGE.<br/>On heal, last-write-wins picks a winner<br/>by mutation timestamp. Writes are LOST<br/>silently, decided by clock skew."]
+        K2["CL = QUORUM, RF = 3<br/>Side with 2 replicas: reads and writes OK.<br/>Side with 1 replica: UnavailableException.<br/>Buys quorum overlap, NOT linearizability:<br/>a write that reached only a minority<br/>before the split is never rolled back."]
+        K3["CL = ALL<br/>NEITHER side works for that key.<br/>Strictest and least available."]
+        K4["MEANWHILE, ALWAYS<br/>Hints accumulate on the reachable side for<br/>up to max_hint_window, default 3h.<br/>Past that window they are dropped and the<br/>divergence becomes permanent until repair."]
+        K1 --> K4
+        K2 --> K4
+        K3 --> K4
+    end
+
+    subgraph DYN["DYNAMO-STYLE with sloppy quorum"]
+        direction TB
+        D1["Writes go to the first N HEALTHY nodes<br/>from the preference list, which need not<br/>be the N nodes that own the key.<br/>BOTH SIDES accept writes."]
+        D2["Vector clocks mark the two versions<br/>CONCURRENT rather than ordered.<br/>On heal, a read returns BOTH and the<br/>application merges. Nothing is lost,<br/>but the application must have code<br/>for a case it may never have tested."]
+        D1 --> D2
+    end
+
+    P --> SPAN
+    P --> CRDB
+    P --> CASS
+    P --> DYN
+
+    style SPAN fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CRDB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CASS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DYN fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style K1 fill:#ffebee,stroke:#c62828,stroke-width:2px

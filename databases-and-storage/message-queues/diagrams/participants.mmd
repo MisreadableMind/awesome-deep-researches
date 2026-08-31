@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph K["Kafka - routing at the edge"]
+        direction TB
+        KPROD["Producer<br/>murmur2(key) &amp; 0x7fffffff % numPartitions<br/>decides the partition HERE"]
+        KB1["Broker 1<br/>leader p0, p13<br/>follower p7"]
+        KB2["Broker 2<br/>leader p7<br/>follower p0, p13"]
+        KB3["Broker 3<br/>follower p0, p7, p13"]
+        KCTRL["KRaft controller quorum<br/>3 or 5 nodes<br/>__cluster_metadata, 1 partition"]
+        KCG["Consumer group<br/>each member owns whole partitions<br/>offsets in __consumer_offsets (50 partitions)"]
+        KPROD -->|"ProduceRequest apiKey 0<br/>to the partition LEADER"| KB1
+        KB1 -->|"followers FETCH from the leader"| KB2
+        KB1 --> KB3
+        KCTRL -.->|"metadata: leaders, ISR, ELR, configs"| KB1
+        KCTRL -.-> KB2
+        KCTRL -.-> KB3
+        KB1 -->|"FetchRequest apiKey 1"| KCG
+    end
+
+    subgraph R["RabbitMQ - routing in the middle"]
+        direction TB
+        RPUB["Publisher<br/>knows only exchange + routing key<br/>knows NOTHING about queues"]
+        RX["Exchange<br/>direct / fanout / topic / headers<br/>matches the binding table"]
+        RQ1["Quorum queue 'ledger'<br/>Raft group of 3 members"]
+        RQ2["Quorum queue 'fraud'<br/>Raft group of 3 members"]
+        RDLX["Dead letter exchange"]
+        RCONS["Competing consumers<br/>prefetch bounds each one<br/>broker hands out work"]
+        RKHEPRI["Khepri metadata store<br/>Raft across all nodes<br/>majority required for availability"]
+        RPUB -->|"basic.publish"| RX
+        RX -->|"binding payment.authorized.#"| RQ1
+        RX -->|"binding payment.#.card.*"| RQ2
+        RQ1 -->|"basic.deliver"| RCONS
+        RCONS -->|"basic.nack requeue=false"| RDLX
+        RKHEPRI -.->|"exchanges, bindings, queues, users"| RX
+    end
+
+    style K fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style R fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style KPROD fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RX fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

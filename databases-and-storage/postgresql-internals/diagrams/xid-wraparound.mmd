@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Space["The 32-bit transaction ID space - a circle, not a line"]
+        direction TB
+        S1["4,294,967,296 total values<br/>0 = InvalidTransactionId<br/>1 = BootstrapTransactionId<br/>2 = FrozenTransactionId<br/>3 and up = normal XIDs"]
+        S2["Comparison is modulo 2^32.<br/>For any XID, 2^31 values, 2,147,483,648<br/>of them, are 'in the past' and the same<br/>number are 'in the future'. There is no oldest."]
+    end
+
+    subgraph Ages["What happens as relfrozenxid ages"]
+        direction TB
+        A1["age 0 to 50 million<br/>Normal. Ordinary VACUUM skips<br/>all-visible pages via the visibility map."]
+        A2["age 50 million<br/>vacuum_freeze_min_age<br/>VACUUM freezes tuples it happens to see"]
+        A3["age 150 million<br/>vacuum_freeze_table_age<br/>Next VACUUM is aggressive:<br/>it scans every page not already all-frozen"]
+        A4["age 200 million<br/>autovacuum_freeze_max_age<br/>Autovacuum launches an anti-wraparound<br/>VACUUM even if autovacuum is off"]
+        A5["age 1.6 billion<br/>vacuum_failsafe_age<br/>Failsafe: cost delays off, index<br/>vacuuming skipped, freeze only"]
+        A6["2^31 - 40 million ~ 2.107 billion<br/>WARNING in the log on every commit"]
+        A7["2^31 - 3 million ~ 2.144 billion<br/>Server REFUSES new write transactions.<br/>Single-user mode VACUUM required."]
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7
+    end
+
+    subgraph Freeze["What freezing actually does"]
+        direction TB
+        F1["Since PostgreSQL 9.4 xmin is NOT<br/>overwritten with 2. Instead the pair<br/>HEAP_XMIN_COMMITTED + HEAP_XMIN_INVALID<br/>is set, which means FROZEN."]
+        F2["A frozen tuple is visible to every<br/>snapshot forever. Its original xmin<br/>survives for forensics."]
+        F3["The page is then marked all-frozen<br/>in the visibility map, so the next<br/>aggressive VACUUM can skip it."]
+        F1 --> F2 --> F3
+    end
+
+    Space --> Ages
+    Ages --> Freeze
+
+    MYTH["Wraparound does not corrupt or lose data.<br/>The server stops accepting writes first.<br/>The cost is an outage, not a restore."]
+    A7 -.-> MYTH
+
+    style Space fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Ages fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Freeze fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A7 fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style MYTH fill:#fce4ec,stroke:#880e4f,stroke-width:2px

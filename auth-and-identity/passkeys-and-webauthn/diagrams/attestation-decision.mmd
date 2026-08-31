@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start(["Relying party chooses<br/>attestation conveyance"])
+
+    Start --> Q1{"Does the relying party need<br/>the make and model of<br/>the authenticator?"}
+
+    Q1 -->|"No, which is<br/>the consumer case"| None["attestation: 'none'<br/>The WebAuthn default.<br/>Client may replace the statement<br/>with fmt = 'none' and an empty<br/>attStmt. Nothing to verify,<br/>nothing to maintain."]
+
+    Q1 -->|"Yes"| Q2{"Does it control<br/>the devices?"}
+
+    Q2 -->|"No, consumer<br/>or BYOD"| Direct["attestation: 'direct'<br/>The statement arrives as<br/>generated. The relying party now<br/>maintains a trust store of attestation<br/>roots and refreshes the FIDO MDS BLOB."]
+
+    Q2 -->|"Yes, managed<br/>fleet"| Ent["attestation: 'enterprise'<br/>CTAP enterpriseAttestation<br/>parameter 1 or 2. Returns a<br/>uniquely identifying attestation.<br/>Requires the feature to be enabled<br/>on the authenticator and either a<br/>burned-in RP ID list (vendor<br/>facilitated) or a managed platform<br/>that vets the RP ID."]
+
+    Direct --> Q3{"Will its users bring<br/>synced passkeys?"}
+    Q3 -->|"Yes"| Fail["Synced passkeys do not carry<br/>meaningful attestation.<br/>Enforcing it excludes iCloud<br/>Keychain and Google Password<br/>Manager entirely."]
+    Q3 -->|"No, security<br/>keys only"| Work["Workable. This is the<br/>enterprise hardware-key case."]
+
+    subgraph Formats["Defined attestation statement formats"]
+        direction TB
+        FA["packed - the general format.<br/>attStmt: alg, sig, optional x5c"]
+        FB["tpm - TPM 2.0 quote,<br/>certInfo and pubArea"]
+        FC["android-key - Android Keystore<br/>attestation extension"]
+        FD["android-safetynet - deprecated<br/>in WebAuthn Level 3"]
+        FE["fido-u2f - legacy CTAP1 format"]
+        FF["apple - Apple anonymous attestation"]
+        FG["compound - added in Level 3,<br/>carries more than one statement"]
+        FH["none - no statement at all"]
+    end
+
+    subgraph Types["Attestation types"]
+        direction TB
+        TA["Basic: one key shared across a<br/>batch of at least 100,000 devices,<br/>so it does not identify one unit"]
+        TB["AttCA: an attestation CA issues<br/>a per-credential certificate,<br/>as TPMs do"]
+        TC["Self: the credential key signs<br/>its own attestation. Proves<br/>possession, proves no provenance."]
+        TD["AnonCA: a per-credential<br/>certificate from a CA that<br/>does not reveal the model"]
+        TE["None: no provenance claim"]
+    end
+
+    None --> Formats
+    Work --> Formats
+    Ent --> Types
+
+    style None fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style Fail fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Ent fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Formats fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Types fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Thesis["Reinsurance pricing tracks one variable:<br/>the quantity of capital willing to be<br/>at risk this January, divided by the<br/>quantity of limit buyers want.<br/>Demand moves slowly. Supply does not."]
+
+    subgraph Hard["HARD MARKET"]
+        direction TB
+        H1["A large loss year destroys capital.<br/>Retained earnings fall, mark-to-market<br/>losses hit the investment book."]
+        H2["Supply of limit contracts.<br/>Rate on line rises.<br/>Attachment points rise faster."]
+        H3["Terms tighten: named perils replace<br/>all-risks, aggregate covers withdraw,<br/>hours clauses shorten, communicable<br/>disease and cyber get excluded."]
+        H4["Reinsurer return on equity rises.<br/>New capital is attracted."]
+        H5["January 2023: the hardest property<br/>catastrophe market since 2006.<br/>The structural change was not price,<br/>it was retentions. Reinsurers stopped<br/>selling frequency cover."]
+    end
+
+    subgraph Soft["SOFT MARKET"]
+        direction TB
+        S1["Capital arrives: retained profit,<br/>new company formations, ILS inflows"]
+        S2["Supply of limit expands.<br/>Rate on line falls.<br/>Terms broaden back out."]
+        S3["Underwriting margin compresses.<br/>Reserve releases from older years<br/>flatter the reported result."]
+        S4["Capital leaves, or a loss removes it"]
+        S5["2026: the Guy Carpenter Global<br/>Property Catastrophe Rate on Line<br/>index falls 12% at 1 January and 16%<br/>for the year to date after the July<br/>renewals, the steepest annual decline<br/>since the late 1990s."]
+    end
+
+    Thesis --> Hard
+    Hard --> Soft
+    Soft --> Hard
+
+    subgraph Damp["What damps the cycle now"]
+        direction TB
+        D1["ILS capital reprices in weeks, not years.<br/>A cat bond can be issued in six weeks;<br/>a new Bermudian took nine months."]
+        D2["Total dedicated reinsurance capital<br/>ended 2025 at 663bn USD: 540bn<br/>traditional plus 123bn third-party.<br/>Projected 705bn at end 2026."]
+        D3["Higher attachment points mean an<br/>average loss year no longer reaches<br/>the reinsurance market at all"]
+        D4["2025 insured catastrophe losses of<br/>107bn USD did not dent capital.<br/>2026 first half of 42bn USD,<br/>the lowest since 2020, accelerated<br/>the softening."]
+    end
+
+    subgraph Sticky["What does not soften"]
+        direction TB
+        K1["Attachment points. Reinsurers gave<br/>back price in 2025 and 2026 and<br/>held retentions. The 2023 reset in<br/>where cover starts has survived<br/>two soft renewals."]
+        K2["Named-peril wordings and<br/>the exclusions added in 2022-2023"]
+        K3["Casualty terms, where US social<br/>inflation keeps reserve risk live"]
+    end
+
+    Soft --> Damp
+    Soft --> Sticky
+
+    Punch["Price is negotiable every January.<br/>Structure is not. The lasting output of<br/>a hard market is where the cover attaches,<br/>and that survives the softening."]
+
+    Damp --> Punch
+    Sticky --> Punch
+
+    style Thesis fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Hard fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Soft fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Damp fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Sticky fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Punch fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant P as CHIPS Participant<br/>(one of ~40)
+    participant CH as CHIPS<br/>Queue and release engine
+    participant FRB as Federal Reserve Bank of NY<br/>CHIPS account
+
+    Note over P,FRB: MORNING: prefunding
+    CH->>P: Opening position requirement<br/>set from recent activity
+    P->>FRB: Fedwire transfer of opening position
+    FRB-->>CH: Balance credited to participant position
+
+    Note over P,CH: DAY: submission and continuous release
+    loop Throughout the business day
+        P->>CH: Submit payment orders
+        CH->>CH: Balanced release algorithm:<br/>single, bilateral, multilateral offsets
+        CH-->>P: Released payments are FINAL<br/>at the moment of release
+    end
+
+    alt Outbound queue is blocked
+        P->>FRB: Supplemental funding via Fedwire
+        FRB-->>CH: Position increased
+        CH->>CH: Blocked payments release
+    end
+
+    Note over P,FRB: CLOSE: final netting and payout
+    CH->>CH: Stop accepting new payments
+    CH->>CH: Multilateral netting of everything<br/>still in the queue
+    CH->>P: Notify closing position
+
+    alt Participant owes a net amount
+        P->>FRB: Fund the closing obligation via Fedwire
+        FRB-->>CH: Received
+    end
+
+    CH->>CH: Release remaining queued payments
+    CH->>FRB: Instruct payout of residual balances
+    FRB->>P: Return residual balance via Fedwire
+
+    Note over P,FRB: Every participant ends the day at zero.<br/>CHIPS carries no overnight credit exposure.

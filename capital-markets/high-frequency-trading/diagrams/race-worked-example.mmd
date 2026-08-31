@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant CME as CME Globex<br/>Aurora, Illinois
+    participant MW as Wireless carrier<br/>20+ microwave hops
+    participant A as Firm A<br/>FPGA on the NIC
+    participant B as Firm B<br/>software, kernel bypass
+    participant MM as Firm M<br/>the resting quote
+    participant GW as Exchange gateway<br/>Carteret, New Jersey
+    participant SEQ as Sequencer
+    participant ME as Matching engine
+
+    Note over CME,ME: T+0. A buy lifts the E-mini offer in Aurora.<br/>ETF fair value moves up 1.2 cents.<br/>Every resting 500.01 offer in New Jersey is now stale.
+
+    CME->>MW: Trade print on the CME feed
+    Note over MW: 1,179 km by line-of-sight microwave.<br/>Speed of light in vacuum: 3.93 ms.<br/>Best engineered microwave: ~4.03 ms.<br/>Best fibre: ~6.65 ms.
+    MW-->>A: arrives T+4.03 ms
+    MW-->>B: arrives T+4.03 ms
+    MW-->>MM: arrives T+4.03 ms
+
+    Note over A,MM: All three received the SAME signal at the SAME time.<br/>The exchange equalised the cable. The carrier<br/>delivers to every subscriber together.<br/>Everything from here is inside the cabinet.
+
+    par The race begins
+        A->>A: FPGA: compare price field<br/>against pre-armed threshold.<br/>Emit pre-built IOC buy 500.01 x 2,000.<br/>Tick-to-trade: hundreds of nanoseconds.
+        B->>B: Software: poll ring, parse,<br/>update book, branch, patch template,<br/>risk check, doorbell.<br/>Tick-to-trade: low single-digit microseconds.
+        MM->>MM: Same signal, opposite intent.<br/>Emit cancel of the resting 500.01 offer.
+    end
+
+    A->>GW: IOC BUY 2,000 @ 500.01 at T+4.03 ms + ~0.4 us
+    B->>GW: IOC BUY 2,000 @ 500.01 at T+4.03 ms + ~3 us
+    MM->>GW: CANCEL resting offer at T+4.03 ms + ~5 us
+
+    Note over GW,SEQ: Gateways verify length, fields, and the<br/>member's risk thresholds, then translate<br/>into the matching engine's internal format.<br/>The sequencer polls gateways round robin.
+
+    GW->>SEQ: Firm A's take
+    GW->>SEQ: Firm B's take
+    GW->>SEQ: Firm M's cancel
+    Note over SEQ: Round-robin polling means arrival order at<br/>the gateway is not always the order reaching<br/>the engine. FCA measured this: about 4% of the<br/>time the race winner's message arrived at the<br/>exchange LATER than the first loser's.
+
+    SEQ->>ME: 1. Firm A take
+    ME->>ME: Match 2,000 @ 500.01 against Firm M.<br/>The stale offer is gone.
+    SEQ->>ME: 2. Firm B take
+    ME->>ME: Nothing left at 500.01. IOC cancelled.
+    SEQ->>ME: 3. Firm M cancel
+    ME->>ME: Order already executed.<br/>"Too late to cancel."
+
+    ME-->>A: Execution report: filled 2,000
+    ME-->>B: IOC expired, zero fill
+    ME-->>MM: Too late to cancel, you were filled
+
+    Note over ME: PUBLIC FEED sees only: one trade,<br/>2,000 shares at 500.01.<br/>Firm B's failed take and Firm M's failed<br/>cancel NEVER reach the public feed,<br/>because they did not change the book.
+
+    Note over A,MM: THE ARITHMETIC<br/>Firm A gains 1.2 cents x 2,000 = 24.00 USD gross.<br/>Minus 0.30 USD per 100 shares taker fee = 6.00 USD.<br/>Net: 18.00 USD to Firm A.<br/>Firm B spent the same on infrastructure and got nothing.<br/>Firm M loses 24.00 USD gross, receives a 6.10 USD maker<br/>rebate at the top tier, and is out 17.90 USD.<br/>The exchange collects 6.00 and pays out 6.10:<br/>minus 0.10 USD on the pair. That is Section 16.

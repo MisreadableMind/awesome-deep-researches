@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    START["S trades at 0.98 USD.<br/>Arbitrage is available."]
+
+    START --> STEP1["Holders burn S,<br/>receive 1.00 USD notional of L"]
+    STEP1 --> STEP2["Arbitrageurs sell L<br/>on the open market"]
+    STEP2 --> STEP3["L's price falls"]
+    STEP3 --> STEP4["Each subsequent S burn now mints<br/>MORE units of L to deliver<br/>the same 1.00 USD notional"]
+    STEP4 --> STEP5["L supply expands faster.<br/>Selling pressure compounds."]
+    STEP5 --> STEP6["Market infers L is heading to zero.<br/>Nobody buys L to mint S,<br/>so the upward arbitrage stops."]
+    STEP6 --> STEP7["The floor under S disappears.<br/>S falls further."]
+    STEP7 --> STEP1
+
+    STEP5 --> BRAKE["The only brake:<br/>a cap on how much S may be<br/>redeemed per day"]
+    BRAKE --> B1["Terra's market module capped<br/>daily swap capacity near<br/>293 million USD"]
+    B1 --> B2["A cap converts a solvency spiral<br/>into a queue. Holders who<br/>cannot exit sell on the<br/>secondary market instead."]
+    B2 --> B3["The secondary price falls faster<br/>than the redemption price,<br/>which proves the peg is gone."]
+    B3 --> B4["2022-05-09: Terra doubles the base pool<br/>and halves the pool recovery period.<br/>Daily capacity goes from about<br/>293 m USD to about 1.2 bn USD."]
+    B4 --> B5["The queue is removed and the<br/>solvency spiral resumes at four<br/>times the rate. LUNA supply goes<br/>from about 350 m to more than<br/>6.5 trn tokens by 13 May 2022."]
+    B5 --> STEP7
+
+    STEP7 --> END["Terminal state:<br/>UST at 0.0947 USD, 13 May 2022<br/>LUNA at 0.0000179 USD, 13 May 2022<br/>LUNA supply past 6 trillion tokens"]
+
+    RES["Reserve-backed rescue attempt"]
+    RES --> R1["Luna Foundation Guard held<br/>more than 80,000 BTC"]
+    R1 --> R2["Selling BTC to buy UST converts<br/>an algorithmic stablecoin into a<br/>partially collateralised one,<br/>mid-run, at the worst price"]
+    R2 --> R3["The reserve was too small relative<br/>to an 18 bn USD liability and<br/>was spent in days"]
+    R3 --> END

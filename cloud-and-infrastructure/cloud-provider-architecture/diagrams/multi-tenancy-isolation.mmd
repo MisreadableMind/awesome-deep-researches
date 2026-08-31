@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Layers["The five isolation layers, strongest at the bottom"]
+        direction TB
+        L5["5. Account / subscription / project<br/>Policy boundary. Enforced by IAM.<br/>Broken by: misconfiguration."]
+        L4["4. Virtual network<br/>Enforced by flow tables on the offload card.<br/>Broken by: an over-broad security group."]
+        L3["3. Guest OS and process<br/>Enforced by the guest kernel.<br/>Customer's responsibility entirely."]
+        L2["2. Hypervisor / virtual machine<br/>Enforced by EPT/NPT page tables, IOMMU,<br/>and a minimised hypervisor.<br/>Broken by: VM escape. Rare."]
+        L1["1. Physical hardware<br/>Shared caches, shared memory controller,<br/>shared power delivery, shared SMT sibling.<br/>Broken by: side channels. Not fixable in software."]
+        L5 --> L4 --> L3 --> L2 --> L1
+    end
+
+    subgraph Channels["What actually leaks at layer 1"]
+        S1["Speculative execution<br/>Spectre v1 CVE-2017-5753<br/>Spectre v2 CVE-2017-5715<br/>Meltdown CVE-2017-5754"]
+        S2["L1 Terminal Fault / Foreshadow<br/>CVE-2018-3646 is the VMM variant.<br/>A guest reads the L1 data cache<br/>of whatever last ran on that core."]
+        S3["Microarchitectural Data Sampling<br/>CVE-2018-12126, -12127, -12130,<br/>CVE-2019-11091. Leaks from<br/>store buffers, fill buffers, load ports."]
+        S4["Later families<br/>Retbleed CVE-2022-29900/29901<br/>Zenbleed CVE-2023-20593<br/>Downfall CVE-2022-40982<br/>Inception CVE-2023-20569"]
+        S5["Physical channels<br/>Hertzbleed CVE-2022-23823 / -24436:<br/>DVFS turns data-dependent power<br/>into data-dependent timing.<br/>Rowhammer: DRAM disturbance."]
+    end
+
+    subgraph Mit["What the providers do about it"]
+        M1["Do not oversubscribe cores.<br/>Both SMT siblings of a core go to<br/>the same instance or neither."]
+        M2["Do not share memory pages.<br/>No deduplication, no ballooning,<br/>no host swap of guest memory."]
+        M3["Flush microarchitectural state<br/>on every context switch between<br/>tenants: L1D flush, buffer overwrite."]
+        M4["Move the management stack off<br/>the CPU entirely, so there is no<br/>host process to leak into."]
+        M5["Offer dedicated hosts and<br/>confidential computing for<br/>customers who want the core to<br/>themselves or the memory encrypted."]
+    end
+
+    L1 --> Channels
+    Channels --> Mit
+
+    style Layers fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Channels fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Mit fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

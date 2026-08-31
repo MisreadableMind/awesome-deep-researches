@@ -1,0 +1,26 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph FICO["FICO Score - general population weights"]
+        PH["PAYMENT HISTORY - 35%<br/>on-time record, severity of any lateness,<br/>recency, how many accounts affected,<br/>collections, charge-offs, public records"]
+        AO["AMOUNTS OWED - 30%<br/>revolving utilisation overall and per card,<br/>number of accounts with balances,<br/>installment balance vs original amount"]
+        LEN["LENGTH OF CREDIT HISTORY - 15%<br/>age of oldest account,<br/>age of newest account,<br/>average age of all accounts"]
+        MIX["CREDIT MIX - 10%<br/>cards, retail, installment,<br/>finance company, mortgage"]
+        NEW["NEW CREDIT - 10%<br/>recently opened accounts,<br/>hard inquiries, time since last inquiry"]
+    end
+
+    subgraph Not["NOT in the model - by law or by absence of data"]
+        Prohibited["Race, colour, religion,<br/>national origin, sex, marital status<br/>PROHIBITED by ECOA"]
+        AgeRule["Age - allowed ONLY inside an<br/>empirically derived, demonstrably and<br/>statistically sound system, 12 CFR 1002.2(p),<br/>and never as a negative for elderly applicants"]
+        NoData["Income, employment, assets,<br/>education, savings balances<br/>NOT IN A CREDIT FILE"]
+        Excluded["Soft inquiries, own-file checks,<br/>prescreen offers, insurance and<br/>employment inquiries<br/>EXCLUDED BY DESIGN"]
+    end
+
+    Weights["The percentages are population averages.<br/>For an individual file, the mix shifts:<br/>a thin file leans harder on length and new credit;<br/>a file with a recent charge-off leans almost<br/>entirely on payment history."]
+
+    FICO --> Weights
+    Not -.never reaches.-> FICO
+
+    style FICO fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Not fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Weights fill:#eceff1,stroke:#37474f,stroke-width:1px

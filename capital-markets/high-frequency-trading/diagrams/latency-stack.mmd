@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L0["Layer 0: the medium, wide area then local"]
+        A1["WIDE AREA: CME Aurora to Nasdaq Carteret, 1,179 km.<br/>Vacuum floor 3.93 ms. It cannot be bought.<br/>Ordinary fibre to Apr 2010: 7.25 to 7.95 ms.<br/>Spread Networks fibre, Aug 2010: ~6.65 ms.<br/>Microwave from Mar 2011: 4.5 ms falling to ~4.03 ms."]
+        A2["WHAT THAT COST<br/>~8 million USD capital per microwave link.<br/>15 reconstructed licensed paths, about 1/20th of all<br/>US microwave path-miles licensed in two years.<br/>~160 million USD to move 6.65 ms to ~4.1 ms.<br/>~5 million USD more closes most of the last 0.1 ms.<br/>A signal through the Earth saves ~1 km, about 3 us.<br/>There is no further route to buy. Every layer<br/>below this one exists because of that sentence."]
+        A0["LOCAL: fibre cross connect, equalised by the exchange.<br/>20.4 cm per nanosecond in silica.<br/>29.98 cm per nanosecond in air or hollow core.<br/>Every subscriber to the same carrier receives<br/>the Chicago print at the same instant."]
+        A1 --> A2 --> A0
+    end
+
+    subgraph L1["Layer 1: the switch"]
+        B0["STORE AND FORWARD: read the whole frame,<br/>check the CRC, then forward.<br/>Costs one full serialisation time."]
+        B1["CUT-THROUGH: forward after reading the<br/>destination MAC address, 6 bytes in.<br/>Costs a fraction of a frame."]
+        B2["LAYER 1 / physical layer: replicate the<br/>electrical or optical signal with no framing<br/>decision at all. Arista 7130 publishes<br/>port-to-port latency as low as 4 ns and<br/>FPGA multiplexing as low as 39 ns."]
+        B0 --> B1 --> B2
+    end
+
+    subgraph L2["Layer 2: the network interface"]
+        C0["KERNEL PATH: interrupt, DMA to kernel buffer,<br/>protocol stack, copy to user space, syscall wake.<br/>Costs microseconds and, worse, is not deterministic."]
+        C1["KERNEL BYPASS: the NIC DMAs the frame<br/>into a user-space ring buffer the application<br/>polls. No interrupt, no syscall, no copy.<br/>Hardware timestamp applied here: this is t0."]
+        C2["FULL OFFLOAD: the frame never reaches the host.<br/>An FPGA on the card parses it and can emit<br/>a response without the CPU being involved."]
+        C0 --> C1 --> C2
+    end
+
+    subgraph L3["Layer 3: decode and book build"]
+        D0["Parse the binary market data message.<br/>Fixed offsets, no delimiters, no allocation.<br/>See section 7."]
+        D1["Apply the update to the book.<br/>Add, execute, cancel, delete, replace."]
+    end
+
+    subgraph L4["Layer 4: decide"]
+        E0["Evaluate the signal. In FPGA this is a<br/>combinational comparison against pre-staged<br/>thresholds. In software it is a branch on<br/>data already resident in L1 cache."]
+    end
+
+    subgraph L5["Layer 5: emit"]
+        F0["Pre-built order template in a DMA buffer.<br/>Patch price, size, side, sequence number.<br/>Hand to the NIC. Serialise onto the wire."]
+        F1["Pre-trade risk check, SEC Rule 15c3-5.<br/>Must happen before the frame leaves.<br/>The largest software cost on the outbound path."]
+    end
+
+    L0 --> L1 --> L2 --> L3 --> L4 --> L5
+
+    style L0 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style L1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style L5 fill:#fffde7,stroke:#f9a825,stroke-width:3px

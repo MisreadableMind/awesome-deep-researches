@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Sub["Subscriber side"]
+        direction TB
+        Operator["Server operator<br/>Owns the domain, holds the<br/>private key, installs the chain"]
+        Client["ACME client<br/>certbot, acme.sh, Caddy, lego,<br/>cert-manager, Traefik<br/>Requests and renews"]
+        Server["TLS server<br/>Origin, CDN edge, load balancer.<br/>Serves leaf plus intermediates,<br/>never the root"]
+    end
+
+    subgraph CA["Issuance side"]
+        direction TB
+        RootCA["Root CA<br/>Self-signed, key offline in an<br/>HSM. Signs intermediates and<br/>almost nothing else"]
+        SubCA["Intermediate CA<br/>Online, signs subscriber<br/>certificates continuously.<br/>Rotated to limit blast radius"]
+        RA["Validation function<br/>Proves the applicant controls<br/>the name. ACME challenges,<br/>MPIC, CAA, DNSSEC"]
+        RootCA -->|"signs"| SubCA
+        RA -->|"authorises"| SubCA
+    end
+
+    subgraph Gov["Governance: who decides what is trusted"]
+        direction TB
+        RootProg["Root programs<br/>Chrome, Mozilla, Apple, Microsoft.<br/>They add and remove CAs.<br/>They are the actual regulator"]
+        CABF["CA/Browser Forum<br/>Writes the Baseline Requirements<br/>and the EV Guidelines.<br/>Browsers hold a veto"]
+        CCADB["Common CA Database<br/>Shared disclosure of roots,<br/>intermediates, CP/CPS,<br/>audits and incidents"]
+        Audit["WebTrust and ETSI auditors<br/>Annual attestation that a CA<br/>followed its own written practices"]
+    end
+
+    subgraph Trans["Public accountability"]
+        direction TB
+        CTLog["CT logs<br/>Append-only Merkle trees.<br/>48 logs, 8 operators,<br/>as of 29 Aug 2026"]
+        Monitor["Monitors<br/>crt.sh, Cert Spotter, Censys.<br/>Watch the logs for<br/>certificates naming your domain"]
+        Bugzilla["Mozilla CA Program bugs<br/>The public incident queue.<br/>228 opened in the first<br/>eight months of 2026"]
+    end
+
+    subgraph Rely["Relying parties"]
+        direction TB
+        Browser["Browsers and OS stacks<br/>Hold a trust store, build a path,<br/>enforce CT, match names"]
+        NonBrowser["Everything else<br/>curl, Java, Go, Python, IoT.<br/>Different stores, different<br/>update cadence, different bugs"]
+    end
+
+    Operator --> Client
+    Client -->|"ACME order"| RA
+    SubCA -->|"leaf certificate"| Client
+    Client --> Server
+    Server -->|"chain in the handshake"| Browser
+    SubCA -->|"precertificate"| CTLog
+    CTLog --> Monitor
+    Monitor -.->|"reports misissuance"| Bugzilla
+    Bugzilla -.->|"evidence"| RootProg
+    RootProg -.->|"includes or removes"| RootCA
+    RootProg -.->|"ships the store"| Browser
+    CABF -.->|"binds"| SubCA
+    Audit -.->|"attests"| CCADB
+    CCADB -.->|"informs"| RootProg
+    Browser --> NonBrowser
+
+    style Sub fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CA fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Gov fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Trans fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Rely fill:#eceff1,stroke:#37474f,stroke-width:2px

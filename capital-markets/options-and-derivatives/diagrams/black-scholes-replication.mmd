@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Question: what is a call worth?"]
+
+    Step1["Step 1. Assume the stock moves as<br/>dS = mu S dt + sigma S dW<br/>Percentage moves are normal,<br/>with drift mu and volatility sigma."]
+
+    Step2["Step 2. Build a portfolio:<br/>short one call, long DELTA shares.<br/>Pi = -V + DELTA x S"]
+
+    Step3["Step 3. Apply Ito's lemma to V(S,t).<br/>dV = (dV/dt + 0.5 sigma^2 S^2 d2V/dS2) dt<br/>+ (dV/dS) dS<br/>The second-derivative term appears<br/>because dW^2 = dt, not zero."]
+
+    Step4["Step 4. Choose DELTA = dV/dS.<br/>The dS terms cancel exactly.<br/>The portfolio's change no longer<br/>contains dW, and therefore<br/>no longer contains mu."]
+
+    Step5["Step 5. A portfolio with no random<br/>term must earn the risk-free rate,<br/>or an arbitrage exists.<br/>dPi = r Pi dt"]
+
+    Step6["Step 6. Equate and rearrange:<br/>dV/dt + 0.5 sigma^2 S^2 d2V/dS2<br/>+ (r - q) S dV/dS - r V = 0<br/>The Black-Scholes PDE.<br/>This derivation assumes q = 0."]
+
+    Step7["Step 7. Solve with the boundary<br/>condition V(S,T) = max(S - K, 0).<br/>C = S N(d1) - K e^(-rT) N(d2)"]
+
+    Punch["The drift mu never appears.<br/>Two traders who disagree completely<br/>about where the stock is going<br/>must agree on the option's price,<br/>because neither view survives hedging."]
+
+    Start --> Step1 --> Step2 --> Step3 --> Step4 --> Step5 --> Step6 --> Step7 --> Punch
+
+    Alt["Equivalent statement:<br/>risk-neutral valuation.<br/>Price = e^(-rT) x E*[payoff]<br/>under the measure where every<br/>asset drifts at r.<br/>Same result, different route."]
+
+    Step5 -.-> Alt
+    Alt -.-> Step7
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Step4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Step6 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Punch fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Alt fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

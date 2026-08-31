@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant API as kube-apiserver
+    participant DC as Deployment controller
+    participant RC as ReplicaSet controller
+    participant S as Scheduler
+    participant K as kubelet (3 nodes)
+    participant EP as EndpointSlice controller
+
+    Note over U,EP: Rolling update of web: 4 replicas, image v1 -> v2.<br/>maxSurge 25% -> 1 extra pod. maxUnavailable 25% -> 1 pod down.<br/>Ceiling 5 pods, floor 3 available.
+
+    U->>API: PATCH deployment/web<br/>spec.template.spec.containers[0].image = app:v2
+    API->>API: spec changed, metadata.generation 7 -> 8
+    API-->>DC: watch event
+
+    DC->>DC: hash the new pod template -> pod-template-hash=7d4b9c
+    DC->>API: CREATE ReplicaSet web-7d4b9c, replicas=0<br/>ownerReference -> Deployment web
+    DC->>API: PATCH RS web-7d4b9c replicas 0 -> 1
+    Note over DC: Surge first: 4 old + 1 new = 5, ceiling is 5
+
+    RC-->>API: CREATE pod web-7d4b9c-x9k2p
+    S->>API: Binding: node-3
+    K->>K: pull app:v2, start container, run probes
+    K->>API: PATCH pod status: Ready=True
+    EP->>API: add 10.244.3.17:8080 to EndpointSlice web-abcde
+
+    DC->>API: PATCH RS web-5f8a2e (old) replicas 4 -> 3
+    RC-->>API: DELETE pod web-5f8a2e-mm4tq
+    Note over EP,K: Deletion path: endpoint removed AND SIGTERM sent,<br/>concurrently. preStop sleep covers the gap.
+
+    loop repeat until old RS is 0 and new RS is 4
+        DC->>API: scale new RS up by 1
+        DC->>API: scale old RS down by 1
+    end
+
+    DC->>API: PATCH deployment status:<br/>conditions Progressing=True reason=NewReplicaSetAvailable,<br/>Available=True, observedGeneration=8
+
+    rect rgb(255, 243, 224)
+        Note over DC: If the new pods never become Ready,<br/>after progressDeadlineSeconds (600 default)<br/>the controller sets Progressing=False<br/>reason=ProgressDeadlineExceeded.<br/>It does NOT roll back. It stops and reports.
+    end
+
+    rect rgb(232, 245, 233)
+        Note over DC,API: Rollback = kubectl rollout undo.<br/>Copies the OLD ReplicaSet's template back into<br/>the Deployment spec. The old RS still exists<br/>(revisionHistoryLimit 10), so its pods restart<br/>without a rebuild.
+    end

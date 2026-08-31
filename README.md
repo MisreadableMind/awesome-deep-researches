@@ -16,100 +16,100 @@ The deep-dive documents we wish existed before we started building. Each one goe
 |-------|:-----------:|--------|
 | [SWIFT & SEPA](payment-systems/swift-and-sepa/) | 12 | ✅ Done |
 | [Visa & Mastercard](payment-systems/visa-and-mastercard/) | 13 | ✅ Done |
-| ACH / Fedwire / CHIPS: US domestic rails | | 🗓️ Planned |
-| Real-Time Payments: FedNow, UPI, PIX, Faster Payments | | 🗓️ Planned |
+| [ACH / Fedwire / CHIPS: US domestic rails](payment-systems/ach-fedwire-chips/) | 16 | ✅ Done |
+| [Real-Time Payments: FedNow, UPI, Pix, Faster Payments](payment-systems/real-time-payments/) | 20 | ✅ Done |
 | [Mobile Wallets: Apple Pay, Google Pay internals](payment-systems/mobile-wallets/) | 13 | ✅ Done |
 | [Buy Now Pay Later: Klarna, Affirm underwriting](payment-systems/buy-now-pay-later/) | 13 | ✅ Done |
-| Cross-border Remittance: Wise, Western Union | | 🗓️ Planned |
+| [Cross-border Remittance: Wise, Western Union](payment-systems/cross-border-remittance/) | 16 | ✅ Done |
 
 ### 🏦 [`banking-infrastructure/`](banking-infrastructure/) — How banks work internally
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Commercial Banks: fractional reserve, balance sheets, lending | | 🗓️ Planned |
-| Central Banking & Monetary Policy: Fed, ECB, rate mechanics | | 🗓️ Planned |
-| Core Banking Systems: Temenos, FIS, Mambu ledger architecture | | 🗓️ Planned |
+| [Commercial Banks: fractional reserve, balance sheets, lending](banking-infrastructure/commercial-banks/) | 20 | ✅ Done |
+| [Central Banking & Monetary Policy: Fed, ECB, rate mechanics](banking-infrastructure/central-banking/) | 16 | ✅ Done |
+| [Core Banking Systems: Temenos, FIS, Mambu ledger architecture](banking-infrastructure/core-banking-systems/) | 16 | ✅ Done |
 | [KYC / AML Systems: identity verification, transaction monitoring](banking-infrastructure/kyc-aml-systems/) | 14 | ✅ Done |
-| Credit Scoring: FICO, credit bureaus, scoring models | | 🗓️ Planned |
-| Deposit Insurance: FDIC, DGS | | 🗓️ Planned |
+| [Credit Scoring: FICO, credit bureaus, scoring models](banking-infrastructure/credit-scoring/) | 16 | ✅ Done |
+| [Deposit Insurance: FDIC, DGS](banking-infrastructure/deposit-insurance/) | 16 | ✅ Done |
 
 ### 📈 [`capital-markets/`](capital-markets/) — How securities are traded, cleared, settled
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Stock Exchanges: NYSE, NASDAQ order matching & order books | | 🗓️ Planned |
-| FIX Protocol & Trading Infrastructure | | 🗓️ Planned |
-| Clearing & Settlement: DTCC, CCP, T+1 | | 🗓️ Planned |
+| [Stock Exchanges: NYSE, NASDAQ order matching & order books](capital-markets/stock-exchanges/) | 16 | ✅ Done |
+| [FIX Protocol & Trading Infrastructure](capital-markets/fix-protocol/) | 16 | ✅ Done |
+| [Clearing & Settlement: DTCC, CCP, T+1](capital-markets/clearing-and-settlement/) | 19 | ✅ Done |
 | [Bond Markets: government, corporate, yield curves](capital-markets/bond-markets/) | 14 | ✅ Done |
-| Options & Derivatives: pricing, Greeks, exchange mechanics | | 🗓️ Planned |
-| High-Frequency Trading: co-location, market making, latency | | 🗓️ Planned |
-| Index Funds & ETFs: creation/redemption, tracking | | 🗓️ Planned |
+| [Options & Derivatives: pricing, Greeks, exchange mechanics](capital-markets/options-and-derivatives/) | 21 | ✅ Done |
+| [High-Frequency Trading: co-location, market making, latency](capital-markets/high-frequency-trading/) | 16 | ✅ Done |
+| [Index Funds & ETFs: creation/redemption, tracking](capital-markets/index-funds-and-etfs/) | 16 | ✅ Done |
 
 ### ⛓️ [`crypto-and-blockchain/`](crypto-and-blockchain/) — How decentralized systems work
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Bitcoin Protocol: UTXO, mining, consensus, mempool | | 🗓️ Planned |
-| Ethereum & EVM: accounts, gas, smart contracts | | 🗓️ Planned |
-| Layer 2 Solutions: Lightning Network, rollups, state channels | | 🗓️ Planned |
-| Stablecoins: USDC, USDT reserve mechanics, minting/burning | | 🗓️ Planned |
-| DeFi Protocols: AMMs, lending pools, liquidation engines | | 🗓️ Planned |
-| Bridges & Cross-chain: how assets move between chains | | 🗓️ Planned |
+| [Bitcoin Protocol: UTXO, mining, consensus, mempool](crypto-and-blockchain/bitcoin-protocol/) | 16 | ✅ Done |
+| [Ethereum & EVM: accounts, gas, smart contracts](crypto-and-blockchain/ethereum-and-evm/) | 16 | ✅ Done |
+| [Layer 2 Solutions: Lightning Network, rollups, state channels](crypto-and-blockchain/layer-2-solutions/) | 16 | ✅ Done |
+| [Stablecoins: USDC, USDT reserve mechanics, minting/burning](crypto-and-blockchain/stablecoins/) | 16 | ✅ Done |
+| [DeFi Protocols: AMMs, lending pools, liquidation engines](crypto-and-blockchain/defi-protocols/) | 16 | ✅ Done |
+| [Bridges & Cross-chain: how assets move between chains](crypto-and-blockchain/bridges-and-cross-chain/) | 16 | ✅ Done |
 
 ### 🛡️ [`insurance/`](insurance/) — How risk is pooled, priced, transferred
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
 | [Insurance Underwriting: risk pools, premium pricing](insurance/underwriting/) | 14 | ✅ Done |
-| Reinsurance: Lloyd's, treaty vs facultative | | 🗓️ Planned |
-| Claims Processing: FNOL, adjustment, subrogation | | 🗓️ Planned |
+| [Reinsurance: Lloyd's, treaty vs facultative](insurance/reinsurance/) | 16 | ✅ Done |
+| [Claims Processing: FNOL, adjustment, subrogation](insurance/claims-processing/) | 17 | ✅ Done |
 
 ### ☁️ [`cloud-and-infrastructure/`](cloud-and-infrastructure/) — How cloud platforms operate
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| AWS / GCP / Azure Architecture: regions, AZs, control planes | | 🗓️ Planned |
+| [AWS / GCP / Azure Architecture: regions, AZs, control planes](cloud-and-infrastructure/cloud-provider-architecture/) | 16 | ✅ Done |
 | [CDNs: Cloudflare, Akamai caching, edge routing, Anycast](cloud-and-infrastructure/cdns/) | 13 | ✅ Done |
-| DNS: resolution chain, registrars, root servers | | 🗓️ Planned |
-| Container Orchestration: Kubernetes scheduler, etcd, kubelet | | 🗓️ Planned |
-| Load Balancing: L4 vs L7, health checks, algorithms | | 🗓️ Planned |
+| [DNS: resolution chain, registrars, root servers](cloud-and-infrastructure/dns/) | 17 | ✅ Done |
+| [Container Orchestration: Kubernetes scheduler, etcd, kubelet](cloud-and-infrastructure/container-orchestration/) | 15 | ✅ Done |
+| [Load Balancing: L4 vs L7, health checks, algorithms](cloud-and-infrastructure/load-balancing/) | 16 | ✅ Done |
 
 ### 🗄️ [`databases-and-storage/`](databases-and-storage/) — How data is stored, queried, replicated
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| PostgreSQL Internals: MVCC, WAL, query planner, vacuum | | 🗓️ Planned |
-| Redis Internals: data structures, persistence, clustering | | 🗓️ Planned |
-| Distributed Databases: Spanner, CockroachDB, Cassandra consensus | | 🗓️ Planned |
-| Message Queues: Kafka, RabbitMQ partitioning, delivery guarantees | | 🗓️ Planned |
-| Object Storage: S3 internals, eventual consistency, erasure coding | | 🗓️ Planned |
+| [PostgreSQL Internals: MVCC, WAL, query planner, vacuum](databases-and-storage/postgresql-internals/) | 19 | ✅ Done |
+| [Redis Internals: data structures, persistence, clustering](databases-and-storage/redis-internals/) | 21 | ✅ Done |
+| [Distributed Databases: Spanner, CockroachDB, Cassandra consensus](databases-and-storage/distributed-databases/) | 16 | ✅ Done |
+| [Message Queues: Kafka, RabbitMQ partitioning, delivery guarantees](databases-and-storage/message-queues/) | 16 | ✅ Done |
+| [Object Storage: S3 internals, eventual consistency, erasure coding](databases-and-storage/object-storage/) | 16 | ✅ Done |
 
 ### 🌐 [`networking-and-protocols/`](networking-and-protocols/) — How data moves across networks
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| TCP/IP Deep Dive: handshake, congestion control, windowing | | 🗓️ Planned |
-| TLS/SSL: certificate chain, handshake, cipher negotiation | | 🗓️ Planned |
-| HTTP/2 & HTTP/3 / QUIC: multiplexing, 0-RTT, UDP transport | | 🗓️ Planned |
-| BGP Routing: AS paths, peering, route hijacking | | 🗓️ Planned |
-| WebSockets & Real-time: upgrade handshake, framing, heartbeat | | 🗓️ Planned |
+| [TCP/IP Deep Dive: handshake, congestion control, windowing](networking-and-protocols/tcp-ip/) | 16 | ✅ Done |
+| [TLS/SSL: certificate chain, handshake, cipher negotiation](networking-and-protocols/tls-and-ssl/) | 16 | ✅ Done |
+| [HTTP/2 & HTTP/3 / QUIC: multiplexing, 0-RTT, UDP transport](networking-and-protocols/http2-and-http3/) | 16 | ✅ Done |
+| [BGP Routing: AS paths, peering, route hijacking](networking-and-protocols/bgp-routing/) | 16 | ✅ Done |
+| [WebSockets & Real-time: upgrade handshake, framing, heartbeat](networking-and-protocols/websockets-and-realtime/) | 17 | ✅ Done |
 
 ### 🔐 [`auth-and-identity/`](auth-and-identity/) — How auth and identity work
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
 | [OAuth 2.0 / OpenID Connect: grant flows, tokens, PKCE](auth-and-identity/oauth2-and-openid-connect/) | 14 | ✅ Done |
-| PKI & Certificates: CA hierarchy, X.509, certificate transparency | | 🗓️ Planned |
-| SAML & SSO: federation, assertions, service providers | | 🗓️ Planned |
-| Passkeys / WebAuthn / FIDO2: challenge-response, attestation | | 🗓️ Planned |
+| [PKI & Certificates: CA hierarchy, X.509, certificate transparency](auth-and-identity/pki-and-certificates/) | 16 | ✅ Done |
+| [SAML & SSO: federation, assertions, service providers](auth-and-identity/saml-and-sso/) | 17 | ✅ Done |
+| [Passkeys / WebAuthn / FIDO2: challenge-response, attestation](auth-and-identity/passkeys-and-webauthn/) | 21 | ✅ Done |
 
 ### 🔍 [`search-and-data/`](search-and-data/) — How search and analytics engines work
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Elasticsearch / Lucene: inverted index, scoring, sharding | | 🗓️ Planned |
+| [Elasticsearch / Lucene: inverted index, scoring, sharding](search-and-data/elasticsearch-and-lucene/) | 17 | ✅ Done |
 | [Recommendation Systems: collaborative filtering, embeddings](search-and-data/recommendation-systems/) | 14 | ✅ Done |
-| [Data Warehouses: columnar storage, MPP, Snowflake/BigQuery](search-and-data/data-warehouses/) | 14 | ✅ Done |
+| [Data Warehouses: columnar storage, MPP, Snowflake/BigQuery](search-and-data/data-warehouses/) | 15 | ✅ Done |
 
 ---
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      11 researches (148 diagrams)
-Planned:   40 researches
+Done:      51 researches (822 diagrams)
+Planned:   0 researches
 Categories: 10
 ```
 

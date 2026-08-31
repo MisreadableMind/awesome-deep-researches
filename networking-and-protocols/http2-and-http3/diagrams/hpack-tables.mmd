@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Index["The index space, RFC 7541 section 2.3.3"]
+        direction TB
+        I1["Indices 1 to 61: static table.<br/>Fixed, defined in RFC 7541<br/>Appendix A, never changes.<br/>2 = :method GET<br/>4 = :path /<br/>7 = :scheme https<br/>8 = :status 200<br/>16 = accept-encoding: gzip, deflate"]
+        I2["Indices 62 upward: dynamic table.<br/>FIFO, newest entry is index 62.<br/>Inserting shifts every existing<br/>entry's index up by one."]
+    end
+
+    subgraph Repr["Four representations, RFC 7541 section 6"]
+        direction TB
+        R1["1xxxxxxx Indexed Header Field.<br/>7-bit prefix index. One byte for<br/>indices 1-126. :method GET is 0x82."]
+        R2["01xxxxxx Literal with Incremental<br/>Indexing. 6-bit prefix name index,<br/>0 means the name is literal too.<br/>Adds the entry to the dynamic table."]
+        R3["0000xxxx Literal without Indexing.<br/>4-bit prefix. Sent but not stored."]
+        R4["0001xxxx Literal Never Indexed.<br/>4-bit prefix. Sent, not stored, and<br/>intermediaries MUST NOT index it.<br/>This is the anti-CRIME control."]
+    end
+
+    subgraph Size["Table accounting, RFC 7541 section 4.1"]
+        direction TB
+        S1["Entry size = len(name) + len(value) + 32.<br/>The 32-octet constant is a stated<br/>estimate of per-entry pointer and<br/>bookkeeping overhead."]
+        S2["Table capacity defaults to 4,096<br/>octets, negotiated by<br/>SETTINGS_HEADER_TABLE_SIZE."]
+        S3["Insertion evicts from the tail until<br/>the new entry fits. An entry larger<br/>than the whole table empties it and<br/>is not inserted."]
+    end
+
+    subgraph Huff["String literals"]
+        direction TB
+        U1["001xxxxx Dynamic Table Size Update.<br/>5-bit prefix new capacity."]
+        U2["String length carries an H bit.<br/>H=1 means the octets are Huffman<br/>coded with the static table in<br/>RFC 7541 Appendix B, built from<br/>a large sample of HTTP headers."]
+        U3["Huffman saves roughly 20-30% on<br/>ASCII header values. The encoder<br/>MUST choose the shorter of the<br/>coded and raw forms."]
+    end
+
+    subgraph Ordering["Why HPACK cannot work on QUIC"]
+        direction TB
+        O1["The dynamic table is shared state<br/>mutated in field-block order."]
+        O2["Block N's indices are only meaningful<br/>after block N-1 has been applied."]
+        O3["QUIC delivers streams out of order,<br/>so HPACK would reintroduce<br/>head-of-line blocking. QPACK exists<br/>for this reason alone."]
+    end
+
+    Index --> Repr
+    Repr --> Size
+    Size --> Huff
+    Huff --> Ordering
+
+    style Index fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Repr fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Size fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Huff fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Ordering fill:#ffebee,stroke:#b71c1c,stroke-width:3px

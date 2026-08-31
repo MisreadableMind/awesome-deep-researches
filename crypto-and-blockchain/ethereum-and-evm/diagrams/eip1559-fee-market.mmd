@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Set["Where the base fee comes from"]
+        P["Parent block<br/>gasLimit 60,000,000<br/>gasUsed 39,118,020<br/>baseFee 0.218047662 gwei"]
+        Tgt["gasTarget = gasLimit / 2<br/>= 30,000,000<br/>ELASTICITY_MULTIPLIER = 2"]
+        Delta["delta = parentBaseFee<br/>x (used - target) / target / 8<br/>BASE_FEE_MAX_CHANGE_DENOMINATOR = 8"]
+        Child["Child baseFee<br/>= 0.218047662 + 0.008284<br/>= 0.226332 gwei, up 3.80 percent"]
+    end
+
+    subgraph Bound["The bound that matters"]
+        B1["At most plus or minus 12.5 percent<br/>per block"]
+        B2["Twenty consecutive full blocks<br/>multiply the base fee by ten.<br/>That is four minutes"]
+        B3["The base fee cannot be bid up<br/>within a block. Only position<br/>inside the block is auctioned"]
+    end
+
+    subgraph Pay["What the sender pays"]
+        M1["maxFeePerGas<br/>the ceiling. Reverts nothing,<br/>simply excludes the transaction<br/>while baseFee is above it"]
+        M2["maxPriorityFeePerGas<br/>the tip offered to the proposer"]
+        M3["priorityFee = min(maxPriority,<br/>maxFee - baseFee)"]
+        M4["effectiveGasPrice<br/>= baseFee + priorityFee"]
+        M5["charge = gasUsed x effectiveGasPrice.<br/>The rest of the reserved<br/>gasLimit is never taken"]
+    end
+
+    subgraph Split["Where the money goes"]
+        Burn["baseFee x gasUsed<br/>burned, removed from supply"]
+        Tip["priorityFee x gasUsed<br/>to the fee recipient,<br/>in practice a block builder"]
+    end
+
+    P --> Tgt --> Delta --> Child
+    Child --> Bound
+    M1 --> M3
+    M2 --> M3
+    M3 --> M4 --> M5
+    M5 --> Burn
+    M5 --> Tip
+
+    style Set fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Bound fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Pay fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Split fill:#fce4ec,stroke:#880e4f,stroke-width:2px

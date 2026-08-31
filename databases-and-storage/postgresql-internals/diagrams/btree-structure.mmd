@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    META["Meta page - block 0<br/>points at the current root,<br/>records the tree level"]
+
+    ROOT["Root page, level 2<br/>high key is plus infinity<br/>downlink 1 to page A, downlink 3400001 to page B"]
+
+    I1["Internal page A, level 1<br/>high key = 3400001<br/>downlinks to leaves L1..L400"]
+    I2["Internal page B, level 1<br/>high key is plus infinity<br/>downlinks to leaves L401..L800"]
+
+    L1["Leaf L1<br/>high key = 4712<br/>entries 1..4711<br/>each: IndexTupleData 8B<br/>+ key + 6-byte heap TID"]
+    L2["Leaf L2<br/>high key = 9423<br/>entries 4712..9422"]
+    L3["Leaf L3<br/>high key = 14134"]
+
+    META --> ROOT
+    ROOT --> I1
+    ROOT --> I2
+    I1 --> L1
+    I1 --> L2
+    I1 --> L3
+
+    L1 -.->|"btpo_next - right link"| L2
+    L2 -.->|"btpo_next"| L3
+    L2 -.->|"btpo_prev - Postgres addition<br/>for backward scans"| L1
+
+    subgraph LY["Lehman and Yao, as modified by PostgreSQL"]
+        direction TB
+        LY1["Every page carries a HIGH KEY:<br/>an upper bound on every key<br/>at or below that page."]
+        LY2["A split adds a right link before<br/>the parent learns about the new page.<br/>A reader that overshoots follows the<br/>right link and still finds its key."]
+        LY3["PostgreSQL still takes page-level<br/>read locks, because buffers are shared<br/>between backends. Lehman and Yao<br/>assumed private in-memory pages."]
+        LY4["Deletion is two-stage: half-dead,<br/>then unlinked. The tombstone lets<br/>concurrent scans recover."]
+        LY1 --> LY2 --> LY3 --> LY4
+    end
+
+    subgraph MOD["Modern btree additions"]
+        direction TB
+        M1["PostgreSQL 12: suffix truncation<br/>and heap TID as a final tiebreaker column,<br/>so duplicates are stored in heap order"]
+        M2["PostgreSQL 13: deduplication.<br/>Equal keys collapse into one posting-list<br/>tuple holding an array of heap TIDs."]
+        M3["PostgreSQL 14: bottom-up index deletion.<br/>Before splitting a page, check whether the<br/>duplicates are dead version churn and<br/>delete them instead of splitting."]
+        M4["PostgreSQL 18: skip scan.<br/>An index on (a, b) can serve<br/>WHERE b = 7 by iterating the<br/>distinct values of a."]
+        M1 --> M2 --> M3 --> M4
+    end
+
+    L1 -.-> LY
+    L3 -.-> MOD
+
+    LIMIT["BTMaxItemSize = 2704 bytes on an 8kB page.<br/>Three items must fit: a high key and two data items.<br/>A longer key raises<br/>'index row size exceeds btree version 4 maximum'."]
+    MOD --> LIMIT
+
+    style META fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style ROOT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style LY fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MOD fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LIMIT fill:#ffebee,stroke:#c62828,stroke-width:2px

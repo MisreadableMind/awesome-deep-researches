@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    M["Black-Scholes assumes ONE sigma<br/>for every strike and every expiry.<br/>If that were true, inverting market<br/>prices would give a flat line."]
+
+    M --> Obs["Observed: it does not.<br/>US equity index options showed<br/>no significant smile before<br/>October 1987. They have shown<br/>one every day since."]
+
+    Obs --> Demo["Demonstration from first principles"]
+
+    subgraph Demo2["Price under a non-lognormal distribution, then invert Black-Scholes"]
+        direction TB
+        X1["Assume 97% chance of a calm<br/>regime, sigma = 16%,<br/>and 3% chance of a crash regime,<br/>sigma = 45% with an 18% down shift.<br/>S = 100, T = 90/365, r = 4%"]
+        X2["Price every strike exactly<br/>under that mixture"]
+        X3["Invert Black-Scholes strike by strike"]
+    end
+
+    Demo --> Demo2
+
+    Demo2 --> Res["Result: implied vol of<br/>32.66% at the 70 strike,<br/>19.51% at 90,<br/>17.28% at the money,<br/>16.81% at 110,<br/>18.54% at 130.<br/>A downward skew with<br/>an upturned right wing."]
+
+    Res --> Why["The smile is not a market anomaly.<br/>It is the arithmetic shadow of a<br/>distribution the model cannot express."]
+
+    subgraph Names["Terminology"]
+        direction TB
+        N1["Skew: monotone downward slope.<br/>Equity indices."]
+        N2["Smile: valley shape, both wings up.<br/>FX, single stocks."]
+        N3["Smirk: asymmetric smile."]
+        N4["Term structure: IV against expiry."]
+        N5["Surface: IV over strike AND expiry."]
+    end
+
+    subgraph Fix["Modelling responses"]
+        direction TB
+        F1["Local volatility (Dupire):<br/>fits the surface exactly.<br/>Poor dynamics."]
+        F2["Stochastic volatility<br/>(Heston, SABR): few parameters,<br/>sensible extrapolation,<br/>imperfect fit."]
+        F3["Jump-diffusion (Merton):<br/>directly models the mechanism<br/>producing the wings."]
+        F4["Honest description: all three<br/>are interpolators that differ<br/>in how they extrapolate."]
+    end
+
+    Why --> Names
+    Why --> Fix
+
+    style M fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Demo2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Res fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Why fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Names fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fix fill:#e0f7fa,stroke:#006064,stroke-width:2px

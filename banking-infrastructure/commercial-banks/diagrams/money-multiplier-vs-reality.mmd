@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Textbook["THE TEXTBOOK STORY - wrong"]
+        direction TB
+        T1["Central bank sets the<br/>quantity of reserves"]
+        T2["Saver deposits 1,000<br/>at Bank A"]
+        T3["Bank A keeps 100 as required reserves,<br/>lends out 900"]
+        T4["900 is redeposited at Bank B,<br/>which lends out 810"]
+        T5["Geometric series converges.<br/>Deposits = reserves divided by<br/>the required ratio"]
+        T6["Multiplier = 1 / 0.10 = 10x"]
+        T1 --> T2 --> T3 --> T4 --> T5 --> T6
+    end
+
+    subgraph Reality["WHAT ACTUALLY HAPPENS"]
+        direction TB
+        R1["Bank finds a profitable<br/>lending opportunity at the<br/>policy rate the central bank set"]
+        R2["Bank writes a loan and<br/>simultaneously writes a deposit.<br/>Both sides of the sheet grow."]
+        R3["The deposit IS the new money.<br/>Nothing was lent out."]
+        R4["Bank now needs reserves for<br/>settlement, withdrawals and<br/>the LCR"]
+        R5["Central bank supplies reserves<br/>on demand at its policy rate"]
+        R6["Causation runs from loans<br/>to deposits to reserves.<br/>The multiplier runs in reverse."]
+        R1 --> R2 --> R3 --> R4 --> R5 --> R6
+    end
+
+    subgraph Evidence["THE EVIDENCE"]
+        direction TB
+        E1["US required reserve ratio<br/>= 0% since 26 March 2020.<br/>Lending did not become infinite."]
+        E2["Bank of England has had no formal<br/>reserve requirement since 1981<br/>and its banks still lend."]
+        E3["Carpenter and Demiralp 2012:<br/>changes in reserve quantities are<br/>unrelated to changes in lending"]
+        E4["Fed reserves grew from 1.5 trn to<br/>4.2 trn under QE, 2019 to 2021.<br/>Bank lending grew far less."]
+    end
+
+    Textbook -.contradicted by.-> Evidence
+    Reality -.supported by.-> Evidence
+
+    style Textbook fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Reality fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Evidence fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

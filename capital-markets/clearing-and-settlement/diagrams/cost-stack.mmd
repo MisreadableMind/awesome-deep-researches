@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Fees["Layer 1 - the invoice, measured in dollars"]
+        F1["Into the net: 0.44 USD per million<br/>of gross positions before netting"]
+        F2["Out of the net: 2.16 USD per million<br/>of net positions after netting"]
+        F3["Participant fee: 300 USD per month<br/>per account number"]
+        F4["Worked case: 2 bn USD gross netting to 40 m<br/>pays 880 USD in and 86.40 USD out,<br/>966.40 USD in total"]
+    end
+
+    subgraph Coll["Layer 2 - the collateral, measured in billions"]
+        C1["DTCC aggregate clearing fund requirement:<br/>96.3 bn USD at 30 June 2025,<br/>up 30.7 bn year on year"]
+        C2["First 40 percent of an NSCC deposit in cash,<br/>never less than 250,000 USD"]
+        C3["DTC Participants Fund: 1.15 bn USD required,<br/>plus a Required Preferred Stock Investment"]
+        C4["Opportunity cost: collateral return<br/>instead of a business return,<br/>every day, permanently"]
+    end
+
+    subgraph Hidden["Layer 3 - the costs on no invoice"]
+        H1["Capital charge on exposures to the CCP"]
+        H2["Funding cost of the collateral itself"]
+        H3["Staff who clear exceptions"]
+        H4["Systems carrying standing settlement instructions"]
+    end
+
+    subgraph Inc["Who ends up paying"]
+        I1["Clearing broker<br/>pays the fees, funds the Clearing Fund"]
+        I2["Introducing broker<br/>pays a clearing fee per ticket"]
+        I3["Retail customer<br/>commission, or order flow payment,<br/>margin lending and cash sweep income"]
+        I4["Asset owner<br/>basis points on assets under custody"]
+        I1 --> I2 --> I3
+        I1 --> I4
+    end
+
+    Fees --> Inc
+    Coll --> Inc
+    Hidden --> Inc
+
+    Punch["About 63 USD per 100 m USD of gross value traded<br/>in fees. Roughly 96 bn USD standing still<br/>in collateral. The fee is not the cost."]
+    Inc --> Punch
+
+    style Fees fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Coll fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Hidden fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Inc fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Punch fill:#ffebee,stroke:#b71c1c,stroke-width:2px

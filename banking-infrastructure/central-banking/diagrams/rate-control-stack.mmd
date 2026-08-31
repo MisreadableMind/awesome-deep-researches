@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Top["FOMC target range<br/>3.50 to 3.75 percent<br/>set 10 December 2025,<br/>unchanged through 29 July 2026"]
+
+    subgraph Ceilings["Above the range - the ceiling"]
+        direction TB
+        C1["Secondary credit: 4.25 percent<br/>For institutions not in<br/>sound condition. Penal by design."]
+        C2["Primary credit: 3.75 percent<br/>The discount window.<br/>Up to 90 days, any collateral<br/>the Reserve Bank accepts."]
+        C3["Standing repo: 3.75 percent<br/>Twice daily, 8:15 and 13:30 ET.<br/>Full allotment, no aggregate cap.<br/>Treasuries, agency debt, agency MBS."]
+    end
+
+    subgraph Middle["Inside the range - the market"]
+        direction TB
+        M1["EFFR: 3.63 percent<br/>27 August 2026, volume 111 billion USD<br/>Volume-weighted median of<br/>overnight fed funds trades"]
+        M2["SOFR: 3.64 percent<br/>volume 2,836 billion USD<br/>Treasury repo. The rate<br/>that actually prices credit."]
+        M3["OBFR: 3.63 percent, 220 billion USD<br/>Fed funds plus eurodollars<br/>plus selected deposits"]
+    end
+
+    subgraph Floors["At and below the range - the floor"]
+        direction TB
+        F1["IORB: 3.65 percent<br/>Paid on every reserve dollar.<br/>Set by the Board of Governors,<br/>not by the FOMC."]
+        F2["ON RRP: 3.50 percent<br/>12:45 to 13:15 ET daily.<br/>160 billion USD per counterparty.<br/>Take-up 175 million USD on 28 Aug 2026."]
+    end
+
+    Top --> Ceilings
+    Top --> Middle
+    Top --> Floors
+
+    Ceilings -->|"caps upside:<br/>no one pays more than<br/>the Fed will lend at"| Middle
+    Floors -->|"caps downside:<br/>no one lends below<br/>what the Fed pays"| Middle
+
+    subgraph Why["Why EFFR sits below IORB"]
+        direction TB
+        W1["Federal Home Loan Banks lend<br/>most of the fed funds volume<br/>and earn no IORB, so they<br/>accept less than 3.65 percent."]
+        W2["The banks that borrow from them<br/>do earn IORB, and keep<br/>the 2 basis point spread<br/>less their balance sheet cost."]
+        W3["Result: a 111 billion USD market<br/>with almost no bank-to-bank<br/>lending sets the rate the<br/>FOMC targets."]
+    end
+
+    Middle --> Why
+
+    style Top fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Ceilings fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Middle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Floors fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Why fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

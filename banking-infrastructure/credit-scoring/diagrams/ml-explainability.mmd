@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Model["The model choice"]
+        Logit["LOGISTIC REGRESSION ON WOE BINS<br/>+ reason codes fall out of the points table<br/>+ monotone by construction<br/>+ examiner can read it<br/>- misses interactions unless hand-coded<br/>- lower AUC"]
+        GBM["GRADIENT-BOOSTED TREES / NEURAL NETS<br/>+ captures interactions automatically<br/>+ higher AUC, typically 1 to 4 Gini points<br/>- no native reason codes<br/>- non-monotone unless constrained<br/>- opaque without post-hoc tooling"]
+    end
+
+    subgraph Law["What the law requires regardless"]
+        ECOA["ECOA 15 U.S.C. 1691(d)(3) and<br/>12 CFR 1002.9(b)(2):<br/>reasons must be SPECIFIC, indicate the<br/>PRINCIPAL reasons, and 'relate to and<br/>accurately describe the factors actually<br/>considered or scored by a creditor'"]
+        FCRA["FCRA 15 U.S.C. 1681g(f)(1)(C):<br/>key factors that adversely affected the<br/>score, at most 4, listed in order of<br/>importance by effect on the score.<br/>Inquiries exempt from the cap, 1681g(f)(9)"]
+        RegB["12 CFR 1002.2(p): age is usable only in an<br/>empirically derived, demonstrably and<br/>statistically sound system.<br/>Comment 2(p)-4: besides age, no other<br/>prohibited basis may be used as a variable."]
+    end
+
+    subgraph Bridge["Making a GBM comply"]
+        Mono["MONOTONIC CONSTRAINTS<br/>Force each feature's effect to run one way.<br/>Costs a little AUC. Buys defensibility:<br/>'more delinquency never helps' is provable."]
+        SHAP["SHAPLEY ATTRIBUTION<br/>Per-applicant contribution of each feature.<br/>Additive, sums exactly to the prediction.<br/>Rank features, map top 4 to reason text."]
+        Base["THE BASELINE PROBLEM<br/>SHAP explains against a reference point.<br/>Against the population mean, the reasons<br/>differ from those against the approval cutoff.<br/>The choice of baseline changes the notice.<br/>The statute does not name a baseline."]
+        Map["REASON CODE MAPPING<br/>Model features are engineered attributes<br/>('utilisation slope, 6 months, bankcard').<br/>Notices must be readable.<br/>The mapping table is where compliance<br/>lives, and where it usually fails."]
+        Mono --> SHAP --> Base --> Map
+    end
+
+    Logit -.higher accuracy available.-> GBM
+    GBM --> Bridge
+    Law -.constrains.-> Bridge
+    Map --> Notice["Adverse action notice<br/>with 4 specific principal reasons"]
+
+    style Model fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Law fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Bridge fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Notice fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

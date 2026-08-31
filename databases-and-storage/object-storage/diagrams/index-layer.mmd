@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Indexed["Indexed placement - S3, Azure Blob, GCS"]
+        direction TB
+        I1["GET bucket/key"]
+        I2["Look up the index record<br/>key plus version to shard locations"]
+        I3["Fetch shards from the named disks"]
+        I4["Costs one metadata round trip per request"]
+        I5["Buys arbitrary re-placement: a shard can<br/>move without telling any client"]
+        I6["Costs a blast radius: the index is on the<br/>path of every GET, PUT, LIST and DELETE"]
+        I1 --> I2 --> I3
+        I2 --> I4
+        I2 --> I5
+        I2 --> I6
+    end
+
+    subgraph Algorithmic["Algorithmic placement - Ceph RADOS, Swift"]
+        direction TB
+        A1["GET pool/object"]
+        A2["hash of the object name, modulo<br/>the placement group count"]
+        A3["CRUSH maps the placement group to an<br/>ordered list of OSDs using the cluster map"]
+        A4["The client talks straight to the primary OSD"]
+        A5["Costs nothing per request: no lookup"]
+        A6["Buys no blast radius from a metadata tier"]
+        A7["Costs rebalancing: changing the topology<br/>moves data because the function changed"]
+        A1 --> A2 --> A3 --> A4
+        A3 --> A5
+        A3 --> A6
+        A3 --> A7
+    end
+
+    Evidence["Public evidence that the S3 index exists:<br/>the 28 February 2017 postmortem names the index<br/>subsystem as holding metadata and location for all<br/>objects in the Region, and required for every GET,<br/>LIST, PUT and DELETE. Restarting it took from<br/>09:37 to 13:18 PST. The fix was to partition it into<br/>smaller cells to cut the blast radius."]
+
+    Indexed --> Evidence
+
+    style Indexed fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Algorithmic fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Evidence fill:#ffebee,stroke:#b71c1c,stroke-width:2px

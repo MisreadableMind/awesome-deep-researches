@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant M as Clearing member
+    participant N as NSCC
+    participant D as DTC
+    participant SB as Settling bank
+    participant F as Federal Reserve NSS
+
+    Note over M,N: Trade date, evening
+    N->>N: UTC validates locked-in trades<br/>trade guaranty attaches on validation
+    N->>M: Consolidated Trade Summary<br/>net long or short position per issue
+    M->>N: Exemptions and standing priority requests
+
+    Note over N,D: Night cycle, evening before settlement
+    N->>D: Pass CNS positions to each member's<br/>Designated Depository account
+    D->>D: Sweep short positions, free of payment,<br/>into NSCC account 888
+    D->>D: Allocate long positions by priority group,<br/>then by age of position
+    D->>M: CNS Settlement Activity Statement
+
+    Note over M,N: Settlement date, 10:00 a.m.
+    N->>M: Required Fund Deposit deficit call
+    M->>N: Cash, at least 40 percent of the requirement
+
+    Note over M,D: Day cycle, continuous
+    M->>D: Deliver orders and payment orders
+    D->>D: Check deliverer's position and collateral monitor,<br/>receiver's collateral monitor and net debit cap
+    alt Controls satisfied
+        D->>D: Complete, debit receiver, credit deliverer
+    else Controls breached
+        D->>D: Recycle in the pend queue<br/>look-ahead may pair offsetting deliveries
+    end
+
+    Note over D: 3:00 p.m. forced RAD begins
+    Note over D: 3:10 p.m. valued recycle cutoff, unfilled transactions drop
+    Note over D: 3:20 p.m. cutoff for valued deliver orders
+    Note over D: 3:30 p.m. cutoff for RAD approval and pledge release approval
+    D->>D: 3:45 p.m. calculate DTC and NSCC cross-endorsement balances
+    D->>SB: 3:45 p.m. final net-net settlement balances
+    SB->>D: Acknowledge or refuse, by 4:15 p.m. at the earliest
+    D->>F: ~4:30 p.m. NSS file debits and credits settling bank accounts
+    F-->>D: Funds moved in central bank money
+    D->>M: ~5:00 p.m. risk management controls lifted, settlement final

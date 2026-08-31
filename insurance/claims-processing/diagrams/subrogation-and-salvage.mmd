@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Loss["Insurer pays its own insured<br/>under the policy"] --> Two{"Two independent<br/>recovery routes"}
+
+    Two --> SubPath["Subrogation<br/>recover from whoever<br/>caused the loss"]
+    Two --> SalPath["Salvage<br/>recover from what is<br/>left of the property"]
+
+    subgraph Sub["Subrogation Mechanics"]
+        Ident["Identify at FNOL<br/>third party, product defect,<br/>contractor, premises owner"]
+        Preserve["Preserve evidence<br/>spoliation destroys the claim.<br/>Hold the appliance, the wiring, the tyre"]
+        Right["Insurer stands in the shoes<br/>of the insured. The claim is<br/>wholly derivative"]
+        Demand["Demand to the adverse carrier<br/>electronically, with the estimate,<br/>payment proof and liability evidence"]
+        Resp{"Adverse carrier accepts<br/>liability and amount?"}
+        Arb["Intercompany arbitration<br/>Arbitration Forums, founded 1943.<br/>Members waive the right to sue<br/>each other and accept the panel"]
+        Made["Made-whole doctrine<br/>in many states the insured<br/>is repaid first, the insurer second"]
+        Ded["Deductible returned<br/>pro rata with the recovery"]
+    end
+
+    subgraph Sal["Salvage Mechanics"]
+        Title["Title branding<br/>salvage, rebuilt, non-repairable.<br/>Reported to NMVTIS"]
+        Assign["Assign to a salvage pool<br/>Copart, IAA and regional pools"]
+        Auction["Online auction<br/>bidders are rebuilders,<br/>dismantlers and exporters"]
+        Net["Net proceeds credited<br/>against the paid loss"]
+    end
+
+    SubPath --> Ident --> Preserve --> Right --> Demand --> Resp
+    Resp -->|"Yes, most demands"| Made
+    Resp -->|"No"| Arb
+    Arb --> Made
+    Made --> Ded
+
+    SalPath --> Title --> Assign --> Auction --> Net
+
+    Ded --> Book["Recoveries reduce net incurred loss.<br/>They arrive months to years after<br/>the payment they offset."]
+    Net --> Book
+
+    Anti["Anti-subrogation rule:<br/>an insurer cannot subrogate against<br/>its own insured. Waiver of subrogation<br/>clauses in construction contracts<br/>extinguish the right in advance."]
+    Right -.constrained by.-> Anti
+
+    style Sub fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Sal fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Book fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Anti fill:#fff9c4,stroke:#f57f17,stroke-width:2px

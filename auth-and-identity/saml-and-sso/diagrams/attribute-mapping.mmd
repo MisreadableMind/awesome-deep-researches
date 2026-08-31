@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Src["Source of truth"]
+        AD["Active Directory / LDAP<br/>sAMAccountName, mail,<br/>memberOf, department,<br/>employeeID, userPrincipalName"]
+        HR["HR system<br/>job code, cost centre,<br/>start date, termination date"]
+    end
+
+    subgraph IdPside["Identity provider: the release policy"]
+        Pol["Per-SP attribute release.<br/>The IdP decides what each SP is<br/>allowed to learn about the user.<br/>This is a privacy control, not<br/>a plumbing detail."]
+        Fmt["Name format, chosen per deployment:<br/>attrname-format:uri, the URN style<br/>used by research federations<br/>attrname-format:basic, short names<br/>attrname-format:unspecified,<br/>the default and the usual choice<br/>for commercial SaaS"]
+    end
+
+    subgraph Wire["What travels in the AttributeStatement"]
+        W1["Name=urn:oid:0.9.2342.19200300.100.1.3<br/>FriendlyName=mail<br/>Value=dana.okoro@acme.example"]
+        W2["Name=urn:oid:1.3.6.1.4.1.5923.1.1.1.9<br/>FriendlyName=eduPersonScopedAffiliation<br/>Value=member@acme.example"]
+        W3["Name=Groups  unspecified format<br/>Value=crm-admins<br/>Value=finance-readonly<br/>Multi-valued means repeating<br/>saml:AttributeValue, not a<br/>comma separated string"]
+    end
+
+    subgraph SPside["Service provider: mapping and authorisation"]
+        M1["Map: wire name to local field.<br/>The SP configuration decides that<br/>the attribute named Groups is the<br/>role source."]
+        M2["Authorise: crm-admins becomes the<br/>Administrator role. finance-readonly<br/>becomes a scoped viewer."]
+        M3["Decide the collision policy.<br/>Is the assertion authoritative, or<br/>does a locally granted role survive<br/>a login that no longer carries it?"]
+    end
+
+    AD --> Pol
+    HR --> Pol
+    Pol --> Fmt
+    Fmt --> W1
+    Fmt --> W2
+    Fmt --> W3
+    W1 --> M1
+    W2 --> M1
+    W3 --> M1
+    M1 --> M2 --> M3
+
+    subgraph Traps["The four traps"]
+        T1["THE IDENTIFIER TRAP<br/>Mapping accounts on an email address<br/>breaks the day someone changes their<br/>name. Map on an opaque, immutable,<br/>never-reused value. That is what<br/>subject-id and pairwise-id, OASIS<br/>Committee Specification 01 of<br/>16 January 2019, exist to provide."]
+        T2["THE PRIVILEGE TRAP<br/>If the assertion is authoritative for<br/>roles, whoever edits an AD group edits<br/>production access. Group membership<br/>is now a privileged operation and<br/>usually is not treated as one."]
+        T3["THE DRIFT TRAP<br/>If the SP only applies roles at account<br/>creation, a demotion in the directory<br/>never reaches the application. Apply<br/>the mapping on EVERY login."]
+        T4["THE OVERSHARE TRAP<br/>An IdP that releases every attribute to<br/>every SP turns each SaaS breach into a<br/>directory leak. Release the minimum,<br/>per SP, and audit the list."]
+    end
+
+    M3 --> Traps
+
+    style Src fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style IdPside fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Wire fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SPside fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Traps fill:#ffebee,stroke:#b71c1c,stroke-width:3px

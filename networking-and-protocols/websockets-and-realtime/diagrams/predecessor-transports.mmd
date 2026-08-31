@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Browser
+    participant P as Proxy or CDN
+    participant S as Origin server
+
+    rect rgb(255, 235, 238)
+    Note over C,S: Short polling. Cost is fixed, latency is N/2.
+    C->>S: GET /messages?since=T, 564 bytes of headers
+    S-->>C: 200, body is the two bytes of an empty array
+    Note over C: wait N seconds
+    C->>S: GET /messages?since=T
+    S-->>C: 200, empty again
+    end
+
+    rect rgb(255, 243, 224)
+    Note over C,S: Long polling. One request is held open.
+    C->>S: GET /messages?since=T
+    Note over S: hold the response.<br/>RFC 6202 recommends a<br/>timeout near 30 seconds,<br/>below the 60-second default<br/>of most proxies.
+    S-->>C: 200 with the event, or 204 on timeout
+    C->>S: immediately re-request
+    Note over C,S: A second event that arrives<br/>during the gap waits three<br/>network transits.
+    end
+
+    rect rgb(232, 245, 233)
+    Note over C,S: Server-Sent Events. One request, many responses.
+    C->>S: GET /stream, Accept: text/event-stream
+    S-->>C: 200, Content-Type: text/event-stream,<br/>Cache-Control: no-store, no Content-Length
+    S-->>C: id: 4711 LF data: deploy is green LF LF
+    S-->>C: : keepalive comment every 15 seconds
+    S-->>C: id: 4712 LF event: build LF data: ... LF LF
+    Note over P: A buffering proxy that waits for<br/>the whole body breaks this entirely.<br/>X-Accel-Buffering: no disarms nginx.
+    C--)S: on drop, reconnect with Last-Event-ID: 4712
+    end
+
+    Note over C,S: All three leave the client-to-server direction<br/>on ordinary HTTP requests. Only WebSocket<br/>makes both directions the same mechanism.

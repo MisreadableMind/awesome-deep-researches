@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Submit["Participant submits payment order"]
+    Queue["Central queue<br/>ordered by submission time,<br/>not strictly first in first out"]
+
+    Submit --> Queue
+    Queue --> Algo{"Balanced release algorithm<br/>runs continuously"}
+
+    Algo -->|Test 1| Single{"Does the sender's current<br/>position cover it alone?"}
+    Single -->|Yes| RelSingle["SINGLE RELEASE<br/>Debit sender position<br/>Credit receiver position"]
+    Single -->|No| Bi{"Is there an offsetting payment<br/>queued in the opposite direction<br/>between the same two participants?"}
+
+    Bi -->|Yes| RelBi["BILATERAL OFFSET<br/>Release both together.<br/>Only the difference touches<br/>either position."]
+    Bi -->|No| Multi{"Does a cycle exist among<br/>three or more participants where<br/>releasing all of them leaves every<br/>position non-negative?"}
+
+    Multi -->|Yes| RelMulti["MULTILATERAL OFFSET<br/>Release the whole set atomically.<br/>Money flows in a loop.<br/>No participant funds the gross."]
+    Multi -->|No| Wait["Payment stays queued.<br/>Waits for an offset or for<br/>supplemental funding."]
+
+    Wait -.participant sends more funds via Fedwire.-> Queue
+    Wait -.still queued at close.-> Close["End-of-day netting"]
+
+    RelSingle --> Final["FINAL AND IRREVOCABLE<br/>at the moment of release"]
+    RelBi --> Final
+    RelMulti --> Final
+
+    Final --> Effect["Result: roughly 1.8 trillion USD a day<br/>settled against single-digit billions<br/>of prefunding.<br/>Each prefunded dollar is reused<br/>hundreds of times."]
+
+    Cost["The cost of the design:<br/>a payment settles when the algorithm<br/>can settle it, not when the sender wants.<br/>Time-critical payments go by Fedwire."]
+
+    Wait --> Cost
+
+    style RelMulti fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+    style Final fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Wait fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Cost fill:#ffebee,stroke:#c62828,stroke-width:2px

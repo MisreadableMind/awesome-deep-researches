@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Addr["One address: 192.5.5.241<br/>F-root, operated by ISC.<br/>366 sites announce it."]
+
+    subgraph Sites["Every site runs BGP and says the same thing"]
+        S1["Madrid<br/>announces 192.5.5.0/24<br/>from AS 3557"]
+        S2["Frankfurt<br/>announces 192.5.5.0/24<br/>from AS 3557"]
+        S3["Sao Paulo<br/>announces 192.5.5.0/24<br/>from AS 3557"]
+        S4["Singapore<br/>announces 192.5.5.0/24<br/>from AS 3557"]
+    end
+
+    subgraph Net["The internet does the routing"]
+        BGP["Each router picks ONE best path<br/>to 192.5.5.0/24 by BGP policy:<br/>local preference first,<br/>AS path length second,<br/>not geography, not latency."]
+    end
+
+    subgraph Clients["What each client reaches"]
+        C1["Resolver in Barcelona<br/>-> Madrid site<br/>NSID mad1f.f.root-servers.org<br/>36 ms"]
+        C2["Resolver in Nairobi<br/>-> whichever site its transit<br/>provider prefers, which may be<br/>London, not the one 40 km away"]
+    end
+
+    subgraph Props["What anycast gives and does not give"]
+        G1["Gives: capacity that scales<br/>by adding sites, DDoS traffic<br/>absorbed locally instead of<br/>concentrating, shorter RTT<br/>for most clients"]
+        G2["Gives: instant failover.<br/>Withdraw the route and traffic<br/>reroutes in BGP convergence time,<br/>with no DNS change and no TTL wait."]
+        B1["Does not give: session stickiness.<br/>Consecutive packets can land<br/>on different sites, which is why<br/>DNS over UDP suits anycast and<br/>long TCP or QUIC sessions need care."]
+        B2["Does not give: control.<br/>Steering is a side effect of other<br/>networks' BGP policy. Operators<br/>tune with communities and<br/>selective announcement, not commands."]
+        B3["Does not give: a shared cache.<br/>Each site caches independently.<br/>Two queries seconds apart can<br/>return different remaining TTLs."]
+    end
+
+    Addr --> Sites --> BGP --> Clients
+    Clients --> Props
+
+    style Addr fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Sites fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Net fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Clients fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Props fill:#eceff1,stroke:#37474f,stroke-width:2px

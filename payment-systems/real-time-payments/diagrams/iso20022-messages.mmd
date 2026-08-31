@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Core["The four messages that do the work"]
+        direction TB
+        P008["pacs.008<br/>FI to FI Customer Credit Transfer<br/>The payment itself.<br/>Carries amount, debtor, creditor,<br/>agents, remittance data,<br/>and the end-to-end ID."]
+        P002["pacs.002<br/>Payment Status Report<br/>Accepted or rejected, with a<br/>reason code. The message that<br/>makes 'instant' deterministic."]
+        P004["pacs.004<br/>Payment Return<br/>A new payment in the other<br/>direction, with a reason.<br/>Not a reversal of the original."]
+        P028["pacs.028<br/>Status Request<br/>'What happened to my payment?'<br/>Used after a timeout."]
+    end
+
+    subgraph Around["The messages around the payment"]
+        direction TB
+        Pain13["pain.013 / pain.014<br/>Request to Pay<br/>The payee asks; the payer<br/>still decides"]
+        Camt56["camt.056<br/>Request for recall<br/>Please send it back"]
+        Camt29["camt.029<br/>Resolution of investigation<br/>Yes, no, or partially"]
+        Camt52["camt.052 / camt.054<br/>Account report and notification<br/>How the receiving customer<br/>learns about the credit"]
+    end
+
+    subgraph Inside["Inside a pacs.008 that matters"]
+        direction TB
+        I1["EndToEndId: the payer's own<br/>reference, survives the whole journey"]
+        I2["TxId: the scheme's identifier,<br/>the anchor for every later query"]
+        I3["UETR where used: a UUID that<br/>makes tracking work across schemes"]
+        I4["RemittanceInformation: structured<br/>or unstructured. The reason<br/>corporates care about ISO 20022."]
+        I5["Purpose code and category purpose:<br/>salary, tax, supplier. Feeds<br/>screening and reporting."]
+        I6["UltimateDebtor / UltimateCreditor:<br/>who really pays and is really paid<br/>when a platform sits in between"]
+    end
+
+    subgraph Reality["Who actually uses it"]
+        direction TB
+        R1["FedNow, RTP, Pix, TIPS,<br/>SCT Inst: native ISO 20022"]
+        R2["UPI: not ISO 20022.<br/>An NPCI-defined XML API,<br/>designed for phones, not banks."]
+        R3["UK FPS: ISO 8583 heritage,<br/>ISO 20022 planned with the<br/>architecture refresh"]
+        R4["Lesson: a common standard is<br/>necessary for interlinking and<br/>insufficient by itself. Schemes<br/>differ in which fields are<br/>mandatory and what the codes mean."]
+    end
+
+    P008 --> P002
+    P002 -.timeout.-> P028
+    P002 -.wrong payee.-> P004
+    Pain13 -.triggers.-> P008
+    P008 -.mistake.-> Camt56 --> Camt29
+    P002 --> Camt52
+
+    Core --> Inside
+    Inside --> Reality
+
+    style Core fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Around fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Inside fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Reality fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

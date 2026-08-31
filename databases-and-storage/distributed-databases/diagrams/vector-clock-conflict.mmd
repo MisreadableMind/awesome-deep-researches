@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    D1["D1<br/>vector clock: Sx=1<br/>Sx coordinates the first write"]
+    D2["D2<br/>vector clock: Sx=2<br/>Sx coordinates again.<br/>D2 descends from D1, so D1 is<br/>garbage collected."]
+
+    D3["D3<br/>Sx=2, Sy=1<br/>Sy handles a write<br/>based on D2"]
+    D4["D4<br/>Sx=2, Sz=1<br/>Sz handles a write<br/>based on D2, concurrently"]
+
+    CONF["CONFLICT DETECTED<br/>Compare D3 and D4:<br/>Sx: 2 vs 2 equal<br/>Sy: 1 vs 0 D3 ahead<br/>Sz: 0 vs 1 D4 ahead<br/>NEITHER DOMINATES.<br/>They are concurrent."]
+
+    READ["A read returns BOTH D3 and D4<br/>plus a context token containing<br/>the merged clock"]
+
+    RECON{"Who reconciles?"}
+
+    APP["SEMANTIC RECONCILIATION<br/>Amazon's shopping cart merges<br/>the two carts by union.<br/>Deleted items can reappear.<br/>This is a deliberate business choice:<br/>an extra item costs less than<br/>a lost add-to-cart."]
+
+    TS["TIMESTAMP RECONCILIATION<br/>Last write wins by physical timestamp.<br/>Amazon's session service uses this.<br/>One of the two writes is DISCARDED,<br/>silently, with no error to anyone."]
+
+    D5["D5<br/>Sx=3, Sy=1, Sz=1<br/>The reconciled write subsumes both."]
+
+    D1 --> D2
+    D2 --> D3
+    D2 --> D4
+    D3 --> CONF
+    D4 --> CONF
+    CONF --> READ
+    READ --> RECON
+    RECON -->|"application code"| APP
+    RECON -->|"database default"| TS
+    APP --> D5
+    TS --> D5
+
+    TRUNC["THE SIZE PROBLEM<br/>Under a partition, writes get handled by<br/>nodes outside the top N of the preference list,<br/>so pairs accumulate. Dynamo truncates the list at a<br/>threshold, 10 in the paper, evicting the<br/>oldest by a per-pair timestamp.<br/>Truncation can make two causally ordered<br/>versions look concurrent. Amazon reports this<br/>had not surfaced in production."]
+
+    CONF -.-> TRUNC
+
+    style CONF fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style TS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style APP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TRUNC fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

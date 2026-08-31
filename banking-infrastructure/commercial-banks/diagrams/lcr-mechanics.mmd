@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph HQLA["NUMERATOR: HIGH-QUALITY LIQUID ASSETS, 12 CFR 249.20 and 249.21"]
+        direction TB
+        L1["LEVEL 1 - no haircut, no cap<br/>Reserves at the Fed, Treasuries,<br/>full-faith-and-credit agency paper,<br/>0% risk-weighted sovereigns<br/>Meridian: 450 reserves + 700 UST = 1,150"]
+        L2A["LEVEL 2A - 15% haircut<br/>GSE debt and MBS, 20% risk-weighted<br/>sovereign and MDB paper<br/>Meridian: 500 of AFS agency MBS<br/>x 0.85 = 425. The 1,350 HTM book is<br/>left out by internal policy, not by rule.<br/>Regulation WW lets HTM securities<br/>count as HQLA at fair value."]
+        L2B["LEVEL 2B - 50% haircut<br/>Investment-grade corporate debt,<br/>index equities, IG municipals<br/>Meridian: 0"]
+        CAP1["CAP: level 2 total cannot exceed<br/>0.6667 x the level 1 amount.<br/>Here 0.6667 x 1,150 = 767.<br/>425 fits."]
+        CAP2["CAP: level 2B cannot exceed<br/>0.1765 x level 1 plus level 2A"]
+        L1 --> CAP1
+        L2A --> CAP1
+        L2B --> CAP2
+        CAP1 --> HTOT["HQLA = 1,575"]
+        CAP2 --> HTOT
+    end
+
+    subgraph OUT["DENOMINATOR: NET CASH OUTFLOW OVER 30 DAYS, 12 CFR 249.32"]
+        direction TB
+        O1["Stable retail deposits 3,000 at 3% = 90"]
+        O2["Other retail deposits 1,100 at 10% = 110"]
+        O3["Retail time deposits maturing within<br/>30 days, 150 at 10% = 15.<br/>The other 950 mature later, at 0%"]
+        O4["Operational deposits, fully insured<br/>300 at 5% = 15"]
+        O5["Operational deposits, other<br/>1,100 at 25% = 275"]
+        O6["Corporate non-operational, insured<br/>200 at 20% = 40"]
+        O7["Corporate non-operational, uninsured<br/>1,200 at 40% = 480"]
+        O8["Brokered and other 400 at 40% = 160"]
+        O9["Maturing FHLB advances secured by<br/>level 2A, 160 at 15% = 24"]
+        O10["Unsecured wholesale from a financial<br/>sector entity 100 at 100% = 100"]
+        O11["Undrawn commitments:<br/>wholesale credit 600 at 10% = 60,<br/>retail lines 900 at 5% = 45"]
+        OTOT["Gross outflows 1,414<br/>minus inflows 250, capped at<br/>75% of outflows<br/>plus maturity mismatch add-on 60<br/>= NET CASH OUTFLOW 1,224"]
+        O1 --> OTOT
+        O2 --> OTOT
+        O3 --> OTOT
+        O4 --> OTOT
+        O5 --> OTOT
+        O6 --> OTOT
+        O7 --> OTOT
+        O8 --> OTOT
+        O9 --> OTOT
+        O10 --> OTOT
+        O11 --> OTOT
+    end
+
+    HTOT --> RES["LCR = 1,575 / 1,224 = 129%<br/>Minimum is 100%"]
+    OTOT --> RES
+
+    RES --> Point["The whole rule is one sentence:<br/>hold enough assets you can sell in a day<br/>to survive 30 days of an assumed run.<br/>The assumed run is a table of percentages<br/>written by a regulator, and SVB's<br/>real run was faster than any row in it."]
+
+    style HQLA fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style OUT fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style RES fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Point fill:#ffebee,stroke:#c62828,stroke-width:2px

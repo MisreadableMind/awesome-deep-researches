@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph MWCB["1. Market-Wide Circuit Breakers: whole market"]
+        M0["Trigger: a single-day decline in the S and P 500<br/>against the prior day's 16:00 close.<br/>Rules first adopted for cash equities in 1988;<br/>amended to the current levels in 2012."]
+        M1["At 07:00 and again at 08:00 the CTA SIP<br/>generates the three decline values from the<br/>prior day's SPX close and publishes them<br/>(ITCH 'V' message, three Price(8) levels)"]
+        M2["From 09:30 the CTA SIP ingests SPX every<br/>1 second from S and P DJI via Cboe and<br/>monitors the percentage decline"]
+        M3["LEVEL 1: -7%<br/>LEVEL 2: -13%<br/>LEVEL 3: -20%"]
+        M4["Level 1 or 2 after 09:30 and before 15:25:<br/>halt everything for 15 minutes.<br/>Each may occur only ONCE per day."]
+        M5["Level 1 or 2 at or after 15:25:<br/>NO halt. The market runs to the close."]
+        M6["Level 3 at ANY time:<br/>halt for the remainder of the day."]
+        M7["Breach -> SIP publishes 'Breach Level N'<br/>(ITCH 'W' message) -> primary listing exchanges<br/>send Regulatory Halt per security -> after 15 min<br/>they send Resume -> but an SRO does not resume<br/>until it receives LULD bands, which in practice<br/>means until the primary reopens the security"]
+        M0 --> M1 --> M2 --> M3
+        M3 --> M4
+        M3 --> M5
+        M3 --> M6
+        M4 --> M7
+    end
+
+    subgraph LULD["2. Limit Up Limit Down: single security"]
+        L0["Filed 5 April 2011. Approved on a pilot basis<br/>31 May 2012. Made permanent 11 April 2019.<br/>Administered by the LULD Operating Committee."]
+        L1["Reference Price = arithmetic mean of Eligible<br/>Reported Transactions over the prior 5 minutes.<br/>Updated after 30 seconds only if the new value<br/>is at least 1% away. Bands republished every 30s."]
+        L2["Price Band = Reference Price +/- (Reference Price x Percentage Parameter)"]
+        L3["Tier 1 (S and P 500, Russell 1000, selected ETPs)<br/>and Tier 2 below 3.00, 09:30-15:35:<br/>above 3.00 -> 5%<br/>0.75 to 3.00 -> 20%<br/>below 0.75 -> lesser of 0.15 or 75%"]
+        L4["Tier 2 (all other NMS stocks), 09:30-16:00:<br/>above 3.00 -> 10%"]
+        L5["Bands DOUBLE in the last 25 minutes<br/>(15:35 to 16:00) for all Tier 1 securities and<br/>Tier 2 securities below 3.00"]
+        L6["Percentage does NOT change intraday.<br/>It is fixed by the previous day's<br/>primary-market closing price."]
+        L0 --> L1 --> L2 --> L3
+        L2 --> L4
+        L3 --> L5
+        L5 --> L6
+    end
+
+    subgraph STATE["3. The LULD state machine"]
+        S1["NORMAL"]
+        S2["LIMIT STATE<br/>Entered when the NBBO rests ON a band price<br/>without crossing. Lasts 15 seconds.<br/>The SIP freezes: no new Reference Prices,<br/>no new Price Bands."]
+        S3["EXIT<br/>All Limit State quotes executed or cancelled.<br/>The SIP recomputes bands from the 5-minute<br/>mean INCLUDING the Limit State."]
+        S4["TRADING PAUSE<br/>Not out of the Limit State after 15 seconds.<br/>The primary listing exchange declares a pause.<br/>5 minutes nominal, 10 minutes maximum.<br/>Quoting continues; no trading."]
+        S5["REOPENING<br/>The primary reopens with its halt cross.<br/>An LULD Auction Collar message (ITCH 'J')<br/>carries the reference price plus the upper and<br/>lower collar and an extension count."]
+        S6["STRADDLE STATE<br/>NBB below the lower band while the NBO is inside,<br/>or NBO above the upper band while the NBB is inside.<br/>NOT a Limit State. The primary MAY declare a pause<br/>if trading deviates from normal characteristics."]
+        S1 --> S2
+        S2 -->|"quotes cleared"| S3 --> S1
+        S2 -->|"15 seconds elapse"| S4 --> S5 --> S1
+        S1 -.-> S6 -.-> S4
+    end
+
+    MWCB --> LULD --> STATE
+
+    style MWCB fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style LULD fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style STATE fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

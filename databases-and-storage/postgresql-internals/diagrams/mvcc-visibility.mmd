@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    START["Executor reads a tuple.<br/>Snapshot holds xmin, xmax, xip array."]
+
+    A{"Is t_xmin frozen?<br/>HEAP_XMIN_FROZEN set,<br/>or raw xmin = 2"}
+    B{"HEAP_XMIN_COMMITTED<br/>hint bit set?"}
+    C["Consult pg_xact for t_xmin.<br/>2 bits per transaction,<br/>32768 transactions per 8kB page.<br/>Set the hint bit for next time."]
+    D{"Did the inserting<br/>transaction commit?"}
+    INVIS1["NOT VISIBLE<br/>inserter aborted or in progress"]
+
+    E{"Is t_xmin in the snapshot?<br/>xmin less than snapshot xmin, and<br/>not in the in-progress xip array"}
+    INVIS2["NOT VISIBLE<br/>inserted after the snapshot was taken"]
+
+    F{"Is t_xmax valid?<br/>HEAP_XMAX_INVALID clear<br/>and t_xmax not zero"}
+    VIS1["VISIBLE<br/>live row, never deleted"]
+
+    G{"HEAP_XMAX_LOCK_ONLY set?<br/>row was locked, not deleted"}
+    H["If HEAP_XMAX_IS_MULTI, resolve the<br/>MultiXactId and test each member.<br/>Otherwise t_xmax is a single XID."]
+    I{"Did the deleting<br/>transaction commit, and is it<br/>in the snapshot?"}
+    VIS2["VISIBLE<br/>deleter aborted, still running,<br/>or committed after the snapshot"]
+    INVIS3["NOT VISIBLE<br/>deleted before the snapshot"]
+
+    START --> A
+    A -->|"yes"| E2["Treat as committed<br/>and infinitely old"]
+    E2 --> F
+    A -->|"no"| B
+    B -->|"yes"| E
+    B -->|"no"| C --> D
+    D -->|"no"| INVIS1
+    D -->|"yes"| E
+    E -->|"no"| INVIS2
+    E -->|"yes"| F
+    F -->|"no"| VIS1
+    F -->|"yes"| G
+    G -->|"yes"| VIS1
+    G -->|"no"| H
+    H --> I
+    I -->|"no"| VIS2
+    I -->|"yes"| INVIS3
+
+    style VIS1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style VIS2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style INVIS1 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style INVIS2 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style INVIS3 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style C fill:#fff3e0,stroke:#e65100,stroke-width:2px

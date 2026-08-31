@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant M as Miner's node<br/>found block 964,759
+    participant A as Peer A<br/>high-bandwidth mode
+    participant B as Peer B<br/>low-bandwidth mode
+    participant C as Peer C<br/>missing 3 transactions
+
+    Note over M,C: Setup, once per connection
+    A->>M: sendcmpct(announce=1, version=2)
+    B->>M: sendcmpct(announce=0, version=2)
+    Note over M: Core keeps at most 3 peers<br/>in high-bandwidth mode
+
+    Note over M,C: Block found. ~2 MB, ~4,000 transactions
+    M->>M: Validate own block
+
+    rect rgb(232, 245, 233)
+    Note over M,A: High bandwidth: send without being asked
+    M->>A: cmpctblock<br/>80-byte header + nonce<br/>+ 6-byte short IDs per tx<br/>+ prefilled coinbase<br/>~25 KB for 4,000 txs
+    A->>A: SipHash-2-4 keyed by<br/>SHA256(header || nonce)<br/>over each mempool wtxid.<br/>Match short IDs.
+    A->>A: All present. Reconstruct,<br/>validate, relay onward.
+    end
+
+    rect rgb(227, 242, 253)
+    Note over M,B: Low bandwidth: announce first
+    M->>B: headers (or inv)
+    B->>M: getdata(MSG_CMPCT_BLOCK)
+    M->>B: cmpctblock
+    B->>B: Reconstruct from mempool
+    end
+
+    rect rgb(255, 243, 224)
+    Note over M,C: Missing transactions
+    M->>C: cmpctblock
+    C->>C: 3 short IDs unmatched
+    C->>M: getblocktxn(indexes 412, 1877, 3902)
+    M->>C: blocktxn(3 full transactions)
+    C->>C: Reconstruct, validate, relay
+    end
+
+    Note over M,C: Result: ~25 KB instead of 2 MB.<br/>Sub-second propagation to the<br/>bulk of the network.
+
+    Note over M,C: 48-bit short IDs collide in a<br/>4,000-tx block roughly 1 time in<br/>3.5 * 10^7. 6 bytes bounds bandwidth<br/>at a collision rate the getblocktxn<br/>fallback absorbs cheaply.

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph ZK["Before: ZooKeeper mode - removed in Kafka 4.0"]
+        direction TB
+        Z1["ZooKeeper ensemble<br/>a SECOND consensus system to size,<br/>secure, patch, monitor and back up"]
+        Z2["Metadata in znodes:<br/>broker registrations, topic configs,<br/>partition assignments, ISR membership"]
+        Z3["One broker holds the controller role<br/>and writes to ZooKeeper; others watch"]
+        Z4["Failover = new controller reads the FULL<br/>metadata state out of ZooKeeper first"]
+        Z5["Propagation to brokers by individual RPCs,<br/>not by a log"]
+        Z1 --> Z2 --> Z3 --> Z4 --> Z5
+        ZLIMIT["The practical partition ceiling per cluster<br/>was a ZooKeeper ceiling, not a Kafka one."]
+        Z5 -.-> ZLIMIT
+    end
+
+    subgraph KR["After: KRaft - KIP-500, production ready in 3.3, only mode from 4.0"]
+        direction TB
+        K1["Controller quorum: 3 or 5 nodes<br/>process.roles=controller<br/>a majority must be alive"]
+        K2["__cluster_metadata topic<br/>EXACTLY ONE partition<br/>replicated by Raft among the controllers"]
+        K3["Every metadata change is a RECORD in that log.<br/>Same record batch v2 format as any topic.<br/>Control record types 2-6 carry Raft metadata."]
+        K4["Brokers REPLICATE the log and apply records<br/>in order, exactly like a consumer.<br/>They never query the controller."]
+        K5["Failover = Raft leader election over a log<br/>the new leader ALREADY HOLDS.<br/>Broker startup = log replay."]
+        K1 --> K2 --> K3 --> K4 --> K5
+    end
+
+    PROV["Provisioning is explicit, not automatic:<br/>kafka-storage.sh random-uuid, then format.<br/>Reason from the docs: if a majority of controllers<br/>could start with an empty log directory, a leader<br/>might be elected with missing committed data.<br/>Snapshots: &lt;endOffset&gt;-&lt;epoch&gt;.checkpoint"]
+
+    QUORUMS["Static quorum: controller.quorum.voters lists every<br/>controller on every node; changes need a rolling restart.<br/>Dynamic quorum (KIP-853, kraft.version=1):<br/>controller.quorum.bootstrap.servers instead,<br/>add-controller / remove-controller at runtime.<br/>Fixed at FORMAT time, not changeable by config alone."]
+
+    PATH["Upgrade path is not a version bump:<br/>ZooKeeper cluster -> migrate to KRaft on 3.9.x<br/>-> upgrade binaries one broker at a time<br/>-> kafka-features.sh upgrade --release-version 4.3<br/>Until that last step the features stay off<br/>and rollback stays possible."]
+
+    ZK ==>|"Kafka 4.0, 18 March 2025"| KR
+    KR --> PROV
+    KR --> QUORUMS
+    ZK -.-> PATH
+
+    style ZK fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style KR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PROV fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PATH fill:#fce4ec,stroke:#880e4f,stroke-width:2px

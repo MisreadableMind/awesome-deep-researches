@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    USER["User or application<br/>wants value or a call<br/>on another chain"]
+
+    subgraph SOURCE["Source chain"]
+        SEP["Source endpoint<br/>escrow, burn, or emit<br/>Endpoint.send, depositForBurn,<br/>sendPacket, publishMessage"]
+        SESC["Escrow or token pool<br/>holds the backing assets"]
+    end
+
+    subgraph OFFCHAIN["Off-chain layer"]
+        OBS["Observer / attester<br/>guardians, DVNs, validators,<br/>attestation service"]
+        REL["Relayer / executor<br/>pays destination gas,<br/>submits the transaction"]
+        FILL["Filler / solver<br/>fronts capital on the<br/>destination, gets repaid later"]
+        WATCH["Watcher / disputer<br/>only needs to be honest once"]
+    end
+
+    subgraph DEST["Destination chain"]
+        VER["Verification function<br/>signature threshold, merkle proof,<br/>light client, ZK verifier"]
+        DEP["Destination endpoint<br/>mint, release, or call"]
+        RECV["Receiver contract<br/>the application"]
+    end
+
+    GOV["Governance / upgrade authority<br/>multisig, DAO, or timelock<br/>can replace the verifier"]
+    LP["Liquidity providers<br/>capital for fillers<br/>earn a utilisation-based fee"]
+
+    USER -->|"1. deposit or call"| SEP
+    SEP --> SESC
+    SEP -->|"2. emits event"| OBS
+    OBS -->|"3. signs or proves"| REL
+    REL -->|"4. submits claim as calldata"| VER
+    VER -->|"5. accepts or reverts"| DEP
+    DEP --> RECV
+    FILL -.->|"optional fast path:<br/>fills before verification"| RECV
+    LP --> FILL
+    WATCH -.->|"can dispute during<br/>an optimistic window"| VER
+    GOV -.->|"can change keys,<br/>libraries, and thresholds"| VER
+
+    style SOURCE fill:#e3f2fd,stroke:#1565c0
+    style DEST fill:#e8f5e9,stroke:#2e7d32
+    style OFFCHAIN fill:#fff3e0,stroke:#e65100
+    style GOV fill:#ffebee,stroke:#c62828

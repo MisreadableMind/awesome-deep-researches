@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Hash["Hash Distribution"]
+        direction TB
+        H_DESC["Rows distributed by HASH(key)<br/>Best for: large fact tables,<br/>co-located joins"]
+        subgraph H_Nodes["4 Nodes"]
+            HN1["Node 1<br/>customer_id % 4 = 0"]
+            HN2["Node 2<br/>customer_id % 4 = 1"]
+            HN3["Node 3<br/>customer_id % 4 = 2"]
+            HN4["Node 4<br/>customer_id % 4 = 3"]
+        end
+    end
+
+    subgraph RoundRobin["Round-Robin Distribution"]
+        direction TB
+        RR_DESC["Rows distributed evenly in order<br/>Best for: staging tables,<br/>no join key preference"]
+        subgraph RR_Nodes["4 Nodes"]
+            RN1["Node 1<br/>Row 1, 5, 9..."]
+            RN2["Node 2<br/>Row 2, 6, 10..."]
+            RN3["Node 3<br/>Row 3, 7, 11..."]
+            RN4["Node 4<br/>Row 4, 8, 12..."]
+        end
+    end
+
+    subgraph Broadcast["Broadcast / Replicate"]
+        direction TB
+        B_DESC["Full copy on every node<br/>Best for: small dimension tables<br/>joined by many queries"]
+        subgraph B_Nodes["4 Nodes"]
+            BN1["Node 1<br/>ALL rows"]
+            BN2["Node 2<br/>ALL rows"]
+            BN3["Node 3<br/>ALL rows"]
+            BN4["Node 4<br/>ALL rows"]
+        end
+    end
+
+    style Hash fill:#2b6cb0,color:#fff
+    style RoundRobin fill:#38a169,color:#fff
+    style Broadcast fill:#805ad5,color:#fff

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as Dana<br/>dana.okoro@acme.example
+    participant B as Browser
+    participant SP as Service Provider<br/>app.example-crm.com
+    participant IdP as Identity Provider<br/>acme.okta.com
+
+    Note over U,IdP: Before anything: metadata was exchanged once.<br/>SP knows the IdP entityID and signing certificate.<br/>IdP knows the SP entityID and ACS URL.
+
+    U->>B: opens https://app.example-crm.com/dashboard/reports/q3
+    B->>SP: GET /dashboard/reports/q3
+    SP->>SP: No session cookie. Build AuthnRequest.<br/>ID=_8f3c2b1a4d5e6f7089abcdef01234567<br/>IssueInstant=2026-08-31T09:14:22Z<br/>Store request ID plus the target URL in<br/>server-side state, keyed by a RelayState handle
+    SP-->>B: 302 to the IdP SSO URL<br/>889 byte XML, DEFLATE to 443 bytes,<br/>base64 to 592 chars, URL-encode to 634.<br/>Whole URL: about 1,192 characters
+
+    B->>IdP: GET /app/acme_crm_1/.../sso/saml?SAMLRequest=...<br/>&RelayState=...&SigAlg=...&Signature=...
+    IdP->>IdP: Inflate, parse, verify the query-string signature<br/>against the SP certificate in metadata.<br/>Check Issuer is a known SP.<br/>Check AssertionConsumerServiceURL matches metadata.
+    IdP->>B: No IdP session. Show login page.
+    U->>IdP: Password plus WebAuthn second factor
+    IdP->>IdP: Authentication succeeds at 09:14:41Z.<br/>Create IdP session. Allocate<br/>SessionIndex=_a71c4b9e2f0d3856
+
+    IdP->>IdP: Build the Assertion.<br/>Subject NameID = dana.okoro@acme.example<br/>SubjectConfirmationData: Recipient = the ACS URL,<br/>InResponseTo = the request ID,<br/>NotOnOrAfter = 09:19:41Z<br/>AudienceRestriction = the SP entityID<br/>AuthnContextClassRef = PasswordProtectedTransport<br/>SessionNotOnOrAfter = 17:14:41Z<br/>Sign with RSA-SHA256, exclusive c14n
+
+    IdP-->>B: 200 with a self-submitting XHTML form.<br/>Hidden SAMLResponse holds 6,868 base64 chars,<br/>and 9,300 for a production assertion.<br/>Hidden RelayState echoes the SP handle.
+    B->>SP: POST /saml/acs<br/>SAMLResponse=...&RelayState=...
+
+    SP->>SP: 1. base64 decode, parse with external<br/>entities and DTDs disabled
+    SP->>SP: 2. Verify the signature with the key from<br/>METADATA. Reject any transform other than<br/>enveloped-signature and exclusive c14n.
+    SP->>SP: 3. Resolve the signed subtree by the Reference<br/>URI, then read ONLY that subtree.
+    SP->>SP: 4. Issuer matches the configured IdP entityID
+    SP->>SP: 5. Audience contains the SP entityID
+    SP->>SP: 6. Recipient equals this exact ACS URL
+    SP->>SP: 7. Destination equals the URL the message<br/>arrived at. SAMLBind 3.5.5.2 requires this<br/>whenever the message is signed.
+    SP->>SP: 8. InResponseTo matches a request the SP issued<br/>and has not yet consumed
+    SP->>SP: 9. Clock window holds, allowing 3 minutes of skew.<br/>A bearer SubjectConfirmationData carrying a<br/>NotBefore is malformed. Reject the assertion.
+    SP->>SP: 10. Assertion ID not in the replay cache.<br/>Insert it, with a TTL past NotOnOrAfter.
+    SP->>SP: 11. Map attributes, provision or update the user,<br/>store SessionIndex and NameID for later logout
+
+    SP-->>B: Set-Cookie session, 302 to /dashboard/reports/q3
+    B->>SP: GET /dashboard/reports/q3 with the cookie
+    SP-->>U: The report renders
+
+    Note over SP,IdP: Elapsed: about 20 seconds, nearly all of it<br/>the human typing. The protocol work is milliseconds.<br/>SP and IdP never opened a socket to each other.

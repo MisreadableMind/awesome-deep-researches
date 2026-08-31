@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph AD["authenticatorData: 37 bytes minimum"]
+        direction TB
+        H["Offset 0, length 32<br/><b>rpIdHash</b><br/>SHA-256 of the RP ID string.<br/>Computed by the authenticator<br/>from the RP ID the client supplied."]
+        F["Offset 32, length 1<br/><b>flags</b><br/>bit 0 UP user present<br/>bit 1 RFU1<br/>bit 2 UV user verified<br/>bit 3 BE backup eligible<br/>bit 4 BS backed up<br/>bit 5 RFU2<br/>bit 6 AT attested cred data<br/>bit 7 ED extension data"]
+        S["Offset 33, length 4<br/><b>signCount</b><br/>32-bit unsigned big-endian.<br/>Synced passkeys return 0<br/>and the spec permits it."]
+        ACD["Offset 37, variable<br/><b>attestedCredentialData</b><br/>present only if AT is set"]
+        EXT["After that, variable<br/><b>extensions</b><br/>CBOR map, present only<br/>if ED is set"]
+        H --> F --> S --> ACD --> EXT
+    end
+
+    subgraph ACDL["attestedCredentialData layout"]
+        direction TB
+        AA["Length 16<br/><b>aaguid</b><br/>Model identifier. Zeroed by<br/>some platforms; no longer<br/>zeroed for attestation 'none'<br/>in WebAuthn Level 3."]
+        CL["Length 2<br/><b>credentialIdLength</b><br/>16-bit unsigned big-endian.<br/>MUST be <= 1023."]
+        CI["Length L<br/><b>credentialId</b><br/>Opaque. Either a database key<br/>or a wrapped private key."]
+        PK["Variable<br/><b>credentialPublicKey</b><br/>COSE_Key, RFC 9052,<br/>CTAP2 canonical CBOR."]
+        AA --> CL --> CI --> PK
+    end
+
+    subgraph COSE["COSE_Key for ES256 on P-256"]
+        direction TB
+        C1["1 : 2      kty = EC2"]
+        C2["3 : -7     alg = ES256"]
+        C3["-1 : 1     crv = P-256"]
+        C4["-2 : x     32-byte x coordinate"]
+        C5["-3 : y     32-byte y coordinate"]
+    end
+
+    ACD -.->|"expands to"| ACDL
+    PK -.->|"expands to"| COSE
+
+    style AD fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style ACDL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style COSE fill:#fff3e0,stroke:#e65100,stroke-width:2px

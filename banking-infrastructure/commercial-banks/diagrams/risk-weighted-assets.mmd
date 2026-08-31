@@ -1,0 +1,79 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Book["MERIDIAN NATIONAL BANK, exposures in USD millions"]
+        direction TB
+        B1["Reserves at the Fed<br/>450"]
+        B2["US Treasuries<br/>700"]
+        B3["Agency MBS, AFS and HTM<br/>1,850"]
+        B4["1-4 family first lien,<br/>qualifying mortgages<br/>2,000"]
+        B5["Commercial real estate,<br/>not HVCRE<br/>1,900"]
+        B6["Commercial and industrial<br/>1,600"]
+        B7["Consumer and card<br/>700"]
+        B8["HVCRE construction<br/>300"]
+        B9["Other assets, net of<br/>120 goodwill deducted<br/>465"]
+        B10["Unused commitments over 1 yr<br/>600 notional"]
+    end
+
+    subgraph Weights["US STANDARDISED RISK WEIGHTS, 12 CFR 217.32"]
+        direction TB
+        W1["0%"]
+        W2["0%"]
+        W3["20%"]
+        W4["50%"]
+        W5["100%"]
+        W6["100%"]
+        W7["100%"]
+        W8["150%"]
+        W9["100%"]
+        W10["50% credit conversion,<br/>then 100%"]
+    end
+
+    subgraph RWA["RISK-WEIGHTED ASSETS"]
+        direction TB
+        R1["0"]
+        R2["0"]
+        R3["370"]
+        R4["1,000"]
+        R5["1,900"]
+        R6["1,600"]
+        R7["700"]
+        R8["450"]
+        R9["465"]
+        R10["300"]
+        Total["TOTAL RWA = 6,785<br/>on 10,000 of assets.<br/>RWA density 67.9%"]
+    end
+
+    B1 --> W1 --> R1
+    B2 --> W2 --> R2
+    B3 --> W3 --> R3
+    B4 --> W4 --> R4
+    B5 --> W5 --> R5
+    B6 --> W6 --> R6
+    B7 --> W7 --> R7
+    B8 --> W8 --> R8
+    B9 --> W9 --> R9
+    B10 --> W10 --> R10
+
+    R1 --> Total
+    R2 --> Total
+    R3 --> Total
+    R4 --> Total
+    R5 --> Total
+    R6 --> Total
+    R7 --> Total
+    R8 --> Total
+    R9 --> Total
+    R10 --> Total
+
+    Total --> Out["CET1 680 / RWA 6,785 = 10.02%<br/>Leverage: 680 / 9,880 = 6.88%"]
+
+    Note["Swap 1,000 of CRE for Treasuries:<br/>RWA falls to 5,785, CET1 ratio rises to 11.76%,<br/>leverage ratio does not move at all.<br/>That is why both exist."]
+
+    Out --- Note
+
+    style Book fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Weights fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RWA fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Out fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Note fill:#fce4ec,stroke:#880e4f,stroke-width:2px

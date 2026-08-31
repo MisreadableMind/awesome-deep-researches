@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Rates["The three key ECB rates<br/>effective 17 June 2026"]
+        direction TB
+        R1["Marginal lending facility: 2.65 percent<br/>Overnight credit against broad collateral.<br/>Fixed 25 bp above the MRO rate."]
+        R2["Main refinancing operations: 2.40 percent<br/>Weekly, fixed rate, full allotment.<br/>Fixed 15 bp above the DFR<br/>since 18 September 2024."]
+        R3["Deposit facility: 2.25 percent<br/>The rate that sets the stance.<br/>Confirmed as the steering rate<br/>on 13 March 2024."]
+    end
+
+    subgraph Design["Why the spread was cut from 50 bp to 15 bp"]
+        direction TB
+        D1["A 50 bp spread made the MRO<br/>expensive, so banks stopped bidding<br/>and the framework depended on<br/>a shrinking pile of excess liquidity"]
+        D2["A 15 bp spread makes bidding cheap.<br/>Banks take what they need weekly,<br/>so the money market rate stays<br/>near the DFR by construction."]
+        D3["Demand-driven, not supply-driven.<br/>The Eurosystem does not have to<br/>forecast the right quantity."]
+        D4["Deposit facility usage on 27 August 2026:<br/>2,010,547 million euro.<br/>The floor is doing the work."]
+    end
+
+    subgraph Plumbing["The pieces the Fed does not have"]
+        direction TB
+        P1["Twenty-one national central banks,<br/>twenty-one balance sheets,<br/>one monetary policy"]
+        P2["Minimum reserve ratio 1 percent,<br/>remunerated at 0 percent since 2023.<br/>A tax on bank balance sheets,<br/>not a policy instrument."]
+        P3["T2, live since 20 March 2023.<br/>In 2024, 431,067 payments a day<br/>worth 1,932.8 billion euro. Average<br/>transaction 4.5 million euro."]
+        P4["Structural longer-term operations<br/>and a structural securities portfolio<br/>promised for when the balance<br/>sheet grows again. Not yet launched."]
+    end
+
+    Rates --> Design
+    Design --> Plumbing
+
+    subgraph Mandate["Article 127 TFEU"]
+        direction TB
+        M1["'The primary objective of the ESCB<br/>shall be to maintain price stability.'"]
+        M2["Support for general economic policies<br/>is explicitly secondary and only<br/>'without prejudice' to price stability."]
+        M3["Compare Federal Reserve Act 2A:<br/>maximum employment, stable prices,<br/>and moderate long-term interest rates,<br/>with no ranking between them."]
+    end
+
+    Plumbing --> Mandate
+
+    style Rates fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Design fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Plumbing fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Mandate fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

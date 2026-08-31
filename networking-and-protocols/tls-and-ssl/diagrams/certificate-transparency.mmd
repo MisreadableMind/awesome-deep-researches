@@ -1,0 +1,65 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Why["Why it exists"]
+        direction TB
+        W1["2011: DigiNotar is breached.<br/>The attacker issues a certificate<br/>for *.google.com and uses it<br/>against roughly 300,000 Iranian<br/>users before anyone notices."]
+        W2["Detection came from Chrome's<br/>hardcoded pin on Google domains.<br/>Pinning does not scale to<br/>the whole web."]
+        W3["Insight: a CA that must publish<br/>every certificate it issues cannot<br/>issue one secretly. Any domain<br/>owner can watch for their own name."]
+        W1 --> W2 --> W3
+    end
+
+    subgraph Log["The log, RFC 6962 and RFC 9162"]
+        direction TB
+        L1["Append-only Merkle hash tree.<br/>Leaves are certificates or<br/>precertificates in submission order."]
+        L2["Signed Tree Head: log signs<br/>{tree size, root hash, timestamp}"]
+        L3["Inclusion proof: log(n) hashes<br/>proving a leaf is in a given STH"]
+        L4["Consistency proof: log(n) hashes<br/>proving an older STH is a prefix<br/>of a newer one. This is what makes<br/>rewriting history detectable."]
+        L5["Maximum Merge Delay, typically<br/>24 hours: the log promises to<br/>include a submitted entry<br/>within that window"]
+        L1 --> L2 --> L3 --> L4 --> L5
+    end
+
+    subgraph SCT["The SCT and how it travels"]
+        direction TB
+        S1["Signed Certificate Timestamp:<br/>log's signed promise to include<br/>the entry within the MMD.<br/>Carries version, log id (32-byte<br/>hash of the log key), timestamp,<br/>extensions, signature."]
+        S2["Delivery 1: embedded in the<br/>certificate, OID 1.3.6.1.4.1.11129.2.4.2.<br/>Requires the precertificate trick."]
+        S3["Delivery 2: TLS extension 18,<br/>signed_certificate_timestamp"]
+        S4["Delivery 3: inside the stapled<br/>OCSP response. Now largely dead<br/>with OCSP."]
+        S1 --> S2
+        S1 --> S3
+        S1 --> S4
+    end
+
+    subgraph Pre["The precertificate trick"]
+        direction TB
+        P1["Chicken and egg: the SCT must be<br/>inside the certificate, but the log<br/>needs the certificate to issue<br/>the SCT."]
+        P2["Solution: sign a precertificate,<br/>identical to the real one but<br/>carrying the CRITICAL poison<br/>extension 1.3.6.1.4.1.11129.2.4.3"]
+        P3["Every client rejects a critical<br/>extension it does not understand,<br/>so a precertificate can never be<br/>used in a TLS handshake"]
+        P4["Log it, collect SCTs, remove<br/>the poison, add the SCT list,<br/>sign the real certificate"]
+        P1 --> P2 --> P3 --> P4
+    end
+
+    subgraph Policy["Chrome's enforcement"]
+        direction TB
+        C1["Lifetime <= 180 days: 2 SCTs<br/>Lifetime > 180 days: 3 SCTs"]
+        C2["At least two SCTs must come from<br/>logs run by DISTINCT operators"]
+        C3["Counted SCTs: from logs Qualified,<br/>Usable, ReadOnly or Retired.<br/>At least one from a log Qualified,<br/>Usable or ReadOnly at validation time."]
+        C4["CT enforcement disables itself if<br/>the client's log list is more<br/>than 70 days stale"]
+    end
+
+    subgraph Now["The 2025-2026 rebuild"]
+        direction TB
+        N1["static-ct-api: logs become static<br/>tiles served from object storage<br/>instead of a dynamic RFC 6962 API.<br/>Chrome accepts tiled logs from<br/>Chrome 134, 4 Mar 2025."]
+        N2["Sunlight and its successors:<br/>implementations built for<br/>cheap operation"]
+        N3["Let's Encrypt moved its RFC 6962<br/>logs to read-only 30 Nov 2025 and<br/>shut them 28 Feb 2026. Production<br/>now runs Sycamore and Willow."]
+        N1 --> N2 --> N3
+    end
+
+    Why --> Log --> SCT --> Pre --> Policy --> Now
+
+    style Why fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Log fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style SCT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Pre fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Policy fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Now fill:#fce4ec,stroke:#880e4f,stroke-width:2px

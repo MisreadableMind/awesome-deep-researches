@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["Head-of-line blocking:<br/>a finished item waits behind an<br/>unfinished one in an ordered queue"]
+
+    subgraph L1["Instance 1: HTTP/1.1 application layer"]
+        direction TB
+        A1["Cause: the wire format has no<br/>request ID, so responses must be<br/>returned in request order"]
+        A2["Effect: a 2-second /api/search<br/>blocks a 5ms /logo.png sent<br/>after it on the same connection"]
+        A3["HTTP/1.1 workaround:<br/>6 parallel TCP connections<br/>per origin, plus domain sharding"]
+        A4["Solved by: HTTP/2 stream IDs.<br/>Responses may be interleaved<br/>in any order."]
+    end
+
+    subgraph L2["Instance 2: TCP transport layer"]
+        direction TB
+        B1["Cause: TCP delivers a single<br/>byte stream strictly in order.<br/>The kernel will not hand byte<br/>N+1 to the application until<br/>byte N has arrived."]
+        B2["Effect: one lost segment stalls<br/>EVERY HTTP/2 stream on that<br/>connection, even streams whose<br/>bytes already sit in the receive<br/>buffer"]
+        B3["Worse under HTTP/2 than<br/>HTTP/1.1: six connections meant<br/>one loss stalled one sixth of<br/>the page. One connection means<br/>one loss stalls all of it."]
+        B4["Solved by: QUIC. Each stream<br/>has its own reassembly buffer.<br/>Loss on stream 4 does not delay<br/>delivery on stream 8."]
+    end
+
+    subgraph L3["Instance 3: compression state"]
+        direction TB
+        C1["Cause: HPACK's dynamic table is<br/>a shared, order-dependent state<br/>machine. Field block N cannot be<br/>decoded before block N-1 has<br/>updated the table."]
+        C2["Effect: even on QUIC, a header<br/>block that references an entry<br/>not yet inserted must wait"]
+        C3["Solved by: QPACK. Table updates<br/>move to a dedicated stream and<br/>each block declares the<br/>Required Insert Count it needs."]
+        C4["Not fully eliminated: an encoder<br/>that references fresh entries<br/>trades compression ratio against<br/>blocking. RFC 9204 makes this an<br/>explicit encoder choice."]
+    end
+
+    Res["Residual in QUIC:<br/>frames from several streams packed<br/>into one UDP datagram are lost<br/>together. RFC 9000 section 13<br/>advises including as few streams<br/>per packet as efficiency allows."]
+
+    Q --> L1
+    Q --> L2
+    Q --> L3
+    L2 --> Res
+    L3 --> Res
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style L1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L2 fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style L3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Res fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

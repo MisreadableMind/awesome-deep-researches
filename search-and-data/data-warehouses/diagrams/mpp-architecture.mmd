@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    CLIENT["SQL Client<br/>SELECT SUM(revenue) FROM sales<br/>WHERE year = 2025<br/>GROUP BY region"]
+
+    subgraph Leader["Leader / Coordinator Node"]
+        PARSE["SQL Parser"]
+        OPT["Query Optimizer<br/>Cost-based planner"]
+        DIST["Query Distributor<br/>Fragment assignment"]
+        AGG["Final Aggregator<br/>Merge partial results"]
+    end
+
+    subgraph Workers["Compute Nodes (MPP)"]
+        subgraph N1["Node 1 - Shard A"]
+            W1["Local scan + filter<br/>year = 2025"]
+            A1["Partial SUM(revenue)<br/>GROUP BY region"]
+        end
+        subgraph N2["Node 2 - Shard B"]
+            W2["Local scan + filter<br/>year = 2025"]
+            A2["Partial SUM(revenue)<br/>GROUP BY region"]
+        end
+        subgraph N3["Node 3 - Shard C"]
+            W3["Local scan + filter<br/>year = 2025"]
+            A3["Partial SUM(revenue)<br/>GROUP BY region"]
+        end
+        subgraph N4["Node 4 - Shard D"]
+            W4["Local scan + filter<br/>year = 2025"]
+            A4["Partial SUM(revenue)<br/>GROUP BY region"]
+        end
+    end
+
+    CLIENT -->|"1. Submit query"| PARSE
+    PARSE --> OPT
+    OPT --> DIST
+    DIST -->|"2. Send fragments"| N1 & N2 & N3 & N4
+    A1 & A2 & A3 & A4 -->|"3. Return partial results"| AGG
+    AGG -->|"4. Final result"| CLIENT
+
+    style Leader fill:#2b6cb0,color:#fff
+    style N1 fill:#38a169,color:#fff
+    style N2 fill:#38a169,color:#fff
+    style N3 fill:#38a169,color:#fff
+    style N4 fill:#38a169,color:#fff

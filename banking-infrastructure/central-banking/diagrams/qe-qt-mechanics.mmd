@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph QE["QUANTITATIVE EASING - three balance sheets move at once"]
+        direction TB
+        Q1["Step 1. The Desk buys a 10 year<br/>Treasury note from a pension fund<br/>through a primary dealer.<br/>Face 100 million USD."]
+        Q2["Step 2. Fed assets rise 100 million.<br/>Fed liabilities rise 100 million,<br/>as a new reserve balance credited<br/>to the pension fund's bank."]
+        Q3["Step 3. The bank's assets rise<br/>100 million in reserves.<br/>Its liabilities rise 100 million<br/>as a deposit for the pension fund."]
+        Q4["Step 4. The pension fund swapped<br/>a bond for a deposit.<br/>Its net worth is unchanged.<br/>Its portfolio duration fell."]
+        Q5["Net effect: the private sector holds<br/>less duration and more money.<br/>No new net financial wealth<br/>was created by the purchase."]
+    end
+
+    subgraph QT["QUANTITATIVE TIGHTENING - passive runoff, not selling"]
+        direction TB
+        T1["Step 1. A Treasury note in SOMA<br/>matures. Treasury pays the Fed."]
+        T2["Step 2. To pay, Treasury draws<br/>down the TGA at the Fed,<br/>or issues new debt the private<br/>sector buys with reserves."]
+        T3["Step 3. Fed assets fall.<br/>Either the TGA falls, or reserves fall.<br/>Which one depends entirely<br/>on Treasury's issuance choice."]
+        T4["Step 4. Caps controlled the pace:<br/>60 billion USD a month for Treasuries<br/>in 2022, cut to 25 in June 2024,<br/>to 5 in April 2025, to zero in December 2025."]
+        T5["Net effect from Apr 2022 to Dec 2025:<br/>8.97 trillion USD down to 6.54 trillion.<br/>A 2.43 trillion USD reduction<br/>with almost no outright sales."]
+    end
+
+    subgraph Truth["What QE is and is not"]
+        direction TB
+        X1["IS: an asset swap that shortens<br/>the duration the public must hold<br/>and pays for it with reserves"]
+        X2["IS: a signal, because the size and<br/>pace tell the market how long<br/>the policy rate will stay low"]
+        X3["IS NOT: printing money.<br/>Reserves cannot leave the reserve<br/>system and cannot buy groceries."]
+        X4["IS NOT: deficit financing.<br/>The Fed buys in the secondary market<br/>and remits its profits back to Treasury,<br/>which makes the trade fiscally circular."]
+    end
+
+    QE --> Truth
+    QT --> Truth
+
+    style QE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style QT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Truth fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

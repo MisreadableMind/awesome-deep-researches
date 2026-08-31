@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph HDR["Record batch v2 header - exactly 61 bytes"]
+        direction TB
+        H1["offset 0  : baseOffset          int64   8 bytes"]
+        H2["offset 8  : batchLength         int32   4 bytes"]
+        H3["offset 12 : partitionLeaderEpoch int32  4 bytes  - NOT in the CRC"]
+        H4["offset 16 : magic               int8    1 byte   - always 2"]
+        H5["offset 17 : crc                 uint32  4 bytes  - CRC-32C Castagnoli"]
+        H6["offset 21 : attributes          int16   2 bytes"]
+        H7["offset 23 : lastOffsetDelta     int32   4 bytes"]
+        H8["offset 27 : baseTimestamp       int64   8 bytes"]
+        H9["offset 35 : maxTimestamp        int64   8 bytes"]
+        H10["offset 43 : producerId          int64   8 bytes"]
+        H11["offset 51 : producerEpoch       int16   2 bytes"]
+        H12["offset 53 : baseSequence        int32   4 bytes"]
+        H13["offset 57 : recordsCount        int32   4 bytes"]
+        H1 --> H2 --> H3 --> H4 --> H5 --> H6 --> H7 --> H8 --> H9 --> H10 --> H11 --> H12 --> H13
+    end
+
+    ATTR["attributes bits<br/>0-2 compression: none/gzip/snappy/lz4/zstd<br/>3 timestampType<br/>4 isTransactional<br/>5 isControlBatch<br/>6 hasDeleteHorizonMs<br/>7-15 unused"]
+
+    subgraph REC["Records, from offset 61 - compressed as ONE unit"]
+        direction TB
+        R1["length varint<br/>attributes int8<br/>timestampDelta varlong (delta from baseTimestamp)<br/>offsetDelta varint (delta from baseOffset)"]
+        R2["keyLength varint, key bytes<br/>valueLength varint, value bytes<br/>(-1 length = null; null value = tombstone)"]
+        R3["headersCount varint<br/>[headerKeyLength, headerKey, headerValueLength, headerValue]"]
+        R1 --> R2 --> R3
+    end
+
+    CRCSPAN["CRC covers attributes through end of batch.<br/>It sits AFTER magic so a client must parse<br/>the magic byte before interpreting anything.<br/>That single ordering choice made format evolution possible."]
+
+    ECON["Batch of 1,000 records:<br/>61-byte header paid ONCE.<br/>MAX_RECORD_OVERHEAD is 21 bytes but a packed<br/>record costs ~6-8 bytes of framing.<br/>Compression spans all records, so repeated<br/>JSON field names compress against each other."]
+
+    HDR --> REC
+    H6 -.-> ATTR
+    H5 -.-> CRCSPAN
+    REC --> ECON
+
+    style HDR fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style REC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ATTR fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CRCSPAN fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style ECON fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

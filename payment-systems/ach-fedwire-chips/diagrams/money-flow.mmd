@@ -1,0 +1,62 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Wholesale["Wholesale Cost (Fed prices at cost by law)"]
+        direction TB
+        W1["FedACH forward item<br/>fractions of a cent"]
+        W2["Same Day ACH surcharge<br/>a few cents to the ODFI"]
+        W3["Same Day Entry Fee<br/>~5 cents, ODFI pays RDFI<br/>the only interchange in ACH"]
+        W4["Fedwire per transfer<br/>well under 1 USD<br/>both sender and receiver pay"]
+        W5["Fedwire participation<br/>~100 USD per month per RTN"]
+        W6["CHIPS per payment<br/>volume-tiered, participant-funded"]
+    end
+
+    subgraph Retail["What the End User Pays"]
+        direction TB
+        R1["Consumer ACH: 0 USD"]
+        R2["Business ACH: 0.20 to 1.50 USD"]
+        R3["Outgoing wire: 25 to 35 USD"]
+        R4["Incoming wire: 0 to 15 USD"]
+        R5["Card acceptance: 1.5 to 3.5 percent"]
+        R6["Check: 2 to 4 USD fully loaded"]
+    end
+
+    subgraph Example["One 50,000 USD Supplier Payment"]
+        direction TB
+        E1["Card: ~1,250 USD"]
+        E2["Wire: ~30 USD"]
+        E3["Check: ~3 USD plus reconciliation labor"]
+        E4["ACH: under 1 USD"]
+    end
+
+    subgraph BankRev["Where Banks Actually Earn"]
+        direction TB
+        B1["Deposit spread on balances<br/>the largest source by far"]
+        B2["Wire fees<br/>30 USD against a wholesale cost in cents"]
+        B3["Treasury management bundle<br/>payment is the loss leader"]
+        B4["Float: largely gone.<br/>Reg CC and same-day settlement<br/>compressed it to near zero domestically"]
+    end
+
+    subgraph Costs["Where the Money Actually Goes"]
+        direction TB
+        C1["Originator underwriting and monitoring"]
+        C2["Return funding when an originator fails"]
+        C3["Fraud controls and BEC losses"]
+        C4["Sanctions screening false positives"]
+        C5["Exception handling staff"]
+    end
+
+    Wholesale --> Retail
+    Retail --> Example
+    Retail --> BankRev
+    BankRev --> Costs
+
+    Punchline["Risk costs more than processing.<br/>A single failed ACH originator can<br/>exceed years of per-item fee revenue."]
+
+    Costs --> Punchline
+
+    style Wholesale fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Example fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style E4 fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+    style E1 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Punchline fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

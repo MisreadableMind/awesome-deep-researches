@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant P as Payer in Nairobi
+    participant KB as Kenyan bank<br/>respondent
+    participant EU as European correspondent<br/>holds KB's EUR nostro
+    participant US as US correspondent<br/>holds EU's USD nostro
+    participant BB as Beneficiary bank<br/>in Manila
+    participant Ben as Beneficiary
+
+    Note over KB,US: A NOSTRO is "our account with you".<br/>A VOSTRO is "your account with us".<br/>They are the same account seen from two sides.<br/>Correspondent banking is renting someone<br/>else's access to a currency's home rail.
+
+    P->>KB: Instructs 50,000 USD to Manila
+    KB->>KB: Debits the payer, screens against<br/>OFAC and UN lists, applies<br/>correspondent-specific rules
+
+    KB->>EU: pacs.008 customer credit transfer<br/>replaced MT103 on 22 November 2025<br/>carries a UETR that follows the<br/>payment for its whole life
+    Note over EU: Debits KB's vostro account.<br/>Screens again. Deducts its fee<br/>or passes it on as OUR/SHA/BEN.
+
+    EU->>US: pacs.008 onward, plus a pacs.009<br/>cover payment where the<br/>customer leg and the settlement<br/>leg travel separately<br/>MT202COV before the migration
+    Note over US: Settles in USD over Fedwire<br/>or CHIPS. This is where the payment<br/>actually touches central bank money.
+
+    US->>BB: pacs.008 final leg
+    BB->>Ben: Credits the account,<br/>net of a lifting fee
+
+    Note over P,Ben: Three intermediaries, three screening passes,<br/>three fee deductions, three chances to stop.<br/>Each hop adds latency and removes certainty<br/>about the amount that arrives.
+
+    rect rgb(255, 235, 238)
+    Note over KB,US: DE-RISKING<br/>Active correspondents fell between 2011 and 2022 by:<br/>47.1% in the Americas excluding North America<br/>37.8% in Oceania<br/>34.2% in Africa and in Europe excluding Eastern Europe<br/>34.0% in Eastern Europe<br/>29.9% in Asia<br/>19.4% in Northern America<br/>The compliance cost of a small corridor exceeds<br/>its revenue, so the corridor closes.
+    end

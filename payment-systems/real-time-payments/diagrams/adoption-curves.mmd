@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["Same technology, wildly different outcomes.<br/>Why did Pix and UPI take over<br/>while FedNow and SEPA Inst crawled?"]
+
+    subgraph Yes["The five conditions that produced take-off"]
+        direction TB
+        Y1["1. Mandatory participation<br/>Pix: compulsory above 500,000 accounts.<br/>UK FPS: forced by the regulator.<br/>If receiving is optional,<br/>the network never closes."]
+        Y2["2. A usable address<br/>A phone number, a CPF, a VPA.<br/>Nobody adopts a rail that<br/>requires an account number<br/>and a sort code."]
+        Y3["3. Free at the point of use<br/>For consumers, always.<br/>For merchants, cheap enough<br/>to beat cards on unit cost."]
+        Y4["4. A weak incumbent<br/>Brazil had expensive cards and<br/>expensive boletos. India had cash.<br/>The US has cards that pay<br/>the customer to use them."]
+        Y5["5. A default distribution channel<br/>Pix inside every bank app on day one.<br/>UPI inside apps people already had."]
+    end
+
+    subgraph No["What held the slow ones back"]
+        direction TB
+        N1["Optional receiving.<br/>FedNow and RTP participation<br/>is a business decision,<br/>so reach stayed partial."]
+        N2["Rewards-funded cards.<br/>A US consumer paying by card<br/>earns 2%. Instant pays nothing."]
+        N3["Two networks, no interoperability.<br/>Reachability has to be checked<br/>before every payment."]
+        N4["Core banking that cannot<br/>run 24x7 without a batch window"]
+        N5["Europe: instant existed since 2017<br/>but was priced above a normal<br/>transfer until regulation<br/>banned the surcharge"]
+    end
+
+    subgraph Fix["What regulators did about it"]
+        direction TB
+        F1["EU Instant Payments Regulation:<br/>receiving mandatory Jan 2025,<br/>sending plus Verification of Payee<br/>Oct 2025, and instant may not<br/>cost more than a normal transfer"]
+        F2["UK: mandatory reimbursement<br/>shifted the fraud cost onto<br/>the firms that can stop it"]
+        F3["Brazil and India: the central bank<br/>or its subsidiary built the rail<br/>rather than waiting for banks"]
+    end
+
+    Q --> Yes
+    Q --> No
+    No --> Fix
+
+    Punch["The finding is not technical.<br/>Every scheme here settles in seconds.<br/>What differs is whether a bank<br/>was allowed to say no."]
+
+    Yes --> Punch
+    Fix --> Punch
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Yes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style No fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Fix fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Punch fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,63 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Buy["Buy side - owns the investment decision"]
+        PM["Portfolio manager<br/>decides what to hold"]
+        Trader["Buy-side trader<br/>decides how to get there"]
+        OMS["Order management system<br/>compliance, allocation, position<br/>Charles River, Aladdin, Eze"]
+        EMS["Execution management system<br/>routing, algos, live market data<br/>FlexTrade, Portware, TT"]
+    end
+
+    subgraph Sell["Sell side - owns the market access"]
+        SalesTrader["Sales trader<br/>high touch"]
+        SOR["Smart order router<br/>slices and sprays"]
+        Algo["Algo container<br/>VWAP, TWAP, POV, IS"]
+        Risk["Pre-trade risk gate<br/>mandatory under SEC 15c3-5"]
+    end
+
+    subgraph Venues["Execution venues"]
+        Exch["Exchanges<br/>Nasdaq, NYSE, Cboe, CME, Eurex"]
+        MTF["MTFs and ATSs<br/>Turquoise, Cboe Europe, dark pools"]
+        SI["Systematic internalisers<br/>and market makers"]
+    end
+
+    subgraph Post["Post-trade"]
+        Middle["Middle office<br/>allocation and confirmation"]
+        Custodian["Custodian and prime broker"]
+        CCP["Clearing house<br/>DTCC, LCH, CME Clearing, Eurex Clearing"]
+    end
+
+    subgraph Infra["The plumbing nobody sees"]
+        Network["Extranets and order routing networks<br/>NYFIX, Radianz, TNS, Fidessa"]
+        Engine["FIX engines<br/>QuickFIX, Artio, OnixS, B2BITS, Rapid Addition"]
+        Vendor["Testing and certification<br/>Broadridge (Itiviti, Greenline),<br/>venue simulators, in-house harnesses"]
+        Colo["Colocation and cross connects<br/>Aurora IL, Carteret NJ, Slough, Basildon"]
+    end
+
+    PM --> Trader --> OMS
+    OMS <-->|"FIX 4.2 or 4.4 tag=value"| EMS
+    EMS -->|"NewOrderSingle 35=D"| Network
+    OMS -->|"care orders"| Network
+    Network --> SalesTrader
+    Network --> Risk
+    Risk --> Algo --> SOR
+    SalesTrader --> SOR
+    SOR -->|"FIX, or native binary"| Exch
+    SOR --> MTF
+    SOR --> SI
+    Exch -->|"ExecutionReport 35=8"| SOR
+    SOR --> Network --> EMS
+    EMS -->|"fills"| OMS
+    OMS -->|"AllocationInstruction 35=J"| Middle
+    Middle -->|"Confirmation 35=AK"| Custodian
+    Exch --> CCP
+    Custodian <--> CCP
+    Engine -.-> Network
+    Vendor -.-> Network
+    Colo -.-> Exch
+
+    style Buy fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Sell fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Venues fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Post fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Infra fill:#eceff1,stroke:#37474f,stroke-width:2px

@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Loop["The controller loop - runs forever, per object"]
+        direction TB
+        W["1. Observe<br/>An event arrives from the<br/>watch stream, or the<br/>resync timer fires"]
+        R["2. Read desired<br/>obj.spec from the<br/>informer's local cache.<br/>No API call"]
+        C["3. Read observed<br/>List owned children by<br/>label selector, also<br/>from cache"]
+        D["4. Diff<br/>Compute the delta.<br/>Pure function, no I/O"]
+        A["5. Act<br/>Issue ONE step toward<br/>the target via the API server.<br/>Never the whole plan"]
+        S["6. Report<br/>PATCH obj.status with<br/>what is actually true,<br/>plus observedGeneration"]
+        E["7. Requeue<br/>On error: exponential<br/>backoff, 5ms doubling<br/>to 1000s by default"]
+    end
+
+    W --> R --> C --> D --> A --> S --> W
+    A -->|error| E --> W
+    D -->|"no difference"| W
+
+    Level["Level-triggered, not edge-triggered:<br/>the loop reads the CURRENT state,<br/>never a queue of past events.<br/>A missed event costs nothing.<br/>A duplicated event costs nothing."]
+
+    Idem["Idempotent by construction:<br/>running the loop twice on the same<br/>input produces the same writes.<br/>This is what makes crash recovery free."]
+
+    Loop -.-> Level
+    Loop -.-> Idem
+
+    style Loop fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Level fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Idem fill:#fff3e0,stroke:#e65100,stroke-width:2px

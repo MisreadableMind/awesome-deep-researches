@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application
+    participant TC as Coordinator
+    participant P1 as Participant A
+    participant P2 as Participant B
+
+    rect rgb(227, 242, 253)
+        Note over App,P2: CLASSIC TWO-PHASE COMMIT
+        App->>TC: COMMIT
+        Note over TC: Write a PREPARE record to the<br/>coordinator log and fsync it.<br/>The coordinator log is the recovery oracle.
+
+        TC->>P1: PREPARE
+        TC->>P2: PREPARE
+
+        Note over P1: Ensure the transaction CAN commit.<br/>Write all changes plus a PREPARED record<br/>to the log and fsync. HOLD ALL LOCKS.<br/>After voting YES a participant has given up<br/>the right to abort unilaterally, forever.
+        P1-->>TC: VOTE YES
+        P2-->>TC: VOTE YES
+
+        Note over TC: All yes. Write COMMIT to the log and fsync.<br/>THIS FSYNC IS THE COMMIT POINT.<br/>Everything before it is undoable.<br/>Everything after it is not.
+
+        TC->>P1: COMMIT
+        TC->>P2: COMMIT
+        P1-->>TC: ACK, locks released
+        P2-->>TC: ACK, locks released
+        TC-->>App: committed
+    end
+
+    rect rgb(255, 235, 238)
+        Note over TC,P2: THE BLOCKING WINDOW<br/>Coordinator dies AFTER P1 and P2 vote YES<br/>and BEFORE either receives the outcome.<br/><br/>P1 and P2 cannot abort, because the coordinator may<br/>have logged COMMIT.<br/>P1 and P2 cannot commit, because the coordinator may<br/>have logged ABORT.<br/>They HOLD THEIR LOCKS AND WAIT.<br/>Asking each other does not help. Both are<br/>in the same uncertain state.<br/><br/>This window has no non-blocking fix that is<br/>also safe under partitions. Three-phase commit,<br/>Skeen 1981, removes blocking under fail-stop<br/>and is UNSAFE under network partitions.
+    end
+
+    rect rgb(232, 245, 233)
+        Note over App,P2: WHAT MODERN SYSTEMS DO INSTEAD
+
+        Note over TC: SPANNER: make every 2PC participant a<br/>PAXOS GROUP rather than a machine.<br/>The coordinator is one participant's Paxos<br/>leader, so its log survives its own death.<br/>Blocking now needs a whole group to lose quorum.
+
+        Note over TC: COCKROACHDB PARALLEL COMMITS:<br/>replace "coordinator logged COMMIT" with<br/>an implicit condition. A transaction is<br/>IMPLICITLY COMMITTED when its record is<br/>STAGING and every listed intent achieved<br/>consensus at the right epoch and timestamp.<br/>Any observer can verify that itself. One<br/>consensus round trip instead of two.
+
+        Note over TC: CALVIN, SIGMOD 2012: order transactions<br/>BEFORE execution in a replicated input log.<br/>Every node executes the same sequence<br/>deterministically, so no vote is needed at all.<br/>Cost: the full read and write set must be<br/>known in advance.
+    end

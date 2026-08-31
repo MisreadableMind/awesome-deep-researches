@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant EV as The event<br/>Category 3 landfall
+    participant CD as Gulfstream Property<br/>the cedant
+    participant QS as Quota share<br/>reinsurers, 25%
+    participant XL as Cat XL tower<br/>19 reinsurers, 5 layers
+    participant RT as Retrocession<br/>and ILS behind the tower
+
+    EV->>CD: 41,000 claims over 68 hours
+    CD->>CD: Elect a 72-hour window opening six hours<br/>before landfall. All claims fall inside it,<br/>so the event is one loss occurrence.
+    CD->>CD: Ultimate net loss: 1,600,000,000 USD<br/>including loss adjustment expense
+
+    Note over CD,QS: Step 1. Inuring reinsurance applies first.
+    CD->>QS: Cede 25% of ultimate net loss
+    QS-->>CD: 400,000,000 USD
+    Note over CD: Net loss carried to the tower:<br/>1,200,000,000 USD
+
+    Note over CD,XL: Step 2. The tower attaches on the net figure.
+    CD->>CD: Retain the first 150,000,000
+    CD->>XL: Claim on Layer 1, 250,000,000 xs 150,000,000
+    XL-->>CD: 250,000,000 USD, layer exhausted
+    CD->>XL: Claim on Layer 2, 400,000,000 xs 400,000,000
+    XL-->>CD: 400,000,000 USD, layer exhausted
+    CD->>XL: Claim on Layer 3, 600,000,000 xs 800,000,000
+    XL-->>CD: 400,000,000 USD, layer 67% burned
+    Note over XL: Layers 4 and 5 untouched.<br/>Total recovery 1,050,000,000 USD.
+
+    Note over CD,XL: Step 3. Reinstatement, pro rata as to amount.
+    CD->>XL: Layer 1 reinstatement premium<br/>55,000,000 x 250/250 = 55,000,000
+    CD->>XL: Layer 2 reinstatement premium<br/>48,000,000 x 400/400 = 48,000,000
+    CD->>XL: Layer 3 reinstatement premium<br/>39,000,000 x 400/600 = 26,000,000
+    Note over CD: Reinstatement cost 129,000,000 USD.<br/>Layers 1 and 2 are restored to full limit.<br/>No further reinstatement remains:<br/>a third event of this size is uncovered.
+
+    Note over XL,RT: Step 4. The reinsurers recover in turn.
+    XL->>RT: Retro and ILS recoveries on the<br/>reinsurers' own aggregate covers
+    RT-->>XL: Collateralised, drawn from trust accounts
+
+    Note over CD: Net cost of the event to Gulfstream:<br/>150,000,000 retained + 129,000,000<br/>reinstatement = 279,000,000 USD<br/>against 600,000,000 USD of surplus.<br/>A bad year. Not a failure.

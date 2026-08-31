@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Def["Every excess of loss cover answers<br/>four questions: what is one loss,<br/>where does cover start, where does it<br/>stop, and how many times does it reset."]
+
+    subgraph PerRisk["Per-risk excess of loss"]
+        direction TB
+        PR1["Unit of loss: one insured risk,<br/>one policy, one location"]
+        PR2["4,500,000 USD excess of 500,000 USD"]
+        PR3["A warehouse burns for 2,000,000.<br/>Cedant pays 500,000.<br/>Reinsurer pays 1,500,000."]
+        PR4["A 7,000,000 loss exhausts the layer.<br/>Cedant pays 500,000 plus the<br/>2,000,000 above 5,000,000."]
+        PR5["Buys nothing against a hurricane<br/>that damages 40,000 homes for<br/>60,000 USD each. Each one is<br/>below the retention."]
+    end
+
+    subgraph CatXL["Catastrophe excess of loss"]
+        direction TB
+        CX1["Unit of loss: one loss occurrence,<br/>defined by an hours clause.<br/>Typically 72 hours for windstorm<br/>and earthquake, 168 for flood."]
+        CX2["250,000,000 USD excess of<br/>150,000,000 USD, each and<br/>every loss occurrence"]
+        CX3["The cedant elects the 72-hour window<br/>that maximises recovery. A five-day<br/>storm can be cut into one occurrence<br/>or, if it helps, two."]
+        CX4["Ultimate net loss includes loss<br/>adjustment expense and is measured<br/>after all inuring reinsurance"]
+        CX5["Reinstatement: one at 100%,<br/>pro rata as to amount,<br/>100% as to time"]
+    end
+
+    subgraph AggXL["Aggregate excess of loss"]
+        direction TB
+        AG1["Unit of loss: the calendar year"]
+        AG2["100,000,000 USD excess of<br/>200,000,000 USD in the annual<br/>aggregate, with a 10,000,000 USD<br/>franchise per event"]
+        AG3["Only losses above the franchise<br/>count toward the aggregate.<br/>This is frequency protection:<br/>the many-medium-events year."]
+        AG4["Cover of last resort in a year<br/>of hailstorms, none of which<br/>individually reaches a cat layer"]
+    end
+
+    subgraph StopLoss["Stop loss"]
+        direction TB
+        SL1["Unit of loss: the net loss ratio"]
+        SL2["Pays the excess of an 80% net<br/>loss ratio, up to 100%.<br/>The limit is a percentage,<br/>not a dollar amount."]
+        SL3["On 816,600,000 USD of net earned<br/>premium after all reinsurance, attaches<br/>at 653,300,000 of loss and caps at<br/>816,600,000."]
+        SL4["Cedant co-participation of 5% to 10%<br/>is standard. A stop loss with no<br/>co-participation removes the<br/>incentive to underwrite."]
+        SL5["Rare, expensive, and heavily<br/>conditioned. It insures the<br/>result, not the risk."]
+    end
+
+    Def --> PerRisk
+    Def --> CatXL
+    Def --> AggXL
+    Def --> StopLoss
+
+    Punch["Price is quoted as rate on line.<br/>Premium divided by limit.<br/>A 22% rate on line pays for itself<br/>in 4.5 loss-free years.<br/>A 1.8% rate on line pays back in 56."]
+
+    PerRisk --> Punch
+    CatXL --> Punch
+    AggXL --> Punch
+    StopLoss --> Punch
+
+    style Def fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style PerRisk fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CatXL fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style AggXL fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style StopLoss fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Punch fill:#fce4ec,stroke:#880e4f,stroke-width:3px

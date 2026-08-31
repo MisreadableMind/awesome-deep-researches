@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Client["Client SDK<br/>signs with SigV4, retries on 503,<br/>splits large objects into parts,<br/>opens many parallel connections"]
+
+    subgraph Edge["Request path - stateless, horizontally scaled"]
+        DNS["DNS<br/>resolves bucket.s3.region.amazonaws.com<br/>to a rotating set of front-end addresses"]
+        FE["Front-end fleet<br/>terminates TLS, verifies the signature,<br/>evaluates IAM and bucket policy,<br/>meters the request, applies throttles"]
+    end
+
+    subgraph Control["Metadata plane"]
+        IDX["Index subsystem<br/>maps bucket plus key plus version to<br/>the shard locations of the value.<br/>Range-partitioned, replicated."]
+        WIT["Witness<br/>in-memory read barrier that tells the<br/>metadata cache whether its view is stale"]
+        PLC["Placement subsystem<br/>chooses which disks receive the shards<br/>of a new write. Depends on the index."]
+    end
+
+    subgraph Data["Data plane"]
+        SN["Storage nodes<br/>ShardStore key-value engine.<br/>Log-structured, checksummed,<br/>millions of drives per Region."]
+        EC["Erasure coder<br/>splits the value into k data shards<br/>plus m parity shards"]
+    end
+
+    subgraph Background["Background plane - never on the request path"]
+        SCRUB["Scrubber<br/>re-reads and re-verifies shards at rest,<br/>schedules repair on checksum mismatch"]
+        REPAIR["Repair<br/>rebuilds missing shards from survivors<br/>and restores the redundancy target"]
+        LIFE["Lifecycle engine<br/>evaluates rules daily, transitions<br/>and expires objects asynchronously"]
+        REPL["Replication engine<br/>copies new versions to other<br/>buckets and Regions"]
+        METER["Metering and billing<br/>four independent meters"]
+    end
+
+    KMS["AWS KMS<br/>wraps and unwraps data keys<br/>for SSE-KMS objects"]
+    IAM["IAM and AWS Organizations<br/>identity policies, SCPs,<br/>Block Public Access"]
+
+    Client --> DNS --> FE
+    FE --> IAM
+    FE --> IDX
+    IDX <--> WIT
+    FE --> PLC
+    PLC --> EC --> SN
+    IDX --> SN
+    FE --> KMS
+    SN --> SCRUB --> REPAIR --> SN
+    IDX --> LIFE
+    IDX --> REPL
+    FE --> METER
+
+    style Edge fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Control fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Data fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Background fill:#eceff1,stroke:#37474f,stroke-width:2px

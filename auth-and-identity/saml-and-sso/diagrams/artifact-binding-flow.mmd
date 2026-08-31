@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant IdP as Identity Provider
+    participant SP as Service Provider
+
+    Note over B,SP: The artifact binding exists so the assertion<br/>never passes through the user agent.
+
+    IdP->>IdP: Authentication done. Build the Response.<br/>Store it in server-side state.<br/>Mint a 44 byte artifact:<br/>0x0004 TypeCode, 0x0000 EndpointIndex,<br/>SourceID = SHA-1 of the IdP entityID,<br/>MessageHandle = 20 random bytes
+    IdP-->>B: 302 to the SP ACS with SAMLart=<br/>AAQAAAAUXkoTo64Vm2CJ3jjDtYGtkE%2FqAAECAwQFBgcICQoLDA0ODxAREhM%3D<br/>60 base64 characters, percent-encoded in the query, plus RelayState
+    B->>SP: GET /saml/acs?SAMLart=...&RelayState=...
+
+    SP->>SP: Decode the artifact. Look up SourceID<br/>in the metadata index to find the issuer.<br/>Use EndpointIndex to pick the<br/>ArtifactResolutionService endpoint.
+
+    rect rgb(232, 245, 233)
+        Note over SP,IdP: Back channel. Mutual TLS. The browser is not involved.
+        SP->>IdP: POST ArtifactResolve over the SOAP binding<br/>samlp:Artifact = the 60 character value
+        IdP->>IdP: Look up the handle. Check it is unconsumed.<br/>Check the requester is the SP the Response<br/>was issued to. Delete the handle.
+        IdP-->>SP: ArtifactResponse wrapping the full<br/>samlp:Response and its signed Assertion
+    end
+
+    SP->>SP: Same validation as the POST binding:<br/>signature, Issuer, Audience, Recipient,<br/>Destination, InResponseTo, clock window, replay cache
+    SP-->>B: Set-Cookie session, redirect to the target
+
+    Note over B,SP: What it buys: the assertion never enters browser<br/>history, logs, or referrer headers, and it is not<br/>replayable from a cached POST body.
+    Note over B,SP: What it costs: a direct IdP to SP network path<br/>through both firewalls, plus shared server-side state<br/>at the IdP while the artifact is outstanding.<br/>That state is why most SaaS IdPs never enabled it.

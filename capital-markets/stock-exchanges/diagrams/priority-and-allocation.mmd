@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    IN["Incoming marketable sell order: 1,000 shares<br/>Resting bids at 190.03:<br/>Floor Broker eQuote 500 | DMM 500 | Book order A 600 (t=1) | Book order B 400 (t=2)"]
+
+    IN --> NAS
+    IN --> NYS
+
+    subgraph NAS["NASDAQ: strict price-time"]
+        N1["Rank all resting interest at 190.03<br/>by arrival timestamp"]
+        N2["Fill head of queue completely,<br/>then the next, then the next"]
+        N3["Result:<br/>Book order A gets 600<br/>Book order B gets 400<br/>Everything else gets 0<br/>(assuming A and B arrived first)"]
+        N1 --> N2 --> N3
+    end
+
+    subgraph NYS["NYSE: setter priority, then parity"]
+        Y0{"Did any resting order<br/>SET a new NBBO<br/>at this price?"}
+        Y1["YES: Setter Priority.<br/>That order trades its FULL<br/>displayed quantity first."]
+        Y2["NO, or setter exhausted:<br/>allocate on the parity wheel"]
+        Y3["Allocation wheel at 190.03<br/>rotates ROUND LOTS among:<br/>Floor Broker eQuote,<br/>DMM,<br/>the electronic book as one participant"]
+        Y4["Result:<br/>100 to Floor Broker, 100 to DMM,<br/>100 to the book, repeat<br/>until the 1,000 is exhausted"]
+        Y0 -->|yes| Y1
+        Y0 -->|no| Y2
+        Y1 --> Y2
+        Y2 --> Y3 --> Y4
+    end
+
+    NOTE["Setter Priority is NOT retained in the Closing Auction<br/>or in a reopening auction after a halt.<br/>Market, MOO, MOC, LOC, closing offset, yielding, IOC,<br/>and min-fill non-displayed orders are never parity eligible."]
+    NYS --> NOTE
+
+    style NAS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NYS fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style NOTE fill:#ffebee,stroke:#c62828,stroke-width:2px

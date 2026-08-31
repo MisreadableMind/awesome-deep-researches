@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["A reinsurer knows what it charged.<br/>It does not know what it owes.<br/>On casualty business the answer<br/>arrives ten years late, through<br/>a cedant that reports quarterly."]
+
+    subgraph Parts["What the reserve is made of"]
+        direction TB
+        P1["Case reserves<br/>Set claim by claim by the cedant's<br/>adjusters, then reported up"]
+        P2["IBNER: incurred but not enough<br/>reported. Known claims that will<br/>develop beyond the case estimate."]
+        P3["Pure IBNR<br/>Claims that have occurred and have<br/>not been reported to anyone yet"]
+        P4["ALAE and ULAE<br/>Allocated and unallocated loss<br/>adjustment expense. Lawyers cost<br/>money whether or not the<br/>claim is paid."]
+    end
+
+    subgraph Tri["The development triangle"]
+        direction TB
+        T1["Rows: accident year or underwriting year.<br/>Columns: months of development,<br/>12, 24, 36, 48 and onward."]
+        T2["Each cell holds cumulative reported<br/>or paid loss for that cohort at<br/>that age"]
+        T3["The triangle is upper-left filled.<br/>Reserving is the act of<br/>completing the rectangle."]
+    end
+
+    subgraph CL["Method 1: chain ladder"]
+        direction TB
+        C1["Age-to-age factor = loss at age n+1<br/>divided by loss at age n,<br/>averaged across accident years"]
+        C2["Example: 43.2m at 24 months<br/>becomes 45.6m at 36 months.<br/>Factor 1.056."]
+        C3["Multiply the selected factors forward<br/>to get the cumulative loss<br/>development factor, then add a tail"]
+        C4["Ultimate = reported to date<br/>x cumulative development factor.<br/>IBNR = ultimate minus reported."]
+        C5["Fails on a young year. At 12 months<br/>a small reported figure multiplied by<br/>a large factor produces a wild answer."]
+    end
+
+    subgraph BF["Method 2: Bornhuetter-Ferguson"]
+        direction TB
+        B1["Bornhuetter and Ferguson,<br/>The Actuary and IBNR, 1972"]
+        B2["Ultimate = reported to date<br/>+ (expected loss ratio x premium)<br/>x (1 - percent reported)"]
+        B3["The unreported portion comes from<br/>the plan, not from the data.<br/>An empty triangle cell cannot<br/>be multiplied into a number."]
+        B4["Weight shifts from a priori to actual<br/>as the year matures. At 12 months<br/>the answer is almost entirely plan.<br/>At 96 months it is almost entirely data."]
+    end
+
+    subgraph Re["Why it is harder for a reinsurer"]
+        direction TB
+        R1["Reporting lag on top of settlement lag.<br/>The cedant learns first and reports<br/>the reinsurer's share quarterly."]
+        R2["Excess of loss layers develop slower<br/>than the ground-up book.<br/>A claim reaches an excess layer only<br/>after the case estimate has grown."]
+        R3["Slow reporting delays the signal.<br/>By the time a casualty year is<br/>clearly bad, three more have<br/>been written on the same terms."]
+        R4["The fix is commercial, not actuarial:<br/>loss portfolio transfers and adverse<br/>development covers move an<br/>unresolved year off the balance sheet<br/>for a price."]
+    end
+
+    Problem --> Parts --> Tri
+    Tri --> CL
+    Tri --> BF
+    CL --> Re
+    BF --> Re
+
+    style Problem fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Parts fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tri fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CL fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style BF fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Re fill:#ffebee,stroke:#b71c1c,stroke-width:3px

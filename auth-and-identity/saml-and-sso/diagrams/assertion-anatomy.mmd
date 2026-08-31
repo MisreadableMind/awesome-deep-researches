@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    A["saml:Assertion<br/>Version=2.0 ID=xs:ID IssueInstant=xs:dateTime<br/>All three attributes REQUIRED"]
+
+    A --> Iss["saml:Issuer  REQUIRED<br/>The IdP entityID.<br/>Format defaults to nameid-format:entity"]
+    A --> Sig["ds:Signature  OPTIONAL in schema<br/>MANDATORY in the POST profile.<br/>Enveloped, one Reference,<br/>URI points at this element ID"]
+    A --> Sub["saml:Subject  OPTIONAL in schema<br/>Required whenever there is<br/>an AttributeStatement"]
+    A --> Cond["saml:Conditions<br/>NotBefore and NotOnOrAfter<br/>bound the assertion validity"]
+    A --> Adv["saml:Advice<br/>Ignorable by design.<br/>A schema-legal place to hide<br/>a wrapped assertion"]
+    A --> Stmt["Zero or more statements"]
+
+    Sub --> NID["saml:NameID<br/>Format plus NameQualifier<br/>plus SPNameQualifier.<br/>persistent and transient<br/>are capped at 256 characters"]
+    Sub --> SC["saml:SubjectConfirmation<br/>Method=urn:oasis:names:tc:SAML:2.0:cm:bearer"]
+    SC --> SCD["saml:SubjectConfirmationData<br/>Recipient  must equal the ACS URL<br/>NotOnOrAfter  hard delivery deadline<br/>InResponseTo  must equal the request ID<br/>Address  optional client IP pin<br/>NotBefore  MUST NOT be present"]
+
+    Cond --> Aud["saml:AudienceRestriction<br/>saml:Audience must contain<br/>the SP entityID. This is what<br/>stops assertion redirection."]
+    Cond --> OTU["saml:OneTimeUse<br/>Advisory. Replay defence is the<br/>SP cache of seen assertion IDs."]
+    Cond --> PR["saml:ProxyRestriction<br/>Count and Audience limits on<br/>onward assertion issuance"]
+
+    Stmt --> AuthN["saml:AuthnStatement<br/>AuthnInstant  REQUIRED<br/>SessionIndex  needed for Single Logout<br/>SessionNotOnOrAfter  ends the SP session<br/>saml:AuthnContextClassRef  REQUIRED"]
+    Stmt --> Attr["saml:AttributeStatement<br/>saml:Attribute Name NameFormat FriendlyName<br/>saml:AttributeValue is xs:anyType"]
+
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Sig fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SCD fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Aud fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Adv fill:#ffebee,stroke:#b71c1c,stroke-width:2px

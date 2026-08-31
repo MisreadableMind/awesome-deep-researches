@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Op as Server operator
+    participant Cl as ACME client<br/>certbot, acme.sh, Caddy,<br/>lego, cert-manager
+    participant CA as ACME server<br/>Let's Encrypt Boulder
+    participant DNS as DNS / web server<br/>for example.com
+    participant CT as CT logs
+    participant MPIC as Remote validation<br/>perspectives
+
+    Op->>Cl: "Get me a certificate for example.com"
+    Cl->>CA: POST /new-account<br/>JWS signed with a fresh account key
+    CA-->>Cl: 201 Created, account URL
+
+    Cl->>CA: POST /new-order<br/>identifiers: [dns: example.com]
+    CA-->>Cl: 201, authorization URLs + finalize URL
+
+    Cl->>CA: POST-as-GET the authorization
+    CA-->>Cl: challenges: http-01, dns-01, tls-alpn-01<br/>each with a random token
+
+    Note over Cl,DNS: http-01: serve the key authorization at<br/>/.well-known/acme-challenge/{token}<br/>dns-01: publish SHA-256 of it as a TXT record<br/>at _acme-challenge.example.com<br/>tls-alpn-01: answer a TLS handshake with<br/>ALPN "acme-tls/1" and a self-signed cert
+
+    Cl->>DNS: Provision the challenge response
+    Cl->>CA: POST the challenge URL: "ready"
+
+    CA->>DNS: Fetch from the primary perspective
+    CA->>MPIC: Corroborate from remote perspectives
+    MPIC->>DNS: Independent fetch
+    MPIC-->>CA: Result
+
+    Note over CA,MPIC: SC-067: since 15 Sep 2025 at least two<br/>perspectives, at least 500 km apart,<br/>must agree. Rising to five by Dec 2026.
+
+    CA->>DNS: CAA lookup on example.com and its parents<br/>RFC 8659, must permit this CA's issuer domain
+
+    CA-->>Cl: authorization status: valid
+
+    Cl->>CA: POST finalize, with a CSR<br/>(PKCS 10, carrying the public key<br/>and the SAN list)
+
+    Note over CA: Build a precertificate: the real TBS<br/>plus the critical poison extension<br/>1.3.6.1.4.1.11129.2.4.3
+
+    CA->>CT: submit precertificate to N logs
+    CT-->>CA: Signed Certificate Timestamps
+    Note over CA: Embed the SCTs, remove the poison,<br/>sign the real certificate
+
+    CA-->>Cl: 200, certificate URL
+    Cl->>CA: POST-as-GET the certificate
+    CA-->>Cl: PEM chain: leaf + intermediates
+    Cl->>Op: Install, reload the server
+
+    loop Renewal
+        Cl->>CA: GET /renewalInfo/{certID}<br/>ACME Renewal Information, RFC 9773
+        CA-->>Cl: suggestedWindow: {start, end}<br/>The CA moves the window early if it<br/>must revoke in bulk.
+    end

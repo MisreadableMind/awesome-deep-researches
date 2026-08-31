@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    DO["Valued delivery arrives at DTC<br/>deliverer's securities against<br/>receiver's settlement debit"]
+
+    subgraph Tests["Four tests, every transaction, before completion"]
+        T1["1. The deliverer holds the position"]
+        T2["2. The deliverer's collateral monitor<br/>stays non-negative"]
+        T3["3. The receiver's collateral monitor<br/>stays non-negative"]
+        T4["4. The receiver's net debit<br/>stays within its net debit cap"]
+    end
+
+    Pass["Complete: debit the receiver,<br/>credit the deliverer"]
+    Pend["Recycle queue<br/>waits for credits, or for look-ahead<br/>to pair it with an offsetting delivery"]
+    Drop["3:10 p.m. valued recycle cutoff<br/>whatever has not completed is dropped<br/>and must be re-entered another day"]
+
+    DO --> Tests
+    Tests -- "all four hold" --> Pass
+    Tests -- "any one breaks" --> Pend
+    Pend --> Pass
+    Pend --> Drop
+
+    subgraph Cap["How the net debit cap is set"]
+        C1["Three highest intraday net debit peaks<br/>over a rolling 70 business days"]
+        C2["Average them, multiply by a factor<br/>on a sliding scale between 1 and 2:<br/>smaller peaks attract larger factors"]
+        C3["Capped by DTC's established maximum,<br/>the same maximum for an unaffiliated participant<br/>and for an affiliated family aggregate"]
+        C4["A settling bank may set a lower cap.<br/>It may never set a higher one."]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph Mon["How the collateral monitor works"]
+        M1["Opens the day credited with the<br/>participant's Participants Fund deposit"]
+        M2["Collateral value equals market value<br/>less a haircut of 2 to 100 percent,<br/>prior day's closing price"]
+        M3["DTC worked example:<br/>10,000 USD market value, 10 percent haircut,<br/>9,000 USD collateral, 8,000 USD debit,<br/>monitor stands at 1,000 USD"]
+        M1 --> M2 --> M3
+    end
+
+    subgraph NSCCside["The CCP's version of the same problem"]
+        L1["Rule 17ad-22 e 7:<br/>liquid resources for same-day settlement<br/>after the largest participant family defaults"]
+        L2["Qualifying liquid resources:<br/>Clearing Fund cash, a committed 364-day facility,<br/>commercial paper and extendable notes,<br/>senior unsecured notes"]
+        L3["Rule 4A Supplemental Liquidity Deposit:<br/>daily liquidity need minus those resources,<br/>determined every business day,<br/>wired in cash within one hour of notice"]
+        L1 --> L2 --> L3
+    end
+
+    Cap -.- T4
+    Mon -.- T2
+    Mon -.- T3
+
+    style Tests fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Pass fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Drop fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Cap fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Mon fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style NSCCside fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

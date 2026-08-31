@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph US["United States"]
+        US1["RULE 15c3-5, the Market Access Rule<br/>Adopted Nov 2010, compliance 14 Jul 2011.<br/>Pre-trade controls that PREVENT entry.<br/>Annual CEO certification.<br/>The rule Knight violated."]
+        US2["REGULATION SCI<br/>Adopted 19 Nov 2014, effective 3 Feb 2015,<br/>compliance 3 Nov 2015.<br/>Binds SCI ENTITIES: exchanges, FINRA,<br/>MSRB, clearing agencies, plan processors,<br/>SCI ATSs, SCI competing consolidators.<br/>Does NOT bind proprietary trading firms."]
+        US3["REGULATION NMS<br/>Rule 610 access fees, Rule 611 trade-through,<br/>Rule 612 tick size.<br/>Rule 611 rescission PROPOSED 17 June 2026,<br/>Release 34-105655, comments closed 17 Aug 2026."]
+        US4["CEA anti-spoofing<br/>7 U.S.C. 6c(a)(5)(C).<br/>Bidding or offering with intent to cancel<br/>before execution. First case: Panther Energy<br/>and Coscia, 22 July 2013."]
+        US5["REG SHO Rules 200(g) and 203(b)<br/>Short sale marking and locate.<br/>Charged against Knight alongside 15c3-5."]
+    end
+
+    subgraph EU["European Union"]
+        EU1["MiFID II Art 4(1)(40)<br/>The only binding DEFINITION of a<br/>high-frequency algorithmic trading technique.<br/>Triggers loss of the Art 2(1)(d) proprietary<br/>trading exemption: authorisation required."]
+        EU2["MiFID II Art 17, on the FIRM<br/>Resilient systems, thresholds, testing,<br/>business continuity, notification to the<br/>home and venue competent authorities.<br/>HFT firms must store time-sequenced records<br/>of ALL placed orders, cancellations,<br/>executions and quotations."]
+        EU3["MiFID II Art 48, on the VENUE<br/>Capacity for peak volumes, erroneous order<br/>rejection, halts, member algorithm testing<br/>environments, order-to-trade ratio limits,<br/>DEA controls, and colocation rules that are<br/>'transparent, fair and non-discriminatory'."]
+        EU4["RTS 6 - Reg (EU) 2017/589<br/>Firm organisational requirements.<br/>Art 5-8 testing, Art 6 conformance testing,<br/>Art 9 annual self-assessment, Art 10 stress<br/>testing at 2x the highest message count of<br/>the previous six months, Art 12 kill<br/>functionality, Art 15 pre-trade controls,<br/>Art 28 five-year HFT order records."]
+        EU5["RTS 9 - Reg (EU) 2017/566<br/>Order-to-trade ratio methodology,<br/>computed per member per instrument,<br/>in volume and number terms, at least<br/>at the end of every session."]
+        EU6["RTS 25 - Reg (EU) 2017/574<br/>Clock synchronisation to UTC.<br/>HFT firms: 100 microsecond maximum<br/>divergence, 1 microsecond granularity.<br/>Applies from 3 January 2018."]
+    end
+
+    subgraph Gap["What is NOT regulated"]
+        G1["No US definition of HFT."]
+        G2["No US rule against order anticipation."]
+        G3["No rule anywhere defining quote stuffing."]
+        G4["No US minimum order resting time."]
+        G5["Reg SCI does NOT cover proprietary firms.<br/>The 14 April 2023 proposal to expand<br/>'SCI entity' was WITHDRAWN 17 June 2025."]
+    end
+
+    US --> Gap
+    EU --> Gap
+
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style EU fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Gap fill:#ffebee,stroke:#c62828,stroke-width:3px

@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Attacker contract
+    participant AV as Aave flashLoanSimple
+    participant U as TOKEN/WETH v2 pool<br/>100,000 TOKEN / 100 WETH
+    participant L as Victim lending market<br/>prices TOKEN off that pool
+    participant T as Its WETH reserve
+
+    Note over A,T: Setup, done earlier and cheaply
+    A->>L: Supply 10,000 TOKEN as collateral<br/>Honest value 10 WETH. Borrowing power 7.5 WETH.
+
+    Note over A,T: The attack, one transaction
+    A->>AV: flashLoanSimple(WETH, 500)
+    AV->>A: executeOperation(500 WETH, premium 0.25 WETH)
+
+    A->>U: swapExactTokensForTokens(500 WETH -> TOKEN)
+    U-->>A: 83,291.56 TOKEN
+    Note over U: Reserves now 16,708.44 TOKEN / 600 WETH<br/>Spot price 0.035910 WETH per TOKEN<br/>35.9x the pre-trade price
+
+    A->>L: borrow(WETH, as much as the pool holds)
+    L->>U: getReserves() to price TOKEN
+    U-->>L: The manipulated ratio
+    L->>L: Collateral marked at 359.10 WETH<br/>Borrowing power 269.33 WETH at 75% LTV
+    L->>T: Transfer every available WETH to the attacker
+
+    A->>U: Sell the 83,291.56 TOKEN back
+    U-->>A: 499.50 WETH
+    Note over U: Pool restored. Attacker lost 0.50 WETH<br/>to the round-trip fee and impact.
+
+    A->>AV: Repay 500.25 WETH
+    Note over A: Cost 0.75 WETH plus gas.<br/>Take: everything the lending market held.<br/>Collateral left behind: 10,000 TOKEN worth 10 WETH.

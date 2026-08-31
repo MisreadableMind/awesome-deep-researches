@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Impl["The four layers RFC 1122 actually specifies"]
+        direction TB
+        L4["Application<br/>HTTP, DNS, SSH, SMTP, gRPC<br/>Owns retries, timeouts, framing<br/>of its own messages"]
+        L3["Transport<br/>TCP, UDP, SCTP, DCCP<br/>Ports, and for TCP: reliability,<br/>ordering, flow and congestion control"]
+        L2["Internet<br/>IP, ICMP, IGMP<br/>Addressing and hop-by-hop<br/>forwarding. Best effort. No memory."]
+        L1["Link<br/>Ethernet, Wi-Fi, PPP, 5G NR<br/>Framing on one physical medium,<br/>plus ARP and NDP"]
+        L4 --> L3 --> L2 --> L1
+    end
+
+    subgraph OSI["The seven-layer OSI model"]
+        direction TB
+        O["Application, Presentation, Session,<br/>Transport, Network, Data Link, Physical.<br/><br/>Standardised by ISO in 1984 as<br/>ISO/IEC 7498-1. Nothing on the<br/>internet implements it.<br/>It survives as vocabulary:<br/>'layer 3 device', 'layer 7 proxy'."]
+    end
+
+    subgraph Violations["Where the layering is violated on purpose"]
+        direction TB
+        V1["The TCP and UDP checksum covers a<br/>pseudo-header built from the IP source,<br/>destination and protocol. Transport<br/>reaches down into the network layer."]
+        V2["NAT rewrites transport ports and<br/>recomputes transport checksums.<br/>A layer 3 box editing layer 4."]
+        V3["MSS clamping: a router edits the<br/>TCP MSS option inside a SYN it is<br/>only supposed to forward."]
+        V4["TLS sits between application and<br/>transport and belongs to neither.<br/>QUIC puts the transport above UDP<br/>and inside TLS at the same time."]
+        V5["Segmentation offload: the NIC<br/>builds TCP and IP headers.<br/>Layer 4 executes on layer 1 hardware."]
+    end
+
+    Impl -.described by.-> OSI
+    Impl --> Violations
+
+    Note["The mental model that survives contact:<br/>IP moves one packet one hop and forgets it.<br/>TCP is a state machine at each end that<br/>turns that into an ordered byte stream.<br/>Everything else is an optimisation."]
+
+    Violations --> Note
+
+    style Impl fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style OSI fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Violations fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Note fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

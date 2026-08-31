@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Origins<br/>1668-1913"]
+        direction TB
+        E1A["1668: Sveriges Riksbank,<br/>the first central bank,<br/>born from a failed note issuer"]
+        E1B["1694: Bank of England chartered<br/>to fund a war, becomes the<br/>bankers' bank by accident"]
+        E1C["1873: Bagehot publishes<br/>Lombard Street and writes<br/>the lender of last resort rule"]
+        E1D["1913: Federal Reserve Act,<br/>after the Panic of 1907<br/>was stopped by one private banker"]
+    end
+
+    subgraph Era2["The Scarce Reserve Era<br/>1914-2007"]
+        direction TB
+        E2A["Reserve requirements bind.<br/>Banks hold the minimum and<br/>trade the rest overnight"]
+        E2B["The Desk fine-tunes the<br/>supply of reserves daily to<br/>hit a fed funds target"]
+        E2C["1977: Federal Reserve Act 2A<br/>writes maximum employment,<br/>stable prices, moderate long rates"]
+        E2D["1998-2007: excess reserves<br/>run near 2 billion USD.<br/>Tiny quantities, precise control"]
+    end
+
+    subgraph Era3["The Crisis Break<br/>2008-2014"]
+        direction TB
+        E3A["Oct 2008: Fed begins paying<br/>interest on reserves.<br/>The corridor floor becomes a floor"]
+        E3B["Dec 2008: rate hits zero.<br/>Quantity replaces price as<br/>the active instrument"]
+        E3C["2008-2014: QE1, QE2,<br/>Operation Twist, QE3.<br/>Reserves peak near 2.8 trillion USD"]
+        E3D["Dec 2012: the Evans rule.<br/>Forward guidance moves from<br/>dates to economic thresholds"]
+    end
+
+    subgraph Era4["Ample Reserves<br/>2015-2021"]
+        direction TB
+        E4A["2015: liftoff executed with<br/>IOER and ON RRP, not by<br/>draining reserves"]
+        E4B["Sep 2019: repo spike.<br/>SOFR prints above 5 percent.<br/>Reserves were not ample enough"]
+        E4C["Mar 2020: balance sheet goes<br/>from 4.16 to 7.17 trillion USD<br/>in fifteen weeks"]
+        E4D["Jul 2021: standing repo facility<br/>made permanent. The ceiling<br/>stops being improvised"]
+    end
+
+    subgraph Era5["Normalisation and After<br/>2022-2026"]
+        direction TB
+        E5A["Apr 2022: balance sheet peaks<br/>at 8.97 trillion USD"]
+        E5B["2022-2025: QT removes<br/>2.43 trillion USD. ON RRP drains<br/>from 2.55 trillion to zero"]
+        E5C["Aug 2025: framework revision<br/>drops average inflation targeting<br/>and the shortfalls language"]
+        E5D["Dec 2025: runoff ends,<br/>bill purchases resume,<br/>SRF becomes uncapped full allotment"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Era4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era5 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

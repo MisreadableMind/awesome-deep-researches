@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Gap["THE DURATION GAP - Meridian National Bank"]
+        direction LR
+        subgraph AssetSide["ASSETS - long"]
+            AS1["HTM agency MBS 1,350<br/>duration 6.2 years"]
+            AS2["AFS securities 1,200<br/>duration 4.5 years"]
+            AS3["Fixed-rate mortgages 2,000<br/>duration 5.8 years"]
+            AS4["CRE and C and I 3,500<br/>mostly floating or under 5 years"]
+            ASD["Weighted asset duration<br/>roughly 3.4 years"]
+        end
+        subgraph LiabSide["LIABILITIES - short"]
+            LS1["Demand deposits 1,700<br/>contractual maturity: zero.<br/>Behavioural maturity: modelled."]
+            LS2["Savings, MMDA, corporate and<br/>brokered deposits 5,600<br/>repriceable at will"]
+            LS3["Time deposits 1,100<br/>average 11 months"]
+            LS4["FHLB advances 500<br/>average 18 months"]
+            LSD["Weighted liability duration<br/>roughly 0.9 years, using<br/>the bank's own deposit model"]
+        end
+    end
+
+    ASD --> Calc["DURATION GAP = 3.4 - 0.9 x (9,200/10,000)<br/>= 2.57 years"]
+    LSD --> Calc
+
+    Calc --> Shock["A 400 basis point parallel rise:<br/>Change in equity value<br/>= -2.57 x 4.00% x 10,000<br/>= -1,028 against equity of 800"]
+
+    Shock --> Three["THREE WAYS THIS SHOWS UP"]
+
+    Three --> W1["EARNINGS: net interest income<br/>falls if liabilities reprice faster<br/>than assets. Visible next quarter."]
+    Three --> W2["ECONOMIC VALUE: the present value<br/>of equity falls today.<br/>Visible in no accounting statement<br/>if the securities are HTM."]
+    Three --> W3["LIQUIDITY: the securities you would<br/>sell to meet a run are now worth<br/>less than book. Selling them<br/>converts the hidden loss<br/>into a real one."]
+
+    W3 --> Trap["THE TRAP:<br/>selling any HTM security taints<br/>the whole HTM portfolio and forces<br/>it to be marked to market.<br/>So the assets you hold for safety<br/>are the ones you cannot touch."]
+
+    style Gap fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style AssetSide fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LiabSide fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Shock fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Trap fill:#fce4ec,stroke:#880e4f,stroke-width:3px

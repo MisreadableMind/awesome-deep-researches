@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    START["What is a message in this system?"]
+
+    Q1{"Does the message still have value<br/>after one consumer has handled it?"}
+
+    Q2{"Will a NEW consumer ever need to read<br/>history it was not present for?"}
+
+    Q3{"Does each message need its own retry count,<br/>its own priority, or its own delay?"}
+
+    Q4{"Do routing rules change more often<br/>than the publishers do?"}
+
+    Q5{"Must consumer count scale beyond<br/>the number of ordered substreams?"}
+
+    KAFKA["APACHE KAFKA<br/>Partitioned log, non-destructive reads.<br/>Fan-out costs one integer per group.<br/>Replay is a seek.<br/>Parallelism is capped at the partition count.<br/>Ordering unit: the partition."]
+
+    RABBIT["RABBITMQ<br/>Routing engine plus durable mailboxes.<br/>Per-message ack, delivery-limit 20, DLX.<br/>Priorities, TTL, delayed retry.<br/>Consumers scale freely.<br/>Ordering unit: the queue, with SAC on."]
+
+    SHARE["KAFKA SHARE GROUPS (4.2+)<br/>Per-record acknowledgement and delivery<br/>counting on top of a log.<br/>Records processed one at a time rather<br/>than as an ordered stream.<br/>New; not a consumer-group replacement."]
+
+    STREAM["RABBITMQ STREAMS (3.9+)<br/>Append-only, replicated, non-destructive.<br/>x-max-age or x-max-length-bytes.<br/>No TTL, no priority, no DLX.<br/>SQL and Bloom filtering server-side since 4.2."]
+
+    BOTH["RUN BOTH<br/>Kafka as the event backbone,<br/>RabbitMQ for task queues.<br/>Bridge with Kafka Connect AMQP,<br/>the shovel plugin, or a small service.<br/>Never treat one as a drop-in for the other:<br/>the retention model does not survive translation."]
+
+    SIZE["Before choosing, price it:<br/>at 100 MB/s with RF=3 across 3 AZs,<br/>replicated storage is about $18,144/month<br/>against about $1,760 of brokers.<br/>Self-managed on EC2 adds about $9,656/month<br/>of cross-AZ replication traffic; Amazon MSK<br/>does not bill replication traffic at all.<br/>Storage and network decide the bill."]
+
+    START --> Q1
+    Q1 -->|"yes, it is a FACT"| Q2
+    Q1 -->|"no, it is a TASK"| Q3
+    Q2 -->|"yes, replay matters"| KAFKA
+    Q2 -->|"no, but volume is sustained<br/>and ordering by key matters"| KAFKA
+    Q3 -->|"yes"| Q4
+    Q3 -->|"no, but Kafka is already running"| SHARE
+    Q4 -->|"yes"| RABBIT
+    Q4 -->|"no, but fan-out with replay<br/>inside RabbitMQ is wanted"| STREAM
+    Q5 -->|"yes"| RABBIT
+    KAFKA -.-> Q5
+    KAFKA --> SIZE
+    RABBIT --> SIZE
+    KAFKA -.-> BOTH
+    RABBIT -.-> BOTH
+
+    style KAFKA fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style RABBIT fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style SHARE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style STREAM fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BOTH fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style SIZE fill:#fce4ec,stroke:#880e4f,stroke-width:2px

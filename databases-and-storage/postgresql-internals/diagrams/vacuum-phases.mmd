@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    TRIG["Autovacuum launcher wakes every 1 minute.<br/>Table qualifies when<br/>n_dead_tup is greater than<br/>50 + 0.2 x reltuples,<br/>capped at 100,000,000 in PostgreSQL 18,<br/>or when age(relfrozenxid) exceeds 200 million."]
+
+    LOCK["Take SHARE UPDATE EXCLUSIVE.<br/>Blocks DDL and other VACUUMs.<br/>Does NOT block SELECT, INSERT,<br/>UPDATE or DELETE."]
+
+    subgraph PH1["Phase 1 - scan heap"]
+        direction TB
+        P1A["Read pages in physical order.<br/>Skip pages marked all-visible,<br/>unless this is an aggressive vacuum."]
+        P1B["Prune HOT chains, freeze eligible tuples,<br/>collect dead item pointers"]
+        P1C["Dead TIDs go into a TidStore.<br/>Since PostgreSQL 17 that is an adaptive<br/>radix tree, not a flat array:<br/>up to 20x less memory and no 1GB cap."]
+        P1A --> P1B --> P1C
+    end
+
+    subgraph PH2["Phase 2 - vacuum indexes"]
+        direction TB
+        P2A["For every index, remove entries<br/>pointing at collected dead TIDs"]
+        P2B["btree, hash, GiST, SP-GiST and GIN<br/>are scanned in full.<br/>BRIN only re-summarizes."]
+        P2A --> P2B
+    end
+
+    subgraph PH3["Phase 3 - vacuum heap"]
+        direction TB
+        P3A["Second pass over the collected pages.<br/>Dead ItemIds go LP_DEAD to LP_UNUSED."]
+        P3B["Update the free space map<br/>and the visibility map"]
+        P3A --> P3B
+    end
+
+    LOOP{"TidStore full?"}
+    FINISH["Update pg_class.relfrozenxid,<br/>relminmxid, reltuples, relpages.<br/>Truncate trailing empty pages<br/>if it can get ACCESS EXCLUSIVE briefly."]
+
+    TRIG --> LOCK --> PH1 --> LOOP
+    LOOP -->|"yes - and this is why<br/>a huge delete costs several<br/>full index scans"| PH2
+    LOOP -->|"no, heap scan finished"| PH2
+    PH2 --> PH3 --> LOOP2{"More heap left?"}
+    LOOP2 -->|"yes"| PH1
+    LOOP2 -->|"no"| FINISH
+
+    MYTH["VACUUM returns space to the FREE SPACE MAP,<br/>not to the filesystem. Only VACUUM FULL,<br/>CLUSTER, REPACK or a trailing-page truncation<br/>gives blocks back to the OS."]
+    FINISH -.-> MYTH
+
+    style TRIG fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PH1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PH2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style PH3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style MYTH fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Claim["A valid claim on a Lloyd's policy.<br/>The policyholder does not care which<br/>syndicate wrote it. Lloyd's makes the<br/>whole market stand behind the answer."]
+
+    L1["LINK 1: SYNDICATE LEVEL ASSETS<br/>95,297m GBP at 31 December 2025<br/>Premiums held in trust until claims<br/>are paid. Several liability: each member<br/>answers for its own share and no more.<br/>Audited and actuarially reviewed annually."]
+
+    L2["LINK 2: MEMBERS' FUNDS AT LLOYD'S<br/>31,132m GBP at 31 December 2025<br/>Capital lodged in trust by each member,<br/>usable only for that member's syndicates.<br/>Sized from the managing agent's own<br/>Solvency Capital Requirement at 99.5%,<br/>then uplifted 35% to the<br/>Economic Capital Assessment."]
+
+    L3["LINK 3: CENTRAL ASSETS<br/>3,862m GBP at 31 December 2025<br/>Mutual. Available at the discretion of<br/>the Council to any policyholder whose<br/>member cannot pay."]
+
+    subgraph L3D["Inside the third link"]
+        direction TB
+        D1["Central Fund: 3,202m GBP, built from<br/>an annual levy on every member's premium"]
+        D2["Corporation net assets: 362m GBP"]
+        D3["Subordinated debt: 298m GBP"]
+        D4["Callable layer, gross 2,997m GBP.<br/>Up to 5% of member capacity.<br/>Additional to the funded assets above,<br/>callable by the Council if they run out."]
+    end
+
+    Claim --> L1
+    L1 -->|"Member's own assets exhausted"| L2
+    L2 -->|"Member in default"| L3
+    L3 --> L3D
+
+    subgraph Why["Why the structure exists"]
+        direction TB
+        W1["Underwriting at Lloyd's is several,<br/>not joint. Without the third link,<br/>a policyholder would carry the credit<br/>risk of the individual syndicates<br/>that happened to sign its slip."]
+        W2["The Central Fund converts 19 separate<br/>credit exposures into one.<br/>That single rating is the product<br/>Lloyd's actually sells."]
+        W3["It also mutualises failure.<br/>A managing agent that writes badly<br/>spends other members' money.<br/>Hence the Council's power to<br/>reject business plans."]
+    end
+
+    L3D --> Why
+
+    style Claim fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style L1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style L3 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style L3D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Why fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

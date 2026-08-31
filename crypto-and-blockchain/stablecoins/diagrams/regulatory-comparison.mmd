@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph MICA["MiCA - Regulation (EU) 2023/1114"]
+        M0["In force since 30 Dec 2024.<br/>Titles III and IV since 30 Jun 2024."]
+        M0 --> M1["Taxonomy<br/>Title III: asset-referenced tokens<br/>Title IV: e-money tokens<br/>A dollar or euro stablecoin is an EMT"]
+        M1 --> M2["Who may issue<br/>Art 48: a credit institution or an<br/>authorised electronic money institution"]
+        M2 --> M3["Art 49: issue at par on receipt of funds.<br/>Redeem at any time, at par, on request,<br/>free of any fee. Applies to ANY holder."]
+        M3 --> M4["Art 50: no interest. Any benefit tied<br/>to holding period counts, including<br/>net compensation or discounts.<br/>Also binds service providers."]
+        M4 --> M5["Art 54: at least 30 percent of funds<br/>received always in separate accounts<br/>at credit institutions. The rest in<br/>highly liquid low-risk instruments<br/>in the same currency."]
+        M5 --> M6["Art 56 with Art 43(1): significance if<br/>three of seven criteria are met.<br/>More than 10 m holders.<br/>Issuance or reserve above 5 bn EUR.<br/>More than 2.5 m transactions and<br/>500 m EUR per day. And others."]
+        M6 --> M7["Art 58: significant EMT issuers face<br/>ART-grade reserve rules, and with them<br/>Art 36(9)'s independent audit of the<br/>reserve every six months.<br/>EBA supervises directly."]
+    end
+
+    subgraph GEN["GENIUS Act - Public Law 119-27"]
+        G0["Approved 18 Jul 2025.<br/>Effective on the earlier of 18 months<br/>after enactment, that is 18 Jan 2027,<br/>or 120 days after final regulations."]
+        G0 --> G1["Taxonomy<br/>One category: payment stablecoin"]
+        G1 --> G2["Who may issue<br/>a subsidiary of an insured depository<br/>institution, a federal qualified issuer<br/>approved by the OCC, or a<br/>state qualified issuer"]
+        G2 --> G3["Sec 4 reserve: 1 to 1 in US currency,<br/>Federal Reserve deposits, insured<br/>demand deposits, Treasury bills of<br/>93 days or less, repo and reverse repo,<br/>and government money market funds"]
+        G3 --> G4["No rehypothecation, except for margin,<br/>custodial obligations, or liquidity via<br/>93-day repo that is either centrally<br/>cleared or pre-approved"]
+        G4 --> G5["Monthly month-end reserve report,<br/>examined monthly by a registered public<br/>accounting firm. CEO and CFO certify.<br/>A false certification carries the<br/>penalties of 18 USC 1350(c)."]
+        G5 --> G6["No interest or yield paid by the issuer,<br/>domestic or foreign"]
+        G6 --> G7["10 bn USD threshold. Below it a state<br/>regime may apply if substantially similar.<br/>Above it, move to federal oversight or<br/>stop new issuance within 360 days."]
+        G7 --> G8["Insolvency: holders rank ahead of all<br/>other claims on required reserves,<br/>ratably among themselves.<br/>Section 507(e) of title 11 added."]
+    end
+
+    M7 --> DIFF["The substantive difference"]
+    G8 --> DIFF
+    DIFF --> D1["MiCA gives EVERY holder a redemption<br/>right at par. GENIUS does not."]
+    DIFF --> D2["GENIUS gives holders insolvency priority.<br/>MiCA relies on segregation of the reserve."]
+    DIFF --> D3["MiCA sets a floor on bank deposits.<br/>GENIUS sets a ceiling on maturity."]
+    DIFF --> D4["Both ban algorithmic designs,<br/>by defining them out of the category."]

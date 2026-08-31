@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Decl["Announcement"]
+        D1["Declaration date<br/>the board declares<br/>the distribution"]
+    end
+
+    subgraph Key["The dates that decide who gets paid"]
+        D2["Ex-date<br/>buy on or after this date<br/>and you do not get the dividend<br/><br/>Under T+2: one business day<br/>before the record date<br/>Under T+1: the same day<br/>as the record date"]
+        D3["Record date<br/>whoever is on the register<br/>at close of business is entitled"]
+    end
+
+    subgraph Pay["Payment"]
+        D4["Payable date<br/>the issuer pays the<br/>registered holder, Cede and Co"]
+        D5["DTC allocates to participants<br/>by record-date position,<br/>adjusted for as-of trades and due bills"]
+    end
+
+    subgraph Interim["Interim accounting - the fix for trades in flight"]
+        I1["A trade settling after the record date<br/>but bought before the ex-date carries<br/>a due bill: the entitlement follows the buyer"]
+        I2["Interim accounting period now runs from<br/>record date plus one day to the<br/>due bill redemption date"]
+        I3["Without it, buyer and seller would have to<br/>settle the entitlement between themselves,<br/>outside the depository"]
+    end
+
+    D1 --> D2 --> D3 --> D4 --> D5
+    D3 -.- I1
+    I1 --> I2 --> I3
+
+    style Key fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Interim fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Pay fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

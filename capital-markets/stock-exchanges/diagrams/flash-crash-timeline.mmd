@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph P1["PHASE 1 -- open to 14:32 -- the setup"]
+        A1["Broad decline. Stock index products down about 3%.<br/>By 14:30 the VIX is up 22.5% from the open and<br/>the DJIA is down about 2.5%."]
+        A2["Depth erodes BEFORE anything happens.<br/>E-Mini buy-side depth 6.0 bn to 2.65 bn USD, down 55%.<br/>SPY buy-side depth 275 m to 220 m USD, down 20%.<br/>Near-inside depth is not yet affected."]
+        A1 --> A2
+    end
+
+    subgraph P2["PHASE 2 -- 14:32 to 14:41 -- the sell program"]
+        B1["A mutual fund complex begins selling 75,000 E-Mini<br/>contracts, about 4.1 bn USD, to hedge an equity position."]
+        B2["The algorithm targets 9% of the TRAILING ONE-MINUTE<br/>VOLUME. No price limit. No time limit.<br/>A comparable prior program took over 5 hours."]
+        B3["Absorbed at first. HFTs and intermediaries buy,<br/>reaching a net long of about 3,300 contracts.<br/>Cross-market arbitrageurs buy E-Mini and sell SPY<br/>and single stocks. Indices fall another 1 to 2%."]
+        B1 --> B2 --> B3
+    end
+
+    subgraph P3["PHASE 3 -- 14:41 to 14:45:28 -- the feedback loop"]
+        C1["14:41 to 14:44. HFTs sell about 2,000 contracts to<br/>flatten, while trading nearly 140,000 contracts,<br/>over 33% of total volume. Volume rises.<br/>The algorithm reads volume and SPEEDS UP."]
+        C2["14:45:13 to 14:45:27. HFTs trade over 27,000 contracts,<br/>about 49% of volume, while buying only about 200 net.<br/>Inventory is being passed, not absorbed."]
+        C3["Buy-side depth in the E-Mini falls to about 58 m USD,<br/>under 1% of the morning level. Price falls a further<br/>1.7% in 15 seconds to an intraday low of 1056."]
+        C4["14:45:28. Fewer than 1,050 contracts of resting buy<br/>interest remain, under 1% of the morning book.<br/>SPY resting bids about 600,000 shares, 25% of the open.<br/>Since 14:41 the E-Mini is down over 5%, SPY over 6%."]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph P4["PHASE 4 -- 14:45:28 to 15:00 -- the pause, then the stocks"]
+        D1["CME Stop Logic pauses the E-Mini for FIVE SECONDS.<br/>Sell pressure eases, buy interest returns.<br/>14:45:33 trading resumes and prices stabilise."]
+        D2["Equities keep falling. Liquidity providers' own<br/>automated pauses had already fired. Some widened,<br/>some cut size, a significant number withdrew entirely."]
+        D3["OTC internalisers STOP internalising and route retail<br/>orders to public exchanges, competing for the<br/>liquidity that is disappearing."]
+        D4["Retail stop-loss orders trigger, convert to market<br/>orders, find no bids, and execute against STUB QUOTES<br/>as low as 0.01 USD and as high as 100,000 USD."]
+        D5["Accenture bids fall from about 30.00 at 14:47:47<br/>to 0.01 by 14:47:54. Seven seconds.<br/>112 broken trades, all between 14:47:51 and 14:48:01."]
+        D1 --> D2 --> D3 --> D4 --> D5
+    end
+
+    subgraph P5["PHASE 5 -- 15:00 onward -- recovery and the breaks"]
+        E1["Most securities back to consensus values by about 15:00.<br/>Between 14:40 and 15:00 about 2 billion shares trade,<br/>over 56 bn USD. Over 98% of shares execute<br/>within 10% of their 14:40 price."]
+        E2["Over 20,000 trades across more than 300 securities<br/>execute 60% or more away from 14:40 prices.<br/>All cancelled after the close under clearly-erroneous rules."]
+        E3["NONE of the market-wide circuit breakers triggered."]
+        E1 --> E2 --> E3
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5
+
+    style P1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style P2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P3 fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style P4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style P5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

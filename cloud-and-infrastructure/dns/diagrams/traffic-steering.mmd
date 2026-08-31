@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Goal["Send each user to a good server.<br/>DNS was never designed to do this.<br/>It does it anyway, three ways."]
+
+    subgraph GeoDNS["GeoDNS - answer differently per asker"]
+        G1["The authoritative server looks at the<br/>source IP of the QUERY and returns<br/>a different A record set.<br/>Route 53 geolocation and latency<br/>routing, NS1 Filter Chain,<br/>Akamai's mapping system."]
+        G2["The flaw: the source IP belongs to<br/>the RESOLVER, not the user.<br/>A Nairobi user on 8.8.8.8 can look<br/>like Google's nearest front end,<br/>which may be another continent."]
+        G3["The patch: EDNS Client Subnet,<br/>RFC 7871, sends a truncated prefix<br/>of the client address - typically<br/>/24 for IPv4 - to the authoritative<br/>server. It fixes accuracy and<br/>leaks the user's network to<br/>every authoritative server,<br/>and it shatters the cache: one<br/>cache entry per client prefix<br/>instead of one per name."]
+        G4["Cloudflare's 1.1.1.1 refuses to<br/>send ECS. Google's 8.8.8.8 sends it.<br/>That single choice is the privacy<br/>and performance trade in one line."]
+    end
+
+    subgraph Any["Anycast - answer from wherever is near"]
+        A1["Same address everywhere.<br/>The routing system chooses.<br/>No per-user answer, no cache<br/>fragmentation, no leak."]
+        A2["Used for both layers: the resolver<br/>address (1.1.1.1, 8.8.8.8) and the<br/>authoritative servers (root servers,<br/>Route 53, Cloudflare, the com servers)."]
+        A3["Steering is coarse. BGP picks by<br/>policy and AS path, not by latency,<br/>so a fraction of users land far away<br/>and there is no way to move them<br/>from the server side."]
+    end
+
+    subgraph Combo["What large operators actually run"]
+        C1["Anycast for coarse placement,<br/>a short TTL on the A record for<br/>fast withdrawal, and health checks<br/>that pull a record within seconds."]
+        C2["Wikimedia's answer measured live:<br/>www.wikipedia.org CNAME dyna.wikimedia.org<br/>with an 86,400-second TTL, then<br/>dyna.wikimedia.org A with a<br/>180-second TTL. The stable name<br/>caches for a day; the steering<br/>decision expires in three minutes."]
+        C3["That split is the pattern.<br/>Put the long TTL on the name that<br/>never changes and the short TTL on<br/>the one carrying the decision."]
+    end
+
+    Goal --> GeoDNS
+    Goal --> Any
+    GeoDNS --> Combo
+    Any --> Combo
+
+    style Goal fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style GeoDNS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Any fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Combo fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

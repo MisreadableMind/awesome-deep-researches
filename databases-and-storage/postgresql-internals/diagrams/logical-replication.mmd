@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph PUB["Publisher - wal_level must be logical"]
+        direction TB
+        WAL["pg_wal<br/>physical records: 'set byte 47 of page 42'"]
+        RB["Reassembly: ReorderBuffer<br/>WAL is interleaved across transactions.<br/>Buffer per XID until COMMIT is seen,<br/>then replay in commit order.<br/>Spills to disk above<br/>logical_decoding_work_mem, 64MB."]
+        DEC["Decoding plugin<br/>pgoutput is built in.<br/>wal2json, decoderbufs and others<br/>use the same output plugin API."]
+        SLOT["Replication slot<br/>holds restart_lsn and catalog_xmin.<br/>The slot is what stops VACUUM from<br/>removing catalog rows the decoder<br/>still needs - and what fills your disk<br/>if the subscriber goes away."]
+        WAL --> RB --> DEC
+        SLOT -.-> WAL
+        SLOT -.-> DEC
+    end
+
+    subgraph WIRE["pgoutput message stream over COPY BOTH"]
+        direction TB
+        W1["'B' Begin: final LSN, commit timestamp, XID"]
+        W2["'R' Relation: OID, namespace, name,<br/>replica identity, column list.<br/>Sent once, then cached by the subscriber."]
+        W3["'I' Insert: relation OID, 'N', TupleData"]
+        W4["'U' Update: relation OID,<br/>optional 'K' key or 'O' old tuple, 'N' new tuple"]
+        W5["'D' Delete: relation OID, 'K' or 'O' tuple"]
+        W6["'T' Truncate, 'Y' Type, 'M' Message, 'O' Origin"]
+        W7["'S'/'E'/'c'/'A' Stream start, stop, commit, abort<br/>protocol v2, PostgreSQL 14:<br/>send in-progress transactions before COMMIT"]
+        W8["'b'/'P'/'K'/'r' two-phase commit<br/>protocol v3, PostgreSQL 15"]
+        W1 --> W2 --> W3 --> W4 --> W5 --> W6 --> W7 --> W8
+    end
+
+    subgraph SUB["Subscriber"]
+        direction TB
+        AW["Apply worker: one per subscription.<br/>Executes INSERT, UPDATE, DELETE<br/>as ordinary SQL-level operations.<br/>Fires row triggers only if the table is<br/>ENABLE ALWAYS TRIGGER."]
+        TS["Table sync workers<br/>max_sync_workers_per_subscription, 2.<br/>COPY the initial snapshot, then catch up."]
+        PA["Parallel apply workers<br/>PostgreSQL 16,<br/>max_parallel_apply_workers_per_subscription, 2"]
+        RI["Replica identity decides what a<br/>DELETE or UPDATE can match on:<br/>DEFAULT = primary key,<br/>FULL = the whole old row,<br/>NOTHING = these operations fail."]
+        AW --> RI
+        TS --> AW
+        PA --> AW
+    end
+
+    LIMITS["What logical replication does NOT carry:<br/>DDL, large objects, and - before PostgreSQL 19 -<br/>sequence values. Every one of those is a manual step."]
+
+    PUB --> WIRE --> SUB
+    SUB --> LIMITS
+
+    style PUB fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style WIRE fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style SUB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LIMITS fill:#ffebee,stroke:#c62828,stroke-width:2px

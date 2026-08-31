@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    SP["SPONSOR<br/>An insurer, reinsurer, state pool<br/>or corporate. Wants a layer of<br/>catastrophe cover that does not<br/>depend on a reinsurer staying solvent."]
+
+    SPI["SPECIAL PURPOSE INSURER<br/>Bermuda, Cayman or Ireland.<br/>Bankruptcy remote, orphan owned,<br/>no employees, no other business.<br/>Writes exactly one reinsurance contract."]
+
+    subgraph Two["Two contracts, one vehicle"]
+        direction TB
+        T1["Contract 1: a reinsurance agreement<br/>between the sponsor and the SPI.<br/>Ordinary in form. Fully collateralised."]
+        T2["Contract 2: notes issued by the SPI<br/>to investors under Rule 144A,<br/>sold to qualified institutional buyers"]
+    end
+
+    TR["COLLATERAL TRUST<br/>Note proceeds sit here for the life<br/>of the deal, invested in US Treasury<br/>money market funds or held with the<br/>IBRD. This is why the investor has<br/>no credit exposure to the sponsor<br/>and the sponsor has none to the investor."]
+
+    INV["INVESTORS<br/>Dedicated ILS funds, pension plans,<br/>multi-strategy hedge funds.<br/>Nephila, Fermat and Twelve Capital<br/>among the specialists.<br/>Return uncorrelated with equities."]
+
+    subgraph Flows["Cash flows"]
+        direction TB
+        F1["Investors pay principal into the trust"]
+        F2["Sponsor pays a risk premium,<br/>the reinsurance spread"]
+        F3["Investors receive the money market<br/>return on the collateral plus the spread"]
+        F4["No trigger event: principal returns<br/>at maturity, typically 3 years"]
+        F5["Trigger event: the trust pays the<br/>sponsor and investors lose principal<br/>to that extent"]
+    end
+
+    subgraph Trig["The four trigger types"]
+        direction TB
+        G1["Indemnity: the sponsor's own<br/>ultimate net loss. Best basis match,<br/>slowest to settle, requires the<br/>investor to underwrite the sponsor."]
+        G2["Industry loss index: PCS in the US,<br/>PERILS in Europe. Fast, transparent,<br/>carries basis risk."]
+        G3["Parametric: wind speed, ground<br/>acceleration or central pressure at<br/>defined stations. Settles in days.<br/>Highest basis risk."]
+        G4["Modelled loss: the event is run<br/>through an agreed model against a<br/>frozen exposure file"]
+        G5["Occurrence or annual aggregate.<br/>Aggregate bonds carry more frequency<br/>risk and price wider."]
+    end
+
+    subgraph Mkt["The market as of August 2026"]
+        direction TB
+        K1["Outstanding cat bond and ILS<br/>risk capital: 65.6bn USD"]
+        K2["2026 issuance to date: 18.9bn USD.<br/>Q2 2026 alone: a record 11.3bn USD<br/>across 48 transactions and 80 tranches."]
+        K3["Total ILS capital including private<br/>collateralised deals: 144.5bn USD<br/>at 30 June 2026, five-year<br/>compound growth 8.3% (Aon)"]
+        K4["Historical loss rate on issued<br/>cat bonds: 2.69% to 3.00%,<br/>close to modelled expectation"]
+    end
+
+    SP --> SPI
+    SPI --> Two
+    Two --> TR
+    INV --> TR
+    TR --> Flows
+    Flows --> Trig
+    Trig --> Mkt
+
+    style SP fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style SPI fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Two fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style TR fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style INV fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Flows fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Trig fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Mkt fill:#fce4ec,stroke:#880e4f,stroke-width:3px

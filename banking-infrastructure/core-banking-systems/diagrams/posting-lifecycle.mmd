@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Cust as Cardholder
+    participant Term as Merchant terminal
+    participant Net as Card network
+    participant CMS as Card management<br/>system
+    participant Core as Core banking<br/>system
+    participant GL as General ledger
+
+    Note over Cust,Term: Tuesday 2026-08-18, 14:32:07 local
+    Cust->>Term: Tap card, 47.85 USD
+    Term->>Net: ISO 8583 0100 authorisation request<br/>DE4 amount 000000004785<br/>DE49 currency 840
+    Net->>CMS: 0100 routed to issuer
+    CMS->>CMS: Card status, velocity, fraud score
+    CMS->>Core: Balance enquiry and hold request<br/>account 0044-021-8822-01
+    Core->>Core: available = 1,203.40 - 0 = 1,203.40<br/>1,203.40 covers 47.85, approve
+    Core->>Core: Write HOLD row<br/>amount 47.85, expiry +7 days<br/>NO journal entry is created
+    Core-->>CMS: Approved, hold id H-88412907
+    CMS-->>Net: 0110 response, DE39 = 00 approved
+    Net-->>Term: Approved
+    Term-->>Cust: Receipt
+
+    Note over Core: Ledger balance still 1,203.40<br/>Available balance now 1,155.55
+
+    Note over Net,CMS: Wednesday 2026-08-19, clearing file
+    Net->>CMS: Presentment 49.85 USD<br/>tip added after authorisation
+    CMS->>Core: Post settlement, reference hold H-88412907
+    Core->>Core: Release hold 47.85
+    Core->>Core: Create journal 20260819-0000517203<br/>tran_code 205 POS PURCHASE<br/>DR 0044-021-8822-01   49.85<br/>CR GL 21600 CARD SETTLEMENT   49.85
+    Core-->>CMS: Posted
+
+    Note over Core: Ledger balance now 1,153.55<br/>Available balance now 1,153.55
+
+    Note over Core,GL: Nightly batch
+    Core->>GL: Summarise 21600 movements<br/>and net against network settlement
+    GL->>GL: Prove subledger totals against<br/>control accounts, sign the day

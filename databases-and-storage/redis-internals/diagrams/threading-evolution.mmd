@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph V24["Redis 2.4, 2011 - background I/O threads"]
+        A1["Main thread does everything<br/>that touches the keyspace"]
+        A2["bio threads take deferred<br/>close and fsync only"]
+    end
+
+    subgraph V40["Redis 4.0, 2017 - lazy free"]
+        B1["UNLINK and the lazyfree-lazy-*<br/>settings hand large object frees<br/>to bio_lazy_free"]
+        B2["Freeing a 10 million element set<br/>stops blocking the loop"]
+    end
+
+    subgraph V60["Redis 6.0, 2020 - first I/O threads"]
+        C1["Main thread accepts, then fans<br/>socket reads and writes out to<br/>io-threads worker threads"]
+        C2["Workers parse RESP and write<br/>replies. Main thread still runs<br/>every command."]
+        C3["A hard barrier each cycle:<br/>the main thread waits for all<br/>workers before executing"]
+    end
+
+    subgraph V80["Redis 8.0, 2025 - per-thread event loops"]
+        D1["Each I/O thread owns its own<br/>event loop and a set of clients"]
+        D2["Clients are handed to the main<br/>thread only when a full command<br/>has been parsed"]
+        D3["No lockstep barrier.<br/>Measured up to 112 percent more<br/>throughput at io-threads 8."]
+    end
+
+    subgraph Invariant["The invariant that never changed"]
+        E1["Exactly one thread mutates<br/>the keyspace at any instant.<br/>Every command is still atomic<br/>with no locks in the data path."]
+    end
+
+    V24 --> V40 --> V60 --> V80
+    V80 --> Invariant
+    V60 -.same guarantee.-> Invariant
+
+    style V24 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style V40 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style V60 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style V80 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Invariant fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

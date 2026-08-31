@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph Interface["API / Interface Layer"]
+        REST["REST API"]
+        BQSQL["BigQuery SQL<br/>Standard SQL dialect"]
+        CONSOLE["Cloud Console<br/>Web UI"]
+        CLI["bq CLI"]
+    end
+
+    subgraph Dremel["Dremel Execution Engine"]
+        ROOT["Root Server<br/>Query coordinator"]
+        subgraph Mixers["Intermediate Nodes (Mixers)"]
+            M1["Mixer 1"]
+            M2["Mixer 2"]
+            M3["Mixer 3"]
+        end
+        subgraph Leaves["Leaf Nodes (Workers)"]
+            L1["Leaf 1<br/>Read Capacitor data"]
+            L2["Leaf 2<br/>Read Capacitor data"]
+            L3["Leaf 3<br/>Read Capacitor data"]
+            L4["Leaf 4"]
+            L5["Leaf 5"]
+            L6["Leaf 6"]
+        end
+    end
+
+    subgraph Colossus["Colossus Distributed File System"]
+        CAP["Capacitor Format<br/>Columnar, compressed<br/>Encoding: RLE, dictionary,<br/>delta, bit-packing"]
+        REP["Replication<br/>3x across zones"]
+        META2["Metadata<br/>Partition pruning info"]
+    end
+
+    subgraph Infra["Google Infrastructure"]
+        JUPITER["Jupiter Network<br/>1 Petabit/sec bisection<br/>bandwidth"]
+        BORG["Borg Scheduler<br/>Dynamic slot allocation"]
+        SPANNER["Spanner<br/>Metadata storage"]
+    end
+
+    Interface --> ROOT
+    ROOT --> Mixers
+    Mixers --> Leaves
+    Leaves --> Colossus
+    Colossus --- Infra
+
+    style Interface fill:#4299e1,color:#fff
+    style Dremel fill:#e53e3e,color:#fff
+    style Colossus fill:#38a169,color:#fff
+    style Infra fill:#805ad5,color:#fff

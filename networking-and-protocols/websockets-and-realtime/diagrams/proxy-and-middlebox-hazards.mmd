@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Path["The path a browser frame actually takes"]
+        direction LR
+        C["Browser"] --> NAT["Home NAT<br/>or CGNAT"] --> CORP["Corporate TLS<br/>inspection proxy"] --> CDN["CDN edge"] --> LB["L7 load balancer"] --> ING["Kubernetes ingress"] --> APP["Application process"]
+    end
+
+    subgraph Break["Six ways the path breaks a long-lived connection"]
+        direction TB
+        BR1["1. Hop-by-hop header stripping.<br/>Upgrade and Connection are<br/>hop-by-hop under RFC 9110, so a<br/>proxy that forwards blindly drops<br/>them. nginx needs an explicit<br/>proxy_set_header Upgrade and a<br/>map from http_upgrade to<br/>connection_upgrade."]
+        BR2["2. Idle timeouts. nginx<br/>proxy_read_timeout defaults to 60<br/>seconds. AWS ALB idle timeout<br/>defaults to 60 seconds and is<br/>configurable. Anything quieter<br/>than the shortest timer dies."]
+        BR3["3. Response buffering. A proxy<br/>that waits for a complete body<br/>destroys SSE and HTTP streaming.<br/>nginx needs proxy_buffering off<br/>or the X-Accel-Buffering: no<br/>response header."]
+        BR4["4. HTTP/1.0 downgrade. A proxy<br/>speaking HTTP/1.0 upstream cannot<br/>carry an Upgrade. nginx defaulted<br/>to HTTP/1.0 for proxied requests<br/>until 1.29.7 and still needs<br/>proxy_http_version 1.1 on every<br/>older build."]
+        BR5["5. Deploy and drain. Rolling a<br/>fleet closes every connection it<br/>holds. A 100,000-connection tier<br/>reconnecting at once is a<br/>self-inflicted thundering herd."]
+        BR6["6. TLS interception. A corporate<br/>middlebox that terminates TLS and<br/>does not understand opcode 0x8<br/>or opcode 0x9 turns a clean close<br/>into a 1006."]
+    end
+
+    subgraph Fix["Configuration that survives production"]
+        direction TB
+        F1["nginx: proxy_http_version 1.1,<br/>proxy_set_header Upgrade,<br/>proxy_set_header Connection<br/>from the map, proxy_read_timeout<br/>and proxy_send_timeout raised<br/>above the heartbeat interval,<br/>proxy_buffering off for streams."]
+        F2["ALB or ELB: raise the idle<br/>timeout above the heartbeat<br/>interval, enable stickiness if<br/>the protocol needs it, and set<br/>deregistration delay long enough<br/>for a graceful drain."]
+        F3["Application: send heartbeats from<br/>the server, not only the client,<br/>because most idle timers watch<br/>both directions and only the<br/>server knows the deployment<br/>topology."]
+        F4["Close politely on shutdown.<br/>Send opcode 0x8 with 1001 going<br/>away, or 1012 service restart, and<br/>a Retry-After style hint in the<br/>reason so clients spread their<br/>reconnects."]
+    end
+
+    Path --> Break --> Fix
+
+    style Path fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Break fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Data["Upstream Data Suppliers"]
+        MOTOR["MOTOR Crash Estimating Guide<br/>labour times, part numbers,<br/>included and not-included operations"]
+        OEM["OEM repair procedures<br/>position statements, calibration<br/>requirements, sectioning rules"]
+        Parts["Parts catalogues<br/>OEM, aftermarket (CAPA certified),<br/>recycled / LKQ, remanufactured"]
+        Costs["Construction cost research<br/>material, labour and equipment<br/>pricing by region"]
+        Aerial["Aerial and satellite imagery<br/>roof measurement reports"]
+        OwnDB["Mitchell and Audatex<br/>proprietary crash estimating<br/>databases"]
+    end
+
+    subgraph Auto["Auto Physical Damage Platforms"]
+        CCC["CCC ONE Estimating<br/>CCC Intelligent Solutions.<br/>Estimating, total loss valuation,<br/>repair network workflow, casualty"]
+        Mitch["Mitchell Cloud Estimating<br/>Enlyte. Estimating plus<br/>auto casualty and workers comp<br/>bill review"]
+        Auda["Audatex / Qapter<br/>Solera. Dominant outside<br/>North America"]
+    end
+
+    subgraph Prop["Property Platforms"]
+        Xact["Xactimate<br/>Verisk. Desktop, mobile and X1.<br/>Sketch-driven, regional price lists<br/>refreshed monthly"]
+        XA["XactAnalysis<br/>assignment routing, estimate<br/>review rules, contractor scorecards"]
+        Symb["Symbility / CoreLogic<br/>the principal alternative"]
+    end
+
+    subgraph Out["What Comes Out"]
+        Est["Estimate document<br/>ESX or EMS export,<br/>line items with MAT/LAB/EQU split"]
+        Rules["Automated estimate review<br/>rules engine flags overlaps,<br/>duplicate operations, price outliers"]
+        Feed["Data feed back to the carrier<br/>severity, cycle time, supplement rate,<br/>shop performance scorecard"]
+    end
+
+    MOTOR --> CCC
+    OwnDB --> Mitch
+    OwnDB --> Auda
+    OEM --> CCC
+    OEM --> Mitch
+    OEM --> Auda
+    Parts --> CCC
+    Parts --> Mitch
+    Parts --> Auda
+    Costs --> Xact
+    Costs --> Symb
+    Aerial --> Xact
+
+    CCC --> Est
+    Mitch --> Est
+    Auda --> Est
+    Xact --> Est
+    Symb --> Est
+    Est --> XA
+    XA --> Rules --> Feed
+
+    Note["The platform is not neutral.<br/>Whoever owns the price list and the labour times<br/>sets the number both sides argue about."]
+    Costs -.-> Note
+    MOTOR -.-> Note
+    OwnDB -.-> Note
+
+    style Data fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Auto fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Prop fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Out fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Note fill:#fff9c4,stroke:#f57f17,stroke-width:2px

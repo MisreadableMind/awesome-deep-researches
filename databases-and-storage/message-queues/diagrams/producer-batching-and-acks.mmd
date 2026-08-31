@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application thread
+    participant Acc as RecordAccumulator<br/>buffer.memory = 32 MiB
+    participant Snd as Sender thread
+    participant L as Partition leader
+    participant F1 as Follower 1 (in ISR)
+    participant F2 as Follower 2 (in ISR)
+
+    App->>Acc: send(record)
+    Note over App,Acc: Serialise key and value.<br/>partition = murmur2(key) & 0x7fffffff % numPartitions
+    Acc-->>App: returns a Future immediately<br/>NOTHING has been sent yet
+
+    App->>Acc: send() x N more records for the same partition
+    Note over Acc: Batch is ready when it reaches<br/>batch.size = 16384 bytes OR<br/>linger.ms = 5 ms elapses<br/>(default changed from 0 in Kafka 4.0)
+
+    alt buffer.memory exhausted
+        Acc-->>App: send() BLOCKS up to max.block.ms = 60000<br/>then throws TimeoutException
+        Note over App: This is the producer's entire<br/>backpressure mechanism.
+    end
+
+    Acc->>Snd: drain ready batches
+    Snd->>Snd: compress the whole record block once<br/>(none / gzip / snappy / lz4 / zstd)
+    Snd->>L: ProduceRequest apiKey 0<br/>acks, timeoutMs, topicId, partition, records<br/>producerId, producerEpoch, baseSequence
+
+    alt acks = 0
+        L-->>Snd: no response at all
+        Note over Snd,L: Silent loss on any failure.
+    else acks = 1
+        L->>L: append to page cache, assign offsets
+        L-->>Snd: baseOffset
+        Note over L: Lost if the leader dies before<br/>any follower fetches.
+    else acks = all (default since Kafka 3.0)
+        L->>L: append to page cache, assign offsets
+        L->>L: check ISR size >= min.insync.replicas
+        F1->>L: FetchRequest (followers PULL)
+        F2->>L: FetchRequest
+        L->>L: high watermark advances to<br/>min(log end offset across the ISR)
+        L-->>Snd: baseOffset
+    end
+
+    alt ISR size < min.insync.replicas
+        L-->>Snd: NotEnoughReplicasException
+        Note over L,Snd: The write is refused rather than<br/>accepted onto one machine.
+    end
+
+    Note over Snd,L: Idempotence: the broker keeps the last 5 batches<br/>per producer per partition. A duplicate sequence is<br/>dropped silently. A gap is a fatal OutOfOrderSequenceException.<br/>This is why max.in.flight must be <= 5.
+
+    Snd-->>App: Future completes with RecordMetadata
+    Note over App,Snd: Total retry budget is delivery.timeout.ms = 120000,<br/>NOT the retries count (2147483647).

@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph V4["IPv4 header, RFC 791, 20 bytes minimum and 60 maximum"]
+        direction TB
+        A1["Bits 0-3: Version = 4<br/>Bits 4-7: IHL, header length in<br/>32-bit words. 5 means 20 bytes,<br/>15 means 60. This is why IPv4<br/>options cap at 40 bytes."]
+        A2["Bits 8-15: DSCP 6 bits plus ECN 2 bits.<br/>Redefined from Type of Service by<br/>RFC 2474 and RFC 3168.<br/>ECN: 00 Not-ECT, 10 ECT(0),<br/>01 ECT(1), 11 CE"]
+        A3["Bits 16-31: Total Length<br/>Header plus payload, in bytes.<br/>Maximum 65535."]
+        A4["Bits 32-47: Identification<br/>Bits 48-50: Flags. Bit 0 reserved,<br/>bit 1 DF Don't Fragment,<br/>bit 2 MF More Fragments<br/>Bits 51-63: Fragment Offset,<br/>counted in 8-byte units"]
+        A5["Bits 64-71: TTL<br/>Decremented per hop. Zero means<br/>discard and send ICMP Time Exceeded.<br/>This is what traceroute exploits."]
+        A6["Bits 72-79: Protocol<br/>6 TCP, 17 UDP, 1 ICMP,<br/>41 IPv6-in-IPv4, 47 GRE, 50 ESP<br/>Bits 80-95: Header Checksum<br/>Covers the header only.<br/>Recomputed at every hop."]
+        A7["Bits 96-127: Source Address<br/>Bits 128-159: Destination Address<br/>Then options, if IHL is above 5.<br/>Options are near-extinct: many<br/>networks drop packets carrying them."]
+    end
+
+    subgraph V6["IPv6 header, RFC 8200, exactly 40 bytes, always"]
+        direction TB
+        B1["Bits 0-3: Version = 6<br/>Bits 4-11: Traffic Class<br/>DSCP plus ECN, same as IPv4<br/>Bits 12-31: Flow Label<br/>20 bits. A hint for equal-cost<br/>hashing that does not require<br/>a router to read the ports."]
+        B2["Bits 32-47: Payload Length<br/>Bytes after this header.<br/>Note the difference from IPv4:<br/>it excludes the header."]
+        B3["Bits 48-55: Next Header<br/>Same number space as IPv4 Protocol.<br/>Also names extension headers:<br/>0 Hop-by-Hop, 43 Routing,<br/>44 Fragment, 60 Destination Options"]
+        B4["Bits 56-63: Hop Limit<br/>TTL renamed to what it always was"]
+        B5["Bits 64-191: Source Address, 128 bits<br/>Bits 192-319: Destination Address, 128 bits"]
+    end
+
+    subgraph Gone["What IPv6 removed, and why"]
+        direction TB
+        C1["No header checksum.<br/>The link layer has a CRC and<br/>the transport has its own checksum.<br/>Recomputing at every hop bought<br/>nothing and cost forwarding cycles."]
+        C2["No router fragmentation.<br/>Only the source may fragment,<br/>using the Fragment extension header.<br/>A router that cannot fit a packet<br/>sends ICMPv6 Packet Too Big, type 2."]
+        C3["No IHL and no in-header options.<br/>Options become extension headers<br/>chained by Next Header. Fixed<br/>40 bytes means fixed-offset parsing."]
+        C4["Minimum link MTU rises from<br/>68 bytes in IPv4 to 1280 bytes.<br/>Every IPv6 link must carry 1280,<br/>so PMTUD has a floor it can trust."]
+    end
+
+    V4 --> Gone
+    V6 --> Gone
+
+    style V4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style V6 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Gone fill:#fff3e0,stroke:#e65100,stroke-width:3px

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph ICSD["International central securities depositories"]
+        EB["Euroclear Bank<br/>Brussels, commercial bank money<br/>home of the eurobond market"]
+        CB["Clearstream Banking Luxembourg<br/>Deutsche Boerse group ICSD<br/>31 m settled transactions in Q2 2026,<br/>up 14 percent"]
+        Bridge["The Bridge<br/>an electronic link between the two ICSDs<br/>scheduled cycles through night and day;<br/>the last one is the same-day deadline"]
+        EB <--> Bridge <--> CB
+    end
+
+    GrpNote["Deutsche Boerse group CSDs:<br/>EUR 17.3 trn average assets under custody,<br/>Q2 2026, domestic and international combined"]
+    CB -.- GrpNote
+
+    subgraph Domestic["Domestic CSDs"]
+        T2S["TARGET2-Securities<br/>ECB platform, live 22 June 2015<br/>24 CSDs from 23 countries<br/>DVP in central bank money<br/>around 800,000 transactions a day, ECB"]
+        Euro["Euroclear France, Belgium,<br/>Nederland, Finland"]
+        Clear["Clearstream Banking Frankfurt"]
+        Other["Other national CSDs"]
+        T2S --- Euro
+        T2S --- Clear
+        T2S --- Other
+    end
+
+    subgraph US["United States"]
+        DTC["DTC<br/>commercial bank money for the cash leg,<br/>settled via the Federal Reserve's NSS"]
+        Fed["Fedwire Securities<br/>Treasuries and agencies,<br/>DVP Model 1, gross"]
+    end
+
+    Inv["Cross-border investor"]
+    GC["Global custodian<br/>one account, many markets"]
+    Sub["Local sub-custodian<br/>or direct CSD link"]
+
+    Inv --> GC --> Sub
+    Sub --> T2S
+    Sub --> DTC
+    GC --> EB
+    GC --> CB
+    EB -.->|"link or investor CSD account"| T2S
+    CB -.->|"link or investor CSD account"| T2S
+    EB -.->|"US securities held through a<br/>local depositary or DTC participant"| DTC
+
+    style ICSD fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Domestic fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

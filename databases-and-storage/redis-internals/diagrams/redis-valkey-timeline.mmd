@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Before["2009 to March 2024"]
+        B1["BSD 3-Clause.<br/>Redis 1.0 in 2009 through Redis 7.2<br/>in August 2023, all permissive."]
+        B2["Modules diverged first:<br/>RediSearch, RedisJSON and the rest<br/>moved to RSALv2 or SSPLv1<br/>on 15 November 2022"]
+    end
+
+    subgraph Change["20 March 2024"]
+        C1["Redis Ltd announces that from<br/>Redis 7.4 the core is dual-licensed<br/>RSALv2 or SSPLv1. Neither is<br/>OSI-approved."]
+        C2["Stated reason: 'the majority of Redis'<br/>commercial sales are channeled through<br/>the largest cloud service providers,<br/>who commoditize Redis' investments'"]
+        C3["RSALv2 forbids providing the software<br/>to others as a managed service.<br/>SSPLv1 requires publishing the entire<br/>service stack under SSPL."]
+        C4["Not retroactive. Everything up to<br/>7.2.4 stays BSD forever."]
+    end
+
+    subgraph Fork["March and April 2024"]
+        F1["Contributors fork 7.2.4 as<br/>PlaceholderKV within days"]
+        F2["28 March 2024: the Linux Foundation<br/>announces Valkey, BSD 3-Clause,<br/>open governance. AWS, Google Cloud,<br/>Oracle, Ericsson and Snap back it."]
+        F3["Maintainers include Madelyn Olson,<br/>a Redis core maintainer through 7.2,<br/>Ping Xie and Viktor Soderqvist"]
+        F4["Valkey 7.2.5, April 2024:<br/>compatibility and licence continuity,<br/>no new features"]
+    end
+
+    subgraph Diverge["The two roadmaps"]
+        D1["Valkey 8.0, 16 Sep 2024:<br/>async I/O threading, dual-channel<br/>replication, memory efficiency"]
+        D2["Redis 8.0, 2 May 2025:<br/>AGPLv3 added as a third option.<br/>Query engine, JSON, time series,<br/>five probabilistic types and<br/>vector sets folded into the core."]
+        D3["Valkey 9.0, 21 Oct 2025:<br/>atomic slot migration, hash field<br/>expiration, numbered databases in<br/>cluster mode, 2000-node clusters"]
+        D4["Valkey 9.1, 19 May 2026:<br/>embstr threshold raised to 128 bytes,<br/>robj pointer removed, sorted-set<br/>members embedded in skiplist nodes"]
+        D6["Redis 8.4, 18 Nov 2025:<br/>CLUSTER MIGRATION, atomic slot<br/>migration on the Redis side"]
+        D5["Redis 8.10, 29 Jul 2026:<br/>compact hashes, BACKUP command<br/>family built on multi-part AOF"]
+    end
+
+    subgraph Now["Where it leaves an operator"]
+        N1["Both are wire-compatible with RESP2<br/>and RESP3 and with existing clients"]
+        N2["RDB compatibility is version-bounded.<br/>Valkey reads Redis RDB up to the<br/>version it forked from and its own after."]
+        N3["The licence question is only live for<br/>anyone reselling the software as a<br/>service. For internal use, RSALv2,<br/>SSPLv1, AGPLv3 and BSD all permit it."]
+    end
+
+    Before --> Change --> Fork --> Diverge --> Now
+
+    style Before fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Change fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Fork fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Diverge fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Now fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trad["Traditional bureau data"]
+        T1["Tradelines, inquiries,<br/>public records, collections"]
+    end
+
+    subgraph Inside["Alternative data that enters the credit file itself"]
+        Rent["RENT<br/>Reported by landlords and rent-reporting<br/>services as a tradeline. FICO Score 9 and<br/>later use it when present. Coverage is thin:<br/>most landlords are individuals, not furnishers."]
+        Util["UTILITIES AND TELECOM<br/>Usually reported only when charged off,<br/>which makes utility data purely negative<br/>in most files. Some state laws restrict<br/>positive furnishing."]
+        Boost["EXPERIAN BOOST<br/>Consumer connects a bank account;<br/>Experian scans 2 years of history for<br/>qualifying bills with at least 3 payments<br/>in 6 months including 1 in the last 3,<br/>and adds them to the Experian file only.<br/>Affects Experian-based scores only."]
+    end
+
+    subgraph Outside["Alternative data that never enters the file"]
+        Cash["CASH FLOW UNDERWRITING<br/>Consumer-permissioned bank transaction data<br/>via open banking. Inflow stability, income<br/>regularity, balance volatility, overdraft<br/>frequency, discretionary spend ratio.<br/>Lives at the lender, not the bureau."]
+        Ultra["ULTRAFICO SCORE<br/>General availability 20 May 2026.<br/>FICO Score plus consumer-permissioned<br/>cash flow data through Plaid's network of<br/>more than 12,000 financial institutions.<br/>Delivered on the 300-850 scale so existing<br/>lender cutoffs still apply."]
+        Other["Telco and pay-TV payment records,<br/>property and asset records,<br/>education and occupation data,<br/>marketplace and gig income feeds"]
+    end
+
+    subgraph Results["Measured effect"]
+        R1["UltraFICO: 7% relative increase in approvals<br/>at no incremental risk; 15% relative<br/>performance lift for prime applicants with<br/>limited credit histories; 79% of non-prime<br/>applicants with a history of positive<br/>account balances score higher"]
+        R2["VantageScore 4.0 universe expansion:<br/>scores roughly 40 million more consumers<br/>than models requiring 6 months of history<br/>and a 6-month update. Dormant-consumer<br/>performance lift over VantageScore 3.0:<br/>16.6% bankcard originations, 12.5% auto"]
+    end
+
+    subgraph Limits["What alternative data does not fix"]
+        L1["ECOA still applies. A cash flow attribute<br/>correlated with a prohibited basis is<br/>still an ECOA problem."]
+        L2["Adverse action reasons must still be<br/>specific and accurate. 'Irregular deposit<br/>pattern' has to be explainable."]
+        L3["Data is consumer-permissioned, so<br/>coverage is self-selected. People who<br/>decline to connect an account are<br/>scored without it."]
+        L4["It creates no history for someone with<br/>no bank account. 'Unbanked' and<br/>'credit invisible' overlap heavily."]
+    end
+
+    Trad --> Inside
+    Trad --> Outside
+    Inside --> Results
+    Outside --> Results
+    Results --> Limits
+
+    style Trad fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Inside fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Outside fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Results fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Limits fill:#fce4ec,stroke:#880e4f,stroke-width:3px

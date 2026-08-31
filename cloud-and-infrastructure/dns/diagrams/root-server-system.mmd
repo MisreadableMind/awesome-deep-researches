@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["13 addresses. 12 organisations.<br/>2,004 machines. One zone file."]
+
+    subgraph Ident["The 13 identities and their sites, 31 Aug 2026"]
+        direction TB
+        A["A 198.41.0.4 - Verisign - 56 sites"]
+        B["B 170.247.170.2 - USC-ISI - 6 sites"]
+        C["C 192.33.4.12 - Cogent - 13 sites"]
+        D["D 199.7.91.13 - U Maryland - 231 sites"]
+        E["E 192.203.230.10 - NASA - 328 sites"]
+        F["F 192.5.5.241 - ISC - 366 sites"]
+        G["G 192.112.36.4 - DISA - 6 sites"]
+        H["H 198.97.190.53 - US Army DEVCOM ARL - 12 sites"]
+        I["I 192.36.148.17 - Netnod - 91 sites"]
+        J["J 192.58.128.30 - Verisign - 147 sites"]
+        K["K 193.0.14.129 - RIPE NCC - 143 sites"]
+        L["L 199.7.83.42 - ICANN - 114 sites"]
+        M["M 202.12.27.33 - WIDE - 29 sites"]
+    end
+
+    subgraph Why13["Why exactly 13"]
+        W1["A priming response must list every<br/>root NS with its IPv4 glue.<br/>13 names plus 13 A records<br/>is 811 bytes today.<br/>14 would not have fit in 512<br/>when the number was chosen."]
+        W2["The constraint is gone.<br/>EDNS0 raised the ceiling in 1999.<br/>The number stayed because<br/>changing it buys nothing:<br/>anycast already added the machines."]
+    end
+
+    subgraph Feed["How the zone gets there"]
+        Root1["IANA / PTI receives and vets<br/>TLD change requests"]
+        Root2["Verisign as Root Zone Maintainer<br/>edits, signs with the ZSK,<br/>increments the serial"]
+        Root3["Distribution masters<br/>push to all 13 identities"]
+        Root4["Each operator's anycast fleet<br/>loads the same zone.<br/>No operator can alter it."]
+    end
+
+    Ops["Independence is the safety property.<br/>Different code, different networks,<br/>different jurisdictions, different funding.<br/>A bug in one implementation<br/>cannot take out the system."]
+
+    Q --> Ident
+    Q --> Why13
+    Root1 --> Root2 --> Root3 --> Root4 --> Ident
+    Ident --> Ops
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Ident fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Why13 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Feed fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Ops fill:#fce4ec,stroke:#880e4f,stroke-width:2px

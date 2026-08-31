@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Data["The dataset: FCA Occasional Paper 50"]
+        D1["London Stock Exchange message data,<br/>obtained under FSMA Section 165.<br/>43 trading days, 17 Aug to 16 Oct 2015.<br/>FTSE 350. ~15,000 symbol-days.<br/>~2.2 billion messages,<br/>~150,000 per symbol-day."]
+        D2["Timestamped at an optical tap on the<br/>OUTSIDE of the exchange firewall,<br/>to 100 nanosecond precision.<br/>This is the point at which a message<br/>leaves the participant's control."]
+        D3["Includes FAILED takes and FAILED cancels.<br/>Neither appears in order book data.<br/>Without them the race is invisible."]
+    end
+
+    subgraph Freq["Frequency"]
+        F1["537 races per FTSE 100 symbol per day.<br/>About one per minute per symbol."]
+        F2["22% of FTSE 100 daily volume<br/>executes inside a race."]
+        F3["Mean 3.46 messages per race:<br/>3.07 takes and 0.40 cancels.<br/>The median race has ZERO cancels.<br/>Maximum observed: 29 race messages<br/>within 500 microseconds, not 29 firms."]
+    end
+
+    subgraph Speed["Speed"]
+        S1["MODAL margin: 5 to 10 microseconds."]
+        S2["MEAN margin: 79 microseconds,<br/>MEDIAN 46, full FTSE 350 sample.<br/>FTSE 100 alone: mean 81, median 49.<br/>90th percentile: ~200 microseconds.<br/>Truncated at 500 microseconds."]
+        S3["About 4% of the time the winner's<br/>message reached the exchange AFTER<br/>the first loser's, and was still<br/>processed first. Round-robin gateway<br/>polling, not skill."]
+    end
+
+    subgraph Conc["Concentration"]
+        C1["Top 3 firms WIN 54% of races."]
+        C2["Top 3 firms LOSE 63% of races.<br/>The same firms. Winning means taking,<br/>losing means being taken."]
+        C3["Top 6 firms: 82% of wins,<br/>85% of losses.<br/>FCA section 5.2. The executive summary<br/>rounds these to 55/66 and 82/87."]
+    end
+
+    subgraph Money["Money"]
+        M1["Average FTSE 100 race: 0.48 ticks,<br/>1.20 basis points, about 2 GBP.<br/>90th percentile: 2.5 ticks, about 8 GBP.<br/>Both rows from Table 5.5 Panel A."]
+        M2["Latency-arbitrage tax:<br/>0.42 bps of all volume,<br/>0.53 bps of non-race volume."]
+        M3["UK annual sums at stake: ~60 million GBP.<br/>Global equity markets: ~5 billion USD."]
+        M4["Implied cut in the cost of liquidity<br/>if eliminated: 17%."]
+    end
+
+    Data --> Freq --> Speed --> Conc --> Money
+
+    style Data fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Freq fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Speed fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Conc fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Money fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client 203.0.113.7 port 51514
+    participant S as Server 198.51.100.20 port 443
+
+    Note over C: CLOSED. Application calls connect().<br/>Kernel picks an ephemeral port and<br/>an ISN from a keyed hash of the<br/>4-tuple plus a 4-microsecond clock,<br/>per RFC 6528. Never a counter.
+
+    C->>S: SYN seq=1000000000 win=65535<br/>MSS=1460, SACK-permitted,<br/>TS val=99000 ecr=0, WS=7
+    Note over C: SYN-SENT. RTO armed at 1 second<br/>per RFC 6298. Linux retries up to<br/>tcp_syn_retries=6 times with<br/>exponential backoff, about 127 s total.
+
+    Note over S: LISTEN. A half-open entry goes into<br/>the SYN queue. If that queue is full<br/>and tcp_syncookies=1, the server<br/>stores no state at all and encodes<br/>the connection into the ISN instead.
+
+    S->>C: SYN+ACK seq=2000000000 ack=1000000001<br/>win=65535, MSS=1460, SACK-permitted,<br/>TS val=44000 ecr=99000, WS=7
+    Note over S: SYN-RECEIVED. The SYN consumed one<br/>sequence number, which is why the<br/>ACK is ISN+1 and carries no data.
+
+    C->>S: ACK seq=1000000001 ack=2000000001<br/>win=1050 scaled by 2^7 = 134400<br/>TS val=99080 ecr=44000
+    Note over C: ESTABLISHED at the client after<br/>one round trip. First RTT sample:<br/>99080 minus 99000 = 80 ms.<br/>SRTT=80, RTTVAR=40, RTO=80+4*40=240 ms.
+
+    Note over S: ESTABLISHED at the server only when<br/>this ACK arrives. The entry moves from<br/>the SYN queue to the accept queue.<br/>accept() now returns a socket.
+
+    C->>S: PSH+ACK seq=1000000001, 517 bytes<br/>TLS ClientHello
+    Note over C,S: Cost of setup: one full RTT before<br/>any application byte can be sent.<br/>With TLS 1.3 that becomes two RTTs<br/>before the first HTTP byte.
+
+    rect rgb(255,235,238)
+    Note over C,S: What the negotiation locks in for the whole connection:<br/>MSS, window scale, SACK and timestamps are agreed on the SYN pair or never.<br/>If either SYN omits window scale, the connection is capped at a 65535-byte window forever.<br/>Middleboxes that strip unknown options on SYNs are why new TCP extensions do not deploy.
+    end
+
+    rect rgb(232,245,233)
+    Note over C,S: Simultaneous open: both sides send SYN before either receives one.<br/>Both go SYN-SENT to SYN-RECEIVED and one connection results, not two.<br/>Legal per RFC 9293, essentially never seen outside NAT hole punching.
+    end

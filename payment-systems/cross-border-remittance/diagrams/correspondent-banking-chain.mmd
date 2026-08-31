@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph USD["United States - USD jurisdiction"]
+        SendBank["Sender's bank<br/>debits the customer"]
+        USCorr["US correspondent bank<br/>holds the vostro account<br/>for the foreign bank"]
+        Fed["Federal Reserve<br/>settles between US banks<br/>in central bank money"]
+    end
+
+    subgraph Msg["Messaging layer - carries instructions, settles nothing"]
+        Swift["Swift network<br/>pacs.008 since Nov 2025,<br/>previously MT103.<br/>UETR tracks the payment."]
+        GPI["Swift gpi tracker<br/>status and fee transparency<br/>along the chain"]
+    end
+
+    subgraph PHP["Philippines - PHP jurisdiction"]
+        LocalBank["Recipient's bank<br/>sees USD credited to its<br/>nostro account in New York"]
+        LocalScheme["Domestic settlement<br/>PhilPaSSplus, InstaPay"]
+        Recipient["Recipient's account<br/>credited in pesos"]
+    end
+
+    Intermediary["Intermediate correspondent<br/>appears when there is no direct<br/>relationship. Each hop takes a<br/>fee and adds a screening step."]
+
+    SendBank -->|"domestic USD payment"| USCorr
+    SendBank -.->|"instruction"| Swift
+    Swift -.-> Intermediary
+    Intermediary -.-> LocalBank
+    Swift -.-> LocalBank
+    Swift <-.-> GPI
+    USCorr <-->|"settles on Fed books"| Fed
+    USCorr -->|"credits the vostro"| LocalBank
+    LocalBank -->|"pays from its own PHP<br/>balance sheet"| LocalScheme
+    LocalScheme --> Recipient
+
+    Note1["Key fact: no value crosses the border.<br/>A USD payment settles in the US.<br/>A PHP payment settles in the Philippines.<br/>The two are joined by a balance-sheet<br/>obligation, not by a transfer."]
+
+    Note2["The cost drivers:<br/>1. Each hop charges a fee<br/>2. Each hop screens again<br/>3. Nostro balances sit idle<br/>4. FX margin is taken by whoever<br/>   controls the conversion point"]
+
+    USD --> Note1
+    PHP --> Note1
+    Intermediary --> Note2
+
+    style USD fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style PHP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Msg fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Intermediary fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Note1 fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Note2 fill:#eceff1,stroke:#37474f,stroke-width:2px

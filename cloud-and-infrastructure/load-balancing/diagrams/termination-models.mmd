@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph NAT["Model 1: NAT / half proxy - LVS VS/NAT, ALB target rewrite"]
+        direction LR
+        NC["Client<br/>203.0.113.7"] -->|"dst = VIP"| NLB["Balancer<br/>rewrites dst IP<br/>to 10.0.1.10"]
+        NLB -->|"dst = 10.0.1.10"| NS["Backend"]
+        NS -->|"reply must return<br/>through the balancer<br/>to be un-rewritten"| NLB
+        NLB --> NC
+    end
+
+    subgraph Prox["Model 2: full proxy - nginx, HAProxy, Envoy, ALB"]
+        direction LR
+        PC["Client"] -->|"TCP connection 1<br/>terminated here"| PLB["Balancer<br/>two sockets, one buffer,<br/>optional TLS on each side"]
+        PLB -->|"TCP connection 2,<br/>often pooled and reused"| PS["Backend"]
+        PS --> PLB --> PC
+    end
+
+    subgraph DR["Model 3: direct server return, L2 - LVS VS/DR"]
+        direction LR
+        DC["Client"] -->|"dst IP = VIP, unchanged"| DLB["Balancer<br/>rewrites the destination<br/>MAC address only"]
+        DLB -->|"same IP packet,<br/>new Ethernet frame"| DS["Backend<br/>VIP bound on loopback,<br/>arp_ignore=1, arp_announce=2"]
+        DS -->|"reply goes straight out,<br/>src = VIP, never touches<br/>the balancer"| DC
+    end
+
+    subgraph Tun["Model 4: tunnel DSR - Maglev GRE, Katran IPIP, Unimog GUE"]
+        direction LR
+        TC["Client"] -->|"dst = VIP"| TLB["Balancer<br/>prepends an outer header<br/>and forwards"]
+        TLB -->|"outer: balancer to backend<br/>inner: client to VIP<br/>1500 becomes 1536 with GUE"| TS["Backend<br/>decapsulates, sees the<br/>original client IP"]
+        TS -->|"reply direct to client,<br/>src = VIP"| TC
+    end
+
+    subgraph Compare["What each model costs"]
+        direction TB
+        X1["NAT: both directions cross the balancer.<br/>The balancer must size for egress, which is<br/>typically 5 to 20 times ingress for web traffic.<br/>LVS documents 10 to 20 real servers per director."]
+        X2["Full proxy: the only model that can retry,<br/>route by path, or rewrite a response.<br/>Costs a socket pair and a buffer per client,<br/>and hides the client IP unless a header carries it."]
+        X3["DSR L2: no return traffic on the balancer,<br/>so a director scales to a high server count.<br/>Requires one layer 2 domain and correct<br/>ARP suppression on every backend."]
+        X4["Tunnel DSR: same egress saving, works across<br/>subnets and racks. Costs MTU. Requires<br/>decapsulation on every backend, which is what<br/>Katran's XDP program and Maglev's<br/>GRE endpoint provide."]
+    end
+
+    NAT --> Prox --> DR --> Tun --> Compare
+
+    style NAT fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Prox fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style DR fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tun fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Compare fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Bank has failed.<br/>Bids are in."]
+
+    Start --> Bench["Compute the liquidation benchmark:<br/>present value of receivership recoveries<br/>minus administrative expenses,<br/>with documented assumptions retained<br/>for at least five years"]
+
+    Bench --> Compare["Convert every conforming bid<br/>to a present-value cost to the fund"]
+
+    Compare --> Test{"Which option is<br/>least costly to the DIF?<br/>12 USC 1823(c)(4)"}
+
+    Test -->|"Insured-deposit-only bid"| Ins["FDIC MUST choose it.<br/>Uninsured depositors receive<br/>receivership certificates and dividends."]
+
+    Test -->|"All-deposit bid"| All["FDIC chooses it.<br/>Uninsured depositors are made whole<br/>as a by-product of the arithmetic,<br/>not as a policy choice."]
+
+    Ins --> Gap["Meridian example:<br/>Bid 1 insured-only, 56.1 m USD<br/>Bid 2 all-deposit, 60.1 m USD<br/>Gap 4.0 m USD, which is<br/>0.0025 percent of the fund."]
+
+    Gap --> Real["Real US failures 2024-2026:<br/>gaps of 754,000 USD, 1.2 m USD, 3.6 m USD<br/>against uninsured balances of<br/>4.1 m, 2.8 m and 26.9 m USD"]
+
+    Real --> DeMin["FDIC has asked Congress for a<br/>DE MINIMIS EXCEPTION so it may pick<br/>an all-deposit bid when the extra cost<br/>is a rounding error"]
+
+    Start --> SRE{"Would least-cost resolution<br/>have serious adverse effects on<br/>economic conditions or financial stability?"}
+
+    SRE -->|"Yes"| Vote1["FDIC Board recommends<br/>by at least two-thirds"]
+    Vote1 --> Vote2["Federal Reserve Board of Governors<br/>recommends by at least two-thirds"]
+    Vote2 --> Vote3["Secretary of the Treasury determines,<br/>in consultation with the President<br/>12 USC 1823(c)(4)(G)"]
+
+    Vote3 --> Effect["LEAST-COST TEST IS SUSPENDED<br/>for that institution.<br/>All depositors may be protected.<br/>Shareholders and unsecured debtholders<br/>are not protected. Management is removed."]
+
+    Effect --> Recover["MANDATORY RECOVERY<br/>special assessment on insured institutions<br/>or holding companies, weighted toward<br/>those that benefited"]
+
+    Effect --> Audit["Comptroller General audits at<br/>60 days and again at 180 days.<br/>Treasury notifies Congress within 3 days."]
+
+    Recover --> Used["Invoked 12 March 2023 for<br/>Silicon Valley Bank and Signature Bank.<br/>NOT invoked for First Republic on 1 May 2023,<br/>because JPMorgan's all-deposit bid<br/>was already the least-cost option."]
+
+    style Test fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style SRE fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Effect fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Gap fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Used fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

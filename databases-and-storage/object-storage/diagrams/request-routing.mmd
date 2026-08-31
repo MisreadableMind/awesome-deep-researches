@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    C["Client"]
+
+    subgraph Naming["Address resolution"]
+        VH["Virtual-hosted style<br/>https://bucket.s3.us-east-1.amazonaws.com/key<br/>The bucket is in the hostname."]
+        PS["Path style<br/>https://s3.us-east-1.amazonaws.com/bucket/key<br/>Deprecation announced, then delayed<br/>on 23 September 2020. Still accepted."]
+        DNSR["DNS returns a rotating set of<br/>front-end addresses. A retry lands on a<br/>different machine, which is why aggressive<br/>timeouts plus retry beats patience."]
+    end
+
+    subgraph FE["Front end"]
+        AUTH["Verify SigV4 signature<br/>Reject if the clock skew is too large"]
+        AUTHZ["Evaluate SCP, Block Public Access,<br/>identity policy, bucket policy,<br/>access point policy, ACL"]
+        THR["Per-partition token check"]
+    end
+
+    subgraph Outcome["Outcomes"]
+        OK["200 or 206<br/>First byte in roughly 100 to 200 ms<br/>for S3 Standard"]
+        E503["503 Slow Down<br/>The partition is over its rate.<br/>Retry with exponential backoff.<br/>S3 splits the partition in the background."]
+        E307["307 Temporary Redirect<br/>Legacy global endpoint, bucket<br/>lives in another Region"]
+        E301["301 Permanent Redirect<br/>Path-style request to the wrong<br/>Regional endpoint"]
+        E400["400 Bad Request<br/>Legacy global endpoint against a Region<br/>launched after 20 March 2019"]
+    end
+
+    subgraph HotKey["Hot-key remedies, cheapest first"]
+        H1["Put CloudFront in front.<br/>Cache hits never reach S3 and<br/>CloudFront-to-S3 transfer is free."]
+        H2["Spread the key space.<br/>A hash prefix turns one partition into many."]
+        H3["Byte-range GETs in parallel.<br/>One large object, many connections,<br/>aligned to the multipart part boundaries."]
+        H4["Replicate the object under<br/>several keys and pick at random."]
+        H5["Move the workload to a directory bucket.<br/>No prefix ceiling, single-digit ms latency."]
+    end
+
+    C --> Naming --> FE
+    AUTH --> AUTHZ --> THR
+    THR --> OK
+    THR --> E503
+    Naming --> E307
+    Naming --> E301
+    Naming --> E400
+    E503 -.-> HotKey
+
+    style Naming fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FE fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Outcome fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style HotKey fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Model["The Kubernetes network model - three non-negotiable rules"]
+        M1["1. Every pod gets its own routable IP address"]
+        M2["2. Every pod can reach every other pod<br/>without NAT, across nodes"]
+        M3["3. Agents on a node (kubelet, daemons)<br/>can reach every pod on that node"]
+        M4["Consequence: no port mapping, no port conflicts,<br/>no service discovery by port. A pod binds<br/>port 8080 and that is the port everyone uses."]
+        M1 --> M4
+        M2 --> M4
+        M3 --> M4
+    end
+
+    subgraph Invoke["How a plugin is invoked - CNI spec 1.1.0"]
+        direction TB
+        C1["Runtime reads /etc/cni/net.d/10-calico.conflist<br/>lowest filename wins"]
+        C2["Runtime execs the binary from /opt/cni/bin<br/>named by the 'type' field"]
+        C3["Environment: CNI_COMMAND=ADD,<br/>CNI_CONTAINERID, CNI_NETNS=/proc/4821/ns/net,<br/>CNI_IFNAME=eth0, CNI_ARGS, CNI_PATH"]
+        C4["stdin: the network config JSON<br/>stdout: Result with interfaces[], ips[],<br/>routes[], dns{}"]
+        C5["Operations: ADD, DEL, CHECK,<br/>GC, STATUS, VERSION.<br/>Plugins chain: each output feeds the next"]
+        C1 --> C2 --> C3 --> C4 --> C5
+    end
+
+    subgraph Wire["What ADD physically does, the common case"]
+        direction TB
+        W1["1. Create a veth pair"]
+        W2["2. Move one end into the pod netns,<br/>rename it eth0"]
+        W3["3. IPAM: allocate 10.244.2.31/32 from<br/>the node's pod CIDR"]
+        W4["4. Configure eth0, add a default route"]
+        W5["5. Attach the host end to a bridge,<br/>or add a host route, or attach an<br/>eBPF program to it"]
+        W6["6. Return the Result JSON.<br/>The pause container holds this netns<br/>for the pod's whole life"]
+        W1 --> W2 --> W3 --> W4 --> W5 --> W6
+    end
+
+    subgraph Impl["How implementations move packets between nodes"]
+        direction TB
+        O1["Overlay - VXLAN<br/>encapsulate in UDP 4789.<br/>50 bytes of header: MTU 1500 -> 1450.<br/>Works on any underlay. Flannel, Calico VXLAN"]
+        O2["Overlay - IP-in-IP or Geneve<br/>20 bytes for IP-in-IP,<br/>50 for Geneve, same as VXLAN.<br/>Calico IPIP, Cilium Geneve"]
+        O3["Native routing - BGP<br/>each node advertises its pod CIDR<br/>to the fabric. No encapsulation,<br/>full MTU. Calico BGP"]
+        O4["Cloud-native IPAM<br/>pod IPs are real VPC addresses on<br/>secondary ENIs or alias ranges.<br/>AWS VPC CNI, Azure CNI, GKE.<br/>No overlay, and an IP exhaustion ceiling"]
+        O5["eBPF datapath<br/>programs at tc and socket hooks.<br/>Replaces kube-proxy, bypasses<br/>conntrack for ClusterIP. Cilium"]
+    end
+
+    Model --> Invoke --> Wire --> Impl
+
+    subgraph NP["NetworkPolicy - the policy layer the CNI must implement"]
+        NP1["Default: every pod can reach every pod.<br/>A pod becomes isolated only once some<br/>NetworkPolicy selects it, and then only<br/>for the directions that policy names."]
+        NP2["podSelector, namespaceSelector, ipBlock.<br/>No deny rules, no ordering, no priority.<br/>Kubernetes NetworkPolicy is additive-allow."]
+        NP3["AdminNetworkPolicy adds cluster-scoped,<br/>ordered rules with real Deny and<br/>a Baseline tier the tenants can override."]
+        NP1 --> NP2 --> NP3
+    end
+
+    Impl --> NP
+
+    style Model fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Invoke fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Wire fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Impl fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NP fill:#eceff1,stroke:#37474f,stroke-width:2px

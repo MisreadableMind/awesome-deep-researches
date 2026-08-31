@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> CONNECTING: constructor called<br/>readyState 0
+    CONNECTING --> OPEN: 101 received and<br/>Sec-WebSocket-Accept verified<br/>readyState 1, onopen fires
+    CONNECTING --> CLOSED: handshake rejected or TCP refused<br/>onerror then onclose<br/>code 1006, wasClean false
+
+    OPEN --> CLOSING_local: local close, sends opcode 0x8<br/>with a 2-byte big-endian code<br/>and an optional UTF-8 reason<br/>of at most 123 bytes<br/>readyState 2
+    OPEN --> CLOSING_remote: peer Close frame received
+
+    CLOSING_local --> CLOSED_clean: peer echoes the Close frame,<br/>then TCP FIN arrives<br/>wasClean true
+    CLOSING_remote --> CLOSED_clean: echo the Close frame back,<br/>server closes TCP first<br/>wasClean true
+
+    CLOSING_local --> CLOSED_timeout: no echo within the<br/>implementation timeout
+    CLOSED_timeout --> CLOSED: drop TCP<br/>surfaced to the application as 1006
+
+    OPEN --> CLOSED_abrupt: TCP RST, TLS failure,<br/>proxy idle timeout, process kill,<br/>laptop lid, radio handover
+    CLOSED_abrupt --> CLOSED: code 1006, wasClean false,<br/>no reason string ever arrives
+    CLOSED_clean --> CLOSED: readyState 3
+
+    CLOSED --> [*]
+
+    note right of CLOSING_local
+        After sending Close a peer MUST NOT send
+        further data frames. It MUST keep reading
+        until it sees the echo, because frames
+        already in flight are legal and must be
+        drained. Closing the socket immediately
+        after writing Close is the most common
+        implementation bug in this state.
+    end note
+
+    note right of CLOSED_abrupt
+        1006 is the code applications see most
+        often in production and the one code that
+        can never appear on the wire. RFC 6455
+        forbids sending 1005, 1006 and 1015.
+        They are local signals invented by the
+        API to describe an absent close frame.
+    end note

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Reg as State banking commissioner
+    participant FDIC as FDIC closing team
+    participant Bank as Meridian State Bank
+    participant Core as Core processor
+    participant Acq as Acquiring bank
+    participant Dep as Depositors
+
+    Note over Reg,Acq: WEEKS BEFORE - 412 m USD assets, 381 m USD deposits,<br/>358 m USD insured, 23 m USD uninsured, CAMELS composite 5
+    FDIC->>Bank: Information request, virtual data room populated
+    FDIC->>FDIC: Value the franchise and each asset pool,<br/>compute the liquidation benchmark, 67.6 m USD
+    FDIC->>Acq: Bid package to 14 institutions under NDA, 5 sign
+    Acq->>FDIC: Thursday 17:00 - three conforming bids
+    FDIC->>FDIC: Least-cost test. Bid 1 insured-only 56.1 m USD,<br/>Bid 2 all-deposit 60.1 m USD, Bid 3 loss share 62.6 m USD.<br/>Bid 1 wins by 4.0 m USD.
+
+    Note over Reg,Dep: FRIDAY
+    Reg->>Bank: 16:30 - closing order issued
+    Reg->>FDIC: 16:30 - FDIC appointed receiver, FDI Act s.11(c)
+    FDIC->>FDIC: 16:30 - FDIC Cutoff Point established, 12 CFR 360.8(b)(1)
+    FDIC->>Bank: 16:30-17:00 - teams enter every branch simultaneously,<br/>doors lock, order read to staff, receipt signed for the records
+    FDIC->>Core: 16:30-17:00 - outbound wire and ACH connections severed.<br/>Anything settling later is handled under 12 CFR 360.8(b)(2)
+    Bank->>Core: 18:00-23:00 - normal end-of-day cycle produces<br/>close-of-business account balances using the earlier of<br/>the normal cutoff time or the FDIC Cutoff Point
+
+    Note over Core,FDIC: FRIDAY NIGHT INTO SATURDAY
+    Core->>FDIC: 23:00-04:00 - deposit and customer files in the<br/>FDIC standard format, reconciled to subsidiary control totals
+    FDIC->>FDIC: 04:00-08:00 - aggregate by depositor, then by<br/>ownership right and capacity code. Undeterminable<br/>accounts go to the pending file with a reason code
+
+    Note over FDIC,Dep: SATURDAY
+    FDIC->>Dep: 09:00 - provisional holds applied by hand to 40 accounts.<br/>Meridian is under the 12 CFR 360.9 threshold of 2 bn USD.<br/>A covered institution would have to do this automatically<br/>by 9 a.m. local the day after the cutoff point, 360.9(c)(2)
+    Acq->>Bank: 08:00-20:00 - teller systems cut over, signature cards<br/>re-executed, cash counted, safe deposit boxes inventoried
+    FDIC->>Dep: Press release and call centre open. Uninsured depositors<br/>directed to their account summary and determination
+
+    Note over Acq,Dep: SUNDAY
+    Acq->>Acq: Staff training on converted systems, branch signage changed
+
+    Note over Acq,Dep: MONDAY
+    Acq->>Dep: 09:00 - branches open under the acquirer.<br/>Cheques clear, debit cards work, direct deposits post.
+    FDIC->>Dep: Uninsured depositors receive receivership certificates.<br/>Expected recovery 84.3 cents on the dollar over about three years,<br/>so 19.4 m USD returns and 3.6 m USD is permanently lost<br/>across roughly forty local businesses.

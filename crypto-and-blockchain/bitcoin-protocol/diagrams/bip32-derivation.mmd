@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    ENT["Entropy: 128 to 256 bits<br/>from a CSPRNG"]
+
+    ENT --> CS["BIP39 checksum:<br/>first ENT/32 bits of SHA256(entropy).<br/>128 bits -> 4 check bits -> 132 bits<br/>256 bits -> 8 check bits -> 264 bits"]
+
+    CS --> WORDS["Split into 11-bit groups,<br/>index a 2048-word list.<br/>132 / 11 = 12 words<br/>264 / 11 = 24 words"]
+
+    WORDS --> MNEM["Mnemonic:<br/>'abandon abandon ... about'<br/>Wordlist is per-language;<br/>first 4 letters are unique."]
+
+    MNEM --> KDF["BIP39 seed derivation:<br/>PBKDF2-HMAC-SHA512<br/>password = NFKD(mnemonic)<br/>salt = 'mnemonic' + NFKD(passphrase)<br/>2048 iterations, 512-bit output"]
+
+    KDF --> SEED["512-bit seed S.<br/>Passphrase changes S entirely.<br/>Any passphrase is 'valid':<br/>a wrong one silently yields<br/>a different empty wallet."]
+
+    SEED --> MASTER["BIP32 master key:<br/>I = HMAC-SHA512('Bitcoin seed', S)<br/>IL (32B) = master private key<br/>IR (32B) = master chain code"]
+
+    MASTER --> CKD["Child key derivation, CKDpriv:<br/>hardened, index >= 2^31:<br/>  I = HMAC-SHA512(c_par, 0x00 || k_par || index)<br/>normal, index &lt; 2^31:<br/>  I = HMAC-SHA512(c_par, serP(K_par) || index)<br/>k_child = (IL + k_par) mod n"]
+
+    CKD --> PATH["BIP44 path:<br/>m / purpose' / coin_type' / account' / change / index"]
+
+    PATH --> P44["m/44'/0'/0'/0/0<br/>P2PKH, addresses 1..."]
+    PATH --> P49["m/49'/0'/0'/0/0<br/>P2SH-P2WPKH, addresses 3..."]
+    PATH --> P84["m/84'/0'/0'/0/0<br/>P2WPKH, addresses bc1q..."]
+    PATH --> P86["m/86'/0'/0'/0/0<br/>P2TR, addresses bc1p..."]
+
+    WARN["Hardened derivation matters:<br/>with a non-hardened xpub and ANY<br/>child private key, an attacker recovers<br/>the parent private key. Account level<br/>and above are always hardened."]
+    CKD -.-> WARN
+
+    style ENT fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SEED fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MASTER fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style WARN fill:#ffebee,stroke:#c62828,stroke-width:3px

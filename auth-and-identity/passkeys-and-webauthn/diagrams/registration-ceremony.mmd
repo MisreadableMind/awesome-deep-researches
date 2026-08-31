@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant RP as RP server<br/>example.com
+    participant JS as Page script<br/>https://www.example.com
+    participant B as Browser<br/>WebAuthn client
+    participant A as Authenticator
+
+    U->>JS: "Create a passkey"
+    JS->>RP: POST /webauthn/register/begin
+    Note over RP: Generate 32 random bytes as the<br/>challenge. Store it against the<br/>session with a short expiry.
+    RP-->>JS: PublicKeyCredentialCreationOptionsJSON<br/>rp {id: "example.com", name: "Example"}<br/>user {id, name, displayName}<br/>challenge (base64url)<br/>pubKeyCredParams [{alg: -7}, {alg: -257}]<br/>excludeCredentials [existing ids]<br/>authenticatorSelection<br/>attestation: "none"
+
+    JS->>B: navigator.credentials.create({publicKey})
+    Note over B: Check rp.id "example.com" is a<br/>registrable domain suffix of the<br/>caller origin www.example.com.<br/>Reject with SecurityError if not.
+    Note over B: Build CollectedClientData:<br/>{"type":"webauthn.create",<br/>"challenge":"<base64url>",<br/>"origin":"https://www.example.com",<br/>"crossOrigin":false}<br/>Serialise to clientDataJSON.<br/>hash = SHA-256(clientDataJSON)
+
+    B->>A: authenticatorMakeCredential (0x01)<br/>0x01 clientDataHash (32 bytes)<br/>0x02 rp {id, name}<br/>0x03 user {id, name, displayName}<br/>0x04 pubKeyCredParams<br/>0x05 excludeList<br/>0x06 extensions<br/>0x07 options {rk: true}<br/>0x08 pinUvAuthParam<br/>0x09 pinUvAuthProtocol
+
+    A->>U: Request the gesture
+    U-->>A: Touch, biometric or PIN
+    A->>A: Walk excludeList. If a credential<br/>on this authenticator matches, return<br/>CTAP2_ERR_CREDENTIAL_EXCLUDED. A user<br/>presence test is required first when<br/>no verification has occurred.
+    A->>A: Generate an ES256 key pair.<br/>Store (rpId, userHandle) to<br/>credential source.<br/>Build authenticatorData with<br/>AT flag set and attestedCredentialData<br/>appended.
+    A-->>B: 0x01 fmt<br/>0x02 authData<br/>0x03 attStmt<br/>0x04 epAtt<br/>0x05 largeBlobKey
+
+    B->>B: Assemble attestationObject as CBOR:<br/>{fmt, attStmt, authData}
+    B-->>JS: PublicKeyCredential<br/>id, rawId, type,<br/>response.clientDataJSON,<br/>response.attestationObject,<br/>response.getTransports()
+    JS->>RP: POST /webauthn/register/finish
+
+    Note over RP: 1. Parse clientDataJSON<br/>2. type == "webauthn.create"<br/>3. challenge matches the stored one<br/>4. origin is on the allow list<br/>5. rpIdHash == SHA-256("example.com")<br/>6. UP flag set<br/>7. UV flag set if required<br/>8. If BE clear then BS must be clear<br/>9. alg is in pubKeyCredParams<br/>10. Verify attStmt per fmt<br/>11. credentialId length <= 1023<br/>12. credentialId not already registered
+    RP->>RP: Store credential record:<br/>id, publicKey, signCount,<br/>uvInitialized, transports,<br/>backupEligible, backupState
+    RP-->>JS: 201 Created
+    JS-->>U: "Passkey created"

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Ceremony["Root key generation, the one irreversible event"]
+        direction TB
+        K1["Scripted ceremony, video recorded,<br/>witnessed by a qualified auditor,<br/>multi-person control with n-of-m<br/>key shares held on smartcards"]
+        K2["Key generated inside a FIPS 140<br/>Level 3 or Common Criteria EAL 4+<br/>hardware security module and<br/>never leaves it in the clear"]
+        K3["Chrome requires applicant root key<br/>material generated within the<br/>previous five years, and removes<br/>any root whose key is more than<br/>15 years old"]
+        K1 --> K2 --> K3
+    end
+
+    subgraph Tiers["Why the hierarchy has tiers"]
+        direction TB
+        Root["Root CA<br/>Self-signed. Key powered off,<br/>in a safe, in a cage.<br/>Signs only intermediates, OCSP<br/>responder certificates and<br/>infrastructure certificates.<br/>Validity typically 15 to 25 years"]
+        Inter["Intermediate CA<br/>Key online in an HSM, signing<br/>continuously. Compromise is<br/>survivable: revoke it, publish<br/>a new one, keep the root.<br/>Chrome policy 1.3.1.3: SHOULD be<br/>at most three years, and a new<br/>one SHOULD ship every year"]
+        Leaf["Subscriber certificate<br/>cA FALSE. 90 days today at<br/>Let's Encrypt, 45 by 2028,<br/>47 days maximum industry-wide<br/>from 15 Mar 2029"]
+        Root -->|"signs, rarely"| Inter
+        Inter -->|"signs, constantly"| Leaf
+    end
+
+    subgraph Anti["Anti-fragility measures the root programs now push"]
+        direction TB
+        A1["Random intermediate selection<br/>Let's Encrypt keeps two active<br/>intermediates per root plus a<br/>silent backup, and picks between<br/>the active pair at random,<br/>to break anyone who pins one"]
+        A2["Dedicated TLS hierarchies<br/>No S/MIME, no code signing under<br/>the same root. Existing multi-purpose<br/>roots phase out of the Chrome<br/>Root Store by end of 2027"]
+        A3["Shorter subordinate lifetimes<br/>and faster key rotation, so a<br/>compromised issuing key covers<br/>a smaller shard of the corpus"]
+        A4["Cross-signing<br/>The same subject and key certified<br/>by a second issuer, so old devices<br/>and new devices can each find<br/>a path they trust"]
+        A1 --> A2 --> A3 --> A4
+    end
+
+    subgraph Real["Let's Encrypt Generation Y, generated Sep 2025"]
+        direction TB
+        R1["ISRG Root YR, RSA 4096, 20 years<br/>ISRG Root YE, ECDSA P-384<br/>Both cross-signed by their<br/>Generation X predecessors"]
+        R2["Six intermediates: YR1, YR2, YR3<br/>under YR, and YE1, YE2, YE3<br/>under YE. Four active, two held<br/>in reserve. None carries the<br/>clientAuth EKU"]
+        R3["Submitted to the Apple, Chrome,<br/>Microsoft and Mozilla root<br/>programs. Until they ship,<br/>every path runs through the<br/>old roots by cross-signature"]
+        R1 --> R2 --> R3
+    end
+
+    Ceremony --> Tiers --> Anti --> Real
+
+    style Ceremony fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Tiers fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Anti fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Real fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Op as Operator or redis-cli --cluster
+    participant A as Source node
+    participant B as Target node
+    participant Cl as Client
+
+    Note over Op,Cl: The classic key-by-key migration, Redis 3.0 to today
+
+    Op->>B: CLUSTER SETSLOT 8 IMPORTING [A-id]
+    Op->>A: CLUSTER SETSLOT 8 MIGRATING [B-id]
+
+    loop Until the slot is empty
+        Op->>A: CLUSTER GETKEYSINSLOT 8 100
+        A-->>Op: up to 100 key names
+        Op->>A: MIGRATE B-host B-port "" 0 5000 KEYS k1 k2 ...
+        A->>B: DUMP payload, one RESTORE per key
+        B-->>A: +OK
+        A->>A: Delete the local copy.<br/>Both nodes are blocked for the<br/>duration of each MIGRATE.
+    end
+
+    Note over Cl,B: Meanwhile, for every client request on slot 8
+    Cl->>A: GET k9
+    A-->>Cl: -ASK 8 B-host:B-port, because k9 is gone
+    Cl->>B: ASKING then GET k9
+    B-->>Cl: value
+
+    Op->>B: CLUSTER SETSLOT 8 NODE [B-id]
+    Op->>A: CLUSTER SETSLOT 8 NODE [B-id]
+
+    Note over Op,Cl: Failure modes of this design. Every redirect is an extra<br/>round trip. Multi-key commands return -TRYAGAIN. A single<br/>collection with millions of elements must be serialised into<br/>one contiguous buffer on A and accepted whole by B, which can<br/>exhaust memory or trigger a health-probe failover on B. And<br/>rollback means replaying the steps in reverse by hand.
+
+    Note over Op,Cl: Valkey 9.0, October 2025: atomic slot migration replaces this<br/>with replication. The source forks a child, snapshots the slot<br/>as a command stream, streams incremental changes, then briefly<br/>pauses writes and hands ownership over in one step. Clients see<br/>no ASK redirects at all, large collections stream element by<br/>element, cancellation rolls back automatically, and the project<br/>measures up to 9 times faster migrations.
+
+    Note over Op,Cl: Redis 8.4, 18 November 2025: CLUSTER MIGRATION IMPORT runs on<br/>the destination primary, moves whole slot ranges by replication,<br/>and hands ownership over after a write pause bounded by<br/>cluster-slot-migration-handoff-max-lag-bytes, default 1 MB, and<br/>cluster-slot-migration-write-pause-timeout, default 10 seconds.<br/>CLUSTER MIGRATION STATUS and CANCEL manage the task.

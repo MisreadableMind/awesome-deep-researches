@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application
+    participant CS as Client TCP<br/>Nagle enabled
+    participant SS as Server TCP<br/>delayed ACK enabled
+    participant Srv as Server application
+
+    Note over App,Srv: The bug: an application writes one logical message in two calls.
+
+    App->>CS: write(header, 4 bytes)
+    CS->>SS: segment 1, 4 bytes
+    Note over CS: Nagle's rule, RFC 896: with data already<br/>unacknowledged, do not send another small<br/>segment. Segment 1 went out because nothing<br/>was outstanding at the time.
+
+    App->>CS: write(body, 96 bytes)
+    Note over CS: Blocked. Segment 1 is unacknowledged and<br/>96 bytes is less than one MSS, so Nagle<br/>holds the body in the send buffer.
+
+    Note over SS: Delayed ACK, RFC 1122: nothing to send back,<br/>only one segment received, so hold the ACK<br/>and hope for a second segment or for<br/>application data to piggyback on.
+    Note over Srv: The server application is blocked in read()<br/>waiting for a 100-byte message. It has<br/>received 4 bytes. It will not reply.
+
+    rect rgb(255,235,238)
+    Note over CS,SS: Deadlock by mutual politeness. The client waits for an ACK<br/>that the server is deliberately delaying. The server waits<br/>for data the client is deliberately holding. Neither is<br/>malfunctioning. Both are following the specification.
+    end
+
+    SS-->>CS: ACK, forced by the delayed-ACK timer
+    Note over SS: Linux fires between TCP_DELACK_MIN of 40 ms<br/>and TCP_DELACK_MAX of 200 ms.<br/>RFC 1122 permits up to 500 ms.
+
+    CS->>SS: segment 2, 96 bytes
+    SS->>Srv: 100-byte message finally delivered
+    Note over App,Srv: One request has cost 40 to 200 ms of pure timer.<br/>At 200 requests per second in a benchmark this looks<br/>like a network problem. It is a write-pattern problem.
+
+    rect rgb(232,245,233)
+    Note over App,Srv: The fixes, in order of preference:<br/>1. Write the whole message in one call, or use writev / sendmsg.<br/>The interaction cannot occur if there is no second small write.<br/>2. TCP_NODELAY, which disables Nagle. Correct for request-response<br/>protocols, and the reason almost every RPC library sets it.<br/>3. TCP_CORK on Linux, which holds partial segments until the<br/>application uncorks or 200 ms elapses. Correct for streaming.<br/>4. Linux tcp_autocorking, on by default, coalesces small writes<br/>while a previous packet is still queued in the qdisc.
+    end
+
+    rect rgb(255,243,224)
+    Note over App,Srv: The misconception worth killing: Nagle does not cause latency.<br/>Nagle bounds the number of tiny packets a badly behaved application<br/>can put on the wire, and RFC 1122 requires it on by default.<br/>The stall requires all three of Nagle, delayed ACK, and a message<br/>split across two writes. Remove any one and it disappears.
+    end

@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L["Where the line sits, by service model"]
+        direction LR
+        subgraph IaaS["IaaS - EC2, Azure VM, Compute Engine"]
+            direction TB
+            I1["Customer: data"]
+            I2["Customer: application"]
+            I3["Customer: runtime and libraries"]
+            I4["Customer: guest OS and patching"]
+            I5["Customer: network and firewall config"]
+            I6["Customer: identity and access config"]
+            I7["Provider: hypervisor and offload"]
+            I8["Provider: physical network"]
+            I9["Provider: physical plant"]
+            I1 --> I2 --> I3 --> I4 --> I5 --> I6 --> I7 --> I8 --> I9
+        end
+        subgraph PaaS["PaaS - RDS, App Service, Cloud Run"]
+            direction TB
+            P1["Customer: data"]
+            P2["Customer: application and schema"]
+            P3["Customer: identity and access config"]
+            P4["Customer: network exposure choices"]
+            P5["Provider: runtime and patching"]
+            P6["Provider: OS"]
+            P7["Provider: hypervisor and hardware"]
+            P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+        end
+        subgraph Abstract["Abstracted - S3, DynamoDB, BigQuery"]
+            direction TB
+            A1["Customer: data classification"]
+            A2["Customer: encryption choices"]
+            A3["Customer: access policy"]
+            A4["Provider: everything else"]
+            A1 --> A2 --> A3 --> A4
+        end
+    end
+
+    subgraph Controls["Control categories"]
+        C1["Inherited<br/>physical and environmental security.<br/>Customer gets these automatically."]
+        C2["Shared<br/>patch management, configuration<br/>management, awareness training.<br/>Both parties, different objects."]
+        C3["Customer specific<br/>zone security, data classification,<br/>regulatory obligations."]
+    end
+
+    L --> Controls
+
+    Warn["The constant across all three columns:<br/>identity and access configuration is<br/>ALWAYS the customer's. The large publicly<br/>reported cloud data breaches have been<br/>customer-side access configuration failures.<br/>The disclosed provider isolation defects<br/>ChaosDB, AutoWarp and OMIGOD were patched<br/>before any demonstrated cross-tenant theft."]
+    Controls --> Warn
+
+    style IaaS fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style PaaS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Abstract fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Controls fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Warn fill:#fce4ec,stroke:#880e4f,stroke-width:3px

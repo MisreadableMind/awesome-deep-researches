@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph HDR["Header, 6 bytes plus signatures, NOT signed"]
+        H1["version           1 byte    offset 0"]
+        H2["guardianSetIndex  4 bytes   offset 1   uint32, currently 7"]
+        H3["lenSignatures     1 byte    offset 5   uint8, 13 for quorum"]
+        H4["signatures        66 bytes each<br/>index 1 byte + ECDSA signature 65 bytes<br/>13 x 66 = 858 bytes"]
+    end
+
+    subgraph BODY["Body, 51 bytes fixed plus payload, THIS is what is signed"]
+        B1["timestamp         4 bytes   uint32, source block time"]
+        B2["nonce             4 bytes   uint32"]
+        B3["emitterChain      2 bytes   uint16, Wormhole chain id"]
+        B4["emitterAddress    32 bytes  bytes32, left-padded"]
+        B5["sequence          8 bytes   uint64, per-emitter counter"]
+        B6["consistencyLevel  1 byte    uint8, finality requirement"]
+        B7["payload           dynamic"]
+    end
+
+    subgraph PAYLOAD["Token Bridge Transfer payload, id 1, 133 bytes"]
+        P1["payloadID     1 byte   = 1"]
+        P2["amount        32 bytes uint256, truncated to 8 decimals"]
+        P3["tokenAddress  32 bytes bytes32"]
+        P4["tokenChain    2 bytes  uint16"]
+        P5["to            32 bytes bytes32"]
+        P6["toChain       2 bytes  uint16"]
+        P7["fee           32 bytes uint256, relayer fee, <= amount"]
+    end
+
+    subgraph DIGEST["The digest guardians sign"]
+        D1["body = timestamp .. payload"]
+        D2["digest = keccak256(keccak256(body))"]
+        D3["Double hash. Solana's secp256k1<br/>program hashes once itself, so the<br/>SVM path passes a single hash."]
+        D1 --> D2 --> D3
+    end
+
+    HDR --> BODY --> PAYLOAD
+    BODY -.-> DIGEST
+
+    TOTAL["Total for a 13-signature token transfer:<br/>6 + 858 + 51 + 133 = 1,048 bytes"]
+    PAYLOAD --> TOTAL
+
+    style HDR fill:#fff3e0,stroke:#e65100
+    style BODY fill:#e3f2fd,stroke:#1565c0
+    style PAYLOAD fill:#e8f5e9,stroke:#2e7d32
+    style DIGEST fill:#ffebee,stroke:#c62828

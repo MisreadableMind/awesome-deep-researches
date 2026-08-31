@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant SP_A as SpokePool<br/>Ethereum
+    participant SOLV as Solver / relayer network<br/>permissionless, competing
+    participant SP_B as SpokePool<br/>Arbitrum
+    participant DW as Dataworker<br/>off-chain bundler
+    participant HUB as HubPool<br/>Ethereum, holds LP capital
+    participant UMA as UMA Optimistic Oracle
+    participant DIS as Disputer<br/>one honest actor suffices
+
+    Note over U,SOLV: Phase 1: intent, seconds
+    U->>SP_A: deposit 10 ETH, declare minimum<br/>output on Arbitrum and a deadline
+    SP_A-->>SOLV: emit FundsDeposited
+
+    Note over SOLV: Solvers race. The winner is whoever<br/>quotes the best output and fills first.
+
+    SOLV->>SP_B: fill from the solver's own inventory
+    SP_B->>U: user receives output, ~2 seconds
+    Note over U: The user is finished here.<br/>Nothing has been verified yet.
+
+    Note over DW,DIS: Phase 2: settlement, bundles every 1.5 h minimum,<br/>then an 1,800 second challenge window
+    DW->>DW: aggregate every fill on every chain<br/>into merkle trees
+    DW->>HUB: propose the root bundle with a bond
+    HUB->>UMA: assert the bundle
+    UMA->>UMA: challenge window opens
+
+    alt bundle is valid
+        UMA-->>HUB: no dispute, bundle finalises
+        HUB->>SOLV: repay solvers on the chain<br/>each one nominated
+        HUB->>SP_A: rebalance inventory via<br/>canonical bridges
+    else bundle is invalid
+        DIS->>UMA: dispute with a counter-bond
+        UMA->>UMA: escalate to the Data<br/>Verification Mechanism vote
+        UMA-->>HUB: bundle rejected, proposer<br/>bond forfeited to the disputer
+    end
+
+    Note over U,DIS: Verification cost is O(1) per bundle,<br/>not O(N) per transfer.

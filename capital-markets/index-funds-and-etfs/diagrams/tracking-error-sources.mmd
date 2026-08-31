@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Index["INDEX RETURN<br/>a costless mathematical construct.<br/>Pays no commission, no custody,<br/>no tax, no spread.<br/>Reinvests dividends instantly at zero cost."]
+
+    Index --> Neg["SUBTRACTS FROM FUND RETURN"]
+    Index --> Pos["ADDS TO FUND RETURN"]
+    Index --> Noise["ADDS NOISE, NOT DRIFT"]
+
+    Neg --> N1["Expense ratio<br/>mechanical, daily, exact.<br/>Index equity ETF asset-weighted<br/>average 0.14 percent in 2025"]
+    Neg --> N2["Transaction costs<br/>commission, spread, market impact<br/>on flows and index changes"]
+    Neg --> N3["Cash drag<br/>dividends held between record date<br/>and reinvestment; index assumes<br/>instant reinvestment"]
+    Neg --> N4["Withholding tax<br/>on foreign dividends, where the fund's<br/>actual rate differs from the rate<br/>the index assumes"]
+    Neg --> N5["Index licence and<br/>other fund expenses"]
+
+    Pos --> P1["Securities lending revenue<br/>net of the agent's split.<br/>Can exceed the fee in small-cap<br/>and emerging market funds"]
+    Pos --> P2["Withholding tax reclaims<br/>recovered under treaty where the<br/>index assumes the statutory rate"]
+    Pos --> P3["Favourable execution<br/>versus index closing prices"]
+
+    Noise --> X1["Sampling and optimisation error<br/>where the fund does not hold<br/>every constituent"]
+    Noise --> X2["Fair value pricing<br/>NAV adjusts stale foreign closes;<br/>the index does not"]
+    Noise --> X3["Corporate action timing<br/>fund and index apply the same<br/>event on different days"]
+    Noise --> X4["Currency hedge roll<br/>for hedged share classes"]
+    Noise --> X5["Cash flow timing<br/>large creations settle before the<br/>basket is fully invested"]
+
+    style Index fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Neg fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Pos fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Noise fill:#fff3e0,stroke:#e65100,stroke-width:2px

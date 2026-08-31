@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph LM["Lock and mint"]
+        LM1["Chain A: escrow contract<br/>locks 100 USDC"]
+        LM2["Bridge asserts the lock"]
+        LM3["Chain B: bridge mints<br/>100 bUSDC, a new token"]
+        LM4["Supply: A unchanged,<br/>B increased by 100"]
+        LM5["Failure: escrow drained,<br/>bUSDC goes to zero.<br/>Loss capped at escrow"]
+        LM1 --> LM2 --> LM3 --> LM4 --> LM5
+    end
+
+    subgraph BM["Burn and mint"]
+        BM1["Chain A: 100 USDC burned,<br/>total supply falls by 100"]
+        BM2["Issuer or protocol<br/>attests the burn"]
+        BM3["Chain B: 100 canonical USDC<br/>minted, same token contract"]
+        BM4["Supply: global total<br/>constant, distribution moves"]
+        BM5["Failure: unbacked mint,<br/>token inflates.<br/>Loss unbounded"]
+        BM1 --> BM2 --> BM3 --> BM4 --> BM5
+    end
+
+    subgraph LN["Liquidity network / intent"]
+        LN1["Chain A: user's 100 USDC<br/>goes to a filler"]
+        LN2["No message needed<br/>before the user is paid"]
+        LN3["Chain B: filler pays<br/>99.94 existing USDC<br/>from its own inventory"]
+        LN4["Supply: unchanged on<br/>both chains"]
+        LN5["Failure: filler unpaid at<br/>settlement. User already has<br/>the money. Loss falls on capital"]
+        LN1 --> LN2 --> LN3 --> LN4 --> LN5
+    end
+
+    style LM fill:#e3f2fd,stroke:#1565c0
+    style BM fill:#fff3e0,stroke:#e65100
+    style LN fill:#e8f5e9,stroke:#2e7d32

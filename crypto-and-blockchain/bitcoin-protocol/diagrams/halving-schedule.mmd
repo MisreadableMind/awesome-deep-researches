@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Rule["The rule, in full"]
+        R1["halvings = height / 210,000  (integer division)<br/>if halvings &gt;= 64: subsidy = 0<br/>subsidy = 5,000,000,000 satoshi &gt;&gt; halvings<br/><br/>Integer shift, so the subsidy reaches 1 satoshi<br/>and then 0 at halving 33, block 6,930,000,<br/>around the year 2140."]
+    end
+
+    subgraph Past["Halvings so far"]
+        E0["Block 0, Jan 2009<br/>50 BTC<br/>10,500,000 BTC issued in era"]
+        E1["Block 210,000, 28 Nov 2012<br/>25 BTC<br/>5,250,000 BTC"]
+        E2["Block 420,000, 09 Jul 2016<br/>12.5 BTC<br/>2,625,000 BTC"]
+        E3["Block 630,000, 11 May 2020<br/>6.25 BTC<br/>1,312,500 BTC"]
+        E4["Block 840,000, 20 Apr 2024<br/>3.125 BTC<br/>1,312,500/2 BTC when complete.<br/>Highest-fee block ever: ~37.6 BTC"]
+        E0 --> E1 --> E2 --> E3 --> E4
+    end
+
+    subgraph Now["Position on 30 Aug 2026, height 964,758"]
+        N1["124,758 blocks into era 5<br/>124,758 * 3.125 = 389,871.875 BTC<br/><br/>Cumulative issued:<br/>10,500,000 + 5,250,000 + 2,625,000<br/>+ 1,312,500 + 389,872<br/>= 20,077,372 BTC<br/>= 95.6% of the 21 million cap"]
+        N2["Daily issuance:<br/>144 blocks * 3.125 = 450 BTC<br/>= ~$35.6 M/day at $79,100"]
+    end
+
+    subgraph Next["Next halvings"]
+        F1["Block 1,050,000, ~April 2028<br/>3.125 -> 1.5625 BTC<br/>Daily issuance 450 -> 225 BTC"]
+        F2["Block 1,260,000, ~2032<br/>0.78125 BTC"]
+        F3["Block 6,930,000, ~2140<br/>subsidy reaches 0.<br/>Fees are the entire budget."]
+        F1 --> F2 --> F3
+    end
+
+    subgraph Cap["Why the cap is not exactly 21,000,000"]
+        C1["Theoretical maximum:<br/>20,999,999.9769 BTC<br/>from integer truncation<br/>in the shift."]
+        C2["Minus 50 BTC: the genesis coinbase<br/>is special-cased and its output<br/>never enters the UTXO set."]
+        C3["Minus 100 BTC: duplicate coinbases<br/>at blocks 91,722/91,880 and<br/>91,812/91,842 overwrote earlier<br/>UTXOs. BIP30 and BIP34 followed."]
+        C4["Minus miner underclaims,<br/>e.g. block 501,726 claimed 0 BTC.<br/>Roughly 28 BTC total."]
+        C5["Minus lost keys: unmeasurable.<br/>Common estimates run 3 to 4 million BTC,<br/>none of them a measurement."]
+    end
+
+    Rule --> Past --> Now --> Next
+    Now --> Cap
+
+    style Rule fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Past fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Now fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Next fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Cap fill:#ffebee,stroke:#c62828,stroke-width:2px

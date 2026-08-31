@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Pos["Same position: short 1 uncovered<br/>base-case call. S = 100, K = 100,<br/>30 days, 25% IV. Premium $302.11."]
+
+    subgraph M1["Strategy-based: Reg T / FINRA Rule 4210"]
+        direction TB
+        A1["Fixed formula per strategy type"]
+        A2["20% of underlying value = $2,000<br/>minus out-of-money amount = $0<br/>plus premium = $302<br/>= $2,302"]
+        A3["Alternative minimum:<br/>10% of underlying + premium = $1,302"]
+        A4["Requirement = the greater = $2,302"]
+        A1 --> A2 --> A3 --> A4
+    end
+
+    subgraph M2["Scenario-based: SPAN, developed by CME in 1988"]
+        direction TB
+        B1["Revalue the portfolio under a<br/>fixed 16-point risk array"]
+        B2["Price scan range +/-15%,<br/>volatility scan +/-1 point,<br/>plus two extreme scenarios at<br/>3x the range, 35% covered"]
+        B3["Scan risk = worst loss<br/>across the array = $1,480.75"]
+        B4["Then add: inter-month spread charge,<br/>delivery charge, short option minimum.<br/>Then subtract: inter-commodity<br/>spread credits."]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph M3["Risk-based portfolio margin: FINRA 4210(g)"]
+        direction TB
+        C1["Revalue at 10 equally spaced<br/>points across +/-15% for equities"]
+        C2["Requirement = worst loss = $1,237.29"]
+        C3["Same call, delta-hedged with<br/>53 shares: worst loss = $495.92"]
+        C1 --> C2 --> C3
+    end
+
+    subgraph M4["Simulation-based: OCC STANS, replaced TIMS in 2006"]
+        direction TB
+        D1["Large-scale Monte Carlo over<br/>risk factors, expected-shortfall<br/>based, two-day horizon"]
+        D2["Jan 2025 enhancement for<br/>short-dated options: convert IV to a<br/>trading-day convention, apply a<br/>square-root decay to the 1-month<br/>vol for shorter tenors"]
+        D3["Effect: +0.58% average daily margin<br/>(range -0.81% to +3.21%),<br/>clearing fund -0.14%"]
+        D4["Apr 2025 Intraday Risk Charge:<br/>monthly average of daily peak<br/>intraday risk increases in the<br/>11:00-12:30 CT window,<br/>STANS revalued every 20 minutes"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    Pos --> M1
+    Pos --> M2
+    Pos --> M3
+    Pos --> M4
+
+    Compare["Same risk, four answers:<br/>$2,302 / $1,481 / $1,237 / a simulation.<br/>Delta-hedge the position and the<br/>risk-based figure falls to $496.<br/>Rules-based margin cannot see the hedge."]
+
+    M1 --> Compare
+    M2 --> Compare
+    M3 --> Compare
+    M4 --> Compare
+
+    style Pos fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style M1 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style M2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Compare fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Dist["US FICO Score distribution, 2025"]
+        B1["300-579 - Poor<br/>14.7% of consumers"]
+        B2["580-669 - Fair<br/>14.9%"]
+        B3["670-739 - Good<br/>20.1%"]
+        B4["740-799 - Very good<br/>27.5%"]
+        B5["800-850 - Exceptional<br/>22.8%"]
+    end
+
+    subgraph Price["Fannie Mae purchase-money LLPA, 75.01-80.00% LTV<br/>matrix dated 28 January 2026<br/>charged as points on the loan amount at delivery"]
+        P1["640-659: 2.250%"]
+        P2["660-679: 1.875%"]
+        P3["680-699: 1.750%"]
+        P4["700-719: 1.375%"]
+        P5["720-739: 1.250%"]
+        P6["740-759: 0.875%"]
+        P7["760-779: 0.625%"]
+        P8["780 and above: 0.375%"]
+        P9["639 and below: 2.750%"]
+    end
+
+    subgraph Arith["The arithmetic on a 400,000 USD loan"]
+        A1["780+ pays 1,500 USD"]
+        A2["700-719 pays 5,500 USD"]
+        A3["639 and below pays 11,000 USD"]
+        A4["Gap between a 780 and a 700<br/>= 1.000 point = 4,000 USD at closing,<br/>or roughly 0.25 percentage points of rate<br/>at one point per 0.25 percent"]
+    end
+
+    subgraph Gen["Average FICO by generation, 2025"]
+        G1["Gen Z, 18-28: 678"]
+        G2["Millennials, 29-44: 689"]
+        G3["Gen X, 45-60: 709"]
+        G4["Boomers, 61-79: 747"]
+        G5["Silent, 80+: 760"]
+    end
+
+    Dist --> Price --> Arith
+    Dist --> Gen
+
+    style Dist fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Price fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Arith fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Gen fill:#eceff1,stroke:#37474f,stroke-width:2px

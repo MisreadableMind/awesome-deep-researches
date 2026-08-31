@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph OneBank["One insured bank, one household, 3.3 million USD"]
+        direction TB
+
+        subgraph Cat1["SGL - single accounts, 12 CFR 330.6"]
+            S1["Maria individual<br/>250,000 USD - insured"]
+            S2["Luis individual<br/>250,000 USD - insured"]
+        end
+
+        subgraph Cat2["JNT - joint accounts, 12 CFR 330.9"]
+            J1["Maria and Luis money market<br/>500,000 USD<br/>250,000 each, both insured"]
+        end
+
+        subgraph Cat3["CRA - certain retirement, 12 CFR 330.14"]
+            R1["Maria self-directed IRA<br/>250,000 USD - insured"]
+            R2["Luis self-directed IRA<br/>250,000 USD - insured"]
+        end
+
+        subgraph Cat4["REV - trust accounts, 12 CFR 330.10"]
+            T1["Maria living trust, 3 beneficiaries<br/>cap 750,000 USD<br/>750,000 USD - fully insured"]
+            T2["Luis payable-on-death, 3 beneficiaries<br/>cap 750,000 USD<br/>800,000 USD - 50,000 UNINSURED"]
+        end
+
+        subgraph Cat5["BUS - entity accounts, 12 CFR 330.11"]
+            B1["Delgado Construction LLC<br/>250,000 USD - insured"]
+        end
+    end
+
+    Cat1 --> Total["Total insured 3,250,000 USD<br/>Total uninsured 50,000 USD"]
+    Cat2 --> Total
+    Cat3 --> Total
+    Cat4 --> Total
+    Cat5 --> Total
+
+    Total --> Fix["Fix: name 5 beneficiaries instead of 3.<br/>Trust cap rises from 750,000<br/>to 1,250,000 USD per grantor.<br/>No money moves, no fee is paid."]
+
+    style Cat4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Total fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

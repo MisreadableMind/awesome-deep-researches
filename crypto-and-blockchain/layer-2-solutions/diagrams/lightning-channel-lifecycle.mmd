@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Alice (funder)
+    participant B as Bob (fundee)
+    participant BC as Bitcoin blockchain
+
+    Note over A,B: 1. Open. Two on-chain transactions total,<br/>no matter how many payments follow.
+
+    A->>B: open_channel<br/>funding_satoshis, push_msat, dust_limit_satoshis,<br/>to_self_delay, max_accepted_htlcs, feerate_per_kw,<br/>funding_pubkey and five basepoints
+    B->>A: accept_channel<br/>minimum_depth, mirrored limits,<br/>funding_pubkey and basepoints
+    A->>B: funding_created<br/>funding outpoint + signature on Bob's<br/>first commitment transaction
+    B->>A: funding_signed<br/>signature on Alice's first commitment
+    Note over A: Only now does Alice broadcast.<br/>Both sides already hold a signed<br/>way out before any money is locked.
+    A->>BC: Broadcast funding tx<br/>P2WSH 2-of-2 multisig output
+    BC-->>A: minimum_depth confirmations (typically 3 to 6)
+    BC-->>B: minimum_depth confirmations
+    A->>B: channel_ready
+    B->>A: channel_ready
+
+    Note over A,B: 2. Update. Zero on-chain transactions.<br/>Each side holds a different commitment tx.
+
+    A->>B: update_add_htlc<br/>htlc_id, amount_msat, payment_hash,<br/>cltv_expiry, 1366-byte onion packet
+    A->>B: commitment_signed<br/>signature over Bob's new commitment
+    B->>A: revoke_and_ack<br/>per-commitment secret for the OLD state
+    B->>A: commitment_signed<br/>signature over Alice's new commitment
+    A->>B: revoke_and_ack<br/>per-commitment secret for the OLD state
+    Note over A,B: Revocation is the whole trick.<br/>Handing over the old secret makes<br/>the old state a liability, not an option.
+
+    Note over A,B: 3. Close. One on-chain transaction.
+
+    alt Cooperative close
+        A->>B: shutdown + closing_signed<br/>fee negotiation
+        A->>BC: Mutual close: two plain outputs,<br/>no timelock, cheapest possible
+        BC-->>B: Funds spendable after one block<br/>under option_anchors, immediately on legacy
+    else Force close (peer offline or unresponsive)
+        A->>BC: Broadcast latest commitment tx
+        Note over BC: Alice's own to_local output is encumbered<br/>by to_self_delay blocks of OP_CHECKSEQUENCEVERIFY.<br/>Bob's to_remote output carries a 1-block CSV<br/>under option_anchors, the default channel type,<br/>and none on legacy channels. Either way he waits<br/>orders of magnitude less than Alice.
+        BC-->>A: Funds after to_self_delay
+    else Breach (a revoked state is broadcast)
+        A->>BC: Broadcast an OLD commitment tx
+        Note over B: Bob (or his watchtower) sees it<br/>within to_self_delay blocks
+        B->>BC: Justice transaction using the<br/>revocationpubkey path: takes every output
+        BC-->>B: Bob takes the entire channel balance
+    end

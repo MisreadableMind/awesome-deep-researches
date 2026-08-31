@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Two["Gasper is two algorithms bolted together"]
+        FC["LMD GHOST<br/>the fork choice.<br/>Answers: which block is the head, now?"]
+        FF["Casper FFG<br/>the finality gadget.<br/>Answers: which block can never be reverted?"]
+    end
+
+    subgraph GHOST["LMD GHOST, run every slot"]
+        G1["Take each validator's<br/>Latest Message, its most recent<br/>head vote. Earlier votes are discarded."]
+        G2["Weight every block by the<br/>effective balance behind it,<br/>summed over the subtree"]
+        G3["From the last justified block,<br/>walk down to the heaviest child<br/>at every step. That is the head."]
+        G4["Proposer boost: a timely block<br/>gets 40 percent of a slot committee's<br/>weight for its own slot, which<br/>defeats a late reorg by one attacker"]
+    end
+
+    subgraph FFG["Casper FFG, run every epoch"]
+        F1["Each attestation carries a<br/>source checkpoint and a<br/>target checkpoint, both<br/>epoch boundary blocks"]
+        F2["A link source to target with<br/>two thirds of total staked ETH<br/>voting justifies the target"]
+        F3["A justified checkpoint whose<br/>direct child checkpoint is also<br/>justified becomes finalised"]
+        F4["Normal case: justified after<br/>one epoch, finalised after two.<br/>64 to 95 slots, 12.8 to 19 minutes."]
+    end
+
+    subgraph Rules["The two rules that make it safe"]
+        R1["No double vote:<br/>never two attestations with<br/>the same target epoch"]
+        R2["No surround vote:<br/>never an attestation whose<br/>source and target bracket<br/>another of your own"]
+        R3["Breaking either is provable<br/>from two signed messages,<br/>by anyone, forever"]
+    end
+
+    subgraph Leak["When two thirds cannot be reached"]
+        L1["After 4 epochs without finality<br/>the inactivity leak starts"]
+        L2["Offline validators bleed at a rate<br/>proportional to a per-validator<br/>inactivity score, quotient 16,777,216"]
+        L3["The online set's share rises<br/>until it exceeds two thirds<br/>and finality resumes"]
+    end
+
+    Two --> GHOST
+    Two --> FFG
+    FFG --> Rules
+    FFG --> Leak
+    GHOST -.head feeds the target vote.-> FFG
+    FFG -.last justified block anchors the walk.-> GHOST
+
+    style Two fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style GHOST fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FFG fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Rules fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Leak fill:#eceff1,stroke:#37474f,stroke-width:2px

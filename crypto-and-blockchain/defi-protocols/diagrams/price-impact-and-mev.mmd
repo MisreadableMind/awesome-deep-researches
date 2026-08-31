@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User wallet
+    participant MP as Public mempool
+    participant S as Searcher
+    participant B as Block builder
+    participant P as WETH/USDC pool<br/>1,000 / 4,000,000
+    participant A as Arbitrageur
+
+    U->>U: Quote 10 WETH -> 39,486.32 USDC<br/>set amountOutMin = 39,091.46 (1% tolerance)
+    U->>MP: Broadcast swapExactTokensForTokens
+    MP->>S: Transaction visible with its minOut
+    S->>S: Solve for the largest front-run that still<br/>leaves the victim above minOut: 5.07 WETH
+
+    Note over S,B: One atomic bundle, three transactions
+    S->>B: tx1 sell 5.07 WETH, tx2 = victim, tx3 buy back
+    B->>B: Place the bundle at the top of the block<br/>in exchange for a priority payment
+    B->>P: tx1 executes, reserves 1,005.07 / 3,979,882.53
+    B->>P: tx2 executes, victim receives 39,091.49 USDC<br/>exactly 1.000% worse than quoted
+    B->>P: tx3 executes, searcher buys back 5.1402 WETH
+
+    Note over S: Searcher profit 0.0702 WETH, about $281<br/>Victim loss $394.83<br/>LPs keep $114.20 in extra fees
+
+    P->>A: Pool price now off-market again
+    A->>P: Arbitrage back to 4,000
+    Note over U,A: Nothing here is a bug. Every step<br/>is the contract behaving exactly as written.

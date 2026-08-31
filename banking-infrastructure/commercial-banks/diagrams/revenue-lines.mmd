@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Rev["NET OPERATING REVENUE - 293.5 bn USD, US industry, 2026 Q2"]
+        direction LR
+        NII["NET INTEREST INCOME<br/>197.4 bn, 67%<br/>the spread business"]
+        NonII["NONINTEREST INCOME<br/>96.1 bn, 33%<br/>the fee business"]
+    end
+
+    NonII --> F1["DEPOSIT SERVICE CHARGES<br/>maintenance fees, overdraft and NSF,<br/>wire fees, stop payments.<br/>Structurally shrinking: several large<br/>banks eliminated overdraft fees<br/>in 2021 and 2022."]
+
+    NonII --> F2["INTERCHANGE<br/>Debit is capped at 21 cents plus<br/>5 basis points, plus a 1 cent fraud<br/>adjustment, for issuers above<br/>10 bn USD in assets, 12 CFR 235.3 and 235.4.<br/>Credit card interchange is uncapped.<br/>Card loans: 1.19 trn industry-wide."]
+
+    NonII --> F3["FIDUCIARY AND TRUST<br/>basis points on assets under<br/>administration. Industry trust assets:<br/>43.5 trn USD, up 12.4% year on year.<br/>Annuity-like and rate-insensitive."]
+
+    NonII --> F4["TRADING REVENUE<br/>21.6 bn in 2026 Q2, 37.9 bn in the<br/>first half. 37.9% of net operating<br/>revenue at the 131 banks that report<br/>trading derivatives, near zero at<br/>the other 4,107."]
+
+    NonII --> F5["INVESTMENT BANKING AND ADVISORY<br/>underwriting, M and A fees, syndication.<br/>Cyclical, concentrated in a handful<br/>of institutions."]
+
+    NonII --> F6["MORTGAGE BANKING<br/>gain on sale into the secondary market,<br/>plus mortgage servicing rights, whose<br/>value RISES when rates rise.<br/>A natural hedge to the securities book."]
+
+    NonII --> F7["TREASURY AND CASH MANAGEMENT<br/>lockbox, ACH origination, positive pay,<br/>account analysis.<br/>Sold to win the operational deposit,<br/>which is the cheapest funding<br/>a bank can hold."]
+
+    NonII --> F8["INSURANCE, BROKERAGE,<br/>MERCHANT ACQUIRING, SAFE DEPOSIT"]
+
+    F7 --> Loop["THE STRATEGIC POINT:<br/>fee businesses are sold to buy<br/>deposit stickiness. Payroll, cash<br/>management and trust relationships<br/>are what turn a 40% LCR outflow<br/>assumption into a 25% one."]
+
+    Loop --> NII
+
+    style Rev fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style NII fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style NonII fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Loop fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

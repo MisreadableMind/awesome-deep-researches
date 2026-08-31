@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph File["One Metro 2 file"]
+        H["HEADER RECORD - 426 bytes character / 366 packed<br/>RecordIdentifier 'HEADER' at 5-10<br/>Innovis, Equifax, Experian, TransUnion program identifiers<br/>ActivityDate, DateCreated, ReporterName, ReporterAddress"]
+        D1["DATA RECORD 1"]
+        D2["DATA RECORD 2"]
+        Dn["DATA RECORD n"]
+        T["TRAILER RECORD - 426 / 366<br/>TotalBaseRecords, BlockCount,<br/>counts per Account Status code,<br/>counts per segment type, SSN and DOB counts"]
+    end
+
+    subgraph Rec["One data record"]
+        Base["BASE SEGMENT - 426 characters<br/>one per account, applies to all consumers on it"]
+        J1["J1 - 100 bytes<br/>associated consumer, same address<br/>repeatable"]
+        J2["J2 - 200 bytes<br/>associated consumer, different address<br/>repeatable"]
+        K1["K1 - 34 bytes<br/>original creditor name +<br/>creditor classification 01-15"]
+        K2["K2 - 34 bytes<br/>purchased from / sold to"]
+        K3["K3 - 40 bytes<br/>Fannie Mae / Freddie Mac / MERS<br/>mortgage identification number"]
+        K4["K4 - 30 bytes<br/>deferred payment start date,<br/>balloon due date and amount"]
+        L1["L1 - 54 bytes<br/>new account number and/or<br/>new identification number"]
+        N1["N1 - 146 bytes<br/>employer name, address, occupation"]
+    end
+
+    H --> D1 --> D2 --> Dn --> T
+    D1 -.expands to.-> Base
+    Base --> J1 --> J2 --> K1 --> K2 --> K3 --> K4 --> L1 --> N1
+
+    Note["Segments must appear in this order.<br/>All appendage segments are unpacked only.<br/>Packed format compresses dates to 5 bytes<br/>and amounts to 5-byte packed decimal,<br/>shrinking the base segment to 366."]
+
+    T -.-> Note
+
+    style File fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Rec fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Note fill:#eceff1,stroke:#37474f,stroke-width:1px

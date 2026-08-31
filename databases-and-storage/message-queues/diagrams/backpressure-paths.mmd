@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph KP["Kafka - PULL, so backpressure is structural"]
+        direction TB
+        KA["Consumer issues FetchRequest when IT wants data.<br/>A slow consumer simply asks less often."]
+        KB["Broker does nothing. Records stay on disk.<br/>Consumer LAG grows. Broker memory does NOT."]
+        KC["Limits: max.poll.records = 500 bounds one poll();<br/>max.poll.interval.ms = 300000 bounds the gap<br/>between polls. Exceed it and the member<br/>is evicted from the group."]
+        KA --> KB --> KC
+        KPROD["PRODUCER side blocks instead:<br/>RecordAccumulator bounded by buffer.memory = 32 MiB.<br/>When it fills, send() BLOCKS up to<br/>max.block.ms = 60000 then throws."]
+        KBUG["The bug this causes:<br/>send() on a request-handling thread with defaults.<br/>Broker degrades -> the thread blocks a full minute<br/>-> a 200-thread pool stalls -> a service that only<br/>emits telemetry takes down the request path."]
+        KPROD --> KBUG
+        KQ["QUOTAS, per broker, per (user, client-id):<br/>byte-rate (since 0.9) and request-rate as a % of<br/>(num.io.threads + num.network.threads) x 100%<br/>= 1100% with defaults 8 and 3.<br/>Broker returns throttle_time_ms AND mutes the<br/>socket channel, so badly behaved clients are<br/>throttled from both sides.<br/>Measured over quota.window.num = 11 windows<br/>of quota.window.size.seconds = 1."]
+        KC -.-> KQ
+    end
+
+    subgraph RP["RabbitMQ - PUSH, so backpressure must be built"]
+        direction TB
+        R1["LAYER 1 - prefetch, bounds ONE consumer.<br/>basic.qos prefetch_count.<br/>Default is default_consumer_prefetch {false, 0}<br/>= UNLIMITED. Wrong for almost every workload:<br/>a deep queue lands in the consumer's memory."]
+        R2["LAYER 2 - credit flow, bounds internal processes.<br/>credit_flow_default_credit = {400, 200}.<br/>Queue process stops granting credit to the channel,<br/>channel stops granting to the connection reader,<br/>reader stops reading the socket, the publisher's<br/>TCP window closes. Connection shows 'flow' state.<br/>No configuration required."]
+        R3["LAYER 3 - resource alarms, the emergency stop.<br/>vm_memory_high_watermark = 0.6 of RAM (RSS)<br/>disk_free_limit = 50,000,000 bytes, checked<br/>at least every 10 seconds.<br/>Either one blocks ALL publishers cluster-wide.<br/>connection.blocked (class 10, method 60) is sent;<br/>connection.unblocked (method 61) when it clears.<br/>Consumers keep draining. That is the point."]
+        R4["LAYER 4 - queue length limits, the bluntest.<br/>x-max-length / x-max-length-bytes with x-overflow:<br/>drop-head | reject-publish | reject-publish-dlx"]
+        R1 --> R2 --> R3 --> R4
+        RNOTE["The docs recommend raising disk_free_limit to<br/>roughly installed RAM: the 10-second check<br/>interval can let the disk fill in between."]
+        R3 -.-> RNOTE
+    end
+
+    PRINCIPLE["The structural point:<br/>a pull-based consumer cannot be overwhelmed,<br/>because it decides when to ask.<br/>A push-based broker must invent every layer above,<br/>and every layer has a default that can be wrong."]
+
+    KP --> PRINCIPLE
+    RP --> PRINCIPLE
+
+    style KP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style RP fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style KBUG fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style R1 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style PRINCIPLE fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

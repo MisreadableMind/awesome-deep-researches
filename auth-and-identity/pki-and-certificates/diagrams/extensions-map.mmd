@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Name["Extensions that decide which names the certificate is for"]
+        direction TB
+        N1["subjectAltName 2.5.29.17<br/>MUST be present. Only dNSName<br/>and iPAddress are permitted.<br/>Critical only when subject is<br/>an empty SEQUENCE.<br/>The ONLY place a client<br/>reads a hostname."]
+        N2["commonName inside subject<br/>NOT RECOMMENDED. Deprecated by<br/>RFC 2818 in 2000, ignored by<br/>Chrome since version 58 in 2017.<br/>A certificate with CN and no<br/>SAN works nowhere."]
+        N3["nameConstraints 2.5.29.30<br/>MUST NOT appear in a leaf.<br/>In a CA certificate it bounds<br/>every name below it.<br/>SHOULD be critical."]
+    end
+
+    subgraph Power["Extensions that decide what the key may do"]
+        direction TB
+        P1["basicConstraints 2.5.29.19<br/>cA BOOLEAN plus pathLenConstraint.<br/>Leaf: cA MUST be FALSE.<br/>The single highest-value bit in<br/>the format: a leaf with cA TRUE<br/>would be a universal signing key."]
+        P2["keyUsage 2.5.29.15<br/>SHOULD be present, critical.<br/>ECC leaf: digitalSignature MUST,<br/>keyAgreement not recommended.<br/>RSA leaf: digitalSignature SHOULD,<br/>keyEncipherment MAY for TLS 1.2.<br/>CA: keyCertSign plus cRLSign."]
+        P3["extKeyUsage 2.5.29.37<br/>id-kp-serverAuth 1.3.6.1.5.5.7.3.1<br/>MUST be present.<br/>clientAuth MAY today, MUST NOT<br/>in new leaves from 15 Mar 2027<br/>under Chrome Root Program policy.<br/>anyExtendedKeyUsage MUST NOT."]
+    end
+
+    subgraph Locate["Extensions that tell the client where to look"]
+        direction TB
+        L1["authorityInfoAccess 1.3.6.1.5.5.7.1.1<br/>MUST be present.<br/>id-ad-caIssuers SHOULD: an HTTP<br/>URL for the missing intermediate.<br/>id-ad-ocsp MAY: increasingly absent.<br/>Let's Encrypt removed it on<br/>7 May 2025."]
+        L2["cRLDistributionPoints 2.5.29.31<br/>MUST be present in subordinate CA<br/>certificates, and in leaves that are<br/>neither short-lived nor carry an<br/>OCSP AIA. http scheme only,<br/>reasons and cRLIssuer MUST NOT<br/>be present."]
+        L3["authorityKeyIdentifier 2.5.29.35<br/>MUST be present, MUST equal the<br/>issuer's subjectKeyIdentifier.<br/>authorityCertIssuer and<br/>authorityCertSerialNumber<br/>MUST NOT be present.<br/>A hint for path building,<br/>never proof."]
+        L4["subjectKeyIdentifier 2.5.29.14<br/>NOT RECOMMENDED in leaves since<br/>the 2023 profile ballot.<br/>Still required in CA certificates."]
+    end
+
+    subgraph Trans["Extensions that make issuance public"]
+        direction TB
+        X1["SCT list 1.3.6.1.4.1.11129.2.4.2<br/>A SignedCertificateTimestampList.<br/>Formally MAY under the Baseline<br/>Requirements. In practice a<br/>Google-defined private extension<br/>that Chrome and Safari require."]
+        X2["CT poison 1.3.6.1.4.1.11129.2.4.3<br/>Critical, zero-length NULL.<br/>Makes a precertificate<br/>unusable in any handshake,<br/>because clients reject critical<br/>extensions they do not know."]
+        X3["certificatePolicies 2.5.29.32<br/>Exactly one reserved OID:<br/>DV 2.23.140.1.2.1<br/>IV 2.23.140.1.2.3<br/>OV 2.23.140.1.2.2<br/>EV 2.23.140.1.1<br/>anyPolicy MUST NOT be present."]
+    end
+
+    Name --> Power --> Locate --> Trans
+
+    style Name fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Power fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Locate fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Trans fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

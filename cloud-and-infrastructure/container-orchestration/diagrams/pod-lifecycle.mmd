@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> Unscheduled: object written to etcd,<br/>phase Pending, spec.nodeName empty
+
+    Unscheduled --> Scheduled: scheduler POSTs a Binding
+    Unscheduled --> Unschedulable: no feasible node.<br/>Event FailedScheduling with a<br/>histogram of which filter rejected what
+    Unschedulable --> Unscheduled: cluster event:<br/>a node is added, a pod is deleted,<br/>a taint is removed
+
+    Scheduled --> SandboxReady: kubelet calls RunPodSandbox.<br/>pause container holds the netns
+    SandboxReady --> NetworkReady: CNI ADD.<br/>veth pair created, IP allocated<br/>from the node pod CIDR
+    NetworkReady --> Pulling: PullImage per container.<br/>imagePullPolicy IfNotPresent by default
+    Pulling --> ImageFailed: registry unreachable, tag missing,<br/>or credentials wrong.<br/>Shown as ImagePullBackOff
+    ImageFailed --> Pulling: retry with backoff
+
+    Pulling --> InitRunning: init containers run in order,<br/>each to completion with exit 0
+    InitRunning --> SidecarsUp: sidecars are entries in the same<br/>initContainers list, interleaved in<br/>declaration order. The kubelet waits for<br/>each to reach Started before the next.<br/>Stable since v1.33
+    SidecarsUp --> Starting: application containers created.<br/>Phase becomes Running
+
+    Starting --> Started: startupProbe passes, or none is set.<br/>Budget is failureThreshold x periodSeconds
+    Started --> Live: livenessProbe passing, or none set.<br/>Failure kills the container and<br/>restartPolicy decides what happens next
+    Started --> Ready: readinessProbe passing, or none set.<br/>Endpoint added to the EndpointSlice.<br/>Runs on its own periodSeconds timer,<br/>independently of liveness
+    Ready --> Started: readiness fails.<br/>Endpoint removed, traffic stops,<br/>container is NOT restarted
+
+    Live --> CrashLoop: container exits non-zero
+    CrashLoop --> Live: backoff 10s, 20s, 40s,<br/>capped at 300s.<br/>Resets after 10 minutes healthy
+
+    Ready --> Succeeded: all containers exit 0 with<br/>restartPolicy Never or OnFailure
+    Live --> Failed: a container exits non-zero<br/>with restartPolicy Never
+
+    Ready --> Deregistering: DELETE sets metadata.deletionTimestamp.<br/>EndpointSlice removal and SIGTERM start<br/>at the same instant and do not wait for<br/>each other. This is the race.
+    Deregistering --> PreStop: preStop hook runs<br/>inside the grace period
+    PreStop --> SigTerm: SIGTERM to PID 1 of each<br/>application container
+    SigTerm --> SigKill: grace period expires.<br/>terminationGracePeriodSeconds<br/>defaults to 30. Exit code 137
+    SigTerm --> SidecarStop: containers exit cleanly
+    SigKill --> SidecarStop: sidecars stopped last,<br/>in reverse declaration order
+    SidecarStop --> Removed: CNI DEL, sandbox removed,<br/>object deleted from etcd
+
+    Removed --> [*]
+    Succeeded --> [*]
+    Failed --> [*]

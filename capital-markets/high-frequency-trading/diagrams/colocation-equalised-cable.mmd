@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Hall["The data hall: geometry is the enemy"]
+        NEAR["Cabinet A<br/>10 m of raw cable path<br/>to the exchange switch"]
+        FAR["Cabinet Z<br/>50 m of raw cable path<br/>to the exchange switch"]
+        GAP["Raw difference: 40 m of fibre<br/>= 196 nanoseconds each way.<br/>About 50x the port-to-port latency<br/>of a Layer 1 switch."]
+    end
+
+    subgraph Fix["Two documented equalisation designs"]
+        M1["METHOD 1: pad to the worst case<br/>Cboe. Take the farthest possible distance<br/>a participant cage may sit from the<br/>customer-facing switches, and use that<br/>as THE cable length for every cross connect.<br/>Cabinet A receives a coil of slack."]
+        M2["METHOD 2: equidistant cabling cabinet<br/>BOX / BSTX. A dedicated cabinet holds<br/>equal-length fibre spools to every<br/>participant cabinet. Cross connects from<br/>that cabinet to the exchange cabinet are<br/>themselves equidistant. Everyone hops<br/>through the same intermediate point."]
+    end
+
+    subgraph Left["What is still NOT equalised"]
+        L1["Port speed.<br/>Cboe states a 10 Gb physical port has an<br/>11 microsecond latency advantage over a 1 Gb port.<br/>That is serialisation delay, not distance:<br/>a 1,500-byte frame is 12,160 bits on the wire,<br/>12.16 us at 1 Gb/s and 1.22 us at 10 Gb/s."]
+        L2["Everything inside the cabinet.<br/>Switch choice, NIC, FPGA, code path.<br/>The exchange equalises up to your port<br/>and not one nanosecond further."]
+        L3["Which feed you buy.<br/>Proprietary depth feed against the SIP.<br/>See stock-exchanges section 11."]
+    end
+
+    NEAR --> GAP
+    FAR --> GAP
+    GAP --> M1
+    GAP --> M2
+    M1 --> Left
+    M2 --> Left
+
+    style Hall fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Left fill:#fff3e0,stroke:#e65100,stroke-width:2px

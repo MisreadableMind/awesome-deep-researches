@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant SEQ as Sequencer
+    participant BAT as Batcher
+    participant L1 as Ethereum L1
+    participant PROP as Proposer
+    participant CH as Challenger
+    participant BR as Bridge / Portal
+
+    U->>SEQ: Signed transaction over JSON-RPC
+    SEQ-->>U: Soft confirmation in 200ms to 2s<br/>This is a promise from one company.<br/>It is not an L1 guarantee.
+    Note over SEQ: L2 blocks every 1 or 2 seconds.<br/>OP Stack caps a block at 200,000,000 gas.
+
+    loop Every few minutes
+        SEQ->>BAT: Ordered blocks
+        Note over BAT: Serialise batches, RLP-encode,<br/>compress (zlib or brotli), cut into frames:<br/>channel_id ++ frame_number ++ frame_data_length<br/>++ frame_data ++ is_last, 23 bytes fixed overhead
+        BAT->>L1: Type-0x03 blob transaction<br/>up to 6 blobs, 131,072 bytes each
+    end
+    Note over L1: Hard deadline: the batch must land inside<br/>SEQUENCING_WINDOW_SIZE = 3600 L1 blocks (12 hours).<br/>Miss it and derivation drops to deposits only.
+
+    Note over L1,CH: Anyone reading L1 can now rebuild the exact L2 state.<br/>This is what makes it a rollup rather than a promise.
+
+    PROP->>BR: Propose output root via DisputeGameFactory<br/>Creates a FaultDisputeGame, bonded
+
+    alt Nobody disputes
+        Note over BR: Chess clock runs. MAX_GAME_CLOCK_DURATION<br/>= 3.5 days per team, CLOCK_EXTENSION = 3 hours.<br/>Game resolves in the proposer's favour.
+        Note over BR: Air gap: 3.5 more days in which the Guardian<br/>may blacklist the game. Total proof maturity<br/>delay before a withdrawal finalises: 7 days.
+        BR-->>U: finalizeWithdrawalTransaction succeeds
+    else Challenger disagrees
+        CH->>BR: Counter-claim, bonded
+        Note over BR,CH: Bisection game. See fraud-proof-bisection.
+        BR->>L1: Single-instruction step executed<br/>on chain by MIPS64.sol
+        L1-->>BR: One side is provably wrong
+        BR-->>CH: Loser's bond pays the winner
+        Note over BR: Only one honest challenger is required.<br/>Zero honest challengers and an invalid<br/>root finalises after the window.
+    end
+
+    Note over U,BR: Withdrawal in practice: users pay a liquidity<br/>bridge 5 to 30 basis points to be paid in minutes.<br/>The bridge is the one that waits 7 days.

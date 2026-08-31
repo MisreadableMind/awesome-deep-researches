@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Endpoints["The two endpoints"]
+        direction TB
+        Client["TLS client<br/>Browser, curl, mobile app,<br/>service mesh sidecar.<br/>Holds a trust store.<br/>Decides what to accept."]
+        Server["TLS server<br/>Origin, CDN edge, load balancer.<br/>Holds a private key and<br/>a certificate chain.<br/>Chooses from what is offered."]
+    end
+
+    subgraph PKI["The Web PKI"]
+        direction TB
+        RootCA["Root CA<br/>Self-signed, offline key,<br/>in an HSM in a vault.<br/>Signs nothing but<br/>intermediates."]
+        SubCA["Intermediate CA<br/>Online, signs end-entity<br/>certificates. Chrome requires<br/>TLS-only hierarchies for<br/>new inclusions."]
+        RA["Validation function<br/>Proves the applicant controls<br/>the name. ACME HTTP-01,<br/>DNS-01, TLS-ALPN-01."]
+    end
+
+    subgraph Governance["Who decides what is trusted"]
+        direction TB
+        RootProg["Root programs<br/>Chrome Root Store, Mozilla,<br/>Apple, Microsoft.<br/>They add and remove CAs.<br/>They are the real regulator."]
+        CABF["CA/Browser Forum<br/>Writes the Baseline Requirements.<br/>Certificate consumers hold<br/>a veto."]
+        CCADB["Common CA Database<br/>Shared disclosure system for<br/>roots, intermediates, audits,<br/>and incident reports."]
+        Audit["WebTrust and ETSI auditors<br/>Annual attestation that a CA<br/>followed its own CPS"]
+    end
+
+    subgraph Transparency["Public accountability"]
+        direction TB
+        CTLog["CT logs<br/>Append-only Merkle trees.<br/>Google, Cloudflare, DigiCert,<br/>Let's Encrypt, Sectigo."]
+        Monitor["Monitors<br/>crt.sh, Cert Spotter, Censys.<br/>Watch logs for certificates<br/>naming your domain."]
+        Auditor["Auditors<br/>Verify log consistency and<br/>inclusion proofs"]
+    end
+
+    subgraph Implementers["Who writes the code"]
+        direction TB
+        Libs["TLS libraries<br/>OpenSSL, BoringSSL, rustls,<br/>NSS, Schannel, Secure Transport,<br/>GnuTLS, wolfSSL, s2n-tls"]
+        IETF["IETF TLS, LAMPS, ACME,<br/>and PLANTS working groups<br/>Write the specifications"]
+    end
+
+    Client -->|"ClientHello"| Server
+    Server -->|"certificate chain"| Client
+    RA --> SubCA
+    RootCA -->|signs| SubCA
+    SubCA -->|signs| Server
+    RootProg -->|"includes or removes"| RootCA
+    RootProg --> CABF
+    CABF -->|"binds"| SubCA
+    CCADB --- RootProg
+    Audit --> CCADB
+    SubCA -->|"logs precertificate"| CTLog
+    CTLog --> Monitor
+    CTLog --> Auditor
+    Monitor -.->|"reports misissuance"| RootProg
+    RootProg -->|"ships trust store in"| Client
+    Libs --> Client
+    Libs --> Server
+    IETF --> Libs
+
+    style Endpoints fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style PKI fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Governance fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Transparency fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Implementers fill:#eceff1,stroke:#37474f,stroke-width:2px

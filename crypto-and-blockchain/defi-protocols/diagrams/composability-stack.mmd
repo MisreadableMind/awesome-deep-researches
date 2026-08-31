@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L0["Layer 0: settlement"]
+        C["Ethereum · Base · Arbitrum · Solana<br/>Failure: reorg, sequencer halt, congestion"]
+    end
+    subgraph L1["Layer 1: assets"]
+        ETH["ETH"]
+        USDC["USDC, USDT<br/>Failure: issuer freeze, depeg, redemption halt"]
+        LST["stETH, weETH, rsETH<br/>Failure: validator slashing, withdrawal queue, discount"]
+    end
+    subgraph L2["Layer 2: primitives"]
+        AMM["AMM pools<br/>Failure: curve bug, rounding, hook"]
+        LEND["Lending pools<br/>Failure: oracle, liquidation, bad debt"]
+        ORAC["Oracles<br/>Failure: stale, manipulated, misconfigured"]
+    end
+    subgraph L3["Layer 3: aggregation"]
+        VAULT["ERC-4626 vaults, Morpho MetaMorpho<br/>Failure: curator picks a bad market"]
+        LOOP["Looping and leverage strategies<br/>Failure: correlation assumption breaks"]
+        LPT["LP tokens used as collateral<br/>Failure: the LP price is itself derived"]
+    end
+    subgraph L4["Layer 4: interface"]
+        FE["Front ends, routers, wallets<br/>Failure: DNS hijack, CDN compromise, blind signing"]
+    end
+
+    C --> ETH
+    C --> USDC
+    C --> LST
+    ETH --> AMM
+    USDC --> AMM
+    LST --> LEND
+    USDC --> LEND
+    AMM --> ORAC
+    ORAC --> LEND
+    AMM --> LPT
+    LEND --> VAULT
+    LEND --> LOOP
+    LPT --> LEND
+    VAULT --> FE
+    LOOP --> FE
+
+    subgraph PROP["How a failure propagates"]
+        P1["A 3% stETH discount<br/>→ e-mode buffer breached<br/>→ mass liquidation of looped positions<br/>→ forced stETH selling into the discount<br/>→ deeper discount"]
+        P2["One rounding bug in Balancer's _upscale<br/>→ 27 forks inherited it<br/>→ copycat attacks within 53 minutes"]
+        P3["Curve pools compiled with Vyper 0.2.15<br/>→ reentrancy lock silently disabled<br/>→ four unrelated protocols drained in one day"]
+    end
+
+    LOOP -.-> P1
+    AMM -.-> P2
+    AMM -.-> P3
+
+    style P1 fill:#ffebee,stroke:#c62828
+    style P2 fill:#ffebee,stroke:#c62828
+    style P3 fill:#ffebee,stroke:#c62828

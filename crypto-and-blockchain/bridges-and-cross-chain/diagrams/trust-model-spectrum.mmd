@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph EXT["1. External verification"]
+        E1["A named committee signs.<br/>Destination checks k of n keys."]
+        E2["Trust: an honest majority<br/>of a set you did not choose"]
+        E3["Break cost: k private keys"]
+        E4["Wormhole 13/19, Axelar,<br/>Ronin 5/9, Harmony 2/5,<br/>Multichain MPC"]
+    end
+    subgraph OPT["2. Optimistic verification"]
+        O1["Claim accepted after a delay<br/>unless someone objects."]
+        O2["Trust: one honest watcher<br/>online and funded"]
+        O3["Break cost: censor or outlast<br/>every watcher for the window"]
+        O4["Nomad 30 min, Across via UMA,<br/>optimistic rollups 7 days,<br/>Hyperlane optimistic ISM"]
+    end
+    subgraph LC["3. Light client verification"]
+        L1["Destination runs the source<br/>chain's own consensus rules."]
+        L2["Trust: the source chain's<br/>validator set, nothing else"]
+        L3["Break cost: a third of the<br/>source chain's stake"]
+        L4["IBC ICS-07, Ethereum sync<br/>committee clients, Tendermint<br/>clients on Ethereum"]
+    end
+    subgraph NAT["4. Native / validity proof"]
+        N1["The destination chain's own<br/>consensus derives the source state."]
+        N2["Trust: the settlement layer<br/>and a proof system"]
+        N3["Break cost: break the SNARK<br/>or the L1"]
+        N4["Rollup canonical bridges,<br/>SP1ICS07Tendermint,<br/>Across V4 SP1 settlement"]
+    end
+
+    EXT -->|"trust decreases"| OPT -->|"cost increases"| LC --> NAT
+
+    style EXT fill:#ffebee,stroke:#c62828
+    style OPT fill:#fff3e0,stroke:#e65100
+    style LC fill:#e8f5e9,stroke:#2e7d32
+    style NAT fill:#e3f2fd,stroke:#1565c0

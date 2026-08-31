@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as Sender wallet
+    participant N as Ethereum node<br/>and mempool
+    participant P as Proposer<br/>and block builder
+    participant PX as FiatTokenProxy<br/>0xA0b8...eB48
+    participant IM as FiatTokenV2_2<br/>implementation
+    participant R as Recipient
+
+    U->>U: Build tx: to = proxy address,<br/>value = 0 ETH,<br/>data = 0xa9059cbb || pad(to) || pad(amount)
+    Note over U: 0xa9059cbb is the first four bytes of<br/>the keccak256 hash of transfer(address,uint256)
+    U->>U: Sign with secp256k1 private key<br/>EIP-1559 fields: maxFeePerGas,<br/>maxPriorityFeePerGas, nonce, chainId
+    U->>N: eth_sendRawTransaction
+    N->>N: Validate nonce, balance covers gas,<br/>signature recovers to sender
+    N->>P: Propagate through the mempool
+    P->>P: Include in a block, order by<br/>effective priority fee
+    P->>PX: EVM executes the call
+    PX->>IM: DELEGATECALL, storage stays in the proxy
+    IM->>IM: whenNotPaused
+    IM->>IM: notBlacklisted(msg.sender)<br/>bit 255 of balanceAndBlacklistStates
+    IM->>IM: notBlacklisted(to)
+    IM->>IM: require(balance >= value)
+    IM-->>PX: balanceAndBlacklistStates[from] -= value<br/>balanceAndBlacklistStates[to] += value
+    IM-->>P: emit Transfer(from, to, value)
+    P->>P: Block sealed, gas charged in ETH
+    Note over P: Warm-storage transfer costs roughly<br/>45,000 to 65,000 gas. A cold recipient<br/>slot costs more than a warm one.
+    P-->>R: Balance visible on the next state read
+    Note over R: Economic finality on Ethereum arrives<br/>after two epochs, about 12.8 minutes.<br/>Exchanges typically wait 12 to 64 blocks.

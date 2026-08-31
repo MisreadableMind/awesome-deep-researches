@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph USERS["Capital providers"]
+        LP["Liquidity provider<br/>deposits both assets into an AMM<br/>earns fees, absorbs LVR"]
+        SUP["Supplier<br/>deposits one asset into a money market<br/>earns the utilisation-driven rate"]
+        BOR["Borrower<br/>posts collateral, draws debt<br/>pays interest, risks liquidation"]
+    end
+
+    subgraph PROTO["Protocol contracts"]
+        AMM["AMM pool<br/>holds reserves, enforces the invariant<br/>Uniswap, Curve, Balancer"]
+        POOL["Lending pool<br/>holds reserves, tracks indexed debt<br/>Aave, Compound, Morpho"]
+        GOV["Governance + timelock<br/>sets fee tiers, LTV, caps, oracles"]
+    end
+
+    subgraph EXTRACT["Value extractors and maintainers"]
+        ARB["Arbitrageur<br/>equalises AMM price with the market<br/>paid by LPs, unpaid by anyone"]
+        SEARCH["Searcher / MEV bot<br/>backruns, sandwiches, backstops"]
+        KEEP["Keeper / liquidator<br/>calls liquidationCall when HF falls below 1<br/>paid the liquidation bonus"]
+        BUILD["Block builder + proposer<br/>orders the transactions<br/>sells the ordering right"]
+    end
+
+    subgraph INFRA["Off-chain dependencies"]
+        ORA["Oracle network<br/>Chainlink, Pyth, Redstone<br/>pushes or proves external prices"]
+        AGG["Aggregator / router<br/>1inch, CowSwap, UniswapX<br/>splits an order across venues"]
+        RISK["Risk curator<br/>Gauntlet, Chaos Labs, Steakhouse<br/>proposes parameters, curates vaults"]
+    end
+
+    LP --> AMM
+    SUP --> POOL
+    BOR --> POOL
+    AGG --> AMM
+    ARB --> AMM
+    SEARCH --> AMM
+    SEARCH --> BUILD
+    KEEP --> POOL
+    ORA --> POOL
+    ORA --> KEEP
+    GOV --> POOL
+    GOV --> AMM
+    RISK --> GOV
+    POOL -->|"seized collateral"| KEEP
+    AMM -->|"fees"| LP
+    POOL -->|"interest less reserve factor"| SUP
+    BUILD -->|"ordering"| AMM

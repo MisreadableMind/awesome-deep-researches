@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Cause["The cause is two correct decisions colliding.<br/>Memory got cheap, so equipment vendors sized buffers generously and never<br/>measured the delay they add. Loss-based congestion control only stops<br/>growing when a packet is dropped, and a packet is only dropped when the<br/>buffer is full. So the sender fills whatever buffer exists, by design."]
+
+    subgraph Arith["The arithmetic nobody did"]
+        direction TB
+        A1["A queue's depth in time is<br/>bytes divided by drain rate.<br/>256 packets of 1500 bytes<br/>on an 8 Mbit/s uplink<br/>= 3,072,000 bits / 8,000,000<br/>= 384 ms of standing delay."]
+        A2["The same 256-packet buffer on a<br/>1 Gbit/s link is 3 ms and invisible.<br/>Buffers are sized in packets and<br/>felt in milliseconds. The vendor<br/>ships one number to every link speed."]
+        A3["Symptom: a single upload makes a<br/>video call unusable, DNS lookups<br/>take a second, and a speed test<br/>still reports the full rate.<br/>Throughput is fine. Latency is not."]
+    end
+
+    subgraph Fixes["Active queue management: drop early, drop on purpose"]
+        direction TB
+        F1["RED, 1993. Drops with a probability<br/>rising with average queue length.<br/>Correct in principle, requires tuning<br/>against link rate and traffic mix,<br/>and so was left disabled everywhere."]
+        F2["CoDel, RFC 8289, January 2018.<br/>Measures each packet's sojourn time<br/>through the queue. If the minimum<br/>sojourn over a 100 ms INTERVAL stays<br/>above a 5 ms TARGET, start dropping<br/>and drop faster over time.<br/>No configuration and no rate knowledge."]
+        F3["FQ-CoDel, RFC 8290, January 2018.<br/>1024 hash buckets by default, a 1514-byte<br/>quantum, CoDel inside each queue,<br/>and priority for queues with no backlog.<br/>A DNS lookup or a SYN jumps the<br/>bulk transfer without any classifier.<br/>In Linux since 3.5 in July 2012."]
+        F4["CAKE, Linux 4.19, 2018.<br/>FQ-CoDel plus shaping, per-host<br/>fairness and link-layer overhead<br/>compensation, aimed at CPE.<br/>PIE, RFC 8033, is the equivalent<br/>chosen by DOCSIS cable modems."]
+    end
+
+    subgraph Explicit["Marking instead of dropping"]
+        direction TB
+        E1["ECN, RFC 3168. A router sets CE (11)<br/>instead of dropping. The receiver<br/>echoes ECE, the sender reduces and<br/>replies CWR. Congestion is signalled<br/>without destroying a packet."]
+        E2["Classic ECN carries one signal per<br/>round trip, which is enough to say<br/>'there is congestion' and not enough<br/>to say how much."]
+        E3["L4S, RFC 9330-9332, January 2023.<br/>ECT(1) identifies scalable traffic.<br/>A dual-queue coupled AQM keeps the<br/>L4S queue near 1 ms while coupling<br/>its marking probability to the classic<br/>queue's drop probability as<br/>p_C = (p_CL / k)^2 with k = 2,<br/>so the two share capacity fairly."]
+        E4["AccECN, RFC 9768, April 2026,<br/>gives TCP a count of CE marks rather<br/>than a bit, which is the missing<br/>piece for scalable controllers<br/>outside the data centre."]
+    end
+
+    Result["Measured result from RFC 9332: a DualQ deployment holds average<br/>queueing delay below 1 ms with a 99th percentile no worse than 2 ms,<br/>against 5 to 15 ms average and 20 to 30 ms at the 99th percentile<br/>for a conventional AQM, and hundreds of milliseconds for a plain FIFO."]
+
+    Cause --> Arith --> Fixes --> Explicit --> Result
+
+    style Cause fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Arith fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Fixes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Explicit fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Result fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

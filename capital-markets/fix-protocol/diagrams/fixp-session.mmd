@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Venue gateway
+
+    Note over C,S: Initialisation - happens once per logical session
+
+    C->>S: Negotiate<br/>SessionId = UUID version 4, RFC 4122<br/>Timestamp, ClientFlow = Recoverable,<br/>Credentials
+    alt Accepted
+        S->>C: NegotiationResponse<br/>echoes RequestTimestamp,<br/>ServerFlow = Recoverable
+    else Rejected
+        S->>C: NegotiationReject<br/>Credentials, FlowTypeNotSupported,<br/>DuplicateId, or Unspecified
+        Note over C,S: Send nothing further.<br/>Terminate the transport.
+    end
+
+    Note over C,S: Binding - happens on every new transport
+
+    C->>S: Establish<br/>KeepaliveInterval in milliseconds,<br/>NextSeqNo if recovering
+    S->>C: EstablishmentAck<br/>server KeepaliveInterval, NextSeqNo
+    Note over C,S: Rejection codes: Unnegotiated,<br/>AlreadyEstablished, SessionBlocked,<br/>KeepaliveInterval, Credentials
+
+    Note over C,S: Transferring - sequence numbers are IMPLICIT
+
+    C->>S: Sequence, NextSeqNo = 1
+    C->>S: NewOrderSingle, implicitly 1
+    C->>S: NewOrderSingle, implicitly 2
+    C->>S: NewOrderSingle, implicitly 3
+    Note over C,S: No sequence number rides on each<br/>application message. The Sequence<br/>message sets the base and the counter<br/>advances by one per message.
+
+    S->>C: Sequence, NextSeqNo = 4001
+    S->>C: ExecutionReport, ExecutionReport
+
+    Note over C,S: Recovery
+
+    C->>S: RetransmitRequest<br/>FromSeqNo, Count, Timestamp<br/>one in flight at a time
+    alt In range
+        S->>C: Retransmission<br/>RequestTimestamp, NextSeqNo, Count
+        S->>C: the replayed messages
+    else Out of range
+        S->>C: RetransmitReject<br/>OutOfRange, InvalidSession,<br/>or RequestLimitExceeded
+    end
+
+    Note over C,S: Keep-alive: a Sequence message doubles as a heartbeat<br/>on sequenced flows. UnsequencedHeartbeat covers the rest.
+
+    Note over C,S: Finalising
+
+    C->>S: FinishedSending, LastSeqNo
+    S->>C: FinishedReceiving
+    C->>S: Terminate, code Finished
+    S->>C: Terminate
+    Note over C,S: Session ID is now dead. Messages sent<br/>under it are no longer recoverable.

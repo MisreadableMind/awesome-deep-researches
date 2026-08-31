@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Leg1["Leg 1 - Collection<br/>get value from the sender"]
+        direction TB
+        C1["Cash at an agent counter"]
+        C2["Debit or credit card"]
+        C3["Bank debit: ACH, Faster Payments,<br/>SEPA Direct Debit, iDEAL, PIX"]
+        C4["Wallet balance already held"]
+        CN["Risk: the sender's funding<br/>can be reversed for days<br/>after the payout is final"]
+    end
+
+    subgraph Leg2["Leg 2 - Foreign exchange<br/>convert the currency"]
+        direction TB
+        F1["A rate is chosen, not discovered.<br/>The mid-market rate is the<br/>reference; the customer rate<br/>is the mid-market rate<br/>plus a margin."]
+        F2["The margin may be zero<br/>(Wise), a few tens of basis<br/>points, or several percent"]
+        F3["Someone carries the position<br/>between quote and settlement"]
+    end
+
+    subgraph Leg3["Leg 3 - Compliance<br/>prove the transfer is lawful"]
+        direction TB
+        A1["Identify the sender (KYC)"]
+        A2["Screen both parties against<br/>sanctions lists"]
+        A3["Carry originator and beneficiary<br/>data with the payment<br/>(FATF Recommendation 16)"]
+        A4["Monitor, and file reports"]
+    end
+
+    subgraph Leg4["Leg 4 - Payout<br/>put local currency in front of the recipient"]
+        direction TB
+        P1["Cash over a counter"]
+        P2["Bank account credit via the<br/>domestic scheme"]
+        P3["Mobile money wallet"]
+        P4["Card push, home delivery,<br/>bill payment, airtime"]
+        PN["This leg decides the corridor.<br/>Reach here is the product."]
+    end
+
+    Leg1 --> Leg2 --> Leg3 --> Leg4
+
+    Cost["Where the money goes:<br/>payout distribution and FX margin<br/>dominate. Message transmission<br/>costs almost nothing."]
+
+    Leg4 --> Cost
+
+    style Leg1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Leg2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Leg3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Leg4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cost fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,2414 @@
+# Object Storage: S3, Erasure Coding, and the Economics of Durability - Complete Technical Deep Dive
+
+---
+
+## Table of Contents
+
+1. [History and Overview](#1-history-and-overview)
+2. [Object, File, and Block Are Three Different Contracts](#2-object-file-and-block-are-three-different-contracts)
+3. [The S3 Data Model: Buckets, Keys, and Metadata](#3-the-s3-data-model-buckets-keys-and-metadata)
+4. [Key Participants and Roles](#4-key-participants-and-roles)
+5. [The REST API on the Wire](#5-the-rest-api-on-the-wire)
+6. [Multipart Upload](#6-multipart-upload)
+7. [The Consistency Model and the December 2020 Shift](#7-the-consistency-model-and-the-december-2020-shift)
+8. [How Eleven Nines Is Actually Engineered](#8-how-eleven-nines-is-actually-engineered)
+9. [Erasure Coding: Reed-Solomon Against Replication](#9-erasure-coding-reed-solomon-against-replication)
+10. [Placement and Partitioning of the Key Space](#10-placement-and-partitioning-of-the-key-space)
+11. [The Index Layer](#11-the-index-layer)
+12. [Request Routing and Hot Keys](#12-request-routing-and-hot-keys)
+13. [Versioning, Delete Markers, and Object Lock](#13-versioning-delete-markers-and-object-lock)
+14. [Storage Classes and Lifecycle Transitions](#14-storage-classes-and-lifecycle-transitions)
+15. [Server-Side Encryption](#15-server-side-encryption)
+16. [Access Control: IAM, Bucket Policies, and Presigned URLs](#16-access-control-iam-bucket-policies-and-presigned-urls)
+17. [Economics: What It Costs, Who Pays, and Why Egress Shapes Architecture](#17-economics-what-it-costs-who-pays-and-why-egress-shapes-architecture)
+18. [One 12 GB Object, End to End](#18-one-12-gb-object-end-to-end)
+19. [Security, Risk, and the Failures That Actually Happen](#19-security-risk-and-the-failures-that-actually-happen)
+20. [Regulation and Compliance](#20-regulation-and-compliance)
+21. [Comparisons and When to Choose Each](#21-comparisons-and-when-to-choose-each)
+22. [Modern Developments](#22-modern-developments)
+23. [Appendix](#23-appendix)
+24. [Key Takeaways](#24-key-takeaways)
+
+---
+
+## 1. History and Overview
+
+Object storage exists because a file system cannot be sharded without a coordinator. Every POSIX guarantee that programmers take for granted is a coordination point: an atomic directory rename must be atomic across an entire subtree, a byte written at offset 4096 must be visible to the next reader at that offset, a lock must be honoured by every host that mounts the volume. Each of those requires some component to be the authority on the namespace, and an authority is a bottleneck.
+
+Object storage deletes those guarantees on purpose. What is left shards trivially.
+
+The trade is stark. You give up directories, in-place writes, renames, and locks. You get a key space that partitions across as many machines as you can buy, an access path that is an ordinary HTTPS request from anywhere on the internet, and a durability number that no single-site file system can approach. Amazon S3 now holds more than 700 trillion objects. No file system has ever held a trillion of anything.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+timeline
+    title Object storage, 2006 to 2026
+    section The API is invented
+        2006-03-14 : Amazon S3 launches in the United States with buckets, keys, REST and SOAP, and a 5 GB object ceiling
+        2006 : Sage Weil publishes Ceph and RADOS at OSDI, placing objects by algorithm instead of by index
+        2007-11 : S3 opens a European region, making the bucket a Region-bound object
+        2008-11 : Windows Azure Storage enters production with a three-replica append-only stream layer
+    section Cost and durability engineering
+        2010 : Rackspace and NASA open source OpenStack Swift, the ring-based clone of the S3 model
+        2010 : Google Cloud Storage opens to the public
+        2012 : Microsoft publishes Local Reconstruction Codes, cutting Azure blob overhead from 3.0x to 1.33x
+        2013-04 : S3 passes 2 trillion objects
+    section Scale and the flat-namespace era
+        2017-02-28 : A capacity command removes too many index subsystem servers and takes S3 out in us-east-1
+        2018-03-01 : Legacy 255-character uppercase bucket names stop being accepted in us-east-1
+        2020-12-01 : S3 delivers strong read-after-write consistency for every request at no extra cost
+        2021-03 : S3 passes 100 trillion objects
+        2021-10 : ShardStore, the S3 storage node key-value engine, is published at SOSP with lightweight formal proofs
+    section The object store becomes a database substrate
+        2023-01-05 : Every new S3 upload is encrypted with SSE-S3 by default
+        2023-03 : S3 passes 280 trillion objects
+        2024-03-05 : AWS waives data transfer out charges for customers leaving AWS
+        2024-09 : Lifecycle stops transitioning objects smaller than 128 KB by default
+        2024-11 : S3 passes 400 trillion objects and ships S3 Tables, a managed Apache Iceberg bucket type
+        2025-09-12 : The EU Data Act becomes applicable, putting switching charges and egress fees on a countdown
+        2026-04 : SSE-C is disabled by default on new general purpose buckets
+        2026-08 : S3 reports 700 trillion objects and more than 200 million requests per second on average
+```
+
+### 1.1 Amazon S3 Launches, 14 March 2006
+
+Amazon S3 launched in the United States on 14 March 2006 and defined the vocabulary that every competitor still uses. Buckets. Keys. Objects. A REST API over HTTP with the four verbs the web already had, plus a SOAP interface that nobody used and that reached end of life on 31 August 2025.
+
+The initial design decisions were unusually durable. A bucket is created in one Region and never moves. A bucket name is unique across every AWS account in the partition, which made buckets addressable as DNS hostnames and, twenty years later, still causes name squatting. An object is written whole and read whole or by byte range. There is no append, no seek, no truncate. The maximum object size was 5 GB.
+
+Europe arrived in November 2007, and with it the fact that a bucket is a Regional resource with a global name. That combination, a global namespace over Regional storage, is the single most-copied and most-regretted decision in the design.
+
+The growth curve is documented because AWS kept publishing it. Ten billion objects in October 2007, 14 billion in January 2008, 29 billion in October 2008, 52 billion in March 2009, 102 billion in March 2010. Two trillion in April 2013. One hundred trillion in March 2021. Two hundred and eighty trillion in March 2023. Four hundred trillion in November 2024. Seven hundred trillion by August 2026.
+
+That last pair of numbers is worth doing arithmetic on. Three hundred trillion objects arrived in 21 months. That is 14.3 trillion objects per month, or about 5.5 million net new objects every second, sustained, for nearly two years.
+
+### 1.2 Ceph Takes the Opposite Route, 2006
+
+Ceph proved that an object store does not need a metadata index at all, and the industry split into two camps that same year. Sage Weil's RADOS design hashes the object name into a placement group, then runs the CRUSH algorithm over a cluster map to derive an ordered list of storage daemons. No lookup. No index server. The client computes the answer.
+
+The trade is symmetric with S3's. Algorithmic placement removes the metadata tier from the request path, so there is no index to fall over. It also means that changing the cluster topology changes the function, and data moves. S3 can relocate a shard silently because a lookup already stands between the client and the disk. Ceph cannot, because there is no lookup to change.
+
+Both designs are correct. They optimise different failures.
+
+### 1.3 Azure and Google Arrive, 2008 to 2010
+
+Windows Azure Storage entered production in November 2008 with an architecture that S3 does not publish in the same detail, which makes it the best available window into how these systems actually work. WAS writes every blob into an append-only distributed file system called the stream layer, three full copies, synchronously. Once an extent reaches roughly 1 GB it is sealed, and a background process erasure-codes the sealed extent and deletes the three copies.
+
+That two-phase design, replicate hot then erasure-code cold, is now standard practice across the industry. It exists because replication is cheap to write and expensive to store, while erasure coding is the reverse.
+
+Rackspace and NASA open sourced OpenStack Swift in 2010, giving the self-hosted world a ring-based clone of the S3 model. Google Cloud Storage opened the same year on top of Colossus. By 2012 the three-way pattern was set: an HTTP object API, a flat key space, and a background process quietly converting replicas into parity.
+
+### 1.4 The Facts That Fix a Version
+
+Every mechanism in this document has a date attached, and the date determines whether a given system can do the thing at all.
+
+| Date | Change | Why it matters |
+|------|--------|----------------|
+| 14 Mar 2006 | S3 launches in the US | Buckets, keys, REST, 5 GB objects |
+| Nov 2007 | S3 Europe Region | Global names over Regional storage |
+| Nov 2008 | Windows Azure Storage in production | Three replicas, then lazy erasure coding |
+| 2012 | Microsoft publishes Local Reconstruction Codes | Azure blob overhead falls from 3.00x to 1.33x |
+| 28 Feb 2017 | S3 index subsystem outage in us-east-1 | Public confirmation that an index tier exists |
+| 1 Mar 2018 | Legacy bucket names retired in us-east-1 | 255-character uppercase names no longer accepted |
+| 20 Mar 2019 | Region endpoint cutover | Regions launched after this date reject the legacy global endpoint with 400 |
+| 23 Sep 2020 | Path-style deprecation delayed | Path-style URLs still work in all Regions, with no announced end date |
+| 1 Dec 2020 | Strong read-after-write consistency | Overwrites and deletes stop being eventually consistent |
+| Oct 2021 | ShardStore published at SOSP | The storage node engine, and how it is verified |
+| 5 Jan 2023 | SSE-S3 applied to every new upload | Encryption at rest stops being opt-in |
+| 5 Mar 2024 | Egress waived for customers leaving AWS | A direct response to the EU Data Act |
+| Sep 2024 | Lifecycle skips objects under 128 KB | Transition requests cost more than the saving |
+| Nov 2024 | S3 Tables ships | A bucket type that is an Apache Iceberg catalog |
+| 12 Sep 2025 | EU Data Act becomes applicable | Switching charges, including egress, on a countdown |
+| 30 Sep 2025 | Exit-egress waiver simplified | 100 GB threshold dropped, 90 days to migrate |
+| Apr 2026 | SSE-C disabled by default on new buckets | Customer-provided keys become opt-in |
+
+### 1.5 Scale Today, August 2026
+
+Amazon S3 reports more than 700 trillion objects, hundreds of exabytes of data, and an average of more than 200 million requests per second. It also reports sending more than 300 billion event notifications a day to serverless applications, and more than 6 billion dollars saved by customers using S3 Intelligent-Tiering.
+
+Two hundred million requests per second is 17.3 trillion requests a day. Divide 700 trillion objects by that and the average object is touched about once every 40 days. The tail is doing all the work. A handful of objects are read millions of times a second and the overwhelming majority are read never, which is the entire reason storage classes and Intelligent-Tiering exist.
+
+The competitive picture, as of August 2026:
+
+| System | Operator | Model | Distinguishing property |
+|--------|----------|-------|-------------------------|
+| **Amazon S3** | AWS | Indexed, managed | The API everyone else implements |
+| **Azure Blob Storage** | Microsoft | Indexed, managed | Block, append, and page blob types; 16 nines with GZRS |
+| **Google Cloud Storage** | Google | Indexed, managed | Strong consistency including list operations, on Colossus |
+| **Cloudflare R2** | Cloudflare | Indexed, managed | Zero egress charges, S3-compatible API |
+| **Backblaze B2** | Backblaze | Indexed, managed | 17+3 Reed-Solomon, published in detail |
+| **Ceph RGW** | Self-hosted | Algorithmic (CRUSH) | No metadata tier on the read path |
+| **MinIO** | Self-hosted | Algorithmic (erasure sets) | Inline erasure coding, no separate index |
+| **OpenStack Swift** | Self-hosted | Algorithmic (ring) | The original open clone of the S3 model |
+
+---
+
+## 2. Object, File, and Block Are Three Different Contracts
+
+The three storage abstractions differ in exactly one thing that matters: what you are allowed to change, and at what granularity. Everything else follows from that.
+
+Block storage lets you overwrite any sector. File storage lets you overwrite any byte range inside a named path. Object storage lets you replace the whole thing or nothing.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Block["Block storage - EBS, iSCSI, NVMe"]
+        direction TB
+        B1["Address: logical block number<br/>on one attached volume"]
+        B2["Unit of write: one 512 B or 4 KiB sector"]
+        B3["Contract: overwrite any sector in place"]
+        B4["Namespace: none. The volume is a<br/>flat array of numbered sectors."]
+        B5["Attachment: one host at a time<br/>in the normal case"]
+        B6["Scaling limit: a volume is one<br/>failure and one performance domain"]
+    end
+
+    subgraph File["File storage - NFS, SMB, EFS, Lustre"]
+        direction TB
+        F1["Address: pathname through<br/>a directory tree"]
+        F2["Unit of write: an arbitrary byte range<br/>at an arbitrary offset"]
+        F3["Contract: POSIX. Atomic rename,<br/>locks, permissions, inode metadata."]
+        F4["Namespace: hierarchical and mutable.<br/>Renaming a directory renames a subtree."]
+        F5["Attachment: many hosts, coordinated<br/>by the server"]
+        F6["Scaling limit: the directory tree.<br/>Atomic subtree rename forces a<br/>single authority over the namespace."]
+    end
+
+    subgraph Object["Object storage - S3, Azure Blob, GCS, Ceph RGW"]
+        direction TB
+        O1["Address: bucket plus key plus version,<br/>reached over HTTP"]
+        O2["Unit of write: the whole object.<br/>Reads may be byte ranges."]
+        O3["Contract: replace or delete.<br/>No in-place mutation, no rename, no locks."]
+        O4["Namespace: flat. The slash is an<br/>ordinary byte in a 1,024-byte key."]
+        O5["Attachment: any host anywhere<br/>with a valid signature"]
+        O6["Scaling limit: none that is architectural.<br/>Keys range-partition across independent servers."]
+    end
+
+    B4 -.->|"add a namespace"| F4
+    F6 -.->|"delete the tree and in-place writes"| O4
+
+    style Block fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style File fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Object fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+```
+
+### 2.1 The Comparison That Actually Predicts Behaviour
+
+| Property | Block | File | Object |
+|----------|-------|------|--------|
+| **Address** | Logical block number | Pathname | Bucket, key, version |
+| **Smallest write** | One sector, 512 B or 4 KiB | One byte at any offset | The entire object |
+| **Read granularity** | Sector | Byte range | Byte range |
+| **Namespace** | None | Hierarchical, mutable | Flat, keys sorted by byte value |
+| **Rename** | Not applicable | Atomic, including subtrees | Does not exist. Copy then delete. |
+| **Locking** | Host-level | Server-mediated | None |
+| **Access path** | Attached device | Mount over the network | HTTPS from anywhere |
+| **Concurrent writers** | Effectively one | Many, coordinated | Many, last write wins |
+| **Typical first-byte latency** | Tens of microseconds | Hundreds of microseconds | 100 to 200 ms for S3 Standard |
+| **Scaling ceiling** | One volume, one failure domain | The directory tree | None that is architectural |
+| **Metering** | Provisioned capacity and IOPS | Provisioned or elastic capacity | Storage, requests, retrieval, egress |
+
+The latency row explains why nobody runs a database on object storage the way they run one on a block device, and why every attempt to do so builds a caching tier first. The scaling row explains why every data lake sits on object storage anyway.
+
+### 2.2 What an Object Store Is
+
+An object store is a durable, HTTP-addressed key-value store for immutable blobs with a per-key metadata record. That definition is short and complete.
+
+The key is a byte string. The value is a byte sequence that the service never interprets. The metadata record holds a size, a modification time, an entity tag, a storage class, encryption state, a checksum, and whatever headers the writer attached. Reads may take byte ranges of the value. Writes may only replace it.
+
+Immutability is the load-bearing property. Because an object never changes in place, a shard of it never changes in place either. That means a shard can be checksummed once and re-verified forever, cached without invalidation logic, replicated without a conflict resolution protocol, and erasure-coded without recomputing parity on partial writes. Almost every durability and performance property in the rest of this document is downstream of the decision to forbid the in-place write.
+
+### 2.3 What an Object Store Is Not
+
+**It is not a file system with folders.** S3 has no directories. The console shows folders because `ListObjectsV2` accepts a `prefix` and a `delimiter`, and the response groups everything sharing a prefix up to the next delimiter into a `CommonPrefixes` element. That is a display convention computed at query time. A key of `Development/Projects.xls` is a single 24-byte string in which the slash has no more meaning than the letter `P`. When the console appears to create a folder, it writes a zero-byte object whose key ends in `/`. Deleting a folder is a paginated LIST followed by a loop of DELETEs, and if you have ten million keys under that prefix, you issue ten million deletes.
+
+**It is not mutable.** There is no append and no seek. Multipart upload looks like appending and is not: the parts exist as chargeable storage while the object itself does not exist at all, and the object springs into existence atomically at `CompleteMultipartUpload`. Azure is the honest exception here, offering append blobs and page blobs alongside block blobs, and page blobs really do support 512-byte in-place writes because they were built to back virtual machine disks. That exception proves the rule: Azure had to invent a different blob type to get mutation, and page blobs behave like block storage in every way that matters, including price.
+
+**It is not a mountable file system, however many products say it is.** Mountpoint for Amazon S3, s3fs, goofys, and the newer S3 Files all translate POSIX calls into S3 requests. The translation is lossy in both directions. A rename becomes a copy plus a delete, which is O(bytes) instead of O(1). A partial write becomes a read-modify-write of the whole object. S3 Files is the most serious attempt: it is built on Amazon EFS, keeps an active working set on a low-latency tier, serves reads of 1 MiB or more straight from the bucket, expires unread data from the fast tier after a configurable 1 to 365 days with a default of 30, and speaks NFS 4.1 and 4.2 with real file locking. It is a genuine file system in front of a bucket. It is not the bucket becoming a file system.
+
+**Eleven nines is not a backup.** The durability figure describes the probability that the service loses your bytes to hardware failure. It says nothing about a DELETE you authorised, a lifecycle rule you wrote wrong, a credential an attacker stole, or the loss of an entire Region. Section 8 takes this apart properly.
+
+**Storage is frequently not the bill.** For a workload that serves small files to the public internet, egress and request charges routinely exceed storage by an order of magnitude. Section 17 does the arithmetic.
+
+### 2.4 The Mental Model Worth Keeping
+
+Think of an object store as a range-partitioned distributed key-value store whose values are large, whose writes are whole-value replacements, and which bills four meters at once. Every surprising behaviour in the rest of this document falls out of one of those four clauses.
+
+Range-partitioned explains hot prefixes. Large values explain multipart upload and byte-range reads. Whole-value replacement explains versioning, delete markers, and why there is no append. Four meters explains why the architecture of your application is decided by a pricing page.
+
+---
+
+## 3. The S3 Data Model: Buckets, Keys, and Metadata
+
+The S3 data model has exactly three levels and no fourth. An account holds buckets, a bucket holds objects addressed by key, and a key plus a version ID identifies one immutable object. Nothing nests further.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Account["AWS account"]
+        subgraph Bucket["Bucket - Region bound, globally unique name"]
+            direction TB
+            BN["Name: 3 to 63 characters,<br/>lowercase letters, digits, hyphen, period.<br/>No uppercase, no underscore,<br/>not an IP address."]
+            BCfg["Bucket-level configuration<br/>policy, versioning, lifecycle,<br/>default encryption, Object Lock,<br/>Block Public Access, replication"]
+        end
+    end
+
+    subgraph Key["Object key - the only addressing unit"]
+        K1["media/2026/08/ep-0417-master.mov"]
+        K2["Up to 1,024 bytes of UTF-8.<br/>Case sensitive.<br/>Sorted lexicographically by byte value."]
+        K3["The slash carries no meaning to S3.<br/>Prefix plus delimiter is a LIST argument,<br/>not a directory."]
+    end
+
+    subgraph Version["Version ID"]
+        V1["Unversioned bucket: no version ID"]
+        V2["Versioning enabled: every write gets<br/>a new opaque version ID"]
+        V3["Pre-existing objects and<br/>versioning-suspended writes: null"]
+    end
+
+    subgraph Payload["Value and metadata"]
+        P1["Value: 0 bytes to 50 TB,<br/>opaque to S3"]
+        P2["System metadata: Content-Type, ETag,<br/>Last-Modified, storage class,<br/>encryption headers, checksum.<br/>Capped at 2 KB."]
+        P3["User metadata: x-amz-meta-* headers.<br/>Capped at 2 KB inside an 8 KB PUT header.<br/>Immutable after write."]
+        P4["Tags: up to 10 key-value pairs.<br/>Mutable, usable in IAM and lifecycle."]
+        P5["Annotations: named payloads up to<br/>1 MB, attached after upload."]
+    end
+
+    Bucket --> Key --> Version --> Payload
+
+    style Bucket fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Key fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Version fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Payload fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+```
+
+### 3.1 Buckets
+
+A bucket is a Region-bound container with a name that is unique across every AWS account in the partition. AWS runs four partitions: `aws` for the standard Regions, `aws-cn` for China, `aws-us-gov` for GovCloud, and `aws-eusc` for the European Sovereign Cloud. Uniqueness is enforced within a partition, not across them.
+
+The naming rules are DNS rules, because the name becomes a hostname:
+
+- 3 to 63 characters
+- Lowercase letters, digits, hyphens, and periods only
+- Must begin and end with a letter or digit
+- No two adjacent periods
+- Must not look like an IPv4 address
+- Must not start with `xn--`, `sthree-`, or `amzn-s3-demo-`
+- Must not end with `-s3alias`, `--ol-s3`, `.mrap`, `--x-s3`, or `--table-s3`
+
+Those reserved suffixes are not decoration. `--x-s3` marks a directory bucket, `--table-s3` marks a table bucket, `.mrap` marks a Multi-Region Access Point, and `-s3alias` marks an access point alias. The namespace is carrying type information in its suffixes.
+
+Periods deserve a warning. A bucket named `my.data.example.com` cannot be reached with virtual-hosted-style HTTPS, because the wildcard certificate for `*.s3.us-east-1.amazonaws.com` does not match a hostname with an extra label in it. Use hyphens.
+
+Before 1 March 2018, buckets created in US East (N. Virginia) could carry names up to 255 characters with uppercase letters and underscores. Those buckets still exist. Code that validates bucket names must handle them.
+
+**The global namespace is a security surface.** When you delete a bucket, the name may become available to anybody in the same partition. If a CNAME still points at it, whoever claims the name receives requests intended for you. AWS added account regional namespaces to close this: a bucket named `prefix-111122223333-us-west-2-an`, created by passing `x-amz-bucket-namespace: account-regional` to `CreateBucket`, can only ever be created by account 111122223333. Prefer this for anything automation creates.
+
+### 3.2 Keys
+
+An object key is a sequence of Unicode characters encoded in UTF-8, up to 1,024 bytes. Not 1,024 characters. A key made of Cyrillic or CJK characters exhausts the budget two or three times faster than one made of ASCII.
+
+Keys are case sensitive and sort lexicographically by UTF-8 byte value. That sort order surprises people: uppercase `A` is 0x41 and lowercase `a` is 0x61, so `Apple/` sorts before `apple/`, and `éclair/` at 0xC3 0xA9 sorts after both. `ListObjectsV2` returns keys in this order and only this order.
+
+The safe character set is `A-Z`, `a-z`, `0-9`, and `! - _ . * ' ( )`. Everything else works but needs URL encoding or hex escaping somewhere in your stack. AWS explicitly recommends avoiding backslash, braces, brackets, caret, backtick, percent, tilde, angle brackets, pipe, quotation marks, and the hash character. Keys containing bare `.` or `..` path segments cause different tools to disagree about what the key even is, because half of them normalise paths.
+
+Carriage returns and newlines inside keys must be XML-escaped in request bodies. A `DeleteObjects` request for a key containing `\r` has to send `&#13;` or the XML parser silently rewrites it.
+
+### 3.3 Prefixes and Delimiters Are Query Arguments
+
+The prefix is not a property of the object. It is a filter you pass to LIST.
+
+```http
+GET /?list-type=2&prefix=media%2F2026%2F08%2F&delimiter=%2F&max-keys=1000 HTTP/1.1
+Host: amzn-s3-demo-bucket.s3.us-east-1.amazonaws.com
+```
+
+```xml
+<ListBucketResult>
+  <Name>amzn-s3-demo-bucket</Name>
+  <Prefix>media/2026/08/</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>1000</MaxKeys>
+  <IsTruncated>true</IsTruncated>
+  <NextContinuationToken>1ueGcxLPRx1Tr/XYExHnhbYLgveDs2J/wm36Hy4vbOwM=</NextContinuationToken>
+  <Contents>
+    <Key>media/2026/08/ep-0417-master.mov</Key>
+    <LastModified>2026-08-30T14:02:11.000Z</LastModified>
+    <ETag>&quot;a3f1b8e2d47c6905fbb1a2c3d4e5f6a7-96&quot;</ETag>
+    <Size>12884901888</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <CommonPrefixes>
+    <Prefix>media/2026/08/proxies/</Prefix>
+  </CommonPrefixes>
+</ListBucketResult>
+```
+
+`CommonPrefixes` is computed per request from the delimiter you supplied. Send no delimiter and the same bucket returns a flat list of every key under the prefix. The folder is a rendering, not a record.
+
+LIST returns at most 1,000 keys per call, paginated by `NextContinuationToken`. A bucket with a billion objects requires a million LIST calls to enumerate, at 0.005 dollars per 1,000 requests, which is 5 dollars just to read the key list once. This is why S3 Inventory and S3 Metadata exist.
+
+### 3.4 Metadata
+
+An object carries two kinds of metadata, and the size limits are strict.
+
+System-defined metadata is what S3 maintains: `Content-Length`, `Last-Modified`, `ETag`, `Content-Type`, `Cache-Control`, `Content-Encoding`, `Content-Disposition`, `x-amz-storage-class`, `x-amz-version-id`, `x-amz-server-side-encryption`, and the checksum headers. Some fields you control, some only S3 controls. It is capped at 2 KB.
+
+User-defined metadata is any header prefixed `x-amz-meta-`. It is also capped at 2 KB, measured as the sum of the UTF-8 byte lengths of every key and value. The whole PUT request header is capped at 8 KB. S3 lowercases user metadata keys. Non-ASCII values are RFC 2047 encoded on the way out, which means `x-amz-meta-nonascii: ÄMÄZÕÑ S3` comes back as `x-amz-meta-nonascii: =?UTF-8?B?w4PChE3Dg8KEWsODwpXDg8KRIFMz?=`.
+
+**User metadata is immutable.** There is no API to change it. The only way to alter one header on a 5 TB object is to copy the object onto itself with the new metadata, which rewrites every byte and bills a full PUT. Applications that need mutable per-object attributes must use tags, annotations, or an external database.
+
+Object tags are up to 10 key-value pairs per object, and unlike metadata they can be changed. They are also usable in IAM conditions (`s3:ExistingObjectTag/<key>`), in lifecycle rule filters, and in cost allocation reports, which makes them the correct place for anything policy needs to read.
+
+Annotations are newer: named payloads of 1 byte to 1 MiB of UTF-8 text each, up to 1,000 per object version and 1 GiB in total, attached to an existing object without rewriting it and retrieved and deleted through their own API operations. An annotation name runs 1 to 512 bytes and may not begin with `aws` or `s3`. They were added for machine-generated output such as classification results and model annotations. Objects encrypted with SSE-C do not support them, and objects under Object Lock in either retention mode reject annotation changes.
+
+### 3.5 The ETag Is Not Always an MD5
+
+The `ETag` header is the most commonly misread field in the S3 API. For an object uploaded in a single PUT that is either unencrypted or encrypted with SSE-S3, the ETag is the MD5 digest of the object bytes, in hex, wrapped in quotes.
+
+For anything else it is not. For a multipart upload the ETag is the MD5 of the concatenated binary MD5 digests of the parts, followed by a hyphen and the part count, which is why `"a3f1b8e2d47c6905fbb1a2c3d4e5f6a7-96"` tells you the object arrived as 96 parts. For an object encrypted with SSE-KMS or SSE-C the ETag is not an MD5 of anything you can compute locally.
+
+Code that compares a local MD5 against an ETag to verify an upload works until somebody enables KMS encryption or crosses the multipart threshold, and then it fails for every object. Use the checksum headers instead. S3 now supports CRC-64/NVME, CRC-32, CRC-32C, SHA-1, SHA-256, MD5, XXHash64, XXHash3, XXHash128, and SHA-512, with `CRC64NVME` as the default algorithm the SDKs calculate and send.
+
+---
+
+## 4. Key Participants and Roles
+
+An object store is not one program. Amazon describes S3 as composed of hundreds of microservices, spread across tens of thousands of customers whose buckets sit on millions of drives, and the useful way to reason about it is by plane rather than by service.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Client["Client SDK<br/>signs with SigV4, retries on 503,<br/>splits large objects into parts,<br/>opens many parallel connections"]
+
+    subgraph Edge["Request path - stateless, horizontally scaled"]
+        DNS["DNS<br/>resolves bucket.s3.region.amazonaws.com<br/>to a rotating set of front-end addresses"]
+        FE["Front-end fleet<br/>terminates TLS, verifies the signature,<br/>evaluates IAM and bucket policy,<br/>meters the request, applies throttles"]
+    end
+
+    subgraph Control["Metadata plane"]
+        IDX["Index subsystem<br/>maps bucket plus key plus version to<br/>the shard locations of the value.<br/>Range-partitioned, replicated."]
+        WIT["Witness<br/>in-memory read barrier that tells the<br/>metadata cache whether its view is stale"]
+        PLC["Placement subsystem<br/>chooses which disks receive the shards<br/>of a new write. Depends on the index."]
+    end
+
+    subgraph Data["Data plane"]
+        SN["Storage nodes<br/>ShardStore key-value engine.<br/>Log-structured, checksummed,<br/>millions of drives per Region."]
+        EC["Erasure coder<br/>splits the value into k data shards<br/>plus m parity shards"]
+    end
+
+    subgraph Background["Background plane - never on the request path"]
+        SCRUB["Scrubber<br/>re-reads and re-verifies shards at rest,<br/>schedules repair on checksum mismatch"]
+        REPAIR["Repair<br/>rebuilds missing shards from survivors<br/>and restores the redundancy target"]
+        LIFE["Lifecycle engine<br/>evaluates rules daily, transitions<br/>and expires objects asynchronously"]
+        REPL["Replication engine<br/>copies new versions to other<br/>buckets and Regions"]
+        METER["Metering and billing<br/>four independent meters"]
+    end
+
+    KMS["AWS KMS<br/>wraps and unwraps data keys<br/>for SSE-KMS objects"]
+    IAM["IAM and AWS Organizations<br/>identity policies, SCPs,<br/>Block Public Access"]
+
+    Client --> DNS --> FE
+    FE --> IAM
+    FE --> IDX
+    IDX <--> WIT
+    FE --> PLC
+    PLC --> EC --> SN
+    IDX --> SN
+    FE --> KMS
+    SN --> SCRUB --> REPAIR --> SN
+    IDX --> LIFE
+    IDX --> REPL
+    FE --> METER
+
+    style Edge fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Control fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Data fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Background fill:#eceff1,stroke:#37474f,stroke-width:2px
+```
+
+### 4.1 The Actors
+
+| Component | Job | On the request path? | Holds durable state? |
+|-----------|-----|----------------------|----------------------|
+| **Client SDK** | Signs with SigV4, splits large objects, retries 503s, opens parallel connections | Yes | No |
+| **DNS** | Resolves the bucket hostname to a rotating set of front-end addresses | Yes, once per lookup | No |
+| **Front-end fleet** | TLS, signature verification, authorization, metering, throttling | Yes | No |
+| **Index subsystem** | Maps bucket plus key plus version to shard locations | Yes, every request | Yes |
+| **Witness** | In-memory read barrier that tells the metadata cache whether its view is stale | Yes, on reads | No, deliberately |
+| **Placement subsystem** | Chooses which disks receive the shards of a new write | Yes, on PUT | Yes |
+| **Erasure coder** | Splits the value into k data and m parity shards | Yes, on PUT | No |
+| **Storage nodes** | Persist shards, verify checksums, serve reads | Yes | Yes |
+| **Scrubber** | Re-reads shards at rest and re-verifies checksums | No | No |
+| **Repair** | Rebuilds missing shards from survivors | No | Yes |
+| **Lifecycle engine** | Evaluates rules daily, transitions and expires asynchronously | No | Yes |
+| **Replication engine** | Copies new versions to other buckets and Regions | No | Yes |
+| **Metering** | Four independent meters feeding the bill | Yes, per request | Yes |
+| **AWS KMS** | Wraps and unwraps data keys for SSE-KMS objects | Yes, for KMS objects | Yes |
+| **IAM and Organizations** | Identity policies, SCPs, Block Public Access | Yes | Yes |
+
+### 4.2 The Two Components That Decide Everything
+
+**The index subsystem is the single point through which every operation passes.** AWS said so in writing in the 28 February 2017 postmortem: the index subsystem "manages the metadata and location information of all S3 objects in the region" and is "necessary to serve all GET, LIST, PUT, and DELETE requests." When too many of its servers were removed by a mistyped capacity command, S3 in us-east-1 served nothing at all until the restart finished. GET, LIST, and DELETE recovered at 13:18 PST. The placement subsystem, which depends on the index, recovered at 13:54.
+
+Everything about how S3 is designed since then follows from that day. The stated remediation was to partition the index into smaller cells so that a failure takes out a fraction of the key space rather than a Region. Cellular architecture in AWS is not an abstract principle. It is the direct output of one incident.
+
+**The background plane never touches the request path, and that is the whole design.** Scrubbing, repair, lifecycle transitions, replication, and erasure re-coding all run asynchronously. If they ran synchronously, durability work would compete with customer reads for the same disk head, and a disk that does about 120 random operations per second has none to spare. Azure's paper is explicit about the same discipline: every storage node tracks its own load and decides to accept, reject, or delay internal I/O, and the storage manager schedules replication, coding, and deletion so they keep up with the incoming data rate without starving customers.
+
+Physics forces this. Since 1956 disk capacity has improved by a factor of 7.2 million while seek times have improved by a factor of 150. A modern 26 TB drive performs roughly the same 120 random operations per second as a drive from S3's launch year. Capacity grew; the ability to reach into that capacity did not. Every design decision below is an attempt to spend those 120 operations wisely.
+
+### 4.3 Heat, and Why Aggregation Is the Point
+
+Heat is the number of requests hitting a given disk at a moment, and controlling it is the reason to build one enormous shared system rather than many small ones. A single customer's burst can be served by more than a million individual disks, and at that scale no individual workload can move the aggregate peak. Spikes from different customers land at different times and cancel.
+
+This is the argument for multi-tenancy stated as physics rather than as economics. A dedicated cluster sized for your peak sits idle at your trough. A shared fleet sized for the aggregate peak is smaller than the sum of the individual peaks, and the difference is the margin.
+
+---
+
+## 5. The REST API on the Wire
+
+The S3 API is HTTP with the resource in the URL, the parameters in query strings, and everything else in headers. It has no message envelope, no versioned schema, and no wire format of its own. That is why forty other products implement it.
+
+### 5.1 The Two URL Forms
+
+Virtual-hosted style puts the bucket in the hostname:
+
+```
+https://amzn-s3-demo-bucket.s3.us-east-1.amazonaws.com/media/2026/08/ep-0417-master.mov
+```
+
+Path style puts it in the path:
+
+```
+https://s3.us-east-1.amazonaws.com/amzn-s3-demo-bucket/media/2026/08/ep-0417-master.mov
+```
+
+AWS announced path-style deprecation, then delayed it on 23 September 2020. Path style still works everywhere, and the deprecation has no announced date. Prefer virtual-hosted style anyway: path-style URLs put every bucket on one origin, which breaks the browser same-origin model for anything served to a web page.
+
+Three failure modes are worth recognising by status code. A virtual-hosted request to the legacy global endpoint `bucket.s3.amazonaws.com` for a bucket in another Region gets an HTTP 307 Temporary Redirect if the Region launched before 20 March 2019, and an HTTP 400 Bad Request if it launched after. A path-style request to the wrong Regional endpoint gets an HTTP 301 Permanent Redirect with the correct URI in the body.
+
+### 5.2 A Real Request
+
+A minimal PUT, with every header that matters:
+
+```http
+PUT /media/2026/08/ep-0417-master.mov HTTP/1.1
+Host: amzn-s3-demo-bucket.s3.us-east-1.amazonaws.com
+x-amz-date: 20260830T140211Z
+x-amz-content-sha256: UNSIGNED-PAYLOAD
+x-amz-checksum-crc64nvme: uxBNnKcPfWA=
+x-amz-server-side-encryption: aws:kms
+x-amz-server-side-encryption-aws-kms-key-id: arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+x-amz-server-side-encryption-bucket-key-enabled: true
+x-amz-storage-class: STANDARD
+x-amz-meta-editor: suite-4
+x-amz-meta-episode: 0417
+Content-Type: video/quicktime
+Content-Length: 134217728
+Authorization: AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20260830/us-east-1/s3/aws4_request, SignedHeaders=content-type;host;x-amz-checksum-crc64nvme;x-amz-content-sha256;x-amz-date;x-amz-meta-editor;x-amz-meta-episode;x-amz-server-side-encryption;x-amz-server-side-encryption-aws-kms-key-id;x-amz-server-side-encryption-bucket-key-enabled;x-amz-storage-class, Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024
+```
+
+Every header in `SignedHeaders` is there because AWS requires it. The canonical header list must contain the host header, every `x-amz-*` header the request carries, and `Content-Type` whenever it is present. Eleven headers qualify here, so eleven are signed. Dropping one produces `SignatureDoesNotMatch` with no hint as to which.
+
+The response:
+
+```http
+HTTP/1.1 200 OK
+x-amz-id-2: LriYPLdmOdAiIfgSm/F1YsViT1LW94/xUQxMsF7xiEb1a0wiIOIxl+zbwZ163pt7
+x-amz-request-id: 0A49CE4060975EAC
+Date: Sun, 30 Aug 2026 14:02:12 GMT
+ETag: "1b2cf535f27731c974343645a3985328"
+x-amz-checksum-crc64nvme: uxBNnKcPfWA=
+x-amz-version-id: 3HL4kqCxf3vjVBH40Nrjfkd
+x-amz-server-side-encryption: aws:kms
+```
+
+`x-amz-request-id` and `x-amz-id-2` are the two values AWS Support asks for. Log both on every failure.
+
+### 5.3 SigV4, in Enough Detail to Implement
+
+Every S3 request is authenticated by an HMAC-SHA256 signature over a canonicalised form of the request. The construction has four steps and one purpose: two parties must derive byte-identical inputs without exchanging them.
+
+**Step one, the canonical request.** Six components joined by newlines:
+
+```
+HTTPMethod\n
+CanonicalURI\n
+CanonicalQueryString\n
+CanonicalHeaders\n
+SignedHeaders\n
+HashedPayload
+```
+
+`CanonicalURI` is the URI-encoded absolute path, with one exception that trips up every from-scratch implementation: the forward slash is encoded everywhere except inside the object key. `CanonicalQueryString` sorts parameters alphabetically by key after encoding, and a subresource with no value becomes `UriEncode("acl") + "=" + ""`. `CanonicalHeaders` is lowercase header names, sorted, colon-separated, values trimmed of leading and trailing whitespace with runs of internal spaces collapsed to one, each line terminated by a newline. `SignedHeaders` is those same names, lowercase, sorted, semicolon-separated.
+
+AWS is blunt about the encoding function: write your own. The standard `UriEncode` in your language probably disagrees with theirs at the edges. The rules are to encode every byte except `A-Z`, `a-z`, `0-9`, `-`, `.`, `_`, and `~`; encode space as `%20` and never as `+`; and use uppercase hex digits.
+
+`HashedPayload` is the lowercase hex SHA-256 of the request body, and it is mandatory for S3 as the `x-amz-content-sha256` header. Three special values exist: the SHA-256 of the empty string for bodyless requests, `STREAMING-AWS4-HMAC-SHA256-PAYLOAD` for chunked uploads, and the literal `UNSIGNED-PAYLOAD` when you cannot buffer the body to hash it. Uploading a 5 GB part over HTTPS with `UNSIGNED-PAYLOAD` is normal and safe, because TLS already protects the body in transit.
+
+**Step two, the string to sign.** Four lines, no trailing newline:
+
+```
+AWS4-HMAC-SHA256
+20260830T140211Z
+20260830/us-east-1/s3/aws4_request
+<lowercase hex SHA-256 of the canonical request>
+```
+
+**Step three, the signing key.** Four chained HMACs, which is what scopes a signature to one day, one Region, and one service:
+
+```
+DateKey              = HMAC-SHA256("AWS4" + SecretAccessKey, "20260830")
+DateRegionKey        = HMAC-SHA256(DateKey, "us-east-1")
+DateRegionServiceKey = HMAC-SHA256(DateRegionKey, "s3")
+SigningKey           = HMAC-SHA256(DateRegionServiceKey, "aws4_request")
+```
+
+A leaked signature is therefore useless tomorrow, useless in another Region, and useless against another service. That is the entire point of the chain.
+
+**Step four, the signature.** `HMAC-SHA256(SigningKey, StringToSign)`, hex-encoded lowercase, placed in the `Authorization` header or in an `X-Amz-Signature` query parameter.
+
+SigV4a is the variant for Multi-Region Access Points. It swaps HMAC for ECDSA over NIST P-256, uses the algorithm identifier `AWS4-ECDSA-P256-SHA256`, drops the Region from the credential scope, and adds an `X-Amz-Region-Set` header listing the Regions in which the signature is valid, wildcards permitted. One signature, many Regions.
+
+### 5.4 The Error Model
+
+S3 returns errors as HTTP status codes with an XML body:
+
+```xml
+<Error>
+  <Code>NoSuchKey</Code>
+  <Message>The specified key does not exist.</Message>
+  <Key>media/2026/08/missing.mov</Key>
+  <RequestId>0A49CE4060975EAC</RequestId>
+  <HostId>LriYPLdmOdAiIfgSm/F1YsViT1LW94/xUQxMsF7xiEb1a0wiIOIxl+zbwZ163pt7</HostId>
+</Error>
+```
+
+The codes worth building logic around:
+
+| Status | Code | Meaning | Correct response |
+|--------|------|---------|------------------|
+| 301 | `PermanentRedirect` | Path-style request to the wrong Region | Re-issue against the Region in the body |
+| 307 | `TemporaryRedirect` | Legacy global endpoint, bucket elsewhere | Follow, then cache the Regional endpoint |
+| 400 | `IllegalLocationConstraintException` | Legacy endpoint against a post-2019 Region | Use the Regional endpoint |
+| 403 | `AccessDenied` | Any authorization failure | Do not retry. Check the policy chain. |
+| 403 | `RequestTimeTooSkewed` | Client clock is off | Fix NTP, not the code |
+| 404 | `NoSuchKey` | Key absent or a delete marker is current | Depends on the caller |
+| 409 | `ConditionalRequestConflict` | Concurrent delete raced a conditional write | Retry the PUT. Restart a whole MPU. |
+| 412 | `PreconditionFailed` | `If-None-Match` or `If-Match` did not hold | Do not retry blindly. Re-read state. |
+| 500 | `InternalError` | Transient | Retry with backoff |
+| 503 | `SlowDown` | Partition over its request rate | Retry with exponential backoff and jitter |
+
+Failed requests are billed. A tight retry loop against a 403 costs money and fixes nothing.
+
+---
+
+## 6. Multipart Upload
+
+Multipart upload exists because a single HTTP request is a single failure unit. Uploading 5 GB in one PUT means one dropped connection costs 5 GB of transfer, and 5 GB is the largest object S3 accepts in a single PUT at all. Above that there is no single-request form. Multipart cuts the object into independently retryable, independently parallel pieces and assembles them server-side.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application
+    participant SDK as SDK transfer manager
+    participant S3 as S3 front end
+    participant IDX as Index subsystem
+    participant SN as Storage nodes
+
+    App->>SDK: PutObject, 12 GB file
+    Note over SDK: Above the threshold, so<br/>switch to multipart
+
+    SDK->>S3: POST /key?uploads<br/>x-amz-checksum-algorithm: CRC64NVME
+    S3->>IDX: Reserve an upload id
+    IDX-->>S3: UploadId
+    S3-->>SDK: 200 with UploadId
+
+    Note over SDK,SN: 96 parts of 128 MiB, uploaded in parallel.<br/>Part size must be 5 MiB to 5 GiB except the last.<br/>Part numbers run 1 to 10,000.
+
+    par Parts in flight
+        SDK->>S3: PUT /key?partNumber=1&uploadId=...
+        S3->>SN: Write shards, verify checksum
+        S3-->>SDK: 200, ETag of part 1
+    and
+        SDK->>S3: PUT /key?partNumber=2&uploadId=...
+        S3->>SN: Write shards, verify checksum
+        S3-->>SDK: 200, ETag of part 2
+    and
+        SDK->>S3: PUT /key?partNumber=96&uploadId=...
+        S3->>SN: Write shards, verify checksum
+        S3-->>SDK: 200, ETag of part 96
+    end
+
+    Note over SDK,S3: Parts already exist as storage and<br/>already cost money. The object does not exist yet.<br/>No LIST or GET can see it.
+
+    SDK->>S3: POST /key?uploadId=...<br/>CompleteMultipartUpload with all 96 part numbers and ETags<br/>If-None-Match: *
+    S3->>S3: Verify every part ETag<br/>Compute composite object ETag<br/>MD5 of the concatenated part digests, suffix -96
+    S3->>IDX: Conditional index write
+
+    alt Key is free
+        IDX-->>S3: Committed
+        S3-->>SDK: 200, ETag "a3f1...c9-96"
+        Note over IDX: Only now is the object visible.<br/>The commit is atomic and strongly consistent.
+    else Key already taken
+        IDX-->>S3: Key exists
+        S3-->>SDK: 412 Precondition Failed
+        Note over SDK: The conditional write lost.<br/>Re-read state and decide.<br/>The upload id is still valid.
+    else A concurrent operation raced the commit
+        IDX-->>S3: ConditionalRequestConflict
+        S3-->>SDK: 409 Conflict
+        Note over SDK: The upload id is dead.<br/>Restart with CreateMultipartUpload<br/>and re-upload every part.
+    end
+
+    Note over SDK,SN: If the client dies mid-upload the parts persist<br/>and are billed until an AbortIncompleteMultipartUpload<br/>lifecycle rule removes them.
+```
+
+### 6.1 The Three Calls
+
+`CreateMultipartUpload` returns an `UploadId`. `UploadPart` writes one numbered piece. `CompleteMultipartUpload` takes the full list of part numbers and their ETags and assembles the object atomically. A fourth call, `AbortMultipartUpload`, discards the pieces.
+
+The limits are hard:
+
+| Item | Value |
+|------|-------|
+| Maximum object size | 48.8 TiB via multipart, documented as 50 TB |
+| Maximum parts per upload | 10,000 |
+| Part numbers | 1 to 10,000 inclusive |
+| Part size | 5 MiB to 5 GiB, no minimum on the last part |
+| Largest single PUT | 5 GB |
+| Parts returned per `ListParts` | 1,000 |
+| Uploads returned per `ListMultipartUploads` | 1,000 |
+
+The 50 TB figure and the 48.8 TiB figure are the same constraint seen from two sides: 10,000 parts times 5 GiB is 50,000 GiB, which is 53.7 TB decimal and 48.8 TiB binary. AWS recommends multipart above 100 MB.
+
+Part size is a real design decision, because 10,000 is the hard ceiling. A 1 TB object needs parts of at least 107 MB. Most SDK transfer managers pick a part size from the total, or default to something like 8 MiB and raise it when the file is large.
+
+### 6.2 Parts Exist Before the Object Does
+
+The most expensive misunderstanding in the API is that an incomplete multipart upload occupies chargeable storage while remaining invisible to LIST and GET.
+
+A client that dies after uploading 90 of 96 parts leaves 11.25 GiB in the bucket, which is 12.08 GB on the bill. Nothing lists it. Nothing reads it. The bill includes it, every month, forever, until somebody runs `ListMultipartUploads` and aborts them. Any bucket that accepts large uploads should carry this rule:
+
+```json
+{
+  "Rules": [{
+    "ID": "abort-stale-mpu",
+    "Status": "Enabled",
+    "Filter": { "Prefix": "" },
+    "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+  }]
+}
+```
+
+Buckets running for years without it routinely hold more abandoned parts than live objects.
+
+### 6.3 Checksums, Composite and Full-Object
+
+S3 verifies integrity twice: the client computes a checksum, the service recomputes it before storing, and the values must match. `CRC64NVME` is the default algorithm.
+
+For multipart uploads there are two checksum types, and the difference matters. A **composite** checksum is a checksum of the concatenated part checksums, carrying a `-N` suffix, which means it can only be verified by a party that knows the part boundaries. A **full-object** checksum is computed over the entire object as if it were uploaded in one piece, which means a downloader can verify it without knowing anything about how it was uploaded. Use full-object checksums for anything that leaves your organisation.
+
+The composite ETag arithmetic is worth spelling out, because tools rely on it. For 96 parts:
+
+```
+part_digests = [ MD5(part_1_bytes), ..., MD5(part_96_bytes) ]   # 96 x 16 raw bytes
+etag         = hex(MD5(concat(part_digests))) + "-96"
+```
+
+Given an ETag ending in `-96` you know the object was uploaded in 96 parts, and if you know the part size you can reproduce the digest locally. Given an ETag with no suffix you know it was a single PUT. Given an object encrypted with KMS you know nothing at all from the ETag.
+
+### 6.4 Reading the Way You Wrote
+
+Objects uploaded in parts should be read in parts. `GET` accepts a `Range` header for arbitrary byte ranges and also accepts `?partNumber=N` to fetch exactly the Nth part of a multipart object, which removes the arithmetic. AWS recommends aligning byte-range GETs to part boundaries.
+
+Parallel range reads are the standard way to saturate a network interface from a single object. One EC2 instance can pull up to 100 Gb/s from S3, and no single HTTP stream will get close to that. The AWS Common Runtime clients and the SDK transfer managers do this automatically.
+
+---
+
+## 7. The Consistency Model and the December 2020 Shift
+
+On 1 December 2020, S3 became strongly read-after-write consistent for every operation, in every Region, at no additional cost and with no change to performance or availability. Before that date it was not, and a decade of software was written to work around it.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant W as Writer
+    participant FE as Front end
+    participant Cache as Metadata cache
+    participant Wit as Witness<br/>in memory, no disk
+    participant Persist as Persistence tier<br/>ordered per-object log
+    participant R as Reader
+
+    Note over W,R: Before 1 December 2020
+
+    W->>FE: PUT key, version 2
+    FE->>Persist: Write and replicate
+    Persist-->>FE: Durable
+    FE-->>W: 200 OK
+    R->>FE: GET key
+    FE->>Cache: Lookup
+    Cache-->>FE: Version 1, stale
+    FE-->>R: Version 1
+    Note over R: Overwrites and deletes were eventually consistent.<br/>A GET issued before a first PUT could poison the cache<br/>and return 404 after the object existed.
+
+    Note over W,R: After 1 December 2020
+
+    W->>FE: PUT key, version 3
+    FE->>Persist: Write and replicate
+    Persist-->>FE: Durable, ordered
+    Persist->>Wit: Notify: key changed
+    FE-->>W: 200 OK
+
+    R->>FE: GET key
+    FE->>Cache: Lookup
+    Cache-->>FE: Version 2, possibly stale
+    FE->>Wit: Read barrier: is my view of this key current?
+
+    alt Witness says the cache is current
+        Wit-->>FE: Current
+        FE-->>R: Serve from cache, no extra I/O
+    else Witness says the cache is stale
+        Wit-->>FE: Stale
+        FE->>Persist: Read the authoritative record
+        Persist-->>FE: Version 3
+        FE->>Cache: Refill
+        FE-->>R: Version 3
+    end
+
+    Note over Wit: The witness is a cache coherence protocol<br/>for object metadata. It holds no durable state,<br/>so a failed witness is replaced, not recovered.
+```
+
+### 7.1 What Eventual Consistency Actually Meant
+
+The pre-2020 model had three distinct behaviours, and the third one caught almost everybody.
+
+New object PUTs were read-after-write consistent. Write a key that has never existed, read it back, get it.
+
+Overwrite PUTs and DELETEs were eventually consistent. Overwrite an existing key and a subsequent GET could return the old bytes for an unbounded interval. Delete a key and a GET could still return it, or a LIST could still list it.
+
+And the trap: a GET or HEAD on a key that did not yet exist would cache the negative result. Issue `HEAD /new-key`, get a 404, then `PUT /new-key`, then `GET /new-key`, and you could get a 404 for an object that definitely existed. The read-after-write guarantee for new objects silently evaporated if anything had looked for the key first. Frameworks that checked for existence before writing, which is most of them, hit this constantly.
+
+Everything downstream was built around it. Hadoop's `S3Guard` kept a DynamoDB table of object metadata purely to give consistent listings. Netflix's `s3mper` did the same. `EMRFS` had a consistent view feature. Apache Iceberg and Delta Lake both chose designs that avoided depending on S3 listings being current. Those workarounds are now dead weight, and some of them are still running.
+
+### 7.2 The Mechanism: A Cache Coherence Protocol for Metadata
+
+The naive fix, reading the authoritative metadata record on every request, would have worked and would have been slow. S3's metadata cache is there for a reason.
+
+The design AWS shipped borrows from CPU cache coherence directly. A new component, the **witness**, is notified every time an object changes and acts as a read barrier during reads, letting the cache learn whether its view of an object is stale. If the witness says the cached view is current, the read is served from cache with no extra I/O. If it says stale, the front end goes to the persistence tier for the authoritative record.
+
+Two properties make it viable. First, it was built on replication logic already added to the persistence tier for at-least-once event notification delivery and Replication Time Control, which established a per-object order of operations. Consistency needed an ordering primitive, and one already existed for another feature. Second, the witness holds no durable state. It lives in memory, does no disk I/O, processes requests at very high rates with low latency, and when one fails it is replaced rather than recovered.
+
+That last property is the elegant part. A durable consistency oracle would be a new single point of failure on the path of every read. An in-memory one that fails closed, where losing a witness degrades to reading the authoritative record, is not.
+
+### 7.3 What Strong Consistency Does Not Give You
+
+**It is not a transaction.** Two objects written by two PUTs are two independent operations. There is no way to make both visible at once, and no way to roll one back if the other fails. Every table format built on object storage, Iceberg included, exists to manufacture multi-object atomicity out of a single-object primitive.
+
+**It is not a lock.** Two concurrent PUTs to the same key both succeed. One of them wins, and neither client is told which. Last write wins, where "last" is decided by the service.
+
+**LIST is strongly consistent but still paginated.** A listing reflects every completed write at the moment each page is generated. It is not a snapshot across pages. A key created between page one and page two may or may not appear, depending on where it sorts.
+
+**It does not cover everything.** Google Cloud Storage, whose current documentation describes a strongly consistent model, publishes the exception list explicitly: granting or revoking access, and recreating a bucket after deleting it, remain eventually consistent and typically take about a minute. IAM propagation is eventually consistent everywhere. So is anything served through a CDN with a cache lifetime.
+
+### 7.4 Conditional Writes Turn S3 Into a Compare-and-Swap Register
+
+Strong consistency alone does not let you build a distributed lock. Conditional writes do.
+
+`If-None-Match: *` on a PUT succeeds only if no object exists at that key. The header takes the literal asterisk and nothing else, and it works on `PutObject`, `CompleteMultipartUpload`, and `CopyObject`. If the key is taken, you get `412 Precondition Failed`. If several conditional writes race, exactly one wins and the rest get 412.
+
+`If-Match: "<etag>"` succeeds only if the current object has that exact ETag. That is a compare-and-swap on object contents.
+
+The error semantics have sharp edges worth memorising:
+
+| Situation | `If-None-Match: *` | `If-Match: "<etag>"` |
+|-----------|--------------------|-----------------------|
+| Precondition holds | 200 OK | 200 OK |
+| Object already exists / ETag differs | 412 Precondition Failed | 412 Precondition Failed |
+| Concurrent DELETE won the race | 409 Conflict | 404 Not Found |
+| Current version is a delete marker | Succeeds | 404 Not Found |
+| Key does not exist | Succeeds | 404 Not Found |
+
+On a 409 from `PutObject` you may simply retry. On a 409 from `CompleteMultipartUpload` you must start over with `CreateMultipartUpload`, because the upload ID is dead. And conditional writes ignore in-flight multipart uploads entirely: a client can conditionally PUT a key while another client is midway through a multipart upload to the same key, and the multipart upload then fails at completion with a 412.
+
+Requests must be signed with SigV4 to use conditional writes. Bucket policies can require them, using `s3:if-none-match` as a condition key, which is a clean way to make a bucket append-only by construction.
+
+This one header is what made object storage a legitimate substrate for table formats. Apache Iceberg's catalog operation is a compare-and-swap on a metadata pointer. Before conditional writes it needed an external service (DynamoDB, Hive Metastore, Glue) to provide that primitive. Now the bucket provides it.
+
+---
+
+## 8. How Eleven Nines Is Actually Engineered
+
+Eleven nines of durability is not a property of any device. It is the output of an arithmetic model in which redundancy, detection, and repair speed are the variables, and the design goal is to make the time a shard spends missing so short that the probability of enough correlated losses inside that window rounds to zero.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L1["Layer 1 - Redundancy on write"]
+        A1["Split the value into k data shards<br/>plus m parity shards"]
+        A2["Place every shard in a different<br/>failure domain: disk, host, rack,<br/>power feed, Availability Zone"]
+        A3["Acknowledge only after enough<br/>shards are durable on distinct domains"]
+    end
+
+    subgraph L2["Layer 2 - Detect corruption everywhere"]
+        B1["Checksum on the client<br/>CRC64NVME by default"]
+        B2["Re-verify at the front end before storing"]
+        B3["Checksum per shard on disk"]
+        B4["Scrubber re-reads shards at rest<br/>and re-verifies them continuously"]
+        B5["Verify again on every read path"]
+    end
+
+    subgraph L3["Layer 3 - Repair faster than failure arrives"]
+        C1["A missing shard is rebuilt from<br/>the surviving shards"]
+        C2["Mean time to repair, not mean time<br/>to failure, sets the durability number"]
+        C3["Spread the rebuild across thousands<br/>of drives so one drive never gates it"]
+    end
+
+    subgraph L4["Layer 4 - Correctness of the code itself"]
+        D1["ShardStore written in Rust<br/>for memory and type safety"]
+        D2["Reference model roughly 1 percent<br/>the size of the real implementation"]
+        D3["Property-based and stateful testing<br/>against the model, including crash injection"]
+        D4["Durability reviews: a written threat model<br/>for every change that can touch bytes"]
+    end
+
+    subgraph NotCovered["What eleven nines does not cover"]
+        E1["A DELETE you authorised"]
+        E2["A lifecycle rule you wrote"]
+        E3["Credentials an attacker stole"]
+        E4["Loss of the whole Region"]
+        E5["One Zone classes: loss of the single AZ"]
+    end
+
+    L1 --> L2 --> L3 --> L4
+    L4 -.->|"none of this helps against"| NotCovered
+
+    style L1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style NotCovered fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+```
+
+### 8.1 What the Number Says
+
+S3 Standard, Standard-IA, One Zone-IA, Intelligent-Tiering, Glacier Instant Retrieval, Glacier Flexible Retrieval, and Glacier Deep Archive are all designed for 99.999999999% durability of objects over a given year. Reduced Redundancy Storage, which AWS recommends against using, is designed for 99.99%.
+
+Read it as an expected annual loss rate. Store 10 million objects and the model expects to lose one object every 10,000 years. Store 100 billion objects and the model expects to lose one per year.
+
+Durability is orthogonal to availability, and the two figures differ per class:
+
+| Storage class | Durability | Availability | AZs | Min duration | Min billable size |
+|---------------|-----------|--------------|-----|--------------|-------------------|
+| S3 Standard | 99.999999999% | 99.99% | 3 or more | None | None |
+| S3 Intelligent-Tiering | 99.999999999% | 99.9% | 3 or more | None | None |
+| S3 Standard-IA | 99.999999999% | 99.9% | 3 or more | 30 days | 128 KB |
+| S3 One Zone-IA | 99.999999999% | 99.5% | 1 | 30 days | 128 KB |
+| S3 Express One Zone | 99.999999999% | 99.95% | 1 | None | None |
+| S3 Glacier Instant Retrieval | 99.999999999% | 99.9% | 3 or more | 90 days | 128 KB |
+| S3 Glacier Flexible Retrieval | 99.999999999% | 99.99% after restore | 3 or more | 90 days | 40 KB overhead |
+| S3 Glacier Deep Archive | 99.999999999% | 99.99% after restore | 3 or more | 180 days | 40 KB overhead |
+| Reduced Redundancy Storage | 99.99% | 99.99% | 3 or more | None | None |
+
+One Zone-IA is the row that surprises people. It claims the same eleven nines as Standard while living in a single Availability Zone. The claim is coherent because durability describes device failure inside the zone, not the loss of the zone itself. AWS states the caveat plainly: the data is not resilient to physical loss of the Availability Zone. Eleven nines and one AZ is a statement about disks, not about earthquakes.
+
+### 8.2 Layer One: Redundancy Placed Against Correlation
+
+Redundancy only helps if the failures are independent, so the engineering is mostly about defeating correlation rather than adding copies.
+
+Azure publishes the placement rules because it can. A WAS storage stamp is 20 racks. An LRC (12,2,2) extent has 16 fragments, and each fragment goes into a different rack, so no rack failure can take two fragments of the same extent. Placement also avoids putting two fragments of a coding group into the same **upgrade domain**, the set of nodes that get rebooted together during a software rollout, and upgrade domains are deliberately orthogonal to fault domains.
+
+That second constraint is the interesting one. Racks fail because of hardware. Upgrade domains "fail" because a human deployed something. Any redundancy scheme that only models hardware correlation is undefended against the far more frequent event, which is a bad deployment.
+
+S3's multi-AZ classes extend the same idea across buildings. Data is stored across a minimum of three Availability Zones, which are separate facilities with independent power, cooling, and networking, and every class except One Zone-IA and Express One Zone is designed to survive the loss of one of them.
+
+### 8.3 Layer Two: Assume Every Byte Is Lying
+
+Silent corruption is the failure mode redundancy does not catch, because a corrupted shard is still present. Detection therefore runs at every hop.
+
+The client computes a checksum. The front end recomputes it and compares before storing. Each shard carries its own checksum on disk. Azure attaches a CRC header to every append block and checks it on every write and every read. A background scrubber re-reads shards at rest and re-verifies them, and on a mismatch the affected fragment is scheduled for regeneration on the next available node. Reads verify again on the way out, and a read that fails its CRC is retried using a different combination of erasure-coded fragments.
+
+Azure adds a step that most systems skip. After every encoding operation, the coordinator decodes several combinations from memory before allowing the coding to complete, checking that the erasure coding itself did not introduce an inconsistency. For LRC (12,2,2) that means reconstructing one data fragment from each local group, one from each global parity, and more. The system does not trust its own math.
+
+### 8.4 Layer Three: Repair Speed Is the Durability Knob
+
+Mean time to repair, not mean time to failure, is the term the eleven nines actually depends on. A shard that is missing for one hour contributes a hundred times less risk than one missing for four days.
+
+Fast repair requires that the rebuild not be gated by any single component. If a lost drive's data lives on 500 other drives, 500 drives contribute to the rebuild in parallel and the drive that is slowest to respond costs you little. If it lives on 3 other drives, the rebuild moves at the speed of one disk. Wide placement is a durability mechanism, not just a performance one.
+
+This is also why repair traffic must be throttled but never starved. Azure's storage manager tracks replication load across nodes and the system as a whole to schedule replication, erasure coding, and deletion, and the paper is explicit that coding has to keep up with the incoming data rate even when a lost rack has triggered urgent re-replication at the same time.
+
+### 8.5 Layer Four: Prove the Software Is Not the Weak Link
+
+Once redundancy, detection, and repair are in place, the dominant remaining risk is a bug. Hardware failure is modelled; a storage node that acknowledges a write it did not persist is not.
+
+S3's answer is ShardStore, the key-value storage node implementation, written in Rust for memory and type safety, and validated with lightweight formal methods. The team built a reference model of the storage node that is roughly 1% of the size of the real system and tested the implementation against it, including crash injection, at a level that would be entirely impractical against a physical hard drive. The paper describing this was published at SOSP in 2021 and is the most detailed public account of S3 internals that exists.
+
+The complementary mechanism is human. AWS runs **durability reviews**, a written process modelled on security threat modelling, applied to any change that could touch customer bytes, with the emphasis on coarse-grained guardrails rather than an itemised list of mitigations. A checklist of known failure modes catches known failure modes. A threat model catches the ones nobody has thought of yet.
+
+### 8.6 The Arithmetic, Done Once
+
+Azure's paper publishes a Markov reliability model and its outputs, which is the only place these numbers appear side by side for the same cluster:
+
+| Scheme | Fragments | Overhead | MTTF (years) |
+|--------|-----------|----------|--------------|
+| 3-replication | 3 copies | 3.00x | 3.5 x 10^9 |
+| Reed-Solomon (6,3) | 9 | 1.50x | 6.1 x 10^11 |
+| LRC (6,2,2) | 10 | 1.67x | 2.6 x 10^12 |
+
+Reed-Solomon (6,3) tolerates three losses where 3-replication tolerates two, so it is 174 times more reliable at half the storage overhead. LRC (6,2,2) tolerates three losses and also 86% of the four-loss patterns, so it is another factor of four better again.
+
+Three-way replication is not the safe choice. It is the expensive choice that happens to be simple.
+
+### 8.7 What Eleven Nines Does Not Cover
+
+The number covers hardware. It covers nothing else.
+
+**A DELETE you authorised is not a durability event.** Neither is a lifecycle expiration rule with the wrong filter. Neither is a `PutObject` that overwrote the only copy. The service did exactly what it was asked.
+
+**Stolen credentials are not a durability event.** Ransomware against object storage does not encrypt your objects in place, because objects cannot be encrypted in place. It overwrites them with encrypted versions, or deletes them, using your own API keys. Versioning plus Object Lock in compliance mode is the defence, and it works precisely because it removes the ability to delete, from the attacker and from you simultaneously.
+
+**Region loss is not covered.** Eleven nines is a per-Region figure. Cross-Region Replication is the answer, and it is a separate feature you must enable and pay for. Azure states the equivalent explicitly: LRS is at least 11 nines, ZRS at least 12, and GRS or GZRS at least 16, with the caveat that geo-replication is asynchronous and Azure's priority replication offers a recovery point objective of 15 minutes or less for block blobs. Sixteen nines is a different product, not a better disk.
+
+**Availability Zone loss is not covered in One Zone classes.** This is stated in the storage class table above and is worth restating, because "eleven nines" appears in that row too.
+
+---
+
+## 9. Erasure Coding: Reed-Solomon Against Replication
+
+Erasure coding converts a storage cost into a computation cost and a network cost. It is the single largest lever in the economics of an object store, and cutting overhead from 3.00x to 1.33x removes more than half the hardware, half the data centre footprint, and half the power.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Obj["One 1 GB object"]
+
+    subgraph Rep["Three-way replication"]
+        R1["Copy 1 - 1 GB"]
+        R2["Copy 2 - 1 GB"]
+        R3["Copy 3 - 1 GB"]
+        RC["Raw stored: 3.00 GB<br/>Overhead: 3.00x<br/>Tolerates 2 losses<br/>Repair reads 1 GB<br/>Any single copy serves a read"]
+    end
+
+    subgraph RS["Reed-Solomon 12 plus 4"]
+        S1["12 data shards<br/>85.3 MB each"]
+        S2["4 parity shards<br/>85.3 MB each"]
+        SC["Raw stored: 1.33 GB<br/>Overhead: 1.33x<br/>Tolerates 4 losses<br/>Repair of one shard reads 12 shards<br/>Every read touches 12 disks"]
+    end
+
+    subgraph LRC["Local Reconstruction Code 12,2,2"]
+        L1["12 data shards in 2 groups of 6"]
+        L2["2 local parities,<br/>one per group of 6"]
+        L3["2 global parities<br/>over all 12"]
+        LC["Raw stored: 1.33 GB<br/>Overhead: 1.33x<br/>16 fragments total<br/>Repair of one shard reads 6 shards<br/>Tolerates any 3 losses and<br/>every 4-loss pattern that is<br/>information-theoretically decodable"]
+    end
+
+    Obj --> Rep
+    Obj --> RS
+    Obj --> LRC
+
+    Note1["Reed-Solomon arithmetic runs in GF 2 to the 8.<br/>Each byte is a field element. Encoding multiplies the<br/>k data shards by a k plus m by k Vandermonde or<br/>Cauchy matrix. Decoding inverts the submatrix of<br/>whichever k shards survived. Any k of the k plus m<br/>shards reconstruct the object exactly."]
+
+    Note2["Measured MTTF in the Azure study<br/>3-replication: 3.5 x 10^9 years<br/>Reed-Solomon 6,3: 6.1 x 10^11 years<br/>LRC 6,2,2: 2.6 x 10^12 years"]
+
+    RS --> Note1
+    LRC --> Note2
+
+    style Rep fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style RS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LRC fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Note1 fill:#eceff1,stroke:#37474f,stroke-width:1px
+    style Note2 fill:#eceff1,stroke:#37474f,stroke-width:1px
+```
+
+### 9.1 The Mechanism
+
+A Reed-Solomon code with parameters (k, m) splits an object into k data shards and computes m parity shards. Any k of the k+m shards reconstruct the object exactly. The code tolerates m losses, and the storage overhead is (k+m)/k.
+
+The arithmetic runs in the Galois field GF(2^8), where every byte is a field element. Addition is XOR. Multiplication is defined modulo an irreducible polynomial and implemented as a 256-entry table lookup, which is why the whole thing runs at hundreds of megabytes per second on ordinary CPUs. Backblaze measured 149 MB/s single-threaded on a Xeon E5-1620 v2, and modern implementations use SIMD to go considerably faster.
+
+Encoding multiplies the k data shards by a (k+m) by k matrix whose top k rows are the identity, so the data shards pass through unchanged and only the parity rows require work. The matrix is constructed as a Vandermonde or Cauchy matrix, chosen so that every k by k submatrix is invertible. Decoding takes whichever k shards survived, inverts the corresponding submatrix, and multiplies. The guarantee that any k suffice is a linear algebra property, not a probabilistic one.
+
+### 9.2 Overhead Across Real Systems
+
+| System | Scheme | Shards | Overhead | Losses tolerated | Repair reads |
+|--------|--------|--------|----------|------------------|--------------|
+| Naive mirroring | 2 copies | 2 | 2.00x | 1 | 1 shard |
+| Classic distributed FS | 3 copies | 3 | 3.00x | 2 | 1 shard |
+| Azure, early | 3 copies | 3 | 3.00x | 2 | 1 shard |
+| Reed-Solomon (6,3) | 6 data, 3 parity | 9 | 1.50x | 3 | 6 shards |
+| Reed-Solomon (12,4) | 12 data, 4 parity | 16 | 1.33x | 4 | 12 shards |
+| Azure LRC (12,2,2) | 12 data, 2 local, 2 global | 16 | 1.33x | 3 always, most 4-loss patterns | 6 shards |
+| Azure LRC (12,4,2) | 12 data, 4 local, 2 global | 18 | 1.50x | more | 3 shards |
+| Backblaze Vaults | 17 data, 3 parity | 20 | 1.176x | 3 | 17 shards |
+| Ceph default profile | k=2, m=2 | 4 | 2.00x | 2 | 2 shards |
+| Ceph 4+2 | k=4, m=2 | 6 | 1.50x | 2 | 4 shards |
+| MinIO EC:4 on 16 drives | 12 data, 4 parity | 16 | 1.33x | 4 | 12 shards |
+| MinIO EC:8 on 16 drives | 8 data, 8 parity | 16 | 2.00x | 8 | 8 shards |
+
+Amazon does not publish S3's erasure coding parameters. What AWS does say is the general shape: data is split into k identity shards plus m parity shards, and as long as k of the k+m shards remain available the object can be read. The exact values are not public.
+
+### 9.3 The Repair Traffic Problem, and What LRC Does About It
+
+Reed-Solomon's flaw is that repairing one lost shard requires reading k shards. Losing one 85 MB fragment of a 1 GB object under RS(12,4) means reading 1 GB across 12 machines to rebuild 85 MB. The repair amplification factor is k.
+
+At scale, disks fail constantly, so repair traffic is not an occasional event. It is a permanent background load proportional to the fleet size, and it competes with customer reads for the same 120 operations per second per drive.
+
+Microsoft's Local Reconstruction Codes solve this by giving some parities a smaller scope. LRC (k, l, r) computes r global parities over all k data fragments and splits the data into l groups, computing one local parity per group. LRC (12,2,2) has 12 data fragments in two groups of six, one local parity per group, and two global parities. Sixteen fragments, 1.33x overhead, identical to RS(12,4).
+
+The difference is the repair path. A single lost data fragment is rebuilt from its own group of six plus that group's local parity, reading six fragments instead of twelve. Half the repair I/O, half the repair bandwidth, and a halved chance of the rebuild waiting on a slow node.
+
+Azure quantified the choice two ways. Holding overhead constant at 1.5x and replacing RS(6,3) with LRC (12,4,2) cuts single-fragment reconstruction cost from 6 to 3, a 50% reduction. Holding reconstruction cost constant at 6 and replacing RS(6,3) with LRC (12,2,2) cuts overhead from 1.5x to 1.33x. In production, measured on a cluster with 1 Gbps per storage node, LRC reconstruction read 6 fragments and completed in 166 ms, against 151 ms for Reed-Solomon reading 13 fragments. Comparable latency, less than half the I/O.
+
+LRC is not maximum distance separable, so it does not tolerate every m-fragment loss the way Reed-Solomon does. It is designed to be **Maximally Recoverable**, meaning it decodes every failure pattern that is information-theoretically decodable given its structure. LRC (6,2,2) has four parity fragments and tolerates any three losses plus 86% of four-fragment losses. That is a deliberate trade of worst-case coverage for repair cost.
+
+### 9.4 When Replication Still Wins
+
+Erasure coding loses on three specific workloads, and every production system keeps replication around for them.
+
+**Small objects.** A code with 16 fragments applied to a 4 KB object produces sixteen 256-byte fragments plus per-fragment metadata. The metadata exceeds the data. Systems either replicate small objects or pack many of them into a large extent and code the extent, which is what Azure does with its 1 GB extents.
+
+**Hot objects.** With replication, any of the copies serves a read, so heat spreads across copies. With erasure coding, the fragment a reader wants lives on one specific node, and that node can get hot. Azure's answer is to detect hot fragments and replicate them to cooler nodes or cache them in DRAM or SSD, and separately to speculatively reconstruct a fragment in parallel when a direct read looks slow, returning whichever finishes first. That last trick treats a slow node as if it had failed.
+
+**Recent writes.** Coding requires the whole extent, so a system that codes on write blocks until it has enough data. Azure writes three replicas immediately, seals the extent at around 1 GB, codes it lazily in the background, and only then deletes the replicas. Write latency stays low, and the storage cost falls later.
+
+MinIO takes the opposite approach and codes inline on every write, which is coherent for a system whose erasure set is a small fixed number of local drives. Its defaults are worth knowing: erasure sets of 2 to 16 drives (up to 32 on recent AIStor releases), default parity EC:4, production minimum EC:3, read quorum of k shards, and a write quorum of k that becomes k+1 when parity equals exactly half the set size, to prevent split brain. MinIO also raises an object's parity by one for each offline drive at write time, bounded by a budget defaulting to 1% of capacity per outage.
+
+### 9.5 Worked Arithmetic on One Petabyte
+
+Take one petabyte of unique customer data and price the raw capacity at 15 dollars per terabyte per month.
+
+| Scheme | Raw stored | Monthly raw cost | Delta against 3x |
+|--------|-----------|------------------|------------------|
+| 3-replication | 3.00 PB | 45,000 USD | baseline |
+| RS(6,3) or Ceph 4+2 | 1.50 PB | 22,500 USD | 22,500 USD saved |
+| RS(12,4) or LRC (12,2,2) | 1.33 PB | 19,950 USD | 25,050 USD saved |
+| Backblaze 17+3 | 1.176 PB | 17,640 USD | 27,360 USD saved |
+
+Azure's paper puts the same conclusion in one line: erasure coding reduces the cost of storage by over 50%, with additional savings from halving the data centre footprint and the power to run it. At exabyte scale that is a capital expenditure decision, not an optimisation.
+
+Note the diminishing returns. Moving from 3.00x to 1.50x saves 50% of the hardware. Moving from 1.50x to 1.176x saves another 21%. Going wider costs repair amplification and demands more failure domains, which is why nobody ships (50,5).
+
+---
+
+## 10. Placement and Partitioning of the Key Space
+
+The key space is range-partitioned, not hash-partitioned, and that single fact explains most of the performance advice in AWS documentation. Keys that sort together are stored together, served by the same partition, and throttled by the same limit.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Bad["Sequential keys - one partition absorbs everything"]
+        direction TB
+        BK["logs/2026-08-30T14:00:01Z<br/>logs/2026-08-30T14:00:02Z<br/>logs/2026-08-30T14:00:03Z"]
+        BP["A single index partition owns the range<br/>logs/2026-08-30T14:*"]
+        BR["Ceiling: 3,500 writes per second<br/>and 5,500 reads per second"]
+        B503["Exceeding it returns<br/>HTTP 503 Slow Down"]
+        BK --> BP --> BR --> B503
+    end
+
+    subgraph Split["What S3 does about it"]
+        direction TB
+        S1["Sustained load on one range triggers a split"]
+        S2["The partition is divided at a key boundary<br/>and the halves move to different servers"]
+        S3["Splitting is gradual, not instantaneous.<br/>503s appear while it happens."]
+        S1 --> S2 --> S3
+    end
+
+    subgraph Good["High-cardinality prefixes - load spreads on write"]
+        direction TB
+        GK["logs/a41f/2026-08-30T14:00:01Z<br/>logs/9c02/2026-08-30T14:00:02Z<br/>logs/f7d8/2026-08-30T14:00:03Z"]
+        GP["Many independent partitions from<br/>the first request"]
+        GR["16 hex prefixes give roughly<br/>56,000 writes and 88,000 reads per second<br/>with no warm-up"]
+        GK --> GP --> GR
+    end
+
+    Bad -.->|"the split eventually fixes it,<br/>but only after the errors"| Split
+    Split -.->|"a leading hash avoids<br/>needing the split at all"| Good
+
+    Note["The 3,500 and 5,500 limits are per partitioned prefix,<br/>not per bucket. There is no limit on the number of<br/>prefixes in a bucket. Directory buckets remove the<br/>prefix ceiling entirely and quote 100,000 write TPS<br/>and 200,000 read TPS per bucket."]
+
+    Good --> Note
+
+    style Bad fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Split fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Good fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Note fill:#eceff1,stroke:#37474f,stroke-width:1px
+```
+
+### 10.1 The Published Limits
+
+An application can achieve at least 3,500 PUT, COPY, POST, or DELETE requests per second and 5,500 GET or HEAD requests per second **per partitioned prefix**. There is no limit on the number of prefixes in a bucket, and no per-bucket ceiling that AWS documents.
+
+Ten prefixes therefore scale reads to 55,000 requests per second. A hundred prefixes to 550,000. The scaling is horizontal and unbounded in principle, and the bucket is not the unit that throttles.
+
+Two words in that sentence do the work. **Partitioned** means the prefix has actually been split out into its own partition, which is not the same as the prefix existing in your key names. And **at least** means the numbers are floors, not quotas.
+
+### 10.2 What a Partition Actually Is
+
+An S3 partition owns a contiguous range of the key space, ordered by UTF-8 byte value. Initially a bucket is one partition covering everything. As traffic to a range grows, S3 splits the partition at a key boundary and moves the halves to different servers.
+
+Splitting is gradual, not instantaneous. AWS states this directly: scaling happens gradually and while S3 is scaling to a new higher request rate you may see 503 Slow Down errors, which dissipate when scaling completes. A workload that ramps from zero to 50,000 writes per second in one second will get throttled. The same workload ramping over an hour will not.
+
+The consequence for design is that the partition boundaries follow your historical traffic, not your intent. If your keys are `logs/2026-08-30T14:00:01Z`, every write for a given hour lands in one narrow range, one partition absorbs it, and you are capped at 3,500 writes per second no matter how many objects you have. Worse, tomorrow's keys sort adjacent to today's, so the split S3 performed for today's hot range does not help tomorrow.
+
+### 10.3 The Fix, and Why It Is a Trade
+
+Put high-cardinality bytes early in the key.
+
+```
+logs/a41f/2026-08-30T14:00:01Z
+logs/9c02/2026-08-30T14:00:02Z
+logs/f7d8/2026-08-30T14:00:03Z
+```
+
+Four hex characters give 65,536 possible prefixes. Even 16 single-hex prefixes give roughly 56,000 writes and 88,000 reads per second from the first request, with no warm-up period and no 503s.
+
+The trade is real. Scattering keys destroys the ability to list a time range cheaply. `ListObjectsV2` with `prefix=logs/2026-08-30T14` no longer works, because the hour is no longer the leading component. Recovering that requires either querying all 16 prefixes in parallel, or keeping an external index, or using S3 Inventory.
+
+This is the classic partitioning trade in a different costume: hashing gives you write throughput and takes away range scans. Object storage does not exempt you from it.
+
+### 10.4 Placement of the Shards Themselves
+
+Key partitioning determines which index server owns the metadata. Shard placement is a separate decision, made by the placement subsystem when the object is written, and it optimises for something else entirely.
+
+Two constraints dominate. Reliability requires that no two shards of the same coding group share a correlated failure domain, which means different disks, hosts, racks, power feeds, upgrade domains, and, for multi-AZ classes, different Availability Zones. Load requires that placement favours less occupied and less loaded nodes, because a shard placed on a busy disk is slow to read and slow to rebuild.
+
+The result is that a single object's shards are scattered across the fleet, and a single customer's objects are scattered further still. That scattering is why a burst from one customer can be served by over a million individual disks, and why heat from any one workload disappears into the aggregate.
+
+---
+
+## 11. The Index Layer
+
+Every object store must locate the shards of a key before it can serve a byte, and there are exactly two ways to do it: store the mapping or compute it. The choice determines the failure modes of the whole system.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Indexed["Indexed placement - S3, Azure Blob, GCS"]
+        direction TB
+        I1["GET bucket/key"]
+        I2["Look up the index record<br/>key plus version to shard locations"]
+        I3["Fetch shards from the named disks"]
+        I4["Costs one metadata round trip per request"]
+        I5["Buys arbitrary re-placement: a shard can<br/>move without telling any client"]
+        I6["Costs a blast radius: the index is on the<br/>path of every GET, PUT, LIST and DELETE"]
+        I1 --> I2 --> I3
+        I2 --> I4
+        I2 --> I5
+        I2 --> I6
+    end
+
+    subgraph Algorithmic["Algorithmic placement - Ceph RADOS, Swift"]
+        direction TB
+        A1["GET pool/object"]
+        A2["hash of the object name, modulo<br/>the placement group count"]
+        A3["CRUSH maps the placement group to an<br/>ordered list of OSDs using the cluster map"]
+        A4["The client talks straight to the primary OSD"]
+        A5["Costs nothing per request: no lookup"]
+        A6["Buys no blast radius from a metadata tier"]
+        A7["Costs rebalancing: changing the topology<br/>moves data because the function changed"]
+        A1 --> A2 --> A3 --> A4
+        A3 --> A5
+        A3 --> A6
+        A3 --> A7
+    end
+
+    Evidence["Public evidence that the S3 index exists:<br/>the 28 February 2017 postmortem names the index<br/>subsystem as holding metadata and location for all<br/>objects in the Region, and required for every GET,<br/>LIST, PUT and DELETE. Restarting it took from<br/>09:37 to 13:18 PST. The fix was to partition it into<br/>smaller cells to cut the blast radius."]
+
+    Indexed --> Evidence
+
+    style Indexed fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Algorithmic fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Evidence fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+```
+
+### 11.1 Look It Up, or Compute It
+
+**Indexed placement** stores the mapping. S3, Azure Blob Storage, and Google Cloud Storage all keep a metadata record per object version that names the locations of its shards, and every request consults it. The cost is a metadata round trip on the request path and a component that is required for everything. The benefit is total freedom: a shard can be moved, re-coded, tiered, or rebuilt anywhere at any time, and no client ever learns about it.
+
+**Algorithmic placement** computes the mapping. Ceph's RADOS hashes the object name modulo the placement group count to pick a placement group, then runs CRUSH over the cluster map to derive an ordered list of OSDs, and the client contacts the primary directly. OpenStack Swift does the same thing with a ring. The cost is that the function's output depends on the topology, so adding or removing capacity moves data. The benefit is that there is no metadata tier to fail and no lookup to pay for.
+
+Neither is better. Indexed systems buy flexibility with a dependency. Algorithmic systems buy independence with rigidity.
+
+### 11.2 What the S3 Index Holds
+
+AWS does not publish the schema. The postmortem of 28 February 2017 states what the index subsystem does: it manages the metadata and location information of all S3 objects in the Region, and it is necessary to serve all GET, LIST, PUT, and DELETE requests.
+
+From the API surface, the record must contain at least the bucket, the key, the version ID, the size, the last-modified time, the ETag, the checksum and its algorithm, the storage class, the encryption mode and the KMS key ARN if any, the Object Lock retention mode and retain-until date, the delete-marker flag, up to 2 KB of user metadata, up to 2 KB of system metadata, the tag set, and pointers to wherever the value's shards live.
+
+It is range-partitioned by key, replicated for durability, and, since 2017, deliberately partitioned into smaller units to bound blast radius.
+
+The API also tells you the index is separate from the data. `HeadObject` returns metadata without the object, which is a metadata-only read. `ListObjectsV2` returns sizes and ETags for a thousand keys without touching a single byte of any value. Changing an object's storage class with `CopyObject` moves the data but keeps the key. Adding a tag changes only the record. These operations only make sense if the two layers are independent.
+
+### 11.3 The 2017 Outage, Read as Documentation
+
+On 28 February 2017 an S3 team member ran a command intended to remove a small number of servers from one S3 subsystem, entered one input incorrectly, and removed a larger set than intended. Enough index subsystem servers went away that the subsystem could not serve requests, and because the placement subsystem depends on the index, PUTs failed too.
+
+Both subsystems required a full restart. During the restart S3 served no requests in us-east-1. The index subsystem recovered enough capacity for GET, LIST, and DELETE at 13:18 PST, and placement recovered at 13:54, after which S3 operated normally.
+
+Three engineering facts follow. First, the index tier exists and is not optional. Second, its recovery time was dominated by safety checks over an enormous metadata volume, which is a direct argument for smaller cells. Third, the tool that removed capacity had no guardrail preventing it from taking a subsystem below its minimum. AWS changed the tool to remove capacity more slowly and to refuse removals that would breach a minimum, and reprioritised work to partition the index into cells.
+
+If you build an indexed object store, that is the reading list: partition the index, bound the blast radius, and never let an operational tool remove capacity faster than the system can be observed.
+
+### 11.4 The Storage Node Below the Index
+
+The index points at shards; ShardStore stores them. ShardStore is the key-value storage node implementation underneath S3, written in Rust, and the SOSP 2021 paper describes both the system and the method used to validate it.
+
+Two things about it generalise. It is log-structured, which suits immutable shards and spinning disks, because appends are sequential and sequential is the only thing a disk is good at. And it was validated against a reference model roughly 1% of its size, using property-based testing with crash injection, because a storage node's correctness is a property of its behaviour across failures rather than of any single execution.
+
+The self-hosted equivalents make the same choices. Ceph's BlueStore writes directly to raw block devices and keeps its own metadata in RocksDB rather than trusting a general-purpose file system. MinIO writes shards as ordinary files with inline checksums and treats the file system as a dumb container. Everyone concluded that a POSIX file system between the object store and the disk is a liability.
+
+### 11.5 The Index Grows Its Own Query Layer
+
+The index has always held answers people wanted to ask questions about, and until recently the only way to ask was to LIST the bucket. S3 Metadata changes that: it automatically captures metadata for objects in general purpose buckets and writes it into read-only, fully managed Apache Iceberg tables, refreshed as objects are added, updated, and removed.
+
+Those tables carry system metadata such as creation time and storage class, custom metadata such as tags, user-defined metadata, and annotations, and event metadata recording when an object was updated or deleted and which AWS account did it. They live in S3 table buckets and are queried from Athena, Redshift, or Spark.
+
+This is a structural change, not a feature. A bucket with a billion objects previously cost about 5 dollars and a million API calls to enumerate once. Now the enumeration is a SQL query against a table the service maintains for you. The index stopped being an implementation detail and became a product surface.
+
+---
+
+## 12. Request Routing and Hot Keys
+
+An S3 endpoint is not a server. It is a DNS name that resolves to a rotating set of front-end addresses, in front of a fleet with no affinity to your bucket, and every piece of performance advice AWS publishes follows from treating it as a very large distributed system rather than a network endpoint.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    C["Client"]
+
+    subgraph Naming["Address resolution"]
+        VH["Virtual-hosted style<br/>https://bucket.s3.us-east-1.amazonaws.com/key<br/>The bucket is in the hostname."]
+        PS["Path style<br/>https://s3.us-east-1.amazonaws.com/bucket/key<br/>Deprecation announced, then delayed<br/>on 23 September 2020. Still accepted."]
+        DNSR["DNS returns a rotating set of<br/>front-end addresses. A retry lands on a<br/>different machine, which is why aggressive<br/>timeouts plus retry beats patience."]
+    end
+
+    subgraph FE["Front end"]
+        AUTH["Verify SigV4 signature<br/>Reject if the clock skew is too large"]
+        AUTHZ["Evaluate SCP, Block Public Access,<br/>identity policy, bucket policy,<br/>access point policy, ACL"]
+        THR["Per-partition token check"]
+    end
+
+    subgraph Outcome["Outcomes"]
+        OK["200 or 206<br/>First byte in roughly 100 to 200 ms<br/>for S3 Standard"]
+        E503["503 Slow Down<br/>The partition is over its rate.<br/>Retry with exponential backoff.<br/>S3 splits the partition in the background."]
+        E307["307 Temporary Redirect<br/>Legacy global endpoint, bucket<br/>lives in another Region"]
+        E301["301 Permanent Redirect<br/>Path-style request to the wrong<br/>Regional endpoint"]
+        E400["400 Bad Request<br/>Legacy global endpoint against a Region<br/>launched after 20 March 2019"]
+    end
+
+    subgraph HotKey["Hot-key remedies, cheapest first"]
+        H1["Put CloudFront in front.<br/>Cache hits never reach S3 and<br/>CloudFront-to-S3 transfer is free."]
+        H2["Spread the key space.<br/>A hash prefix turns one partition into many."]
+        H3["Byte-range GETs in parallel.<br/>One large object, many connections,<br/>aligned to the multipart part boundaries."]
+        H4["Replicate the object under<br/>several keys and pick at random."]
+        H5["Move the workload to a directory bucket.<br/>No prefix ceiling, single-digit ms latency."]
+    end
+
+    C --> Naming --> FE
+    AUTH --> AUTHZ --> THR
+    THR --> OK
+    THR --> E503
+    Naming --> E307
+    Naming --> E301
+    Naming --> E400
+    E503 -.-> HotKey
+
+    style Naming fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FE fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Outcome fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style HotKey fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+```
+
+### 12.1 Retry Fast, Not Patiently
+
+AWS's guidance is unusual and correct: use aggressive timeouts and retries. Given the scale of S3, if the first request is slow, a retried request is likely to take a different path and quickly succeed.
+
+That works because the retry lands on a different front-end machine, quite possibly against a different replica of the shard, and the slow component is rarely slow twice in a row. A client that waits 30 seconds for a straggler is strictly worse than one that gives up at 500 ms and re-issues. The AWS Common Runtime clients and SDK transfer managers implement this, including hedged requests for large transfers.
+
+The corollary is that connection reuse and parallelism matter more than they do against a normal server. S3 imposes no limit on the number of connections to a bucket, and the recommendation is to spread requests over separate connections to maximise accessible bandwidth. A data lake scan saturating a 100 Gb/s instance interface is running hundreds of concurrent range GETs, not one stream.
+
+### 12.2 The 503, and What It Actually Means
+
+`503 Slow Down` means a partition is over its request rate, not that S3 is unhealthy. It is a signal about your key distribution.
+
+Three ways to see them: CloudWatch request metrics include a 5xx counter, S3 Storage Lens advanced metrics break out 503 counts, and server access logs let you filter every 503 and run Athena over them to find which prefix is hot. That last one is the only method that tells you where the problem is.
+
+The response is layered. In the short term, retry with exponential backoff and jitter, which every AWS SDK does automatically. In the medium term, S3 splits the hot partition on its own. In the long term, change your keys.
+
+### 12.3 Hot-Key Remedies, Cheapest First
+
+**Put a CDN in front.** For any object read more than a few times, CloudFront is the correct answer to every hot-key problem. Cache hits never reach S3, so they cost neither a GET request nor egress, and data transfer from S3 to CloudFront is free. This converts a hot key from an S3 throttling problem into a CDN cache-hit ratio problem, which is a much easier problem.
+
+**Spread the key space.** A high-cardinality leading prefix turns one partition into many, as covered in section 10.
+
+**Parallel byte-range GETs.** For a single very large object read by a single consumer, the constraint is the connection, not the partition. Issue many range requests aligned to the multipart part boundaries. Objects written in parts can also be fetched with `?partNumber=N`, which removes the offset arithmetic.
+
+**Replicate under multiple keys.** For a genuinely singular hot object, such as a bootstrap manifest fetched by every instance at boot, write it under N keys with a spread prefix and have clients choose one at random. Crude, and it works.
+
+**Move to a directory bucket.** S3 Express One Zone directory buckets have no prefix limits and scale directories horizontally, so the only published rate limits are per bucket: up to 200,000 read TPS and up to 100,000 write TPS. AWS publishes no aggregate figure, and there is no partition to overload. They deliver single-digit millisecond access against the 100 to 200 ms typical for S3 Standard, at 0.11 dollars per GB-month against 0.023, and requests cost less. How much less depends on which AWS page you read: the S3 Express One Zone product page says up to 80% lower than S3 Standard, the storage class documentation says 50%, and both read that way on 31 August 2026. The hot key stops being a hot key.
+
+The Express trade is explicit. You get an order of magnitude better latency and no prefix ceiling. You give up multi-AZ durability against zone loss, pay roughly 4.8 times as much per stored GB, and accept that a directory bucket with no request activity for 90 days goes inactive and returns 503 for a few minutes on the next access while it wakes up.
+
+### 12.4 Latency, Honestly
+
+S3 Standard delivers consistent small-object latencies, and first-byte-out latencies for larger objects, of roughly 100 to 200 milliseconds. That is the number to design against.
+
+It is a network and metadata round trip, not a disk seek, and it does not improve with object size or with warming. Applications that need less have four options: CloudFront or ElastiCache in front, S3 Express One Zone underneath, Transfer Acceleration for long geographic distances, or a different storage tier entirely. There is no tuning parameter that makes S3 Standard answer in 5 ms.
+
+---
+
+## 13. Versioning, Delete Markers, and Object Lock
+
+Versioning turns a key from a mutable cell into an append-only log of immutable versions. It is the mechanism behind undelete, point-in-time recovery, ransomware resistance, and regulatory WORM storage, and it is also the single largest source of surprise storage bills.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph States["The three bucket states"]
+        U["Unversioned<br/>the default"]
+        E["Versioning enabled"]
+        S["Versioning suspended"]
+        U -->|"PutBucketVersioning Enabled"| E
+        E -->|"Suspended"| S
+        S -->|"Enabled"| E
+        E -.->|"impossible"| U
+    end
+
+    subgraph Stack["What a versioned key looks like after four operations"]
+        direction TB
+        V4["Delete marker - CURRENT<br/>version id 3HL4kqCxf3vjVBH40Nrjfkd<br/>zero bytes, zero storage cost"]
+        V3["Version 3 - noncurrent<br/>version id qUgvHmXTGiEqFnj4Zk0R6M<br/>billed in full"]
+        V2["Version 2 - noncurrent<br/>version id 8fA1cLpQ2Zx7YtRbNw9Ke3<br/>billed in full"]
+        V1["Version 1 - noncurrent<br/>version id null, written before<br/>versioning was enabled<br/>billed in full"]
+        V4 --> V3 --> V2 --> V1
+    end
+
+    subgraph Deletes["The two DELETE forms"]
+        D1["DELETE with no version id<br/>Returns 200 OK<br/>Inserts a delete marker<br/>Nothing is actually removed<br/>GET now returns 404"]
+        D2["DELETE with a version id<br/>Removes that version permanently<br/>Blocked by Object Lock with 403"]
+    end
+
+    subgraph Lock["Object Lock - requires versioning"]
+        L1["Governance mode<br/>Removable by a principal holding<br/>s3:BypassGovernanceRetention plus the<br/>header x-amz-bypass-governance-retention: true"]
+        L2["Compliance mode<br/>Not removable by anyone, root included,<br/>until the Retain Until Date passes.<br/>The only escape is closing the AWS account."]
+        L3["Legal hold<br/>No expiry. Independent of retention.<br/>Removed with s3:PutObjectLegalHold."]
+        L4["Retention is per object version.<br/>A locked version never blocks a new version<br/>or a delete marker on top of it."]
+    end
+
+    States --> Stack --> Deletes
+    Stack --> Lock
+
+    Trap["The cost trap: an expiration lifecycle rule written<br/>for an unversioned bucket only adds delete markers<br/>once versioning is on. Noncurrent versions accumulate<br/>forever and are billed in full. The fix is a<br/>NoncurrentVersionExpiration rule."]
+
+    Deletes --> Trap
+
+    style States fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Stack fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Deletes fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Lock fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Trap fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+```
+
+### 13.1 Three States, One of Them One-Way
+
+A bucket is unversioned, versioning-enabled, or versioning-suspended. Unversioned is the default. Once you enable versioning you can never return to unversioned. You can only suspend.
+
+Objects written before versioning was enabled keep a version ID of `null` and are not modified by enabling it. What changes is how future requests are handled. Writes to a versioning-suspended bucket also use the version ID `null`, and each one overwrites the previous `null` version while leaving any real versions untouched. A bucket that has cycled between enabled and suspended therefore contains a mix, which is exactly as confusing in practice as it sounds.
+
+The versioning state applies to every object in the bucket. There is no per-prefix versioning.
+
+### 13.2 The Delete Marker
+
+A DELETE without a version ID on a versioning-enabled bucket returns `200 OK`, creates a zero-byte **delete marker** that becomes the current version with a new version ID, and removes nothing. A subsequent GET returns 404, because the current version is a delete marker. The data is still there, still billed, one version down.
+
+A DELETE with an explicit version ID permanently removes that version.
+
+Delete markers cost nothing to store but do count as objects for LIST purposes, and a bucket where a large number of keys have been deleted accumulates them. `ListObjectVersions` shows them; `ListObjectsV2` does not.
+
+### 13.3 The Cost Trap, Stated Plainly
+
+An expiration lifecycle rule written for an unversioned bucket stops deleting anything the moment you enable versioning. It starts adding delete markers instead. Noncurrent versions pile up and are billed in full, because every version of an object is the entire object, not a delta. Three versions of a 1 GB object cost 3 GB.
+
+The fix is to add a `NoncurrentVersionExpiration` action:
+
+```json
+{
+  "Rules": [
+    {
+      "ID": "expire-current-after-90-days",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "logs/" },
+      "Expiration": { "Days": 90 }
+    },
+    {
+      "ID": "reap-noncurrent-and-markers",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "logs/" },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30,
+        "NewerNoncurrentVersions": 3
+      },
+      "Expiration": { "ExpiredObjectDeleteMarker": true }
+    }
+  ]
+}
+```
+
+`NewerNoncurrentVersions: 3` keeps the three most recent noncurrent versions regardless of age, which is usually what people actually want. `ExpiredObjectDeleteMarker` cleans up delete markers whose underlying versions are all gone.
+
+### 13.4 Object Lock
+
+Object Lock is write-once-read-many storage implemented as a refusal to delete. It requires versioning, it applies per object version, and the lock state lives in that version's metadata.
+
+Two retention modes and one independent hold:
+
+**Governance mode** blocks overwrite and delete for most principals. A principal holding `s3:BypassGovernanceRetention` can override it, but only by explicitly sending `x-amz-bypass-governance-retention: true` on the request. The S3 console includes that header by default, so an operator with the permission will delete a governance-locked object from the console without any additional friction.
+
+**Compliance mode** blocks overwrite and delete for everybody, including the account root user, until the Retain Until Date passes. The retention mode cannot be changed and the period cannot be shortened. AWS states the only escape route in a note: the only way to delete an object under compliance mode before its retention date expires is to delete the associated AWS account.
+
+**Legal hold** has no expiry and is placed or removed by any principal with `s3:PutObjectLegalHold`. It is independent of retention: an expired retention period does not release an object under legal hold, and removing a legal hold does not release an object still inside its retention period.
+
+Retention can always be extended, never shortened. Submitting a new `PutObjectRetention` with a later Retain Until Date replaces the existing one. A bucket-level default retention applies a duration in days or years to every new version, calculated from the version's creation timestamp, and an explicit per-object setting overrides the bucket default.
+
+Object Lock does not prevent new versions. A PUT to a locked key succeeds and creates a new current version; the locked version remains locked underneath. A DELETE without a version ID succeeds and adds a delete marker on top. Only the permanent removal of the locked version is refused, with a `403 Forbidden`.
+
+`s3:object-lock-remaining-retention-days` is a bucket policy condition key that constrains the allowable minimum and maximum retention periods, which is how you stop somebody locking an object in compliance mode for a hundred years by accident.
+
+### 13.5 The Compliance Angle
+
+S3 Object Lock has been assessed by Cohasset Associates for use in environments subject to SEC Rule 17a-4, CFTC, and FINRA regulations. That assessment is why regulated firms can keep records on S3 rather than on dedicated WORM appliances, and it is the practical reason compliance mode is as unforgiving as it is. A retention lock that an administrator can lift is not a retention lock a regulator will accept.
+
+---
+
+## 14. Storage Classes and Lifecycle Transitions
+
+Storage classes exist because the read distribution of stored data is extraordinarily skewed, and pricing a rarely-read byte the same as a constantly-read byte overcharges for one and undercharges for the other. Lifecycle rules move objects between classes on a schedule.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    STD["S3 Standard<br/>0.023 USD per GB-month<br/>3 or more AZs, 99.99 percent availability<br/>No minimum duration, no minimum size"]
+
+    INT["S3 Intelligent-Tiering<br/>0.0025 USD per 1,000 objects monitored<br/>Frequent, Infrequent at 30 days,<br/>Archive Instant Access at 90 days<br/>No retrieval fees, no minimum duration"]
+
+    SIA["S3 Standard-IA<br/>0.0125 USD per GB-month<br/>0.01 USD per GB retrieved<br/>30-day minimum, 128 KB minimum billable"]
+
+    OZ["S3 One Zone-IA<br/>0.01 USD per GB-month<br/>0.01 USD per GB retrieved<br/>1 AZ, 99.5 percent availability<br/>30-day minimum, 128 KB minimum billable"]
+
+    GIR["S3 Glacier Instant Retrieval<br/>0.004 USD per GB-month<br/>0.03 USD per GB retrieved<br/>90-day minimum, 128 KB minimum billable<br/>Millisecond access"]
+
+    GFR["S3 Glacier Flexible Retrieval<br/>0.0036 USD per GB-month<br/>Expedited 1 to 5 min, Standard 3 to 5 h,<br/>Bulk 5 to 12 h and free<br/>90-day minimum, 40 KB metadata per object"]
+
+    DA["S3 Glacier Deep Archive<br/>0.00099 USD per GB-month<br/>Standard within 12 h at 0.02 USD per GB,<br/>Bulk within 48 h at 0.0025 USD per GB<br/>180-day minimum, 40 KB metadata per object"]
+
+    STD --> INT
+    STD --> SIA
+    STD --> OZ
+    STD --> GIR
+    STD --> GFR
+    STD --> DA
+
+    SIA --> INT
+    SIA --> OZ
+    SIA --> GIR
+    SIA --> GFR
+    SIA --> DA
+
+    INT --> OZ
+    INT --> GIR
+    INT --> GFR
+    INT --> DA
+
+    OZ --> GFR
+    OZ --> DA
+
+    GIR --> GFR
+    GIR --> DA
+
+    GFR --> DA
+
+    Rules["Transitions flow one way only. Going back up<br/>requires a restore and then a copy.<br/>Since September 2024 objects below 128 KB are<br/>not transitioned at all by default, because the<br/>transition request costs more than the saving.<br/>Transition requests cost 0.01 to 0.05 USD per 1,000<br/>depending on the destination class."]
+
+    DA --> Rules
+
+    style STD fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style INT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SIA fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OZ fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style GIR fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style GFR fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style DA fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Rules fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+```
+
+### 14.1 The Classes, Priced
+
+US East (N. Virginia), August 2026:
+
+| Class | Storage per GB-month | Retrieval per GB | Min duration | Min billable size | Access |
+|-------|----------------------|------------------|--------------|-------------------|--------|
+| S3 Standard (first 50 TB) | 0.023 USD | None | None | None | Milliseconds |
+| S3 Express One Zone | 0.11 USD | None | None | None | Single-digit ms |
+| S3 Intelligent-Tiering Frequent | Same as Standard | None | None | None | Milliseconds |
+| S3 Intelligent-Tiering Infrequent | 0.0125 USD | None | None | None | Milliseconds |
+| S3 Intelligent-Tiering Archive Instant | 0.004 USD | None | None | None | Milliseconds |
+| S3 Standard-IA | 0.0125 USD | 0.01 USD | 30 days | 128 KB | Milliseconds |
+| S3 One Zone-IA | 0.01 USD | 0.01 USD | 30 days | 128 KB | Milliseconds |
+| S3 Glacier Instant Retrieval | 0.004 USD | 0.03 USD | 90 days | 128 KB | Milliseconds |
+| S3 Glacier Flexible Retrieval | 0.0036 USD | Bulk free, Standard 0.01, Expedited 0.03 | 90 days | 40 KB overhead | Minutes to hours |
+| S3 Glacier Deep Archive | 0.00099 USD | Bulk 0.0025 USD, Standard 0.02 USD | 180 days | 40 KB overhead | Hours |
+
+Every figure above is the US East (N. Virginia) on-demand rate returned by the AWS Price List API on 31 August 2026. S3 Express One Zone reads 0.11 dollars per GB-month there, under the usage type `TimedStorage-XZ-ByteHrs`, which is the number the 4.8x ratio elsewhere in this document divides by 0.023 to reach.
+
+Intelligent-Tiering adds a monitoring and automation charge of 0.0025 dollars per 1,000 objects per month and charges no retrieval fees at all.
+
+The spread from S3 Standard to Deep Archive is a factor of 23.2. That is the entire prize.
+
+### 14.2 The Transition Waterfall
+
+Transitions flow downhill only. The legal moves:
+
+- Standard to any of Standard-IA, Intelligent-Tiering, One Zone-IA, Glacier Instant Retrieval, Glacier Flexible Retrieval, Glacier Deep Archive
+- Standard-IA to Intelligent-Tiering, One Zone-IA, or any Glacier class
+- Intelligent-Tiering to One Zone-IA or any Glacier class, with the exact set depending on the current access tier
+- One Zone-IA to Glacier Flexible Retrieval or Glacier Deep Archive
+- Glacier Instant Retrieval to Glacier Flexible Retrieval or Glacier Deep Archive
+- Glacier Flexible Retrieval to Glacier Deep Archive
+
+Nothing moves back up through lifecycle. Getting an object out of Deep Archive into Standard requires a `RestoreObject` to stage a temporary copy, then a `CopyObject` that overwrites the object specifying the destination class. Two operations, both billed, and the second rewrites every byte.
+
+### 14.3 The Rules That Cost People Money
+
+**Minimum durations are charged whether you use them or not.** Delete an object from Standard-IA after 5 days and you pay 30 days. Move an object from Glacier Instant Retrieval to Deep Archive after 4 days and you owe the remaining 86 days at the Glacier Instant Retrieval rate. AWS enforces this in the rule engine too: you cannot write a single lifecycle configuration that transitions to Glacier Instant Retrieval on day 4 and to Deep Archive on day 20, because the second move must be at least 94 days out.
+
+**Objects below 128 KB stop transitioning.** Since September 2024, S3 Lifecycle refuses by default to transition any object smaller than 128 KB to any class, because the transition request costs more than the storage saving. Configurations created before September 2024 keep the old behaviour until you edit them, at which point they switch. An `ObjectSizeGreaterThan` or `ObjectSizeLessThan` filter, or the `x-amz-transition-default-minimum-object-size` header on `PutBucketLifecycleConfiguration`, restores the old behaviour.
+
+**Glacier objects carry 40 KB of overhead each.** Every object archived to Glacier Flexible Retrieval or Deep Archive gets 8 KB of storage for the name and user metadata, billed at S3 Standard rates so that the object stays listable in real time, plus 32 KB for index and restore metadata, billed at the destination class rate. A 10 KB object in Deep Archive is billed for 50 KB, of which 8 KB is at the Standard rate. Archiving millions of small objects is a bill, not a saving. Aggregate them first.
+
+**Billing changes at rule time, not at move time.** Transitions are asynchronous, and there can be a delay between the date the lifecycle rule is satisfied and the physical move. You are charged at the destination rate from the date the rule is satisfied, and the minimum duration clock and the per-object overhead start then too. Transitions to Intelligent-Tiering are the exception, where billing changes after the physical transition completes.
+
+**Tag-based rules are racy.** S3 evaluates tag filters daily, queues matching actions for asynchronous processing, and re-evaluates the object's current tags at execution time. Removing the triggering tag does not reliably cancel a queued action, because the action may execute before the removal is observed. Rule policy updates can take up to 15 minutes to propagate.
+
+### 14.4 Break-Even Arithmetic
+
+The decision to move an object to a colder class is a bet about how often it will be read. Consider 1 TB moved from S3 Standard to Standard-IA, and assume you read a fraction f of it each month.
+
+| Class | Storage | Retrieval at fraction f | Total |
+|-------|---------|-------------------------|-------|
+| Standard | 1,024 x 0.023 = 23.55 USD | 0 | 23.55 USD |
+| Standard-IA | 1,024 x 0.0125 = 12.80 USD | 1,024 x f x 0.01 | 12.80 + 10.24f USD |
+
+Setting them equal gives f = 1.05. Standard-IA is cheaper as long as you read less than about 105% of the data per month, which is to say almost always. The 30-day minimum duration and the 128 KB minimum billable size are the real constraints, not the retrieval fee.
+
+Glacier Instant Retrieval against Standard-IA is a tighter call:
+
+| Class | Storage | Retrieval at fraction f | Total |
+|-------|---------|-------------------------|-------|
+| Standard-IA | 12.80 USD | 10.24f | 12.80 + 10.24f USD |
+| Glacier Instant Retrieval | 1,024 x 0.004 = 4.10 USD | 1,024 x f x 0.03 = 30.72f | 4.10 + 30.72f USD |
+
+Break-even at f = 0.425. Read more than 42.5% of the data each month and Standard-IA wins. This is why the class is described as being for data accessed about once a quarter.
+
+### 14.5 Intelligent-Tiering, and When Not to Use It
+
+Intelligent-Tiering removes the guess. It automatically moves objects not accessed for 30 consecutive days into the Infrequent Access tier, and objects not accessed for 90 consecutive days into the Archive Instant Access tier, with optional Archive Access and Deep Archive Access tiers available at 90 and 180 days if you activate them. It charges no retrieval fees and imposes no minimum storage duration.
+
+The cost is 0.0025 dollars per 1,000 objects monitored per month, and objects smaller than 128 KB are not monitored at all and stay permanently in the Frequent Access tier.
+
+The arithmetic that decides it is object size. Monitoring a 1 MB object costs 0.0000025 dollars a month against a potential saving of 0.0000105 dollars from Frequent to Infrequent, so it pays. Monitoring 100 million objects costs 250 dollars a month regardless of their size, so for a bucket of tiny objects the monitoring fee can exceed the tiering saving outright.
+
+Use Intelligent-Tiering when access patterns are unknown or changing and objects are comfortably above 128 KB. Use explicit lifecycle rules when you already know the pattern, because a rule costs nothing to evaluate.
+
+---
+
+## 15. Server-Side Encryption
+
+Every object written to S3 has been encrypted at rest by default since 5 January 2023. The question is no longer whether an object is encrypted but who controls the key, and each answer trades operational cost against blast radius.
+
+### 15.1 The Four Modes
+
+**SSE-S3** is the default and applies to every bucket unless you override it. Each object gets a unique data key, encrypted with AES-256. S3 encrypts that key with a root key it rotates regularly. The header is `x-amz-server-side-encryption: AES256`. It costs nothing, adds no latency, and gives you no key control whatsoever. There is no way for you to make an SSE-S3 object unreadable.
+
+**SSE-KMS** encrypts the data key with an AWS KMS key you control. The headers are `x-amz-server-side-encryption: aws:kms` and, optionally, `x-amz-server-side-encryption-aws-kms-key-id` naming a specific key ARN. You get a separate key policy, CloudTrail entries for every use, and the ability to revoke access to every object encrypted under that key by changing one policy. That last capability is what people actually buy: it turns "delete all copies of this data" into a key operation instead of a data operation.
+
+**DSSE-KMS** applies two independent layers of AES-256: one with a KMS data key, one with an S3-managed key. It exists for compliance regimes that mandate multi-layer encryption. The header value is `aws:kms:dsse`.
+
+**SSE-C** has you supply the encryption key on every request, base64 encoded, with its MD5 for verification. S3 uses it and does not store it. Lose the key and the object is unrecoverable by anybody, including AWS. As of April 2026 SSE-C is disabled by default on all new general purpose buckets, and also on existing buckets in accounts with no SSE-C objects. Applications that need it must now enable it explicitly through `PutBucketEncryption` after creating the bucket. SSE-C objects also do not support annotations.
+
+The four are mutually exclusive per object. You cannot apply two at once.
+
+### 15.2 S3 Bucket Keys, and Why They Exist
+
+SSE-KMS in its naive form calls `GenerateDataKey` once per object write and `Decrypt` once per object read. At high request rates that is a KMS bill and a KMS rate limit, and KMS request quotas are the reason many SSE-KMS rollouts fail their first load test.
+
+S3 Bucket Keys fix this by having S3 obtain a short-lived bucket-level key from KMS and derive per-object data keys from it locally for a time window. The header is `x-amz-server-side-encryption-bucket-key-enabled: true`. AWS does not publish a single reduction figure, because it depends on how many objects a bucket writes inside one key window. The mechanism is unambiguous: one KMS call amortised across many object writes instead of one call per write.
+
+Enable bucket keys on any bucket using SSE-KMS with meaningful request volume. There is no downside beyond slightly coarser CloudTrail granularity, since the per-object calls that used to be logged individually no longer happen.
+
+### 15.3 What Encryption at Rest Does Not Do
+
+Server-side encryption defends against one threat: somebody obtaining the physical media. It does nothing against a stolen credential, because S3 decrypts transparently for any authenticated request with permission. A presigned URL works identically for encrypted and unencrypted objects. A LIST returns every object regardless of encryption.
+
+SSE-KMS is the only mode that changes this, and only partially: a principal needs both S3 permission and KMS permission on the key, so a policy error on one side is caught by the other. That double-gate is the actual security value, and it is worth the operational cost for sensitive data. For everything else, SSE-S3 is free and adequate.
+
+Changing a bucket's default encryption does not re-encrypt existing objects. Converting a bucket to SSE-KMS requires an S3 Batch Operations `Copy` job over an S3 Inventory manifest, which rewrites every object. A single Batch Operations job can cover billions of objects, and it bills a PUT for each one.
+
+---
+
+## 16. Access Control: IAM, Bucket Policies, and Presigned URLs
+
+S3 authorization is the union of six independent mechanisms evaluated in a defined order, and almost every S3 data breach in the historical record traces to one of them being misunderstood rather than to any of them failing.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Req["Request arrives<br/>principal, action, resource, context"]
+
+    D1{"Explicit Deny anywhere<br/>in any policy?"}
+    D2{"Service control policy<br/>and resource control policy<br/>allow the action?"}
+    D3{"Block Public Access<br/>at organization, account,<br/>bucket or access point?"}
+    D4{"Same account as<br/>the bucket owner?"}
+    D5{"Identity policy OR<br/>bucket policy allows?"}
+    D6{"Identity policy AND<br/>bucket policy both allow?"}
+    D7{"Object owned by another<br/>account and ACLs enabled?"}
+
+    Allow["200 - request proceeds"]
+    Deny["403 Access Denied"]
+
+    Req --> D1
+    D1 -->|"yes"| Deny
+    D1 -->|"no"| D2
+    D2 -->|"no"| Deny
+    D2 -->|"yes"| D3
+    D3 -->|"blocks it"| Deny
+    D3 -->|"does not block"| D4
+    D4 -->|"yes"| D5
+    D4 -->|"no, cross account"| D6
+    D5 -->|"neither allows"| D7
+    D5 -->|"one allows"| Allow
+    D6 -->|"either is silent"| Deny
+    D6 -->|"both allow"| Allow
+    D7 -->|"an ACL grants it"| Allow
+    D7 -->|"no"| Deny
+
+    Presign["Presigned URL<br/>Carries X-Amz-Algorithm, X-Amz-Credential,<br/>X-Amz-Date, X-Amz-Expires, X-Amz-SignedHeaders<br/>and X-Amz-Signature in the query string.<br/>It grants exactly the permissions the signer held<br/>at the moment of use, not at the moment of signing.<br/>Maximum life: 604,800 seconds with long-term keys,<br/>12 hours from the console,<br/>and never past the expiry of the STS session."]
+
+    Defaults["Modern defaults<br/>New buckets: all four Block Public Access settings on,<br/>Object Ownership set to bucket owner enforced,<br/>ACLs disabled. Directory, table and vector buckets<br/>cannot turn Block Public Access off at all."]
+
+    Allow -.-> Presign
+    D3 -.-> Defaults
+
+    style Allow fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Deny fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Presign fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Defaults fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+```
+
+### 16.1 The Evaluation Order
+
+An explicit `Deny` anywhere wins immediately. After that, the order is: service control policies and resource control policies from AWS Organizations, then Block Public Access at organization, account, bucket, and access point level, then identity-based policies, then the bucket policy, then the access point policy, then ACLs if they are enabled at all.
+
+For a request inside the bucket owner's account, an allow from either the identity policy or the bucket policy suffices. For a cross-account request, both the caller's identity policy and the bucket policy must allow it. That asymmetry is the source of most "why can't my other account read this bucket" tickets.
+
+### 16.2 Block Public Access
+
+Block Public Access is four independent boolean settings, applicable to an access point, a bucket, an account, or an entire AWS Organization. At the organization level they apply as one unit, all on or all off. Where settings differ across levels, S3 applies the most restrictive combination.
+
+| Setting | Effect |
+|---------|--------|
+| `BlockPublicAcls` | Rejects `PutBucketAcl`, `PutObjectAcl`, and `PutObject` calls carrying a public ACL |
+| `IgnorePublicAcls` | Ignores every public ACL already present, without removing it |
+| `BlockPublicPolicy` | Rejects `PutBucketPolicy` and `PutAccessPointPolicy` if the policy would be public |
+| `RestrictPublicBuckets` | Limits a publicly-policied bucket to AWS service principals and the owning account, blocking all cross-account access |
+
+New buckets, access points, and objects do not allow public access by default. Directory buckets, table buckets, and vector buckets have all four settings permanently enabled and cannot turn them off.
+
+S3's definition of "public" is deliberately paranoid. Evaluating a bucket policy, S3 begins by assuming it is public and then tries to prove otherwise. A policy is non-public only if it grants access exclusively to fixed values, with no wildcards or IAM policy variables, of a specific list of condition keys: an AWS principal or service principal, `aws:SourceIp` with a sufficiently narrow CIDR, `aws:SourceArn`, `aws:SourceVpc`, `aws:SourceVpce`, `aws:SourceOwner`, `aws:SourceAccount`, `aws:userid` outside the `AROLEID:*` pattern, `s3:DataAccessPointArn`, or `s3:DataAccessPointAccount`. An `aws:SourceIp` condition broader than a `/8` for IPv4, excluding RFC 1918 ranges, counts as public.
+
+The `RestrictPublicBuckets` interaction is the one that catches people. If a policy contains three statements, one granting CloudTrail, one granting account 222233334444, and one granting `"Principal": "*"` with no limiting condition, the whole policy is public. With `RestrictPublicBuckets` on, S3 allows only CloudTrail and disables account 222233334444, even though that statement is not itself public. Remove the third statement and the second one works again.
+
+### 16.3 ACLs Are Legacy and Should Stay Off
+
+Access control lists predate IAM and grant permissions to canonical user IDs or to two predefined groups: `AllUsers` and `AuthenticatedUsers`. A bucket or object ACL granting anything to either group is public by S3's definition, and `AuthenticatedUsers` means anyone with any AWS account, not anyone in your account. That misreading is directly responsible for a long line of public bucket incidents.
+
+Modern buckets set Object Ownership to bucket owner enforced, which disables ACLs entirely and makes the bucket owner the owner of every object regardless of who uploaded it. Leave it that way. ACLs exist now only for cross-account uploads in legacy architectures, and even those should be replaced by a bucket policy with `s3:x-amz-acl` conditions or by access points.
+
+Note also that `GetBucketAcl` and `GetObjectAcl` return the **effective** permissions, not the stored ACL. A bucket with a public ACL and `IgnorePublicAcls` enabled returns an ACL reflecting what S3 enforces, which is not what is stored. Auditing tools that read ACLs and compare them against a baseline will disagree with themselves.
+
+### 16.4 Bucket Policies Worth Copying
+
+Enforce TLS on every request:
+
+```json
+{
+  "Sid": "DenyInsecureTransport",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": [
+    "arn:aws:s3:::amzn-s3-demo-bucket",
+    "arn:aws:s3:::amzn-s3-demo-bucket/*"
+  ],
+  "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+}
+```
+
+Make a bucket append-only by requiring conditional writes:
+
+```json
+{
+  "Sid": "RequireIfNoneMatch",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:PutObject",
+  "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*",
+  "Condition": { "Null": { "s3:if-none-match": "true" } }
+}
+```
+
+Constrain Object Lock retention to a sane range:
+
+```json
+{
+  "Sid": "RetentionBetween30And365Days",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:PutObjectRetention",
+  "Resource": "arn:aws:s3:::amzn-s3-demo-bucket/*",
+  "Condition": {
+    "NumericLessThan": { "s3:object-lock-remaining-retention-days": "30" },
+    "NumericGreaterThan": { "s3:object-lock-remaining-retention-days": "365" }
+  }
+}
+```
+
+### 16.5 Presigned URLs
+
+A presigned URL is a normal S3 request with the SigV4 authentication moved from headers into the query string. It carries `X-Amz-Algorithm`, `X-Amz-Credential`, `X-Amz-Date`, `X-Amz-Expires`, `X-Amz-SignedHeaders`, and `X-Amz-Signature`, plus `X-Amz-Security-Token` when signed with temporary credentials.
+
+Three facts about them are load-bearing and routinely missed.
+
+**A presigned URL carries the signer's permissions, evaluated at use time.** It is not a capability token minted by S3. If the signing principal loses the permission before the URL is used, the URL stops working. If the signing principal gains a broader permission, the URL does not gain it, because the URL is scoped to a specific operation and resource. Revoking a leaked presigned URL means revoking the underlying credential or adding an explicit Deny.
+
+**The maximum lifetime depends on how you signed it.** Signing with long-term IAM user credentials allows up to 604,800 seconds, which is 7 days. Generating one from the S3 console caps it at 12 hours. Signing with temporary credentials from STS caps it at the remaining life of those credentials, so a URL signed inside a Lambda function with a one-hour role session expires in one hour no matter what `ExpiresIn` you passed. This is the most common presigned-URL bug in production: the parameter is accepted, the URL is generated, and it dies early.
+
+**Anyone holding the URL can use it.** There is no additional authentication. Presigned URLs end up in browser history, in proxy logs, in referrer headers, and in chat clients. Keep expiries short, use them for one object, and sign PUT URLs with conditions that pin the content type and length.
+
+### 16.6 Access Points
+
+Access points give a bucket multiple named entry points, each with its own hostname, its own policy, and its own Block Public Access settings. An access point can also be constrained to a VPC network origin, in which case it is always considered non-public regardless of its policy.
+
+The reason they exist is policy size. A bucket policy is capped at 20 KB, and a shared dataset with fifty consuming teams cannot express fifty distinct grants inside it. Fifty access points, each carrying its own 20 KB policy, can.
+
+Three properties freeze at creation and three only. The associated bucket or FSx volume, the VPC network origin, and the Block Public Access settings cannot be changed afterwards; deleting the access point and recreating it under the same name is the only way to move any of them. The policy is not frozen: `PutAccessPointPolicy` rewrites it at any time, which is what makes the fifty-teams pattern workable at all. An account holds up to 10,000 access points per Region by default, adjustable on request. The boundary is immutable. The grants inside it are not.
+
+---
+
+## 17. Economics: What It Costs, Who Pays, and Why Egress Shapes Architecture
+
+Object storage has four independent meters, and the one that dictates architecture is the one with nothing to do with storage. Sending a gigabyte out to the internet once costs almost four times as much as storing it for a month.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Meters["Four independent meters, US East N. Virginia, August 2026"]
+        M1["Storage<br/>GB-month at the class rate.<br/>0.023 USD Standard down to<br/>0.00099 USD Deep Archive"]
+        M2["Requests<br/>0.005 USD per 1,000 PUT, COPY, POST, LIST<br/>0.0004 USD per 1,000 GET and all others.<br/>Failed requests are billed too."]
+        M3["Retrieval<br/>0.01 USD per GB from Standard-IA,<br/>0.03 USD per GB from Glacier Instant Retrieval.<br/>Zero from Standard and Intelligent-Tiering."]
+        M4["Data transfer out to the internet<br/>0.09 USD per GB to 10 TB<br/>0.085 USD per GB for the next 40 TB<br/>0.07 USD per GB for the next 100 TB<br/>0.05 USD per GB above 150 TB<br/>First 100 GB per month free"]
+    end
+
+    subgraph Ratio["The ratio that dictates architecture"]
+        R1["Store 1 GB for a month: 0.023 USD"]
+        R2["Send that same 1 GB out once: 0.09 USD"]
+        R3["Egress of one copy costs 3.9 months of storage"]
+        R1 --> R3
+        R2 --> R3
+    end
+
+    subgraph Consequences["What the ratio makes people build"]
+        C1["CloudFront in front of every public bucket.<br/>S3 to CloudFront transfer is free."]
+        C2["Compute moved into the same Region<br/>as the data. Same-Region traffic is free."]
+        C3["Formats that push predicates down.<br/>Parquet and Iceberg exist partly to<br/>avoid paying for bytes you discard."]
+        C4["Multi-cloud read paths that never<br/>cross a provider boundary twice"]
+        C5["Zero-egress competitors priced to attack<br/>exactly this line item"]
+    end
+
+    subgraph Escapes["Escape hatches"]
+        E1["Cloudflare R2: 0.015 USD per GB-month,<br/>zero egress, 4.50 USD per million class A,<br/>0.36 USD per million class B"]
+        E2["AWS waives egress for customers leaving<br/>AWS entirely, announced 5 March 2024,<br/>90 days to complete since 30 September 2025"]
+        E3["EU Data Act, applicable 12 September 2025,<br/>requires switching charges including egress<br/>to be withdrawn after a transitional period"]
+    end
+
+    Meters --> Ratio --> Consequences
+    Ratio --> Escapes
+
+    style Meters fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Ratio fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Consequences fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Escapes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+```
+
+### 17.1 The Four Meters
+
+US East (N. Virginia), August 2026:
+
+**Storage.** Per GB-month at the class rate, from 0.023 dollars for S3 Standard down to 0.00099 dollars for Deep Archive.
+
+**Requests.** 0.005 dollars per 1,000 PUT, COPY, POST, or LIST requests. 0.0004 dollars per 1,000 GET and all other requests. Lifecycle transition requests run from 0.01 dollars per 1,000 for Standard-IA, One Zone-IA, and Intelligent-Tiering, through 0.02 for Glacier Instant Retrieval and 0.03 for Glacier Flexible Retrieval, to 0.05 per 1,000 for Deep Archive. Failed requests are billed. Conditional reads, writes, and deletes carry no surcharge.
+
+**Retrieval.** 0.01 dollars per GB from Standard-IA and One Zone-IA. 0.03 from Glacier Instant Retrieval. From Glacier Flexible Retrieval, Bulk retrievals are free and complete in 5 to 12 hours, Standard costs 0.01 per GB and completes in 3 to 5 hours, Expedited costs 0.03 per GB and delivers objects under 250 MB in 1 to 5 minutes. From Deep Archive, Bulk costs 0.0025 per GB and completes within 48 hours, Standard costs 0.02 per GB and completes within 12 hours. Standard and Intelligent-Tiering charge nothing.
+
+**Data transfer out to the internet.** 0.09 dollars per GB for the first 10 TB in a month, 0.085 for the next 40 TB, 0.07 for the next 100 TB, and 0.05 above 150 TB. The first 100 GB per month is free, aggregated across all AWS services and Regions except China and GovCloud. Transfers within the same Region are free. Transfers from S3 to CloudFront are free.
+
+### 17.2 The Ratio That Decides Architecture
+
+Storing 1 GB in S3 Standard for a month costs 0.023 dollars. Sending that same 1 GB to the internet once costs 0.09 dollars. One egress equals 3.9 months of storage.
+
+Every architectural pattern in modern cloud infrastructure is downstream of that ratio.
+
+**CDNs in front of everything public.** CloudFront exists commercially because S3-to-CloudFront transfer is free and a cache hit costs neither an S3 GET nor S3 egress. For a static site, the difference between serving from S3 directly and serving through CloudFront is the difference between paying 0.09 dollars per GB and paying CloudFront's rate on cache misses only.
+
+**Compute co-located with data.** Same-Region traffic is free, which is why AWS recommends running EC2 in the same Region as the bucket and why nobody runs analytics in one Region against data in another twice.
+
+**Columnar formats with predicate pushdown.** Parquet, ORC, and Iceberg exist partly because scanning 10 TB to answer a query about 200 GB of it means paying for 10 TB of reads. Pushing the filter into the storage layer, or into the file format's own indexes, converts a data transfer bill into a metadata read.
+
+**Multi-cloud read paths that cross a provider boundary once.** Any design that shuttles the same bytes across a boundary repeatedly is paying the highest-margin line item on the bill each time.
+
+### 17.3 A Worked Bill
+
+A media company stores 100 TB, serves 50 million GETs a month, ingests 2 million objects a month, and pushes 20 TB out to the internet.
+
+| Line item | Calculation | Monthly cost |
+|-----------|-------------|--------------|
+| Storage, S3 Standard | 102,400 GB x 0.023 | 2,355.20 USD |
+| GET requests | 50,000,000 / 1,000 x 0.0004 | 20.00 USD |
+| PUT requests | 2,000,000 / 1,000 x 0.005 | 10.00 USD |
+| Egress, first 10 TB | 10,240 GB x 0.09 | 921.60 USD |
+| Egress, next 10 TB | 10,240 GB x 0.085 | 870.40 USD |
+| Free tier | first 100 GB | -9.00 USD |
+| **Total** | | **4,168.20 USD** |
+
+Egress is 43% of the bill and requests are under 1%. Now put CloudFront in front with a 90% cache hit ratio. S3 serves 5 million origin GETs instead of 50 million, and S3-to-CloudFront transfer is billed at zero dollars per GB, so the internet egress line disappears from the S3 bill entirely rather than shrinking. What remains is 2,355.20 dollars of storage, 2.00 dollars of GETs, and 10.00 dollars of PUTs: 2,367.20 dollars. All 20 TB of internet egress moves to the CloudFront bill, at CloudFront rates and against a 1 TB per month free tier. Egress falls from 43% of the S3 bill to nothing.
+
+Change the workload and the answer inverts. A workload storing 1 TB but issuing 500 million GETs a month pays 23.55 dollars in storage and 200 dollars in requests. Small-object, high-request workloads are request-bound, and the correct optimisation is to pack objects together, not to move them to a cheaper class.
+
+### 17.4 The Zero-Egress Competitors
+
+Cloudflare R2 charges 0.015 dollars per GB-month for Standard storage, 4.50 dollars per million Class A operations (writes and lists), 0.36 dollars per million Class B operations (reads), and zero for egress. Its Infrequent Access class charges 0.01 per GB-month, 9.00 per million Class A, 0.90 per million Class B, and 0.01 per GB retrieved, with a 30-day minimum storage duration. The free tier is 10 GB-month of storage, 1 million Class A, and 10 million Class B operations per month.
+
+Run the media company's numbers against R2: 102,400 GB at 0.015 is 1,536 dollars, 50 million Class B at 0.36 per million is 18 dollars, 2 million Class A at 4.50 per million is 9 dollars, egress zero. Total 1,563 dollars against 4,168. The storage is cheaper and the egress is free, and the whole difference is the egress line.
+
+Backblaze B2 uses the same playbook with free egress up to a multiple of stored data. The strategy is identical: attack the line item the incumbent depends on.
+
+Whether zero egress is sustainable is a different question, and one nobody outside those companies can answer. What is not in question is that it changed the negotiation.
+
+### 17.5 The Regulator Joins In
+
+AWS announced on 5 March 2024 that it waives data transfer out to the internet charges for customers moving off AWS entirely, explicitly stating that it follows the direction set by the European Data Act and extending it to all AWS customers globally in any Region. The process runs through AWS Support, is evaluated at the account level, and grants credits. An update dated 30 September 2025 gives eligible customers 90 days to complete the migration, extendable through Support, and removed the previous requirement to exceed 100 GB of monthly transfer.
+
+The pre-existing free allowances remain: 100 GB per month out of AWS Regions to the internet, and 1 TB per month out of CloudFront.
+
+Google and Microsoft announced equivalent exit-egress waivers in the same window. Three hyperscalers changed the same pricing term within weeks of each other, and none of them did it because of competition from a smaller provider.
+
+---
+
+## 18. One 12 GB Object, End to End
+
+Following a single object from upload to retrieval makes the interaction between the mechanisms concrete. The object is a 12 GB video master, `media/2026/08/ep-0417-master.mov`, in bucket `amzn-s3-demo-bucket-111122223333-us-east-1-an`, a versioned bucket with SSE-KMS default encryption and a two-step lifecycle policy.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Ed as Editing workstation
+    participant SDK as AWS SDK
+    participant FE as S3 front end
+    participant KMS as AWS KMS
+    participant IDX as Index subsystem
+    participant EC as Erasure coder
+    participant SN as Storage nodes
+    participant LC as Lifecycle engine
+
+    Note over Ed,SN: Day 0 - upload a 12 GB master file
+
+    Ed->>SDK: put ep-0417-master.mov
+    SDK->>SDK: 12 GB over the 100 MB threshold,<br/>split into 96 parts of 128 MiB
+    SDK->>FE: CreateMultipartUpload
+    FE->>IDX: Reserve upload id
+    FE-->>SDK: UploadId
+
+    loop 96 parts, 8 at a time
+        SDK->>FE: UploadPart with CRC64NVME
+        FE->>FE: Recompute the checksum, compare
+        FE->>KMS: GenerateDataKey once per bucket key window
+        KMS-->>FE: Plaintext and wrapped data key
+        FE->>EC: Encrypt with AES-256, then split
+        EC->>SN: Write k data shards plus m parity shards<br/>each into a different AZ and rack
+        SN-->>FE: Durable
+        FE-->>SDK: 200, part ETag
+    end
+
+    SDK->>FE: CompleteMultipartUpload, 96 ETags, If-None-Match *
+    FE->>IDX: Conditional index commit
+    IDX-->>FE: Committed, version id assigned
+    FE-->>SDK: 200, ETag "a3f1...c9-96"
+    Note over IDX: 98 PUT-class requests billed at<br/>0.005 USD per 1,000 = 0.00049 USD
+
+    Note over Ed,LC: Days 1 to 30 - S3 Standard
+    Note over SN: 12 GB x 0.023 USD = 0.276 USD per month
+
+    Note over LC: Day 30 - lifecycle rule fires
+    LC->>IDX: Transition to Standard-IA
+    LC->>SN: Rewrite placement, keep the same key and version
+    Note over LC: 1 transition request at 0.01 USD per 1,000 = 0.00001 USD<br/>New rate 12 GB x 0.0125 USD = 0.15 USD per month
+
+    Note over LC: Day 120 - second rule fires
+    LC->>IDX: Transition to Glacier Flexible Retrieval
+    Note over LC: 1 transition request at 0.03 USD per 1,000<br/>New rate 12 GB x 0.0036 USD = 0.0432 USD per month<br/>plus 40 KB of per-object metadata
+
+    Note over Ed,SN: Day 400 - a lawyer asks for the master
+    Ed->>FE: RestoreObject, Tier Bulk, Days 7
+    FE-->>Ed: 202 Accepted
+    Note over FE: Bulk restore from Glacier Flexible Retrieval<br/>completes in 5 to 12 hours and is free
+    FE->>SN: Stage a temporary copy at S3 Standard rates
+    Ed->>FE: GET the restored copy
+    FE-->>Ed: 200, 12 GB
+    Note over Ed: Egress to the internet<br/>12 GB x 0.09 USD = 1.08 USD<br/>which is 25 months of Glacier storage
+```
+
+### 18.1 Day 0: Upload
+
+The SDK sees 12 GB, which is above the 100 MB multipart threshold, and picks a 128 MiB part size. 12 GB divided by 128 MiB is 96 parts, comfortably under the 10,000 ceiling.
+
+`CreateMultipartUpload` returns an `UploadId`. The transfer manager uploads eight parts concurrently, each with an `x-amz-checksum-crc64nvme` header. The front end recomputes each checksum before storing, obtains a data key from KMS (once per bucket-key window rather than once per part, because bucket keys are enabled), encrypts with AES-256, splits the ciphertext into k data shards and m parity shards, and writes each shard into a different rack in a different Availability Zone.
+
+`CompleteMultipartUpload` sends all 96 part numbers and ETags with `If-None-Match: *`. S3 verifies every part ETag, computes the composite object ETag as the MD5 of the concatenated part digests with a `-96` suffix, and commits the index record. The object becomes visible atomically and strongly consistently.
+
+Request cost: 1 `CreateMultipartUpload` plus 96 `UploadPart` plus 1 `CompleteMultipartUpload`, all PUT-class, is 98 requests at 0.005 dollars per 1,000, or 0.00049 dollars. Rounding to a hundredth of a cent, free.
+
+Had the client died after part 90, 11.25 GiB, which is 12.08 GB on the bill, would sit in the bucket invisible to LIST and billed monthly until the `AbortIncompleteMultipartUpload` rule fired at day 7.
+
+### 18.2 Days 1 to 30: S3 Standard
+
+Storage: 12 GB at 0.023 dollars is 0.276 dollars per month. Editors pull byte ranges for scrubbing, each a GET at 0.0004 dollars per 1,000, and the first byte arrives in 100 to 200 ms.
+
+### 18.3 Day 30: Transition to Standard-IA
+
+The lifecycle rule fires. S3 queues the transition, re-places the shards, keeps the key and version ID unchanged, and starts billing at the Standard-IA rate from the date the rule was satisfied, not from the date the physical move completed.
+
+One transition request at 0.01 dollars per 1,000 is 0.00001 dollars. New storage rate: 12 GB at 0.0125 dollars is 0.15 dollars per month. A 45.7% reduction, and the object still answers in milliseconds. Any retrieval now costs 0.01 dollars per GB, so a full read costs 0.12 dollars, which is 80% of a month's storage.
+
+### 18.4 Day 120: Transition to Glacier Flexible Retrieval
+
+The second rule fires. This is legal because Standard-IA's 30-day minimum expired long ago.
+
+One transition request at 0.03 dollars per 1,000. New storage rate: 12 GB at 0.0036 dollars is 0.0432 dollars per month. Plus 40 KB of per-object overhead, 8 KB at the Standard rate and 32 KB at the Glacier rate, which for a 12 GB object is a rounding error and for a 12 KB object would triple the bill. A 90-day minimum duration clock starts now. The object is no longer readable by GET; it must be restored first.
+
+### 18.5 Day 400: Retrieval
+
+A lawyer needs the master. `RestoreObject` with `Tier: Bulk` and `Days: 7` returns `202 Accepted`. Bulk retrieval from Glacier Flexible Retrieval completes in 5 to 12 hours and is free of per-GB charge. S3 stages a temporary copy, billed at S3 Standard rates for the 7 days it exists, which is 12 GB at 0.023 dollars prorated to 7 days, about 0.064 dollars. The archived copy continues to be billed at the Glacier rate throughout.
+
+A GET on the restored copy returns 200 and 12 GB. If the lawyer is outside AWS, that is 12 GB of internet egress at 0.09 dollars per GB: **1.08 dollars**.
+
+### 18.6 The Punchline
+
+| Event | Cost |
+|-------|------|
+| Uploading the object as 96 parts | 0.00049 USD |
+| Storing it for a month in S3 Standard | 0.276 USD |
+| Storing it for a month in Glacier Flexible Retrieval | 0.0432 USD |
+| Restoring it from Glacier with Bulk | 0.00 USD plus 0.064 USD staging |
+| **Sending it to one person on the internet, once** | **1.08 USD** |
+
+One download costs 25 months of Glacier storage and nearly four months of S3 Standard storage. Uploading the object cost a twentieth of a cent; delivering it cost more than two thousand times that.
+
+That single ratio is why object storage architecture looks the way it does.
+
+---
+
+## 19. Security, Risk, and the Failures That Actually Happen
+
+Object storage fails in nine documented ways, and only one of them turns on the durability of the underlying disks. The threats are policy misconfiguration, credential compromise, ransomware, bucket name takeover, subdomain takeover, leaked presigned URLs, control-plane blast radius, silent corruption, and cost itself used as a weapon. Eight are decisions somebody made. One is physics.
+
+### 19.1 The Threat Model
+
+| Threat | Mechanism | Defence |
+|--------|-----------|---------|
+| **Public exposure by policy** | A wildcard principal in a bucket policy or a public ACL | Block Public Access at the account and organization level, ACLs disabled, IAM Access Analyzer |
+| **Credential compromise** | An access key in a repository, a compromised CI runner, an over-broad role | Short-lived STS credentials, IAM Access Analyzer, `aws:SourceVpce` conditions, MFA delete |
+| **Ransomware** | An attacker with `s3:PutObject` and `s3:DeleteObject` overwrites or deletes your objects with your own keys | Versioning plus Object Lock in compliance mode, replication to an account the attacker cannot reach |
+| **Bucket name takeover** | A deleted bucket name reclaimed by a stranger while a CNAME still points at it | Never delete buckets. Empty them and keep them. Use account regional namespaces. |
+| **Subdomain takeover** | A CNAME or alias record pointing at an S3 endpoint with no matching bucket | Audit DNS. AWS warns any AWS user can create that bucket and publish content under your alias. |
+| **Data exfiltration by presigned URL** | A URL leaks into logs, history, or a chat client | Short expiries, one object per URL, pin content type and length |
+| **Control-plane blast radius** | An operational tool removes more capacity than intended | Cellular partitioning, minimum-capacity guardrails, slow-drain tooling |
+| **Silent corruption** | Bit rot on media, a bad memory module, a bug in the storage path | End-to-end checksums, background scrubbing, formal validation of the storage node |
+| **Cost as a denial of service** | An attacker or a bug issues millions of requests against a public bucket | Requester Pays, CloudFront in front, budget alarms, no anonymous access |
+
+### 19.2 The 2017 Index Outage
+
+Covered in section 11.3. The three lessons that transfer to any system: a metadata tier on the request path of every operation is a single point of failure by construction, recovery time scales with the size of the thing being recovered so cells must be small, and any tool that can remove capacity must refuse to breach a minimum.
+
+### 19.3 The Public Bucket Era
+
+Between roughly 2017 and 2021, publicly readable S3 buckets were the most common single source of large data exposures in the industry. The mechanism was almost always the same: an ACL granting `AllUsers` or, worse, `AuthenticatedUsers`, which means every AWS account holder in the world rather than every principal in your account.
+
+AWS responded structurally rather than with documentation. Block Public Access was introduced and then defaulted on for new buckets. Object Ownership defaulted to bucket owner enforced, disabling ACLs entirely. The console started labelling public buckets in red. IAM Access Analyzer for S3 was built to surface every bucket whose ACL, bucket policy, or access point policy grants public or cross-account access, with one-click remediation.
+
+The class of incident has not disappeared, but it now requires deliberately turning off two safety features rather than failing to turn on one.
+
+### 19.4 Ransomware, and Why Object Lock Is the Only Real Answer
+
+Object storage ransomware does not encrypt objects in place, because nothing in the API permits it. The attacker with valid credentials either overwrites each object with an encrypted version or deletes them outright.
+
+Versioning alone is insufficient: an attacker with `s3:DeleteObjectVersion` deletes the old versions too. Versioning plus Object Lock in compliance mode is sufficient, because compliance mode refuses permanent deletion for every principal including the account root user, and the retention period cannot be shortened. AWS documents the only escape as deleting the AWS account itself.
+
+That is also the reason to be careful with it. Compliance mode removes the ability to delete from you as thoroughly as from an attacker. A misconfigured default retention of ten years on a high-volume bucket creates a bill you cannot stop paying. Constrain it with `s3:object-lock-remaining-retention-days` in a bucket policy before enabling it, not after.
+
+The complementary control is cross-account replication into an account whose credentials the primary workload does not hold. An attacker who compromises the production role cannot reach the replica.
+
+### 19.5 The Failures Nobody Notices
+
+**Abandoned multipart uploads.** Invisible to LIST, billed monthly, forever. Discussed in section 6.2.
+
+**Noncurrent versions.** Invisible to `ListObjectsV2`, billed in full, accumulating from the day versioning was enabled. Discussed in section 13.3.
+
+**Delete markers with nothing under them.** Free to store, but they inflate LIST results and slow enumeration.
+
+**Objects below 128 KB in an IA class.** Billed at 128 KB each. A bucket of 100 million 10 KB objects in Standard-IA is billed as 12.8 TB rather than 1 TB.
+
+**Stalled replication.** Objects queued for replication that never replicate leave both a false sense of durability and a growing bill, and are only visible in replication metrics that nobody has an alarm on.
+
+S3 Storage Lens exists to surface exactly this list, and it is the first thing to enable on any account with a nontrivial S3 bill.
+
+---
+
+## 20. Regulation and Compliance
+
+Object storage is regulated in two directions at once. Records regulations dictate that certain data must be immutable for a fixed period, and competition regulation now dictates that moving data between providers must not be priced as a penalty.
+
+### 20.1 Records Retention
+
+S3 Object Lock has been assessed by Cohasset Associates for use in environments subject to SEC Rule 17a-4, CFTC regulations, and FINRA rules. SEC 17a-4(f) is the rule requiring broker-dealers to preserve records in a non-rewriteable, non-erasable format, and it is the reason compliance mode is absolute rather than merely difficult to override.
+
+The technical requirements that regulation imposes on the design are visible in the API. Retention can be extended but never shortened. The mode cannot be changed from compliance to governance. `BypassGovernanceRetention` has no compliance-mode equivalent. A per-object retain-until date is stored in the version's metadata rather than in a mutable bucket setting. Each of those is a direct translation of a legal requirement into an API refusal.
+
+### 20.2 Data Residency
+
+A bucket lives in one Region and cannot be moved. That is the primitive on which every residency claim rests, and it is why the global bucket namespace over Regional storage is such a consequential early decision.
+
+AWS extends it three ways. S3 on Outposts puts buckets on hardware in your own facility, with its own `OUTPOSTS` storage class, always encrypted with SSE-S3 or optionally SSE-C, and no SSE-KMS support. Directory buckets in AWS Local Zones support the `EXPRESS_ONEZONE` and `ONEZONE_IA` classes for residency and isolation workloads. And the `aws-eusc` partition exists for the European Sovereign Cloud, with its own bucket namespace.
+
+### 20.3 The EU Data Act and Switching Charges
+
+Regulation (EU) 2023/2854, the Data Act, entered into force on 11 January 2024 and became applicable on 12 September 2025. Its cloud switching chapter requires providers to remove obstacles to moving between data processing services, and it treats data egress charges as one of those obstacles by folding them into the definition of switching charges. Article 29 provides for a transitional period of reduced charges followed by full withdrawal of switching charges in January 2027.
+
+The market response arrived ahead of the deadline. AWS waived internet egress charges for customers leaving AWS on 5 March 2024, describing the move as following the direction set by the European Data Act and applying it to all customers globally. Google and Microsoft announced equivalent programmes. The waiver is a managed process rather than an automatic price change: you apply through Support, AWS evaluates at the account level and issues credits, and since 30 September 2025 you have 90 days to complete the migration with extensions available.
+
+Notice what is not covered. The waiver applies to leaving the provider entirely, not to routine multi-cloud traffic. Egress from a bucket to a competing cloud in the ordinary course of business is still billed at 0.09 dollars per GB. The regulation targets lock-in, not data movement.
+
+### 20.4 Encryption Mandates
+
+Since 5 January 2023 every new S3 object upload is encrypted at rest by default with SSE-S3, at no cost and no performance impact, and the automatic encryption status is visible in CloudTrail logs, S3 Inventory, S3 Storage Lens, the console, and as an API response header. That change turned "is our data encrypted at rest" from an audit finding into a non-question.
+
+DSSE-KMS exists for the narrower set of regimes that require two independent layers of encryption applied server-side, and its whole value proposition is that it lets you satisfy such a requirement while still using ordinary AWS analytics services on the data.
+
+---
+
+## 21. Comparisons and When to Choose Each
+
+Every object store implements the same API surface and differs in three things: where the metadata lives, what the durability model is, and how egress is priced.
+
+### 21.1 The Managed Services
+
+| | Amazon S3 | Azure Blob Storage | Google Cloud Storage | Cloudflare R2 |
+|---|---|---|---|---|
+| **Container** | Bucket | Container in a storage account | Bucket | Bucket |
+| **Blob types** | One | Block, append, and page blobs | One | One |
+| **In-place writes** | No | Page blobs only | No | No |
+| **Consistency** | Strong since 1 Dec 2020 | Strong | Strong, with access-grant propagation and bucket recreation excepted | Strong |
+| **Durability, single region** | 11 nines | 11 nines LRS, 12 nines ZRS | Not published as a single figure | Not published |
+| **Durability, geo** | Via Cross-Region Replication | 16 nines GRS or GZRS | Dual-region and multi-region buckets | Not applicable |
+| **Geo RPO** | Replication Time Control SLA | 15 minutes or less with priority replication | Asynchronous | Not applicable |
+| **Egress to internet** | 0.09 USD per GB, 100 GB free | Charged | Charged | Free |
+| **Standard storage** | 0.023 USD per GB-month | Tiered | Tiered | 0.015 USD per GB-month |
+| **Object ceiling** | 50 TB | Terabyte-scale per blob type | Terabyte-scale | Terabyte-scale |
+| **WORM** | Object Lock, governance and compliance | Immutable blob storage | Bucket Lock and retention policies | Not equivalent |
+
+Azure's block, append, and page blob split is the one genuine architectural divergence in the group. Page blobs support 512-byte in-place writes because they back virtual machine disks, which means Azure ships a blob type that is really block storage wearing an object API.
+
+Azure also publishes its durability tiers in a way AWS does not: at least 11 nines for LRS in one datacenter, at least 12 nines for ZRS across three or more availability zones, and at least 16 nines for GRS or GZRS with asynchronous replication to a paired region. That laddering makes the trade explicit in a way "11 nines" alone does not.
+
+### 21.2 The Self-Hosted Systems
+
+| | Ceph RGW | MinIO | OpenStack Swift |
+|---|---|---|---|
+| **Placement** | CRUSH, computed by the client | Erasure sets, computed | Ring, computed |
+| **Metadata tier on the read path** | None | None | None |
+| **Redundancy** | Replication or erasure coding per pool | Inline erasure coding | Replication or erasure coding |
+| **Default EC profile** | k=2, m=2, ISA plugin, `reed_sol_van`, host failure domain | EC:4 on the erasure set | Configurable |
+| **EC overhead formula** | (k+m)/k | (k+m)/k per set | (k+m)/k |
+| **Typical production profile** | 4+2 at 1.5x | EC:4 on 16 drives at 1.33x | 8+4 or similar |
+| **Bit rot detection** | Deep scrub | Per-object hashes | Auditor daemons |
+| **Best fit** | Unified block, file, and object on one cluster | S3-compatible storage on your own drives | OpenStack estates |
+
+Ceph's default erasure profile of k=2, m=2 gives 2.0x overhead and tolerates two simultaneous OSD losses, requiring 2 TB to store 1 TB against 3 TB for a size-3 replicated pool. Ceph's own documentation is honest about the cost: there is a significant performance trade-off, particularly on hard drives and particularly during recovery and backfill.
+
+MinIO's read quorum is k shards and its write quorum is k, rising to k+1 when parity equals exactly half the erasure set size, which is the standard defence against split brain. Production deployments require EC:3 or higher.
+
+### 21.3 Choosing
+
+**Choose S3** when you want the reference implementation, the deepest ecosystem, and the widest set of adjacent services, and you can absorb egress pricing or hide it behind a CDN.
+
+**Choose Azure Blob Storage** when you need append or page semantics, or when the 16-nines geo-redundant tier is a requirement rather than a preference.
+
+**Choose Google Cloud Storage** when you want dual-region or multi-region buckets as a first-class primitive rather than as a replication configuration.
+
+**Choose Cloudflare R2** when egress dominates your bill and you can live without the surrounding service ecosystem. The API is S3-compatible, so the switching cost is mostly in the services you would leave behind.
+
+**Choose Ceph** when you need block, file, and object from one cluster and you have the operational staff. Ceph is not a weekend project.
+
+**Choose MinIO** when you want an S3 API over your own drives with the least operational surface, particularly for on-premises AI and analytics workloads that already speak S3.
+
+**Choose a directory bucket or S3 Express One Zone** when latency dominates and the data is regenerable, and you have confirmed that 0.11 dollars per GB-month against 0.023 is worth it for your working set.
+
+---
+
+## 22. Modern Developments
+
+Object storage spent fifteen years being a place to put files. Since 2023 it has been turning into a database substrate, and every recent feature points the same direction.
+
+### 22.1 Conditional Writes Changed What Can Be Built
+
+`If-None-Match` and `If-Match` gave S3 a compare-and-swap primitive, and that is the missing piece every table format previously had to import from elsewhere. Apache Iceberg's commit protocol is a compare-and-swap on a metadata pointer. Delta Lake's is a conditional file creation. Before conditional writes both needed DynamoDB, Glue, or a Hive Metastore to provide atomicity. Now the bucket provides it, and a catalog can be a bucket.
+
+Bucket policies can require conditional writes with the `s3:if-none-match` condition key, which makes a bucket append-only by construction rather than by convention.
+
+### 22.2 S3 Express One Zone and Directory Buckets
+
+S3 Express One Zone is the first S3 storage class designed around latency instead of cost, delivering consistent single-digit millisecond access, up to 10 times faster data access than S3 Standard, at 0.11 dollars per GB-month. The request discount is stated twice and differently: up to 80% lower than S3 Standard on the product page, 50% lower in the storage class documentation, both current on 31 August 2026.
+
+It arrives with a new bucket type. Directory buckets are named `base-name--zone-id--x-s3`, organise data hierarchically into real directories with the forward slash as the only supported delimiter, create subdirectories implicitly with the first object key that needs them, and return unsorted `ListObjectsV2` results. There are no prefix limits and directories scale horizontally. The quotas are 100 directory buckets per account per Region by default, up to 200,000 read TPS per bucket, and up to 100,000 write TPS per bucket. The quota table publishes those three rows and nothing else; there is no aggregate transaction-rate figure. Block Public Access is permanently on, Object Ownership is permanently bucket owner enforced, and ACLs are permanently disabled.
+
+The operational wrinkle: a directory bucket with no request activity for at least 90 days goes inactive, retains all storage and metadata, continues to be billed, and returns HTTP 503 for a few minutes on the next access while it wakes. Local Zone directory buckets are exempt.
+
+### 22.3 S3 Tables
+
+S3 Tables is a bucket type that is an Apache Iceberg catalog. A table bucket stores tables as subresources, in Iceberg format, queryable with standard SQL from Athena, Redshift, EMR, and Spark.
+
+The managed part is maintenance. S3 continuously performs compaction, snapshot management, and unreferenced file removal, which are exactly the three chores that make self-managed Iceberg tables degrade. AWS states that table buckets provide higher transactions per second and better query throughput than self-managed tables in general purpose buckets, with the same durability, availability, and scalability as other bucket types.
+
+It also gets its own IAM namespace, `s3tables`, so policies can be written against tables and namespaces rather than against key prefixes. Block Public Access is always enabled and cannot be disabled.
+
+### 22.4 S3 Metadata
+
+S3 Metadata automatically captures metadata for objects in general purpose buckets and maintains it in read-only, fully managed Apache Iceberg tables that refresh as objects change. The tables carry system metadata such as creation time and storage class, custom metadata such as tags, user-defined metadata and annotations, and event metadata recording updates and deletions along with the AWS account that made the request.
+
+This closes a twenty-year gap. Enumerating a large bucket used to require a million paginated LIST calls; now it is a SQL query against a table the service maintains. Every tool that previously kept its own shadow index of a bucket can stop.
+
+### 22.5 S3 Vectors
+
+S3 Vectors adds vector buckets and vector indexes with their own API and their own IAM namespace, `s3vectors`. Writes are strongly consistent. Queries return in sub-second time for infrequent queries and as low as 100 milliseconds for more frequent ones, and AWS claims a reduction of up to 90% in the cost of storing and querying vectors. Metadata attached to vectors is filterable by default and supports string, number, boolean, and list types.
+
+The positioning is explicit: it targets workloads where queries are infrequent and cost matters more than latency, and it integrates with Amazon OpenSearch Service so that a vector index can be exported to OpenSearch Serverless when high query rates are needed. It is a cold tier for vectors, which is a concept that did not exist two years ago.
+
+### 22.6 S3 Files
+
+S3 Files is a shared file system, built on Amazon EFS, that presents a bucket or a prefix as a mountable NFS 4.1 and 4.2 file system on EC2, Lambda, EKS, and ECS.
+
+The mechanism is a two-tier read path. Small files, below a configurable 128 KiB default, are asynchronously imported onto a low-latency high-performance storage layer and served from there at sub-millisecond to single-digit millisecond latency. Reads of 1 MiB or more stream directly from the bucket at up to terabytes per second of aggregate throughput, bypassing the file system entirely and incurring only a standard S3 GET with no file system access charge. Data not read within a configurable window of 1 to 365 days, defaulting to 30, expires from the fast tier. Synchronisation runs automatically in both directions, and the file system provides read-after-write consistency, file locking, and POSIX permissions.
+
+That is the most serious attempt anyone has made at putting a real file system in front of an object store. It works by admitting the two layers have different jobs rather than pretending one can be the other.
+
+### 22.7 Where This Goes
+
+The direction is unmistakable. An object store is acquiring the primitives of a database: atomic compare-and-swap, a queryable metadata catalog, a managed table format, a vector index, and a file system view. Each addition reduces the number of external systems a data platform needs.
+
+The constraint that will not move is latency. S3 Standard answers in 100 to 200 milliseconds, and no amount of API surface changes that. Express One Zone buys single-digit milliseconds at 4.8 times the price and one Availability Zone. Anything that needs less will keep a cache, and the interesting engineering for the next several years is in how that cache is kept coherent with a store that now tells you, cheaply and consistently, when its contents changed.
+
+---
+
+## 23. Appendix
+
+### 23.1 Diagram Index
+
+| Diagram | Source | Description |
+|---------|--------|-------------|
+| Evolution timeline | [`diagrams/evolution-timeline.mmd`](diagrams/evolution-timeline.mmd) | Object storage milestones from the 2006 S3 launch to August 2026 |
+| Object, file, block | [`diagrams/object-file-block.mmd`](diagrams/object-file-block.mmd) | The three storage contracts and what each one gives up |
+| S3 data model | [`diagrams/s3-data-model.mmd`](diagrams/s3-data-model.mmd) | Bucket, key, version, value, and the metadata size limits |
+| Participants | [`diagrams/participants.mmd`](diagrams/participants.mmd) | Request path, metadata plane, data plane, and background plane |
+| Multipart upload | [`diagrams/multipart-upload.mmd`](diagrams/multipart-upload.mmd) | The three calls, the 96-part example, and the atomic commit |
+| Consistency and the witness | [`diagrams/consistency-witness.mmd`](diagrams/consistency-witness.mmd) | Eventual consistency before December 2020 and the witness read barrier after |
+| Durability stack | [`diagrams/durability-stack.mmd`](diagrams/durability-stack.mmd) | The four layers that produce eleven nines, and what they do not cover |
+| Erasure coding | [`diagrams/erasure-coding.mmd`](diagrams/erasure-coding.mmd) | Replication against Reed-Solomon against Local Reconstruction Codes |
+| Key space partitioning | [`diagrams/keyspace-partitioning.mmd`](diagrams/keyspace-partitioning.mmd) | Sequential keys, partition splits, and high-cardinality prefixes |
+| Index layer | [`diagrams/index-layer.mmd`](diagrams/index-layer.mmd) | Indexed placement against algorithmic placement, and the 2017 evidence |
+| Request routing | [`diagrams/request-routing.mmd`](diagrams/request-routing.mmd) | URL forms, front-end checks, status codes, and hot-key remedies |
+| Versioning and delete markers | [`diagrams/versioning-delete-markers.mmd`](diagrams/versioning-delete-markers.mmd) | Bucket states, the version stack, the two DELETE forms, and Object Lock |
+| Storage class waterfall | [`diagrams/storage-class-waterfall.mmd`](diagrams/storage-class-waterfall.mmd) | Every legal lifecycle transition with prices and minimum durations |
+| Access evaluation | [`diagrams/access-evaluation.mmd`](diagrams/access-evaluation.mmd) | The authorization decision path and presigned URL semantics |
+| Cost anatomy | [`diagrams/cost-anatomy.mmd`](diagrams/cost-anatomy.mmd) | The four meters, the egress ratio, and what it makes people build |
+| End-to-end lifecycle | [`diagrams/end-to-end-lifecycle.mmd`](diagrams/end-to-end-lifecycle.mmd) | One 12 GB object from upload through archive to retrieval |
+
+### 23.2 Key Terminology
+
+| Term | Meaning |
+|------|---------|
+| **Annotation** | A named payload of 1 byte to 1 MiB of UTF-8 text attached to an existing object without rewriting it |
+| **Availability Zone** | An isolated facility with independent power, cooling, and networking; S3 multi-AZ classes use three or more |
+| **Bucket** | A Region-bound container whose name is unique across every account in an AWS partition |
+| **Bucket key** | A short-lived bucket-level KMS key from which S3 derives per-object data keys, cutting KMS call volume |
+| **Composite checksum** | A checksum of concatenated part checksums, carrying a `-N` suffix; verifiable only with knowledge of the part boundaries |
+| **CRUSH** | Ceph's algorithm that maps a placement group to an ordered list of OSDs from the cluster map, with no index lookup |
+| **Delete marker** | A zero-byte version inserted by a DELETE without a version ID; it becomes current and makes GET return 404 |
+| **Directory bucket** | A bucket named `base--zone-id--x-s3` with a hierarchical namespace, no prefix limits, and single-digit millisecond latency |
+| **Durability review** | AWS's written threat-modelling process applied to any change that can touch customer bytes |
+| **Erasure set** | MinIO's unit of erasure coding: 2 to 16 drives, or up to 32 on recent releases |
+| **ETag** | An entity tag; an MD5 of the object for single-part unencrypted or SSE-S3 objects, a composite digest with a `-N` suffix for multipart objects, and neither for KMS-encrypted objects |
+| **Fault domain** | A set of nodes that can fail together from one hardware cause, such as a rack |
+| **Full-object checksum** | A checksum over the whole object, verifiable by a downloader with no knowledge of the upload |
+| **GF(2^8)** | The Galois field over 256 elements in which Reed-Solomon arithmetic runs; addition is XOR, multiplication is a table lookup |
+| **Governance mode** | Object Lock retention removable by a principal holding `s3:BypassGovernanceRetention` with an explicit header |
+| **Compliance mode** | Object Lock retention removable by nobody, including the account root user, until the Retain Until Date passes |
+| **Heat** | The number of requests hitting a given disk at a moment |
+| **Index subsystem** | The S3 tier that maps bucket plus key plus version to shard locations; required for every GET, LIST, PUT, and DELETE |
+| **LRC (k, l, r)** | Local Reconstruction Code with k data fragments, l local parities over groups of k/l, and r global parities |
+| **Maximally Recoverable** | A code property meaning every information-theoretically decodable failure pattern is decodable in practice |
+| **MTTR** | Mean time to repair; the term that dominates a durability model, more than mean time to failure |
+| **Multipart upload** | The three-call protocol that assembles an object from up to 10,000 parts of 5 MiB to 5 GiB each |
+| **Partitioned prefix** | A contiguous key range owned by one index partition, limited to about 3,500 writes and 5,500 reads per second |
+| **Placement group** | Ceph's intermediate mapping unit between an object name hash and a set of OSDs |
+| **Presigned URL** | A request with SigV4 moved into the query string, carrying the signer's permissions as evaluated at use time |
+| **Reduced Redundancy Storage** | A legacy class designed for 99.99% durability, an average annual expected loss of 0.01% of objects |
+| **Reed-Solomon (k, m)** | An erasure code splitting data into k shards plus m parity shards, where any k reconstruct the whole |
+| **ShardStore** | The Rust key-value storage node engine underneath S3, validated with lightweight formal methods |
+| **SigV4** | The AWS request signing scheme: canonical request, string to sign, four-step signing key derivation, HMAC-SHA256 |
+| **SigV4a** | The ECDSA P-256 variant used for Multi-Region Access Points, with an `X-Amz-Region-Set` header |
+| **SSE-C** | Server-side encryption with a key the caller supplies on every request and S3 never stores; off by default since April 2026 |
+| **Storage stamp** | Azure's cluster unit, 20 racks in the LRC paper, sized so that each of 16 fragments lands in a different rack |
+| **Stream layer** | Azure's append-only distributed file system holding three replicas until an extent is sealed at roughly 1 GB |
+| **UNSIGNED-PAYLOAD** | The literal string used in place of a payload hash when the body cannot be buffered for hashing |
+| **Upgrade domain** | A set of nodes rebooted together during a rollout; deliberately orthogonal to fault domains |
+| **Witness** | The in-memory read barrier that tells the S3 metadata cache whether its view of an object is stale |
+
+### 23.3 Reference Tables
+
+**Hard limits, general purpose buckets**
+
+| Item | Limit |
+|------|-------|
+| Bucket name length | 3 to 63 characters |
+| Object key length | 1,024 bytes of UTF-8 |
+| Maximum object size | 50 TB (48.8 TiB via multipart) |
+| Largest single PUT | 5 GB |
+| Parts per multipart upload | 10,000 |
+| Part size | 5 MiB to 5 GiB, last part exempt |
+| PUT request header total | 8 KB |
+| User-defined metadata | 2 KB |
+| System-defined metadata | 2 KB |
+| Object tags | 10 per object |
+| Annotation payload | 1 byte to 1 MiB |
+| Annotations per object version | 1,000 |
+| Annotation name | 512 bytes |
+| Total annotation storage per object | 1 GiB |
+| Keys per LIST response | 1,000 |
+| Parts per `ListParts` response | 1,000 |
+| Uploads per `ListMultipartUploads` response | 1,000 |
+| Writes per partitioned prefix | at least 3,500 per second |
+| Reads per partitioned prefix | at least 5,500 per second |
+| Presigned URL lifetime, long-term credentials | 604,800 seconds (7 days) |
+| Presigned URL lifetime, console | 12 hours |
+| Presigned URL lifetime, STS credentials | the remaining session lifetime |
+
+**Hard limits, directory buckets**
+
+| Item | Limit |
+|------|-------|
+| Directory buckets per account per Region | 100, adjustable |
+| Read TPS per bucket | up to 200,000 |
+| Write TPS per bucket | up to 100,000 |
+| Inactivity before dormancy | 90 days, except Local Zones |
+| Supported delimiter | forward slash only |
+
+**Checksum algorithms**
+
+| Algorithm | Header |
+|-----------|--------|
+| CRC-64/NVME (default) | `x-amz-checksum-crc64nvme` |
+| CRC-32 | `x-amz-checksum-crc32` |
+| CRC-32C | `x-amz-checksum-crc32c` |
+| SHA-1 | `x-amz-checksum-sha1` |
+| SHA-256 | `x-amz-checksum-sha256` |
+| SHA-512 | `x-amz-checksum-sha512` |
+| MD5 | `x-amz-checksum-md5` |
+| XXHash64, XXHash3, XXHash128 | `x-amz-checksum-xxhash64` and variants |
+
+**Archive retrieval times**
+
+| Class or tier | Expedited | Standard with Batch Ops | Standard | Bulk |
+|---------------|-----------|-------------------------|----------|------|
+| Glacier Flexible Retrieval, Intelligent-Tiering Archive Access | 1 to 5 minutes | minutes to 5 hours | 3 to 5 hours | 5 to 12 hours |
+| Glacier Deep Archive, Intelligent-Tiering Deep Archive Access | Not available | 9 to 12 hours | within 12 hours | within 48 hours |
+
+Restore requests are limited to 1,000 transactions per second per account, and restores run at up to 1 to 2 petabytes per day per account. Objects over 5 TB retrieve at up to 300 MB per second, so a 50 TB object can take up to 48 hours regardless of tier. Provisioned capacity guarantees at least three Expedited retrievals every 5 minutes per unit, with up to 300 MB per second of throughput.
+
+**Environment variables and configuration worth knowing**
+
+| Setting | System | Effect |
+|---------|--------|--------|
+| `AbortIncompleteMultipartUpload` | S3 lifecycle | Reaps abandoned upload parts, which are billed but invisible |
+| `NoncurrentVersionExpiration` | S3 lifecycle | Reaps old versions, which are billed in full |
+| `ExpiredObjectDeleteMarker` | S3 lifecycle | Removes delete markers with nothing under them |
+| `x-amz-transition-default-minimum-object-size` | `PutBucketLifecycleConfiguration` | Restores pre-September-2024 small-object transition behaviour |
+| `x-amz-server-side-encryption-bucket-key-enabled` | S3 PUT | Amortises KMS calls across many objects |
+| `x-amz-bucket-namespace: account-regional` | `CreateBucket` | Creates the bucket in a namespace only your account can use |
+| `MINIO_ERASURE_SET_DRIVE_COUNT` | MinIO | Sets erasure set size, up to 32 on recent releases |
+| `MINIO_ERASURE_PARITY_UPGRADE_BUDGET` | MinIO | Caps automatic parity upgrades, default 1% of capacity per outage |
+
+---
+
+## 24. Key Takeaways
+
+**Object storage is a file system with the coordination removed.** No directories, no in-place writes, no renames, no locks. Everything that scales about it and everything that annoys you about it comes from that single subtraction.
+
+**The flat namespace is real, and the folders are not.** A key is one string of up to 1,024 bytes. Prefixes and delimiters are arguments to LIST, evaluated per request. There is nothing to delete when you delete a folder except every key under it, one at a time.
+
+**Immutability is the load-bearing property.** Because an object never changes in place, a shard never changes in place, which is what makes checksums permanent, caches trivially valid, replication conflict-free, and erasure coding cheap. Every durability mechanism in the system is downstream of forbidding the partial write.
+
+**Strong consistency arrived on 1 December 2020 and it changed what you can build.** The mechanism is a cache coherence protocol: an in-memory witness that acts as a read barrier and tells the metadata cache whether its view is stale. Combined with `If-None-Match` and `If-Match`, it gives S3 a compare-and-swap register, which is why a bucket can now be an Iceberg catalog.
+
+**Eleven nines is a repair-speed number, not a disk number.** Redundancy across uncorrelated failure domains, checksums at every hop, background scrubbing, and repair fast enough that shards are rarely missing. It covers hardware and nothing else. Not your DELETE, not your lifecycle rule, not a stolen credential, not the loss of a Region, and not the loss of the single AZ in a One Zone class.
+
+**Erasure coding halves the hardware, and locality codes halve the repair.** Reed-Solomon (12,4) and LRC (12,2,2) both cost 1.33x against 3.00x for replication, but LRC rebuilds one lost fragment by reading six instead of twelve. Azure's measured MTTFs: 3.5 x 10^9 years for three replicas, 6.1 x 10^11 for RS(6,3), 2.6 x 10^12 for LRC (6,2,2). Three-way replication is the expensive option that happens to be simple.
+
+**The key space is range-partitioned, so your key naming is a performance decision.** At least 3,500 writes and 5,500 reads per second per partitioned prefix, unlimited prefixes. Sequential timestamps concentrate every write into one partition and earn 503s. A high-cardinality leading prefix spreads them from the first request, at the cost of cheap range listings.
+
+**There is an index, and AWS told you about it on 28 February 2017.** The index subsystem maps key to location and is required for every GET, LIST, PUT, and DELETE. Its recovery time drove the whole industry's move to cellular architecture. Ceph and Swift avoid the dependency by computing placement instead of storing it, and pay for it in rebalancing.
+
+**Versioning is an append-only log with a billing consequence.** Every version is the whole object. A delete without a version ID adds a delete marker and removes nothing. An expiration rule written for an unversioned bucket silently stops deleting anything. `NoncurrentVersionExpiration` is not optional.
+
+**Object Lock in compliance mode is absolute, deliberately.** No principal can delete, including the account root user, until the retain-until date passes. That is the property SEC 17a-4 requires and the reason to constrain retention with a bucket policy before enabling it.
+
+**Storage classes span a factor of 23 in price and are governed by three gotchas.** Minimum durations are charged whether you use them or not, objects under 128 KB do not transition by default since September 2024, and Glacier objects carry 40 KB of per-object metadata. Archiving millions of small objects costs more than leaving them alone.
+
+**Egress, not storage, decides architecture.** Storing 1 GB for a month costs 0.023 dollars; sending it out once costs 0.09. One download equals 3.9 months of storage. CDNs, same-Region compute, columnar formats with predicate pushdown, and the entire zero-egress competitive strategy exist because of that one ratio.
+
+**The regulator is now a participant in the pricing.** The EU Data Act became applicable on 12 September 2025 and treats egress fees as a switching obstacle. All three hyperscalers waived exit egress within weeks of each other in 2024. Routine multi-cloud traffic is still billed at full rate.
+
+**The object store is becoming a database substrate.** Conditional writes gave it compare-and-swap. S3 Metadata gave it a queryable catalog. S3 Tables gave it a managed Iceberg implementation. S3 Vectors gave it a cold tier for embeddings. S3 Files gave it a POSIX view. The one thing that has not moved is the 100 to 200 millisecond first byte, which is why every serious system built on it still keeps a cache.

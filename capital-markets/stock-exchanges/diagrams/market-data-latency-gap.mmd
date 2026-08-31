@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Engines["Exchange matching engines"]
+        E1["Nasdaq<br/>Carteret NJ"]
+        E2["NYSE<br/>Mahwah NJ"]
+        E3["Cboe BZX/BYX/EDGX/EDGA<br/>Secaucus NJ"]
+        E4["MEMX, MIAX Pearl, IEX<br/>Secaucus / Carteret NJ"]
+    end
+
+    subgraph Direct["Path A: proprietary depth feeds"]
+        D1["ITCH / PITCH / XDP<br/>full order-by-order depth"]
+        D2["MoldUDP64 multicast,<br/>often from an FPGA"]
+        D3["Cross-connect inside the<br/>same building, metres of fiber"]
+        D4["Subscriber builds its OWN<br/>consolidated view from N feeds"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph SIPpath["Path B: the SIP"]
+        S1["Each venue sends top-of-book<br/>quotes and every trade<br/>to the processor"]
+        S2["Geographic hop:<br/>venue -> processor site"]
+        S3["Consolidation:<br/>merge, compute the NBBO,<br/>compute the LULD price bands"]
+        S4["Geographic hop:<br/>processor -> subscriber"]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    E1 --> D1
+    E2 --> D1
+    E3 --> D1
+    E4 --> D1
+    E1 --> S1
+    E2 --> S1
+    E3 --> S1
+    E4 --> S1
+
+    D4 --> USE1["Used by: market makers, wholesalers,<br/>smart order routers, HFT.<br/>Depth of book, order-level detail,<br/>imbalance indicators."]
+    S4 --> USE2["Used by: retail platforms, brokers,<br/>compliance and surveillance,<br/>anyone who needs the OFFICIAL NBBO<br/>and the OFFICIAL price bands."]
+
+    MEAS["Measured latency, CTA SIP processor only<br/>(network entrance to network exit of the CTS/CQS environment)<br/>--------------------------------------------------<br/>CQS quote feed, July 2026: mean 19.9 us, median 18.0 us, 99th pct 24.5 us<br/>CTS trade feed, July 2026: mean 20.9 us, median 18.6 us, 99th pct 31.8 us<br/>Peak CQS messages/second, July 2026: 1,754,000<br/>Peak CTS transactions/day, July 2026: 113.9 million<br/>System availability, every quarter 2024-2026: 100.00% or 99.99x%<br/>--------------------------------------------------<br/>This EXCLUDES both geographic hops.<br/>The processing cost is 20 microseconds.<br/>The end-to-end gap is not published as a single number."]
+    S3 --> MEAS
+
+    style Direct fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style SIPpath fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style MEAS fill:#fffde7,stroke:#f9a825,stroke-width:2px

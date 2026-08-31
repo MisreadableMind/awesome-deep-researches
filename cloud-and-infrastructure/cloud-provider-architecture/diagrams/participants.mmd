@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Customer["Customer domain"]
+        Org["Organisation / tenant root<br/>SCPs, RCPs, Azure Policy,<br/>Google org policies"]
+        Acct["Accounts / subscriptions / projects<br/>the isolation and billing boundary"]
+        App["Application workload<br/>code, data, OS, config"]
+    end
+
+    subgraph Interface["The contract surface"]
+        API["Public API endpoint<br/>SigV4 / OAuth 2.0 bearer<br/>every call authenticated and authorised"]
+        SRM["Shared responsibility model<br/>the line moves with service type"]
+        SLA["Service level agreement<br/>credits, not damages"]
+    end
+
+    subgraph Provider["Provider domain"]
+        CP["Regional control plane<br/>placement, quota, workflow,<br/>metadata databases"]
+        DP["Data plane<br/>hypervisor, NIC, block server,<br/>switch fabric"]
+        HW["Physical plant<br/>buildings, power, cooling, fibre,<br/>hardware root of trust"]
+        Ops["Provider operations<br/>deployment pipelines,<br/>capacity planning, on-call"]
+    end
+
+    Org --> Acct
+    Acct --> App
+    App --> API
+    API --> CP
+    CP --> DP
+    DP --> HW
+    Ops -.deploys to.-> CP
+    Ops -.deploys to.-> DP
+    Ops -.operates.-> HW
+    SRM -.divides.-> App
+    SRM -.divides.-> DP
+    SLA -.prices.-> DP
+
+    style Customer fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Interface fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Provider fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

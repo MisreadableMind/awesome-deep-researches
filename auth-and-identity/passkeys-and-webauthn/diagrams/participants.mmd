@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    User(["User<br/>Performs the gesture.<br/>Holds nothing memorable."])
+
+    subgraph RPside["Relying party side"]
+        RPS["RP server<br/>Owns the challenge, the<br/>credential record and the<br/>origin allow list"]
+        IdP["Identity provider<br/>Entra ID, Okta, Auth0, Ping.<br/>Often the real RP; the app<br/>federates to it via OIDC"]
+    end
+
+    subgraph Clientside["Client side"]
+        Browser["Browser<br/>Chrome, Safari, Firefox, Edge.<br/>Enforces RP ID scoping and<br/>builds clientDataJSON"]
+        OS["OS credential manager<br/>Android Credential Manager,<br/>iOS AutoFill provider,<br/>Windows WebAuthn API"]
+    end
+
+    subgraph Authside["Authenticator side"]
+        Platform["Platform authenticator<br/>Secure Enclave, TPM,<br/>StrongBox, Windows Hello"]
+        Roaming["Roaming authenticator<br/>YubiKey, Feitian, Titan,<br/>Nitrokey, smart card"]
+        Provider["Third-party credential provider<br/>1Password, Bitwarden, Dashlane.<br/>Android 14+, iOS 17+"]
+    end
+
+    subgraph Fabric["Sync and trust infrastructure"]
+        Sync["Sync fabric<br/>iCloud Keychain, Google Password<br/>Manager, Microsoft account.<br/>End-to-end encrypted, escrowed"]
+        MDS["FIDO Metadata Service<br/>mds3.fidoalliance.org<br/>Signed JWT registry of<br/>authenticator models and<br/>attestation roots"]
+        Cert["FIDO certification<br/>Functional, interoperability<br/>and Authenticator Certification<br/>Levels L1 to L3+"]
+    end
+
+    User --> Browser
+    User --> OS
+    Browser --> Platform
+    Browser --> Roaming
+    OS --> Provider
+    OS --> Platform
+    Platform <--> Sync
+    Provider <--> Sync
+    RPS <--> Browser
+    IdP <--> Browser
+    RPS -.->|"verify attestation<br/>chain, read AAGUID<br/>capabilities"| MDS
+    IdP -.->|"AAGUID allow list<br/>and attestation policy"| MDS
+    Cert -.->|"status reports<br/>feed into"| MDS
+
+    style RPside fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Clientside fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Authside fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fabric fill:#fff3e0,stroke:#e65100,stroke-width:2px

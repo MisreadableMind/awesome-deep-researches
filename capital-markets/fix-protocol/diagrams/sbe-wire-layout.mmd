@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Frame["Simple Open Framing Header - 6 bytes, always big-endian"]
+        SF1["Message_Length : uint32 : 4 bytes<br/>total octets including this header"]
+        SF2["Encoding_Type : uint16 : 2 bytes<br/>0x5BE0 = SBE big-endian<br/>0xEB50 = SBE little-endian"]
+    end
+
+    subgraph Hdr["SBE message header - 8 bytes in deployed schemas"]
+        H1["blockLength : uint16 : offset 0<br/>size of the fixed root block,<br/>excluding groups and var-length data"]
+        H2["templateId : uint16 : offset 2<br/>which message this is"]
+        H3["schemaId : uint16 : offset 4<br/>which schema defines it"]
+        H4["version : uint16 : offset 6<br/>which version of that schema"]
+    end
+
+    subgraph Root["Root block - fixed offsets, no delimiters, no scanning"]
+        R1["ClOrdID : char[20] : offset 0"]
+        R2["Account : char[12] : offset 20"]
+        R3["SecurityID : int64 : offset 32"]
+        R4["Side : uint8 : offset 40"]
+        R5["OrderQty : uint32 : offset 41"]
+        R6["OrdType : uint8 : offset 45"]
+        R7["Price : mantissa int64, exponent constant -2 : offset 46"]
+        R8["TimeInForce : uint8 : offset 54"]
+        R9["TransactTime : uint64 nanoseconds : offset 55"]
+        R10["HandlInst : uint8 : offset 63"]
+    end
+
+    subgraph Tail["Then, in this order and only this order"]
+        T1["Repeating groups<br/>each with a dimension header:<br/>blockLength uint16 + numInGroup uint16"]
+        T2["Variable-length data fields<br/>length prefix then octets"]
+    end
+
+    Frame --> Hdr --> Root --> Tail
+
+    subgraph Math["The arithmetic that justifies the schema"]
+        M1["Root block = 20+12+8+1+4+1+8+1+8+1 = 64 bytes"]
+        M2["Total = 6 SOFH + 8 header + 64 block = 78 bytes"]
+        M3["Same order in FIX 4.4 tag=value = 212 bytes"]
+        M4["Reduction = 63 percent on the wire"]
+        M5["Reading Price is one 64-bit load at a<br/>known offset. In tag=value it is a scan<br/>for '44=', then a string-to-decimal<br/>conversion, then a scale."]
+    end
+
+    Root -.-> Math
+
+    style Frame fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Hdr fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Root fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tail fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Math fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Streams["Three streams, one compression context"]
+        direction TB
+        Q1["QPACK encoder stream, unidirectional<br/>type 0x02. Carries table mutations:<br/>Set Dynamic Table Capacity,<br/>Insert with Name Reference,<br/>Insert with Literal Name, Duplicate.<br/>Strictly ordered by QUIC."]
+        Q2["Request streams carry field sections<br/>that REFERENCE the table.<br/>They may arrive in any order<br/>relative to the encoder stream."]
+        Q3["QPACK decoder stream, unidirectional<br/>type 0x03. Carries feedback:<br/>Section Acknowledgment,<br/>Stream Cancellation,<br/>Insert Count Increment."]
+    end
+
+    subgraph Prefix["Field section prefix: the blocking contract"]
+        direction TB
+        P1["Every encoded field section starts with:<br/>Required Insert Count, 8-bit prefix integer<br/>S bit + Delta Base, 7-bit prefix integer"]
+        P2["Required Insert Count = the number of<br/>table insertions the decoder must have<br/>processed before this section can be<br/>decoded."]
+        P3["RIC = 0 means the section uses only the<br/>99-entry static table and literals.<br/>It NEVER blocks."]
+        P4["RIC > current insert count means the<br/>stream is BLOCKED. The decoder holds<br/>the bytes until the encoder stream<br/>catches up."]
+        P5["Base plus Delta Base give relative<br/>indexing a stable origin, so an entry's<br/>encoded index does not shift as later<br/>insertions happen."]
+    end
+
+    subgraph Trade["The explicit trade"]
+        direction TB
+        T1["Aggressive encoder: reference the entry<br/>it just inserted. Best compression ratio.<br/>Creates a blocked stream if the request<br/>overtakes the encoder stream."]
+        T2["Conservative encoder: reference only<br/>entries the decoder has acknowledged.<br/>Never blocks. Larger field sections."]
+        T3["SETTINGS_QPACK_BLOCKED_STREAMS caps how<br/>many streams may be blocked at once.<br/>Default 0 = the encoder may never block<br/>a stream. The encoder MUST respect it."]
+        T4["Duplicate instruction exists so an<br/>encoder can refresh an entry near<br/>eviction without a literal insert."]
+    end
+
+    subgraph Tables["Table shape"]
+        direction TB
+        B1["Static table: 99 entries, indices 0-98,<br/>generated from real 2018 Internet<br/>traffic. Ordered so the most common<br/>fields get the smallest indices.<br/>17 = :method GET, 23 = :scheme https,<br/>25 = :status 200, 1 = :path /,<br/>0 = :authority."]
+        B2["Dynamic table: same 32-octet-per-entry<br/>accounting as HPACK.<br/>MaxEntries = floor(capacity / 32)."]
+        B3["Absolute indices count from the first<br/>ever insertion and never shift.<br/>HPACK's shifting indices are the thing<br/>QPACK had to remove."]
+    end
+
+    Streams --> Prefix
+    Prefix --> Trade
+    Trade --> Tables
+
+    style Streams fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Prefix fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Trade fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Tables fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

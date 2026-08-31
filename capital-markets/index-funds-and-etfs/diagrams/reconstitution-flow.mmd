@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Sched["Russell US Indexes, 2026 schedule"]
+        Rank["30 April 2026: RANK DAY<br/>every eligible US security ranked<br/>by total market capitalisation"]
+        Prelim["22 May 2026: preliminary<br/>additions and deletions published"]
+        Upd["Updates 29 May, 5 June,<br/>12 June, 18 June 2026"]
+        Recon["26 June 2026, after the close:<br/>RECONSTITUTION EFFECTIVE"]
+        Semi["From 2026: SEMI-ANNUAL.<br/>Second event rank day 30 Oct 2026,<br/>implementation after the close on<br/>11 Dec 2026, the 2nd Friday of December"]
+        Rank --> Prelim --> Upd --> Recon --> Semi
+    end
+
+    subgraph Actors["Who does what between rank day and recon day"]
+        IdxFund["Index funds<br/>must hold the new list at the close.<br/>Trade in the closing auction to<br/>minimise tracking error, not cost."]
+        Arb["Arbitrageurs and hedge funds<br/>buy predicted additions from May,<br/>sell them into the auction"]
+        Broker["Brokers<br/>publish their own predicted lists,<br/>run recon-day risk books"]
+        IdxFund -.->|"predictable demand"| Arb
+        Arb -.->|"sells to"| IdxFund
+        Broker -.->|"forecasts"| Arb
+    end
+
+    subgraph Evidence["Measured effect"]
+        Vol["June 2025 reconstitution close:<br/>USD 114.7 bn traded on NYSE and<br/>USD 102.5 bn on Nasdaq in the<br/>closing moments"]
+        Old["Classic findings, 1986:<br/>Shleifer, permanent 2 to 3 percent gain;<br/>Harris and Gurel, about 3 percent<br/>reversed within two weeks"]
+        New["Recent finding:<br/>the addition premium has<br/>shrunk toward zero and by some<br/>measures reversed after 2010"]
+        Cost["Petajisto 2011 estimated the<br/>hidden turnover cost at<br/>21 to 28 bp per year for the S&P 500<br/>and 38 to 77 bp for the Russell 2000"]
+    end
+
+    Recon --> Vol
+    Arb --> Old
+    Old --> New
+    New --> Cost
+
+    style Sched fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Actors fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Evidence fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    C["Customer pays the offer,<br/>or receives the bid"]
+
+    C -->|"crosses the spread"| Spread["THE SPREAD<br/>The source of almost every<br/>payment below"]
+
+    Spread --> MM["Market maker<br/>Earns the spread.<br/>Pays: hedging cost, the<br/>discrete-hedging residual<br/>(sd $0.451 per contract at<br/>30 rebalances on a $3.02 option),<br/>exchange fees, clearing fees,<br/>capital charges"]
+
+    Spread --> BR["Broker<br/>Commission, frequently zero<br/>for retail equity options.<br/>Receives payment for order flow<br/>from market makers for routing<br/>to a specific exchange."]
+
+    MM --> EX["Exchange<br/>Transaction fee on the<br/>taker, rebate to the maker,<br/>or the reverse. Plus market<br/>data and connectivity fees."]
+    BR --> EX
+
+    EX --> Rev["Cboe Q2 2026, reported:<br/>net revenue $731.6 million,<br/>options segment $473.9 million.<br/>Revenue per contract $0.317 blended,<br/>$0.953 for index options.<br/>Options ADV 21,862 thousand."]
+
+    EX --> OCC2["OCC clearing fee<br/>per contract cleared"]
+
+    C --> Reg["Regulatory fees<br/>SEC Section 31 fee on the<br/>sale side of premium.<br/>FINRA Trading Activity Fee<br/>per contract sold.<br/>OCC clearing fee.<br/>Passed through to the customer."]
+
+    subgraph Why["Why index options carry three times the blended rate"]
+        direction TB
+        W1["Proprietary index products<br/>list on one exchange only"]
+        W2["No competing venue means<br/>no fee competition"]
+        W3["$0.953 per index contract<br/>against $0.317 blended"]
+    end
+
+    Rev --> Why
+
+    subgraph OTCside["OTC economics are different"]
+        direction TB
+        O1["No exchange fee.<br/>A wider spread instead."]
+        O2["Capital charge: SA-CCR for<br/>counterparty exposure,<br/>CVA capital charge"]
+        O3["The XVA stack:<br/>CVA credit, DVA own credit,<br/>FVA funding, MVA initial margin,<br/>KVA capital"]
+        O4["Dealer profit = spread<br/>minus every letter above"]
+    end
+
+    Why --> OTCside
+
+    style C fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Spread fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Rev fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Why fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OTCside fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

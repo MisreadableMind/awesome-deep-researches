@@ -1,0 +1,56 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Channels["Channels - not the core"]
+        Mobile["Mobile app"]
+        Web["Internet banking"]
+        Branch["Branch teller"]
+        ATM["ATM and card terminals"]
+        API["Partner and BaaS APIs"]
+    end
+
+    subgraph Mid["Middle layer - not the core"]
+        Auth["Authentication and entitlements"]
+        Orch["Orchestration and API gateway"]
+        Limits["Real-time limit and fraud checks"]
+    end
+
+    subgraph Core["THE CORE - system of record"]
+        CIF["Customer Information File<br/>parties, relationships, KYC state"]
+        Acct["Account master<br/>product code, status, balances"]
+        Prod["Product engine<br/>interest, fees, limits, GL mapping"]
+        Ledger["Posting ledger<br/>immutable journal entries"]
+        GL["General ledger<br/>control accounts, daily proof"]
+        Sched["Scheduler<br/>accrual, cycles, date roll"]
+    end
+
+    subgraph Satellites["Satellite systems - fed by the core"]
+        Cards["Card management and authorisation"]
+        Pay["Payment engines - ACH, wire, instant"]
+        Loans["Loan origination and collections"]
+        AML["AML, sanctions, fraud analytics"]
+        DW["Data warehouse"]
+        Reg["Regulatory reporting engine"]
+        Stmt["Statements and documents"]
+    end
+
+    Channels --> Mid
+    Mid --> Core
+    Cards <--> Core
+    Pay <--> Core
+    Loans --> Core
+    Core --> AML
+    Core --> DW
+    DW --> Reg
+    Core --> Stmt
+
+    CIF --> Acct
+    Prod --> Acct
+    Acct --> Ledger
+    Ledger --> GL
+    Sched --> Ledger
+
+    style Core fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Channels fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Mid fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Satellites fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

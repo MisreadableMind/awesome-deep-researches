@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Source["Where the money originates"]
+        SRC1["INSTITUTIONAL ORDER FLOW<br/>A pension fund working a parent order<br/>pays the effective spread on every child.<br/>FCA: value-weighted effective spread<br/>just over 3 basis points, of which<br/>about 33% is race-related price impact."]
+        SRC2["RETAIL ORDER FLOW<br/>Mostly internalised off-exchange.<br/>Pays a spread to a wholesaler,<br/>never reaches the lit race."]
+    end
+
+    subgraph Prop["Proprietary firms"]
+        P1["MARKET MAKING DESK<br/>Earns the spread and the rebate.<br/>Loses to snipers."]
+        P2["TAKING DESK<br/>Earns race profits.<br/>FCA: about 2 GBP per race,<br/>537 races per symbol per day."]
+        P3["NET across the industry:<br/>race profits are a TRANSFER between<br/>proprietary firms. The top 3 firms<br/>win 54% and lose 63% of races."]
+    end
+
+    subgraph Spend["Where the profit goes"]
+        E1["EXCHANGES<br/>colocation, ports, proprietary data,<br/>net transaction fees"]
+        E2["WIRELESS AND FIBRE CARRIERS<br/>~8 million USD capital per microwave link;<br/>~160 million USD aggregate spent moving<br/>Chicago-New Jersey from 6.65 to ~4.1 ms"]
+        E3["HARDWARE VENDORS<br/>FPGAs, NICs, Layer 1 switches, timing"]
+        E4["PEOPLE<br/>the largest line, not published"]
+        E5["CLEARING AND FINANCING"]
+    end
+
+    subgraph Theory["The equivalence"]
+        TH["Budish, Cramton and Shim:<br/>in equilibrium there is an equivalence among<br/>(i) the latency arbitrage prize,<br/>(ii) socially wasteful investment in speed,<br/>(iii) the higher cost of liquidity to investors.<br/>-----------------------------------------<br/>FCA estimate of (i) and (iii):<br/>0.42 bps of volume, ~60 million GBP a year<br/>in the UK, ~5 billion USD globally,<br/>a 17% reduction in the cost of liquidity<br/>if latency arbitrage were eliminated."]
+    end
+
+    SRC1 --> P1
+    SRC2 -.internalised.-> P1
+    P1 -->|sniped| P2
+    P1 --> P3
+    P2 --> P3
+    P3 --> E1
+    P3 --> E2
+    P3 --> E3
+    P3 --> E4
+    P3 --> E5
+    Spend --> Theory
+    SRC1 -.bears the cost through the spread.-> Theory
+
+    style Source fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Prop fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Spend fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Theory fill:#fffde7,stroke:#f9a825,stroke-width:3px

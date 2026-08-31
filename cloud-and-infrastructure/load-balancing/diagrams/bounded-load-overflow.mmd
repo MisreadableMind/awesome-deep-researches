@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Setup["Setup: 4 backends, 100 in-flight requests"]
+        S1["Average load m/n = 100 / 4 = 25"]
+        S2["Balance factor c = 1 + e = 1.25<br/>HAProxy writes this as<br/>hash-balance-factor 125"]
+        S3["Capacity per backend<br/>= ceil(c x m / n)<br/>= ceil(1.25 x 25) = 32"]
+    end
+
+    subgraph Plain["Plain consistent hashing, no cap"]
+        direction TB
+        P1["B1: 47 requests<br/>one viral video ID hashes here"]
+        P2["B2: 24 requests"]
+        P3["B3: 18 requests"]
+        P4["B4: 11 requests"]
+        PN["Peak is 47 against an average of 25.<br/>Capacity must be provisioned for 47,<br/>so 47% of the fleet is idle headroom."]
+    end
+
+    subgraph Bounded["Bounded load, cap 32"]
+        direction TB
+        B1["B1: 32 requests, AT CAP"]
+        B2["B2: 30 requests"]
+        B3["B3: 21 requests"]
+        B4["B4: 17 requests"]
+        BN["Peak is 32 by construction.<br/>Nothing can exceed the cap<br/>while any server has room."]
+    end
+
+    subgraph Walk["What happens to request 33 for B1"]
+        direction TB
+        W1["1. hash(key) lands in B1's arc"]
+        W2["2. B1 is at capacity 32, disqualified"]
+        W3["3. Walk clockwise on the ring<br/>to the next backend with room"]
+        W4["4. Land on B2, which has 30 of 32"]
+        W5["5. Record nothing. The same key<br/>re-derives the same walk as long<br/>as loads are similar, so affinity<br/>degrades gracefully rather than<br/>disappearing."]
+    end
+
+    subgraph Math["The cost of the cap"]
+        M1["Expected movements per insertion<br/>or deletion is O(1 / e squared)<br/>for e less than or equal to 1."]
+        M2["e = 0.25 costs about 16x the<br/>movement of unbounded hashing.<br/>e = 1.0 costs about 1x.<br/>HAProxy's documented sane range<br/>is 125 to 200, that is e from<br/>0.25 to 1.0."]
+        M3["Lower e means tighter balance and<br/>more probing per request.<br/>Higher e means fewer probes and a<br/>looser cap. There is no setting<br/>that gives both."]
+    end
+
+    Setup --> Plain
+    Setup --> Bounded
+    Bounded --> Walk --> Math
+
+    style Setup fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Plain fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Bounded fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Walk fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Math fill:#fff3e0,stroke:#e65100,stroke-width:2px

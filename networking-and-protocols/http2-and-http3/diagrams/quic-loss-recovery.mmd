@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Ambig["The flaw QUIC fixes"]
+        direction TB
+        A1["TCP: a retransmitted segment reuses<br/>the original sequence number. An ACK<br/>for it cannot be attributed to the<br/>original or the retransmission."]
+        A2["Karn's algorithm therefore discards<br/>RTT samples from retransmitted<br/>segments, which is exactly when a<br/>fresh sample would be most useful."]
+        A3["QUIC: packet numbers are strictly<br/>increasing and NEVER reused.<br/>Retransmitted DATA is carried in a<br/>NEW packet with a NEW number.<br/>Every ACK is unambiguous."]
+        A4["Consequence: QUIC separates<br/>'which packet arrived' from<br/>'which bytes arrived'. Frames are<br/>the unit of retransmission;<br/>packets are the unit of<br/>acknowledgement."]
+    end
+
+    subgraph Detect["Loss detection, RFC 9002 section 6"]
+        direction TB
+        D1["Packet threshold: a packet is lost<br/>if kPacketThreshold = 3 later<br/>packets have been acknowledged.<br/>Same constant as TCP's<br/>3 duplicate ACKs."]
+        D2["Time threshold: lost if it was sent<br/>longer ago than<br/>max(kTimeThreshold * max(smoothed_rtt,<br/>latest_rtt), kGranularity)<br/>with kTimeThreshold = 9/8<br/>and kGranularity = 1 ms."]
+        D3["PTO, probe timeout, replaces TCP's<br/>RTO for the tail:<br/>PTO = smoothed_rtt +<br/>max(4 * rttvar, kGranularity) +<br/>max_ack_delay.<br/>Firing a PTO does NOT collapse the<br/>congestion window; it sends<br/>ack-eliciting probes."]
+        D4["kInitialRtt = 333 ms before any<br/>sample exists."]
+    end
+
+    subgraph CC["Congestion control, RFC 9002 section 7"]
+        direction TB
+        E1["NewReno is the specified default and<br/>the reference, not a mandate.<br/>RFC 9002 explicitly permits<br/>alternatives."]
+        E2["Initial window: 10 * max_datagram_size,<br/>capped at max(14,720 bytes,<br/>2 * max_datagram_size).<br/>The 14,720 figure raises RFC 6928's<br/>TCP number to account for UDP's<br/>8-byte header versus TCP's 20."]
+        E3["Minimum window: 2 * max_datagram_size.<br/>Loss reduction factor: 0.5."]
+        E4["Persistent congestion: if every packet<br/>sent across a period of<br/>(smoothed_rtt + max(4*rttvar,<br/>kGranularity) + max_ack_delay) * 3<br/>is lost, the window collapses to the<br/>minimum and slow start restarts.<br/>This is QUIC's equivalent of a TCP<br/>RTO backoff, defined in time rather<br/>than in timer expiries."]
+        E5["ECN: a rising reported ECN-CE count<br/>is treated exactly like loss.<br/>QUIC validates ECN on every new path<br/>before trusting it, because middleboxes<br/>rewrite the bits."]
+    end
+
+    subgraph Deployed["What actually runs"]
+        direction TB
+        F1["Chrome and Google servers: BBR<br/>and its successors, chosen because<br/>loss-based control underperforms on<br/>lossy wireless links."]
+        F2["Most other stacks: CUBIC, matching<br/>the Linux TCP default."]
+        F3["Userspace placement is the point.<br/>Changing congestion control means<br/>shipping a binary, not upgrading<br/>a kernel across a fleet."]
+    end
+
+    Ambig --> Detect
+    Detect --> CC
+    CC --> Deployed
+
+    style Ambig fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Detect fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Deployed fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

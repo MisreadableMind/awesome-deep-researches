@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant SEQ as Sequencer
+    participant EX as Executor (EraVM / Cairo VM / zkEVM)
+    participant PRV as Prover cluster
+    participant AGG as Aggregator / recursion
+    participant L1 as L1 verifier contract
+    participant BR as Bridge
+
+    U->>SEQ: Signed transaction
+    SEQ->>EX: Execute against current state
+    EX-->>SEQ: New state root + execution trace
+    SEQ-->>U: Soft confirmation, sub-second
+    Note over SEQ,EX: The trace is the point. Every step the VM<br/>took is recorded so it can be arithmetised.
+
+    SEQ->>L1: commitBatches<br/>state diffs as blob data + new root
+    Note over L1: Data first, proof later. The chain is<br/>reconstructible from blobs before anything<br/>is proved. Committed is not proven.
+
+    SEQ->>PRV: Trace for batch N
+    Note over PRV: Arithmetisation: turn the trace into<br/>polynomial constraints. Prove with FRI (STARK)<br/>or a pairing-based scheme (SNARK).<br/>Wall clock: seconds to minutes on GPU clusters.
+    PRV->>AGG: Many small proofs
+    Note over AGG: Recursion: prove that you verified<br/>the previous proofs. Collapses thousands of<br/>batch proofs into one on-chain verification.<br/>Starknet's SHARP does this across customers.
+    AGG->>L1: proveBatches(final proof)
+    L1->>L1: Verifier contract runs the pairing<br/>or FRI check. Fixed cost, independent<br/>of how much work was proved.
+    L1-->>BR: State root is now final on L1
+
+    Note over BR: executeBatches applies the root.<br/>ZKsync's ValidatorTimelock records a timestamp<br/>at commitBatches and blocks executeBatches<br/>until a configurable delay has run from that<br/>commit, a human backstop against a<br/>compromised validator key.
+
+    U->>BR: Withdraw with an L2-to-L1 log proof
+    BR-->>U: Funds released. No challenge window,<br/>because nothing was assumed.
+
+    Note over U,L1: The delay a user feels is proving latency<br/>plus batching cadence, not a fraud window.<br/>Minutes to hours, falling every year.

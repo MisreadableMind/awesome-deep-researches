@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant P as Transactional producer<br/>transactional.id = ledger-writer-3
+    participant TC as Transaction coordinator<br/>leader of a __transaction_state partition
+    participant IN as Input partition<br/>payments.authorized-13
+    participant OUT as Output partition<br/>ledger.entries-7
+    participant OC as Offsets coordinator<br/>__consumer_offsets
+    participant C as Downstream consumer<br/>isolation.level=read_committed
+
+    Note over P,TC: Startup, once per producer instance
+    P->>TC: InitProducerId(transactional.id)
+    TC->>TC: Bump the epoch. Abort any transaction the<br/>previous incarnation of this id left open.
+    TC-->>P: producerId, producerEpoch
+    Note over TC: The epoch bump is the zombie fence.<br/>An old instance writing with a stale epoch is rejected.
+
+    Note over P,C: One transaction
+    P->>P: beginTransaction() - purely client-side
+    P->>IN: consume records at offsets 84,231,900 to 84,231,904
+
+    P->>TC: AddPartitionsToTxn(ledger.entries-7)
+    TC->>TC: append to __transaction_state,<br/>start the transaction timer<br/>(transaction.timeout.ms = 60000)
+    P->>OUT: ProduceRequest with isTransactional bit set,<br/>producerId, producerEpoch, baseSequence
+
+    P->>TC: AddOffsetsToTxn(group = ledger-writer)
+    P->>OC: TxnOffsetCommit(offset 84,231,905, producerId, epoch)
+    Note over P,OC: The offset commit is INSIDE the transaction.<br/>That is the whole point.
+
+    Note over P,OUT: Two-phase commit
+    P->>TC: EndTxn(commit = true)
+    TC->>TC: PHASE 1: write PREPARE_COMMIT<br/>to __transaction_state
+    TC->>OUT: WriteTxnMarkers
+    OUT->>OUT: append a control batch:<br/>isControlBatch bit set, key {version 0, type 1 = COMMIT}
+    TC->>OC: WriteTxnMarkers
+    OC->>OC: append a COMMIT control batch
+    TC->>TC: PHASE 2: write COMMITTED<br/>to __transaction_state
+    TC-->>P: done
+
+    Note over OUT,C: Visibility
+    C->>OUT: FetchRequest, IsolationLevel = read_committed
+    OUT-->>C: records up to the LAST STABLE OFFSET,<br/>plus an AbortedTransactions list built from .txnindex
+    Note over C: LSO = offset of the first record in a<br/>still-open transaction. It advances only when<br/>markers land. A hung transaction stalls every<br/>read_committed consumer on that partition.
+
+    alt Transaction aborts
+        TC->>OUT: WriteTxnMarkers with ABORT (type 0)
+        Note over OUT,C: The records are PHYSICALLY STILL IN THE LOG.<br/>read_committed consumers discard them.<br/>read_uncommitted consumers (the DEFAULT) see them.
+    end

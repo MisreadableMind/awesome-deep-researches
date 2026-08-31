@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Zone["Zone example.com holds three names:<br/>example.com the apex,<br/>*.example.com the wildcard,<br/>b.example.com an ordinary node"]
+
+    subgraph Q1["Query a.example.com type A - the wildcard fires"]
+        direction TB
+        Q1a["Exact match in the zone? No."]
+        Q1b["Closest encloser: example.com<br/>the deepest EXISTING node whose<br/>labels the query name matches"]
+        Q1c["Source of synthesis: *.example.com<br/>exactly one label below it"]
+        Q1d["ANSWER: a.example.com A<br/>carrying the wildcard's RDATA.<br/>The owner name is rewritten.<br/>The data is copied unchanged."]
+    end
+
+    subgraph Q2["Query a.b.example.com type A - the wildcard does not"]
+        direction TB
+        Q2a["Exact match in the zone? No."]
+        Q2b["Closest encloser: b.example.com<br/>because that node EXISTS"]
+        Q2c["Source of synthesis would have to be<br/>*.b.example.com, which is not in the zone"]
+        Q2d["NXDOMAIN.<br/>Creating b.example.com silently<br/>removed wildcard cover from<br/>everything beneath it."]
+    end
+
+    subgraph Q3["Query b.example.com type MX - the wildcard never runs"]
+        direction TB
+        Q3a["Exact match? Yes. The name exists."]
+        Q3b["A wildcard is only consulted for<br/>names that have no exact match."]
+        Q3c["NODATA: NOERROR, ANSWER 0,<br/>SOA in AUTHORITY. Not the<br/>wildcard's records."]
+    end
+
+    subgraph Limits["Three places a wildcard never reaches"]
+        direction TB
+        L1["Below a zone cut. Delegate<br/>sub.example.com and *.example.com<br/>covers nothing under it, because<br/>matching happens inside one zone."]
+        L2["Anywhere but the leftmost label.<br/>a.*.example.com and the*.example.com<br/>are ordinary names that happen<br/>to contain an asterisk."]
+        L3["Under an empty non-terminal.<br/>If x.y.example.com exists then<br/>y.example.com exists as a node,<br/>and blocks *.example.com below it."]
+    end
+
+    Sec["DNSSEC, RFC 4592 section 4.8.<br/>The RRSIG labels field counts the labels of the<br/>WILDCARD owner name, not of the synthesised one,<br/>so a validator seeing a short count rebuilds the<br/>original name before checking the signature.<br/>The response must also carry NSEC or NSEC3<br/>proving no exact match exists and naming the<br/>closest encloser. A wildcard answer therefore ships<br/>data, signature, and a denial proof."]
+
+    Zone --> Q1a
+    Zone --> Q2a
+    Zone --> Q3a
+    Q1a --> Q1b --> Q1c --> Q1d
+    Q2a --> Q2b --> Q2c --> Q2d
+    Q3a --> Q3b --> Q3c
+    Q1d --> Limits
+    Q2d --> Limits
+    Q1d --> Sec
+
+    style Zone fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Q1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Q2 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Q3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Limits fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Sec fill:#eceff1,stroke:#37474f,stroke-width:2px

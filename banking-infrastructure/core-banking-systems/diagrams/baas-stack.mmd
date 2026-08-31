@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L4["Layer 4 - the end user"]
+        U["Consumer or small business.<br/>Believes they hold<br/>an FDIC-insured account."]
+    end
+
+    subgraph L3["Layer 3 - the fintech programme"]
+        F["Neobank, payroll app, marketplace.<br/>Owns the brand and the interface.<br/>Holds no licence, holds no money."]
+    end
+
+    subgraph L2["Layer 2 - BaaS middleware"]
+        M["Middleware over a sponsor bank<br/>Unit, Treasury Prime,<br/>historically Synapse"]
+        SL["THE SUB-LEDGER<br/>maps each end user to<br/>a share of the pooled balance"]
+        API["APIs: open account, move money,<br/>issue card, KYC"]
+    end
+
+    subgraph L1["Layer 1 - the chartered bank"]
+        B["Sponsor bank.<br/>Holds the charter, the FDIC insurance,<br/>the Fed master account,<br/>and the regulatory liability."]
+        FBO["FBO / omnibus deposit account<br/>ONE account in the bank's core<br/>holding all end users' money"]
+        Core["Core banking system<br/>sees ONE account,<br/>not 100,000 customers"]
+        B2["Chartered banks running their own core<br/>Column National Association, Increase Bank<br/>licence and ledger in one entity"]
+    end
+
+    subgraph L0["Layer 0 - the rails"]
+        R["ACH, card networks,<br/>wires, FedNow, RTP"]
+    end
+
+    U --> F --> API
+    API --> SL
+    SL --> FBO
+    FBO --> Core
+    B --> Core
+    B2 --> Core
+    F -.alternative path.-> B2
+    Core --> R
+
+    subgraph Fail["The failure point"]
+        X1["If the sub-ledger and the bank's<br/>records disagree, nobody can say<br/>who owns what."]
+        X2["Pass-through deposit insurance<br/>requires accurate, available records<br/>identifying each beneficial owner."]
+        X3["Synapse, April 2024:<br/>shortfall between Synapse's records<br/>and the banks' estimated at<br/>65 to 96 million USD."]
+    end
+
+    SL -.-> X1
+    FBO -.-> X2
+    X1 --> X3
+    X2 --> X3
+
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style L2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Fail fill:#ffebee,stroke:#c62828,stroke-width:3px

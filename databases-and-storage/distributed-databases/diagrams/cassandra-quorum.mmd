@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Ring["Token ring, RF = 3, one datacenter"]
+        direction LR
+        N1["node1<br/>tokens t1, t9"]
+        N2["node2<br/>tokens t2, t10"]
+        N3["node3<br/>tokens t3, t11"]
+        N4["node4<br/>tokens t4, t12"]
+        N1 --> N2 --> N3 --> N4 --> N1
+    end
+
+    K["key = user:42<br/>token = Murmur3 of the key<br/>falls between t1 and t2"]
+    K --> OWN["Replicas: walk clockwise to<br/>3 DISTINCT physical nodes<br/>= node2, node3, node4"]
+
+    subgraph WRITE["Write at LOCAL_QUORUM, RF=3, W=2"]
+        direction TB
+        W1["Coordinator sends the mutation<br/>to ALL 3 replicas, always"]
+        W2["Waits for 2 acks"]
+        W3["Third replica down?<br/>Store a HINT locally.<br/>max_hint_window default 3h"]
+        W1 --> W2 --> W3
+    end
+
+    subgraph READ["Read at LOCAL_QUORUM, R=2"]
+        direction TB
+        R1["1 FULL read to the fastest replica<br/>chosen by the dynamic snitch"]
+        R2["1 DIGEST read (hash only)<br/>to a second replica"]
+        R3{"Hashes match?"}
+        R4["Return the data"]
+        R5["Mismatch: issue full reads,<br/>reconcile by per-column timestamp,<br/>BLOCKING read repair writes the<br/>merged value back, then reply"]
+        R1 --> R3
+        R2 --> R3
+        R3 -->|"yes"| R4
+        R3 -->|"no"| R5
+    end
+
+    OWN --> WRITE
+    OWN --> READ
+
+    OVERLAP["W + R > RF<br/>2 + 2 > 3<br/>At least one replica is in both sets,<br/>so the read set contains the write.<br/><br/>THIS IS QUORUM INTERSECTION.<br/>IT IS NOT LINEARIZABILITY."]
+
+    WRITE --> OVERLAP
+    READ --> OVERLAP
+
+    style OVERLAP fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style WRITE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style READ fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

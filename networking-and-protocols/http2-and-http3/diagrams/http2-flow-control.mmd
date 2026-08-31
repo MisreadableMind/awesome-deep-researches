@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph H2FC["HTTP/2 flow control, RFC 9113 section 5.2"]
+        direction TB
+        F1["Two windows, both consumed by<br/>the same DATA octet:<br/>connection window on stream 0,<br/>stream window per stream."]
+        F2["Initial stream window: 65,535 octets<br/>(SETTINGS_INITIAL_WINDOW_SIZE).<br/>Initial connection window: 65,535,<br/>and it is NOT changed by SETTINGS.<br/>It moves only via WINDOW_UPDATE."]
+        F3["Only DATA is flow controlled.<br/>HEADERS, SETTINGS, PING, RST_STREAM,<br/>and WINDOW_UPDATE always pass, which<br/>is why control frames can be flooded."]
+        F4["WINDOW_UPDATE carries a 31-bit<br/>increment. On stream 0 it credits<br/>the connection; on stream N it<br/>credits stream N. Maximum window<br/>2^31-1; overflow is a<br/>FLOW_CONTROL_ERROR."]
+    end
+
+    subgraph Math["The bandwidth-delay arithmetic"]
+        direction TB
+        M1["Throughput ceiling = window / RTT"]
+        M2["65,535 bytes / 100 ms<br/>= 655 kB/s = 5.2 Mbit/s per stream,<br/>whatever the link can carry"]
+        M3["Chrome raises its stream window to<br/>6 MB and its connection window to<br/>15 MB. A server that leaves the<br/>default in place caps every<br/>long-RTT client."]
+    end
+
+    subgraph QFC["QUIC flow control, RFC 9000 section 4"]
+        direction TB
+        G1["Same two levels, different frames.<br/>MAX_DATA (0x10) for the connection,<br/>MAX_STREAM_DATA (0x11) per stream."]
+        G2["Credit is expressed as an absolute<br/>byte offset, not an increment.<br/>A retransmitted MAX_DATA is<br/>idempotent; a lost one is harmless<br/>if a later one arrives."]
+        G3["A third limit QUIC adds:<br/>MAX_STREAMS (0x12 bidi, 0x13 uni)<br/>caps how many streams may be opened,<br/>replacing HTTP/2's<br/>SETTINGS_MAX_CONCURRENT_STREAMS."]
+        G4["Blocked senders announce it:<br/>DATA_BLOCKED (0x14),<br/>STREAM_DATA_BLOCKED (0x15),<br/>STREAMS_BLOCKED (0x16-0x17).<br/>HTTP/2 has no equivalent, so a<br/>stalled HTTP/2 stream is silent."]
+    end
+
+    subgraph Prio["Priority, two generations"]
+        direction TB
+        P1["RFC 7540: a dependency tree.<br/>Each stream names a parent, an<br/>8-bit weight field giving 1-256, and an<br/>exclusive flag that reparents<br/>siblings. Reprioritisation<br/>rebuilds the tree."]
+        P2["Outcome: RFC 9113 deprecates it.<br/>'The prioritization signaling in<br/>RFC 7540 was not successful.'<br/>Clients signalled inconsistently,<br/>servers commonly ignored it."]
+        P3["RFC 9218 replacement:<br/>two Structured Fields parameters.<br/>u = urgency, integer 0-7, default 3.<br/>i = incremental, boolean, default 0.<br/>Sent as the Priority request header<br/>or a PRIORITY_UPDATE frame<br/>(0x10 in HTTP/2, 0xf0700 in HTTP/3)."]
+        P4["u=0 for render-blocking CSS,<br/>u=3 default for HTML,<br/>u=5 with i for progressive images,<br/>u=7 reserved for background work<br/>such as software updates."]
+    end
+
+    H2FC --> Math
+    H2FC --> QFC
+    Math --> Prio
+
+    style H2FC fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Math fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style QFC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Prio fill:#fff3e0,stroke:#e65100,stroke-width:2px

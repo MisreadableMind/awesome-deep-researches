@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["Domestic instant payments are solved.<br/>Cross-border remittance still costs<br/>around 6% and takes days.<br/>The rails exist; they do not connect."]
+
+    subgraph Bilateral["Approach 1: bilateral links"]
+        direction TB
+        B1["UPI to PayNow, India to Singapore, 2023"]
+        B2["PromptPay to PayNow,<br/>Thailand to Singapore, 2021"]
+        B3["Works. Does not scale:<br/>n countries need n squared links,<br/>each with its own contract,<br/>FX arrangement and rulebook."]
+    end
+
+    subgraph Nexus["Approach 2: Nexus, a hub with one rulebook"]
+        direction TB
+        N1["BIS Innovation Hub blueprint.<br/>Nexus Global Payments incorporated<br/>in 2025 by the central banks of<br/>India, Malaysia, the Philippines,<br/>Singapore and Thailand."]
+        N2["Each scheme connects once,<br/>to Nexus, not to each other"]
+        N3["Nexus standardises addressing,<br/>ISO 20022 mapping, FX provider<br/>selection and the rulebook"]
+        N4["FX providers quote into the<br/>hub and compete on rate"]
+        N5["Target: under 60 seconds,<br/>end to end, retail sized"]
+    end
+
+    subgraph How["What a Nexus payment does"]
+        direction TB
+        H1["Payer's bank sends a domestic-shaped<br/>instant payment"]
+        H2["Nexus resolves the destination proxy<br/>and picks an FX provider"]
+        H3["Two domestic instant payments,<br/>one in each country, linked by<br/>the FX provider's positions"]
+        H4["Neither domestic scheme has to<br/>learn about the other"]
+    end
+
+    subgraph Hard["What is genuinely hard"]
+        direction TB
+        X1["Sanctions screening in seconds,<br/>against different lists,<br/>in different alphabets"]
+        X2["Whose consumer protection rules<br/>apply when a scam crosses a border"]
+        X3["Who holds FX risk in the<br/>seconds between the two legs"]
+        X4["Data residency and privacy law<br/>for the directory lookup"]
+        X5["Liquidity in the destination<br/>currency at 3am local time"]
+    end
+
+    Problem --> Bilateral
+    Problem --> Nexus
+    Nexus --> How
+    How --> Hard
+
+    Also["Other threads running in parallel:<br/>Pix internacional, mBridge and<br/>wholesale CBDC corridors,<br/>stablecoin settlement, and<br/>Swift's own instant interlinking"]
+
+    Hard --> Also
+
+    style Problem fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Bilateral fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Nexus fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style How fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Hard fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Also fill:#eceff1,stroke:#37474f,stroke-width:2px

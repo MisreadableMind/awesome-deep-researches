@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant P as Publisher
+    participant CH as Channel 1<br/>on one TCP connection<br/>(channel_max = 2047)
+    participant B as RabbitMQ broker
+    participant Q as Quorum queue 'ledger'<br/>Raft group of 3
+    participant C as Consumer<br/>prefetch = 200
+
+    Note over P,B: Every frame: type(1) channel(2) size(4) payload frame-end(0xCE)
+    P->>CH: METHOD frame - confirm.select (class 85, RabbitMQ extension)
+    CH->>B: enable publisher confirms on this channel
+    B-->>CH: confirm.select-ok
+
+    Note over P,Q: Publishing one message = 3 frames
+    P->>B: METHOD frame, class 60 method 40 = basic.publish<br/>exchange='payments', routing-key='payment.authorized.card.us'<br/>mandatory=true
+    P->>B: HEADER frame (type 2)<br/>content class, body size, properties:<br/>delivery-mode=2 (persistent), content-type, message-id
+    P->>B: BODY frame(s) (type 3)<br/>payload split to fit frame_max = 131072
+
+    B->>B: match the routing key against the binding table
+    alt no binding matches
+        B-->>P: basic.return (class 60 method 50)<br/>because mandatory=true.<br/>Without mandatory the message is SILENTLY DROPPED.
+    end
+
+    B->>Q: route a copy into the queue
+    Q->>Q: Raft: replicate to a majority of members,<br/>persist to disk
+    Q-->>B: committed
+    B-->>P: basic.ack (class 60 method 80)<br/>delivery-tag, multiple flag
+    Note over P,B: Confirms arrive in publish order on one channel,<br/>but the broker may batch them with multiple=true.<br/>A publisher that does not WAIT for this<br/>has no durability guarantee at all.
+
+    Note over B,C: Delivery
+    C->>B: basic.qos (class 60 method 10) prefetch_count=200
+    Note over C,B: RabbitMQ's default is default_consumer_prefetch {false, 0}<br/>= UNLIMITED, per-consumer, not global.<br/>Docs suggest 100-300 for throughput.
+    C->>B: basic.consume (class 60 method 20), no-ack=false
+    B->>C: basic.deliver (class 60 method 60) x200<br/>each with a delivery-tag, monotonic PER CHANNEL
+
+    alt processed successfully
+        C->>B: basic.ack(delivery-tag, multiple=false)
+        B->>Q: message DELETED
+    else transient failure, try again
+        C->>B: basic.nack(delivery-tag, requeue=true)
+        B->>Q: back on the queue, x-delivery-count incremented
+    else permanently unprocessable
+        C->>B: basic.reject(delivery-tag, requeue=false)
+        B->>B: dead-letter it, reason = 'rejected'
+    else consumer hangs on a QUORUM queue
+        B->>Q: deliveries returned to the queue after<br/>consumer_timeout = 1,800,000 ms (30 minutes)
+        Note over B,Q: Since 4.3 the QUEUE evaluates this, not the channel.<br/>Classic queues and streams never evaluate it at all.<br/>Pre-4.3 the channel was closed, PRECONDITION_FAILED,<br/>and every unacked delivery on it was requeued.
+    end

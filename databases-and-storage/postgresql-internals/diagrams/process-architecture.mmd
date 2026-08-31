@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Client1["Client 1<br/>libpq / JDBC"]
+    Client2["Client 2"]
+    ClientN["Client N"]
+
+    PM["postmaster<br/>listens on port 5432<br/>forks one child per connection<br/>never touches user data"]
+
+    subgraph Backends["Client backends - one OS process per connection"]
+        B1["backend 1<br/>parse, plan, execute<br/>private work_mem, catcache, relcache"]
+        B2["backend 2"]
+        BN["backend N<br/>capped by max_connections, default 100"]
+    end
+
+    subgraph Aux["Auxiliary processes - started by postmaster"]
+        CKPT["checkpointer<br/>flushes dirty buffers<br/>every checkpoint_timeout, default 5min"]
+        BGW["background writer<br/>trickles LRU-cold dirty buffers<br/>bgwriter_delay 200ms"]
+        WALW["walwriter<br/>flushes WAL buffers<br/>wal_writer_delay 200ms"]
+        AVL["autovacuum launcher<br/>wakes every autovacuum_naptime, 1min"]
+        AVW["autovacuum workers<br/>max 3 by default"]
+        ARCH["archiver<br/>runs archive_command<br/>only if archive_mode = on"]
+        WALS["walsender<br/>one per streaming replica<br/>max_wal_senders default 10"]
+        STARTUP["startup process<br/>replays WAL during recovery<br/>becomes the standby replayer"]
+        IOW["io workers<br/>PostgreSQL 18, io_method = worker<br/>io_workers default 3"]
+        WSUM["walsummarizer<br/>PostgreSQL 17, for incremental backup"]
+        SLOTS["slotsync worker<br/>PostgreSQL 17, failover slots"]
+    end
+
+    SHM["Shared memory segment<br/>shared_buffers, WAL buffers, lock tables,<br/>ProcArray, SLRU caches, shared statistics"]
+
+    Client1 -->|"startup packet"| PM
+    Client2 --> PM
+    ClientN --> PM
+    PM -.->|"fork"| B1
+    PM -.->|"fork"| B2
+    PM -.->|"fork"| BN
+    PM -.->|"fork at boot"| Aux
+
+    Client1 <-->|"frontend/backend protocol v3.0"| B1
+
+    B1 <--> SHM
+    B2 <--> SHM
+    BN <--> SHM
+    CKPT <--> SHM
+    BGW <--> SHM
+    WALW <--> SHM
+    AVW <--> SHM
+    WALS <--> SHM
+    STARTUP <--> SHM
+    IOW <--> SHM
+
+    AVL -.->|"spawns"| AVW
+
+    style PM fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style SHM fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Backends fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Aux fill:#fff3e0,stroke:#e65100,stroke-width:2px

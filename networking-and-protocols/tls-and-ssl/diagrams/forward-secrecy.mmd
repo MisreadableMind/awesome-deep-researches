@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Static["Static RSA key transport, removed in TLS 1.3"]
+        direction TB
+        S1["Client generates a 48-byte<br/>pre_master_secret"]
+        S2["Client encrypts it under the<br/>server's long-term RSA public key<br/>from the certificate"]
+        S3["Server decrypts with its<br/>long-term private key"]
+        S4["Consequence: the long-term key<br/>decrypts every session ever<br/>recorded. One stolen key file<br/>retroactively breaks years of traffic."]
+        S5["Also: the RSA PKCS 1 v1.5<br/>decryption is a padding oracle.<br/>Bleichenbacher 1998, DROWN 2016,<br/>ROBOT 2017."]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph Ephemeral["(EC)DHE, mandatory in TLS 1.3"]
+        direction TB
+        E1["Each side generates a fresh<br/>private scalar for this connection<br/>and sends the public point"]
+        E2["Shared secret = ECDH(my private,<br/>your public). Identical on both sides,<br/>never transmitted."]
+        E3["The certificate key is used only<br/>to SIGN the transcript, never to<br/>encrypt or transport a secret"]
+        E4["Both sides discard the private<br/>scalars when the handshake ends"]
+        E5["Consequence: stealing the<br/>long-term key lets an attacker<br/>impersonate the server from now on.<br/>It does not decrypt past traffic."]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
+
+    subgraph Groups["What is actually negotiated, extension 10"]
+        direction TB
+        G1["0x001D x25519<br/>32-byte keys, the default<br/>everywhere since about 2018"]
+        G2["0x0017 secp256r1 (P-256)<br/>0x0018 secp384r1<br/>Required by FIPS profiles"]
+        G3["0x0100 ffdhe2048 ... 0x0104 ffdhe8192<br/>Named finite-field groups, RFC 7919.<br/>Added because Logjam proved<br/>server-chosen groups are unsafe."]
+        G4["0x11EC X25519MLKEM768, RFC 10024<br/>Hybrid. 1216-byte client share,<br/>1120-byte server share,<br/>64-byte shared secret."]
+    end
+
+    subgraph Where["Where the secret goes"]
+        direction TB
+        W1["TLS 1.2: pre_master_secret<br/>into the PRF with both randoms"]
+        W2["TLS 1.3: (EC)DHE output is the<br/>salt-side input to the second<br/>HKDF-Extract, producing the<br/>Handshake Secret"]
+    end
+
+    Static -.->|"deleted by RFC 8446"| Ephemeral
+    Ephemeral --> Groups --> Where
+
+    style Static fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Ephemeral fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Groups fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Where fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

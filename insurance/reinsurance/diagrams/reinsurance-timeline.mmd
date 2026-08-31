@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Origins<br/>1370-1842"]
+        direction TB
+        E1A["1370: Genoa. A marine underwriter<br/>lays off part of a voyage from<br/>Genoa to Bruges. The earliest<br/>recorded reinsurance contract."]
+        E1B["1688: Edward Lloyd's coffee house<br/>on Tower Street becomes the place<br/>where shipowners find underwriters"]
+        E1C["Reinsurance is opportunistic and<br/>bilateral. No specialist firms exist."]
+    end
+
+    subgraph Era2["The Professional Reinsurer<br/>1842-1914"]
+        direction TB
+        E2A["1842: Great Fire of Hamburg.<br/>Fire insurers discover that one city<br/>is one risk, not a thousand."]
+        E2B["1846: Cologne Re founded,<br/>the first company formed only<br/>to reinsure. Trading from the 1850s."]
+        E2C["1861: Glarus fire in Switzerland.<br/>1863: Swiss Re founded in response."]
+        E2D["1871: Lloyd's Act incorporates<br/>the Society of Lloyd's"]
+        E2E["1880: Munich Re founded.<br/>The three firms that still lead<br/>the market are now in place."]
+    end
+
+    subgraph Era3["Treaty and Tower<br/>1914-1988"]
+        direction TB
+        E3A["Excess of loss displaces<br/>proportional cover for<br/>catastrophe exposure"]
+        E3B["1980 Fisher Report and 1982<br/>Lloyd's Act force brokers to divest<br/>their managing agencies, separating<br/>broking from underwriting"]
+        E3C["1970s-80s: London market excess<br/>of loss (LMX) writing expands.<br/>Retrocession becomes circular."]
+    end
+
+    subgraph Era4["Crisis and Modelling<br/>1988-2001"]
+        direction TB
+        E4A["1988: Piper Alpha, 167 dead,<br/>around 1.4bn USD of claims.<br/>The LMX spiral detonates."]
+        E4B["1992: Hurricane Andrew.<br/>27.3bn USD of damage in 1992 money,<br/>11 insurers insolvent"]
+        E4C["1993-1996: Bermuda class of<br/>catastrophe reinsurers forms.<br/>Catastrophe models become<br/>the pricing language."]
+        E4D["1996: Lloyd's Reconstruction and<br/>Renewal. Pre-1993 liabilities move<br/>to Equitas at a cost near 21bn USD."]
+        E4E["1994-1997: first catastrophe bonds.<br/>Capital markets enter the tower."]
+    end
+
+    subgraph Era5["Capital Convergence<br/>2001-2026"]
+        direction TB
+        E5A["2005: Katrina. Sidecars raise<br/>over 4bn USD by September 2006."]
+        E5B["2016: Solvency II applies.<br/>Reinsurance becomes an explicit<br/>capital instrument."]
+        E5C["2017-2022: soft market,<br/>then five years of losses"]
+        E5D["2023: hardest property cat market<br/>since 2006. Attachment points reset<br/>upward across the industry."]
+        E5E["2025: LA wildfires, 40bn USD insured.<br/>2026: rate on line index falls 12% at<br/>1 January and 16% by the July renewals,<br/>the steepest annual drop since<br/>the late 1990s."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Era5 fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

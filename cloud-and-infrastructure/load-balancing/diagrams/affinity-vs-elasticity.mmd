@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Mech["How affinity is implemented"]
+        direction TB
+        SRC["Source IP hash<br/>nginx ip_hash uses the first three<br/>octets of an IPv4 address or the<br/>whole IPv6 address. NLB stickiness<br/>type is source_ip.<br/>Breaks: carrier NAT puts thousands<br/>of users behind one address."]
+        LBC["Load balancer cookie<br/>ALB sets AWSALB and AWSALBCORS,<br/>default lifetime 86,400 s, maximum<br/>604,800 s. The balancer owns the<br/>mapping and the client just echoes it.<br/>Breaks: no cookie, no affinity."]
+        APPC["Application cookie<br/>ALB stickiness.type app_cookie wraps<br/>the application's own cookie in AWSALBAPP.<br/>nginx 1.29.6 added the sticky directive<br/>with route and drain parameters.<br/>Breaks: the app must set it first."]
+        HASH["Consistent hash on a request field<br/>Envoy ring_hash or maglev over a header,<br/>cookie, or path. HAProxy balance uri.<br/>Not affinity in the session sense.<br/>It is cache locality."]
+    end
+
+    subgraph Conflict["The four things affinity takes away"]
+        direction TB
+        C1["Scale-out stops helping.<br/>New instances receive only new<br/>sessions. Existing hot sessions<br/>stay put. Relief arrives at the<br/>rate sessions expire, not at the<br/>rate instances boot."]
+        C2["Scale-in destroys state.<br/>Removing an instance ends every<br/>session pinned to it, unless the<br/>drain window exceeds the longest<br/>session, which for a cookie with a<br/>one-day lifetime means one day."]
+        C3["Deploys become session-visible.<br/>Any rolling restart is a session<br/>loss event. Blue-green does not<br/>help; both colours are new processes."]
+        C4["Balance decays over time.<br/>Sessions accumulate on whichever<br/>instances have been up longest.<br/>The oldest instance carries the<br/>most state and the most load."]
+    end
+
+    subgraph Escape["The escape"]
+        E1["Move session state out of the process.<br/>Redis, Memcached, a signed cookie, or a<br/>JWT. Then any instance can serve any<br/>request, drain is instant, and the<br/>balancer is free to use whatever<br/>algorithm balances best."]
+        E2["Keep affinity only where it is a<br/>cache optimisation and a miss is<br/>merely slower, never wrong. That is<br/>the correct use of consistent hashing<br/>and the wrong use of session pinning."]
+    end
+
+    Mech --> Conflict --> Escape
+
+    style Mech fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Conflict fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Escape fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

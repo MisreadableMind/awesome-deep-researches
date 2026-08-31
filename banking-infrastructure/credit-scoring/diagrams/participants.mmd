@@ -1,0 +1,71 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Furn["Furnishers - approximately 10,000 per agency"]
+        Banks["Card issuers<br/>~40% of tradelines"]
+        Retail["Retail card banks<br/>~18%"]
+        Coll["Collection agencies<br/>and debt buyers ~13%"]
+        Edu["Education lenders<br/>and servicers ~7%"]
+        Mtg["Mortgage lenders<br/>and servicers ~7%"]
+        Auto["Auto and sales finance<br/>~11% combined"]
+    end
+
+    subgraph NCRA["Nationwide consumer reporting agencies"]
+        EFX["Equifax<br/>200M+ files"]
+        EXP["Experian<br/>200M+ files"]
+        TU["TransUnion<br/>200M+ files"]
+        INN["Innovis<br/>fourth agency,<br/>owns part of e-OSCAR"]
+    end
+
+    subgraph Model["Model developers"]
+        FICO["Fair Isaac<br/>FICO Score 2,4,5,8,9,10,10T"]
+        VS["VantageScore Solutions<br/>owned jointly by the three agencies"]
+        Custom["Lender in-house<br/>scorecards and ML models"]
+    end
+
+    subgraph Users["Users with a permissible purpose"]
+        Lend["Lenders"]
+        Ins["Insurers - where state law allows"]
+        Land["Landlords and employers<br/>with written consent"]
+        GSE["Fannie Mae and Freddie Mac<br/>set the mortgage standard"]
+    end
+
+    subgraph Reg["Regulators and enforcement"]
+        CFPB["CFPB<br/>FCRA and ECOA rules,<br/>supervision, complaints"]
+        FTC["FTC<br/>FCRA enforcement,<br/>non-bank data security"]
+        Pru["OCC, Fed, FDIC, NCUA<br/>model risk and fair lending exams"]
+        FHFA["FHFA<br/>dictates GSE score requirements"]
+        States["State AGs<br/>and state credit laws"]
+    end
+
+    subgraph Infra["Shared industry infrastructure"]
+        CDIA["CDIA<br/>owns the Metro 2 format<br/>and the Credit Reporting Resource Guide"]
+        OSCAR["e-OSCAR<br/>dispute exchange, owned by<br/>Equifax, Experian, Innovis, TransUnion"]
+        ACR["AnnualCreditReport.com<br/>statutory free file access"]
+    end
+
+    Consumer["Consumer<br/>the data subject,<br/>not a customer"]
+
+    Furn -->|"Metro 2 batch, monthly"| NCRA
+    NCRA --> Model
+    Model -->|"score at pull time"| Users
+    NCRA -->|"consumer report"| Users
+    Users -->|"inquiry recorded"| NCRA
+    Users -->|"adverse action notice"| Consumer
+    Consumer -->|"dispute"| NCRA
+    NCRA <-->|"ACDV / AUD"| OSCAR
+    OSCAR <--> Furn
+    CDIA -.publishes format.-> Furn
+    CDIA -.publishes format.-> NCRA
+    Reg -.supervises.-> NCRA
+    Reg -.supervises.-> Furn
+    Reg -.supervises.-> Users
+    FHFA -.mandates model.-> GSE
+    Consumer -->|"free file"| ACR
+
+    style Furn fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NCRA fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Model fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Users fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Reg fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Infra fill:#eceff1,stroke:#37474f,stroke-width:2px

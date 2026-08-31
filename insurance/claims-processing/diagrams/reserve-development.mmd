@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph File["Claim-level: what the adjuster sets"]
+        T0["Day 0: formula reserve<br/>average severity for the<br/>coverage and cause of loss"]
+        T1["Day 12: first case reserve<br/>after inspection and estimate"]
+        T2["Day 45: revised<br/>medical specials arrive,<br/>attorney letter of representation"]
+        T3["Day 210: revised<br/>demand received, venue known"]
+        T4["Day 400: paid and closed"]
+    end
+
+    subgraph Agg["Portfolio-level: what the actuary sets"]
+        Case["Case reserves<br/>sum of open file estimates"]
+        IBNER["IBNER<br/>incurred but not enough reported.<br/>Development on known claims"]
+        Pure["Pure IBNR<br/>claims that have occurred<br/>but have not been reported"]
+        Bulk["Bulk reserve<br/>the actuarial top-up<br/>above case"]
+        LAERes["LAE reserve<br/>DCC on open files<br/>plus A and O run-off"]
+    end
+
+    subgraph Method["How the top-up is computed"]
+        CL["Chain ladder<br/>ultimate = latest cumulative<br/>x product of age-to-age factors"]
+        BF["Bornhuetter-Ferguson<br/>ultimate = reported<br/>+ expected ultimate x percent unreported"]
+        ELR["Expected loss ratio<br/>ultimate = earned premium<br/>x a priori loss ratio"]
+        FS["Frequency-severity<br/>ultimate counts x ultimate severity"]
+    end
+
+    subgraph Report["Where it lands"]
+        SchedP["NAIC Schedule P<br/>ten accident years, paid and incurred<br/>loss and DCC triangles, net and gross"]
+        SAO["Statement of Actuarial Opinion<br/>signed annually, must state<br/>whether the reserve is reasonable"]
+        Dev["One-year and two-year<br/>development. Adverse development<br/>is the item analysts read first"]
+    end
+
+    T0 --> T1 --> T2 --> T3 --> T4
+    T1 --> Case
+    T2 --> Case
+    T3 --> Case
+
+    Case --> IBNER
+    Case --> Bulk
+    Pure --> Bulk
+    IBNER --> Bulk
+    Case --> LAERes
+    Pure --> LAERes
+
+    CL --> Bulk
+    BF --> Bulk
+    ELR --> Bulk
+    FS --> Bulk
+
+    Bulk --> SchedP
+    LAERes --> SchedP
+    SchedP --> SAO --> Dev
+
+    Warn["Stair-stepping is the failure mode.<br/>Reserving to today's known number rather than<br/>the most likely outcome guarantees adverse development."]
+    T2 -.-> Warn
+
+    style File fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Agg fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Method fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Report fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Warn fill:#ffebee,stroke:#b71c1c,stroke-width:2px

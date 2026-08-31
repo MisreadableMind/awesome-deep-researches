@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph UTXO["Bitcoin: unspent transaction outputs"]
+        U1["State is a set of coins.<br/>Each coin is spent once, whole."]
+        U2["A transaction names inputs by<br/>txid and index, destroys them,<br/>and creates new outputs."]
+        U3["Validity is local: check the<br/>inputs exist and the scripts pass.<br/>No global position to read."]
+        U4["Parallel by construction.<br/>Two transactions touching<br/>different coins never conflict."]
+        U5["No native replay problem.<br/>A coin, once spent, is gone."]
+        U6["Costs: change outputs, wallet<br/>coin selection, no persistent<br/>contract state."]
+    end
+
+    subgraph ACCT["Ethereum: accounts and balances"]
+        A1["State is a mapping<br/>address to nonce, balance,<br/>storageRoot, codeHash."]
+        A2["A transaction mutates the<br/>sender's balance and nonce<br/>and may mutate any account."]
+        A3["Validity is global: the result<br/>depends on the whole state<br/>at the moment of execution."]
+        A4["Serial by construction.<br/>Ordering inside a block<br/>changes the outcome."]
+        A5["Replay is prevented by an<br/>explicit per-account nonce,<br/>strictly incrementing."]
+        A6["Buys: persistent contract<br/>storage, exact-amount transfers,<br/>one address per identity."]
+    end
+
+    subgraph CONSEQ["What follows from the choice"]
+        C1["Contracts can hold state<br/>between calls, so lending pools<br/>and order books are possible."]
+        C2["Transaction order is<br/>economically valuable.<br/>MEV is a direct consequence."]
+        C3["State grows monotonically<br/>and must be held by every node.<br/>State growth is the standing bill."]
+    end
+
+    UTXO -.rejected for.-> CONSEQ
+    ACCT --> CONSEQ
+
+    style UTXO fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ACCT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style CONSEQ fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

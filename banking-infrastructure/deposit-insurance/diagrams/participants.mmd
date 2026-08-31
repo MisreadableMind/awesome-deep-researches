@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Public["Depositors and their intermediaries"]
+        Cons["Consumers and small businesses<br/>more than 99 percent of accounts<br/>are under 250,000 USD"]
+        Corp["Corporate treasurers<br/>hold most of the 8.693 trn USD<br/>of uninsured deposits"]
+        Fintech["Fintechs and broker-dealers<br/>sweep customer cash into<br/>panels of program banks"]
+        Networks["Deposit placement networks<br/>IntraFi and others<br/>462.8 bn USD of reciprocal deposits<br/>at 31 Mar 2026"]
+    end
+
+    subgraph Banks["Insured institutions - 4,238 at 30 Jun 2026"]
+        IDI["Insured depository institutions<br/>pay quarterly assessments on<br/>average assets minus tangible equity"]
+        Acq["Acquiring institutions<br/>bid for failed franchises"]
+        Core["Core processors<br/>Fiserv, FIS, Jack Henry<br/>produce the deposit data files"]
+    end
+
+    subgraph Chartering["Chartering and supervisory authorities"]
+        OCC["OCC<br/>charters and closes national banks<br/>and federal savings associations"]
+        State["State banking departments<br/>charter and close state banks<br/>DFPI closed SVB, NYDFS closed Signature"]
+        Fed["Federal Reserve<br/>supervises state member banks<br/>and holding companies;<br/>two-thirds vote for systemic risk"]
+    end
+
+    subgraph FDICBox["FDIC - three hats"]
+        Insurer["INSURER<br/>Division of Insurance and Research<br/>sets rates, computes the reserve ratio,<br/>determines coverage per depositor"]
+        Receiver["RECEIVER<br/>Division of Resolutions and Receiverships<br/>markets the franchise, runs the<br/>least-cost test, sells the assets"]
+        Supervisor["SUPERVISOR<br/>primary federal regulator for<br/>state non-member banks"]
+    end
+
+    subgraph Other["Other guarantors and the Treasury"]
+        NCUA["NCUA<br/>operates the NCUSIF<br/>24.1 bn USD of assets at 31 Dec 2025"]
+        Treas["US Treasury<br/>Secretary makes the systemic risk<br/>determination; provides the<br/>100 bn USD credit line"]
+        Priv["Private share insurers<br/>state-chartered credit unions only;<br/>no federal backing"]
+    end
+
+    Cons --> IDI
+    Corp --> IDI
+    Fintech --> IDI
+    Networks --> IDI
+
+    IDI -->|"quarterly assessment"| Insurer
+    IDI -->|"Call Report data"| Insurer
+    Core -->|"standard-format deposit files"| Receiver
+
+    OCC -->|"closing order"| Receiver
+    State -->|"closing order"| Receiver
+    Fed -->|"two-thirds board vote"| Treas
+    Insurer -->|"two-thirds board vote"| Treas
+    Treas -->|"systemic risk determination<br/>after consulting the President"| Receiver
+
+    Receiver -->|"franchise and asset sale"| Acq
+    Receiver -->|"receivership certificates"| Corp
+    Insurer -->|"insured balances"| Cons
+
+    style FDICBox fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Public fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Banks fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Chartering fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Other fill:#eceff1,stroke:#37474f,stroke-width:2px

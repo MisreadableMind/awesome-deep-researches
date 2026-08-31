@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant B as Backend
+    participant SB as shared_buffers
+    participant WB as WAL buffers
+    participant CK as checkpointer
+    participant D as Disk
+    participant PC as pg_control
+
+    Note over B,PC: Steady state
+    B->>SB: Modify page 42, set BM_DIRTY
+    B->>WB: XLogInsert, record gets an LSN
+    B->>SB: Set page pd_lsn to that LSN
+    B->>WB: COMMIT: XLogFlush up to commit LSN
+    WB->>D: fsync pg_wal segment
+    D-->>B: durable, now report success to the client
+
+    Note over CK: Checkpoint fires on whichever comes first:<br/>checkpoint_timeout 5min, or max_wal_size 1GB of WAL
+
+    CK->>WB: Write XLOG_CHECKPOINT_REDO record.<br/>Its start LSN becomes the new REDO pointer.<br/>PostgreSQL 17 and later. A shutdown checkpoint<br/>writes one XLOG_CHECKPOINT_SHUTDOWN record instead.
+    CK->>SB: Mark every currently dirty buffer<br/>with BM_CHECKPOINT_NEEDED
+    loop Spread over checkpoint_completion_target x interval = 0.9 x 5min
+        CK->>D: Write a dirty buffer
+        CK->>D: checkpoint_flush_after 256kB triggers<br/>an early writeback hint to the kernel
+    end
+    CK->>D: fsync every touched relation file
+    CK->>WB: Write XLOG_CHECKPOINT_ONLINE record,<br/>pointing back at the REDO record
+    CK->>PC: Write pg_control: checkPoint, redo LSN,<br/>timeline, state
+    CK->>D: Delete or recycle WAL older than the redo point,<br/>keeping at least min_wal_size 80MB
+
+    Note over B,PC: Crash
+
+    participant ST as startup process
+    ST->>PC: Read pg_control, find the REDO pointer
+    ST->>D: Read WAL forward from the REDO pointer
+    loop For every record
+        ST->>SB: If record has a full-page image, overwrite the page
+        ST->>SB: Otherwise compare page pd_lsn to record LSN,<br/>apply only if the page is older
+    end
+    ST->>SB: Roll forward to the end of valid WAL
+    Note over ST: Nothing is rolled back. Uncommitted<br/>transactions are simply never visible,<br/>because their pg_xact bits say ABORTED<br/>or IN_PROGRESS. Undo does not exist.
+    ST-->>B: Accept connections

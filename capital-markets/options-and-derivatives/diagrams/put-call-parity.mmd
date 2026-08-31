@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Claim["C - P = S - K e^(-rT)<br/>European options, same strike K,<br/>same expiry T, no dividends"]
+
+    subgraph Proof["Proof by identical payoffs"]
+        direction TB
+        PA["Portfolio A:<br/>long one call at K,<br/>short one put at K"]
+        PB["Portfolio B:<br/>long the stock,<br/>short a zero-coupon bond<br/>paying K at time T"]
+        PayA["At expiry, if S_T &gt; K:<br/>call pays S_T - K, put expires<br/>= S_T - K"]
+        PayA2["At expiry, if S_T &lt; K:<br/>call expires, put owed K - S_T<br/>= S_T - K"]
+        PayB["At expiry, always:<br/>stock worth S_T,<br/>bond repaid K<br/>= S_T - K"]
+        Same["Identical payoff in every state<br/>-&gt; identical price today<br/>or an arbitrage exists"]
+    end
+
+    Claim --> Proof
+    PA --> PayA
+    PA --> PayA2
+    PB --> PayB
+    PayA --> Same
+    PayA2 --> Same
+    PayB --> Same
+
+    subgraph Check["Base case verification"]
+        direction TB
+        C1["Call = 3.021141<br/>Put = 2.692914<br/>C - P = 0.328227"]
+        C2["S = 100.000000<br/>K e^(-rT) = 99.671773<br/>S - K e^(-rT) = 0.328227"]
+        C3["Exact to six decimal places"]
+    end
+
+    Same --> Check
+
+    subgraph Break["What breaks it in practice"]
+        direction TB
+        B1["Discrete dividends:<br/>C - P + PV(div) = S - K e^(-rT)"]
+        B2["Borrow cost on the short leg.<br/>Hard-to-borrow names show a<br/>persistent parity gap that IS<br/>the borrow rate."]
+        B3["American exercise:<br/>parity becomes a pair of<br/>inequalities, not an equality."]
+        B4["Bid-ask: the arbitrage exists<br/>only outside the spread."]
+    end
+
+    Check --> Break
+
+    subgraph Use["What it is used for"]
+        direction TB
+        U1["Synthetic positions:<br/>long call + short put = long stock.<br/>Trade the cheap leg."]
+        U2["Conversion / reversal:<br/>a riskless package whose<br/>return is the implied<br/>financing rate."]
+        U3["Box spread:<br/>two verticals forming a<br/>guaranteed payoff.<br/>A synthetic zero-coupon loan."]
+        U4["Quote validation:<br/>market makers check every<br/>surface against parity<br/>before publishing."]
+    end
+
+    Break --> Use
+
+    style Claim fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Proof fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Check fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Break fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Use fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Scope["1. Scope: what is damaged"]
+        Sketch["Sketch the structure<br/>rooms, slopes, elevations.<br/>Software derives SF walls,<br/>SF ceiling, LF perimeter"]
+        Obs["Observed damage<br/>photos, test squares,<br/>moisture readings"]
+    end
+
+    subgraph Line["2. Line items: what has to happen"]
+        Cat["Category code<br/>RFG roofing, DRY drywall,<br/>PNT painting, WTR water extraction"]
+        Sel["Selector code<br/>RFG 240 = laminated<br/>composition shingle with felt"]
+        Qty["Quantity x unit<br/>SQ, SF, LF, SY, EA, HR, DA"]
+        Act["Activity<br/>R and R, replace only, remove only,<br/>detach and reset, R and I"]
+    end
+
+    subgraph Price["3. Price list: what it costs here, this month"]
+        Region["Geographic price list<br/>published monthly per region.<br/>Off-cycle updates after a CAT"]
+        Comp["Unit price decomposes into<br/>MAT material + LAB labour<br/>+ EQU equipment + MKT market"]
+    end
+
+    subgraph Build["4. Build up to replacement cost"]
+        Sub["Line item subtotal"]
+        OP["Overhead and profit<br/>10 percent and 10 percent,<br/>by convention when three or<br/>more trades are required"]
+        Tax["Sales tax on the<br/>material component only"]
+        RCV["Replacement cost value"]
+    end
+
+    subgraph Settle["5. Settle down to what is owed"]
+        Dep["Depreciation per line item<br/>age divided by useful life.<br/>Recoverable or non-recoverable"]
+        ACV["Actual cash value<br/>= RCV - depreciation"]
+        Ded["Less the deductible"]
+        Pay1["First payment"]
+        Rel["Release recoverable depreciation<br/>on proof the work is done"]
+    end
+
+    Sketch --> Qty
+    Obs --> Cat
+    Cat --> Sel --> Qty --> Act --> Sub
+    Region --> Comp --> Sub
+    Sub --> OP --> Tax --> RCV
+    RCV --> Dep --> ACV --> Ded --> Pay1 --> Rel
+
+    style Scope fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Line fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Price fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Build fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Settle fill:#fce4ec,stroke:#880e4f,stroke-width:3px

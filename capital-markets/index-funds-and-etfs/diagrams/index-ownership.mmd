@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Own["WHO OWNS THE US STOCK MARKET, year-end 2025"]
+        O1["Index domestic equity mutual funds<br/>and ETFs: 19 percent<br/>up from 11 percent in 2015"]
+        O2["Actively managed domestic equity<br/>mutual funds and ETFs: 11 percent<br/>down from 18 percent in 2015"]
+        O3["Everyone else: 69 percent<br/>pensions, insurers, hedge funds,<br/>individuals, foreign investors,<br/>corporate insiders"]
+    end
+
+    subgraph Conc["WHO RUNS THE FUNDS, year-end 2025"]
+        C1["Largest 5 complexes:<br/>58 percent of US mutual fund<br/>and ETF assets, up from 35 percent in 2005"]
+        C2["Largest 10: 72 percent"]
+        C3["Largest 25: 86 percent"]
+    end
+
+    Own --> Mech["THE MECHANISM<br/>Index share of the market is MODERATE.<br/>Manager share of the index business is HIGH.<br/>The concentration is in the ASSET MANAGEMENT<br/>industry, not in indexing as such."]
+    Conc --> Mech
+
+    Mech --> Q1["QUESTION 1: VOTING<br/>An index fund cannot sell a company it<br/>dislikes without abandoning its mandate.<br/>Exit is unavailable, so voice is the only lever.<br/>Bebchuk and Hirst, Boston University Law Review 2019,<br/>project the largest three managers casting<br/>roughly 40 percent of S&P 500 votes<br/>within two decades."]
+
+    Mech --> Q2["QUESTION 2: INCENTIVE<br/>A manager earning 3 bp has little private<br/>incentive to spend on stewardship,<br/>because any governance improvement<br/>accrues to competitors' funds equally."]
+
+    Mech --> Q3["QUESTION 3: COMMON OWNERSHIP<br/>The same managers hold every firm in an<br/>industry. Competition theories are contested<br/>and the empirical evidence is disputed."]
+
+    Q1 --> Ans["THE INDUSTRY'S ANSWER<br/>Pass-through voting.<br/>BlackRock Voting Choice from 2022,<br/>State Street Proxy Voting Choice,<br/>Vanguard Investor Choice piloted 2023<br/>and expanded since.<br/>Beneficial owners direct votes<br/>under chosen policies."]
+
+    Q2 --> Ans
+    Q3 --> Legal["THE LEGAL CHALLENGE<br/>A Texas-led coalition of US states sued<br/>BlackRock, Vanguard and State Street in<br/>November 2024 over coal industry holdings,<br/>alleging coordinated output restriction.<br/>The theory is contested."]
+
+    style Own fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Conc fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Mech fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Ans fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Legal fill:#fce4ec,stroke:#880e4f,stroke-width:2px

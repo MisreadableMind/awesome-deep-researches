@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Entry["Forward entry arrives at RDFI"]
+    Post{"Can it post?"}
+
+    Entry --> Post
+
+    Post -->|Yes, clean| Posted["Posted to receiver account"]
+    Post -->|Yes, but details wrong| NOC["Notification of Change<br/>COR entry<br/>Account renumbered,<br/>routing changed,<br/>wrong transaction code"]
+    Post -->|No| Reason{"Why not?"}
+
+    Reason -->|No funds| R01["R01 Insufficient funds<br/>2 banking days"]
+    Reason -->|Account closed| R02["R02 Account closed<br/>2 banking days"]
+    Reason -->|Cannot locate| R03["R03 No account<br/>2 banking days"]
+    Reason -->|Bad format| R04["R04 Invalid account number<br/>2 banking days"]
+    Reason -->|Frozen| R16["R16 Account frozen<br/>2 banking days"]
+    Reason -->|Stop payment| R08["R08 Payment stopped<br/>2 banking days"]
+
+    Posted --> Dispute{"Consumer disputes<br/>within 60 days?"}
+    Dispute -->|Not authorized| R10["R10 Not authorized<br/>60 calendar days"]
+    Dispute -->|Terms violated| R11["R11 Not per authorization<br/>60 calendar days"]
+    Dispute -->|Authorization revoked| R07["R07 Revoked<br/>60 calendar days"]
+    Dispute -->|Wrong SEC code used| R05["R05 Unauthorized consumer debit<br/>using corporate code<br/>60 calendar days"]
+    Dispute -->|No| Final["Entry stands"]
+
+    Posted --> Corp{"Corporate disputes?"}
+    Corp -->|Yes| R29["R29 Corporate not authorized<br/>2 banking days"]
+
+    R01 --> Path["Return travels the reverse path:<br/>RDFI to operator to ODFI to originator<br/>carrying the original trace number"]
+    R02 --> Path
+    R03 --> Path
+    R10 --> Path
+    R11 --> Path
+    R29 --> Path
+
+    Path --> Rates{"Return rate thresholds<br/>monitored by Nacha"}
+    Rates --> T1["Unauthorized: 0.5 percent<br/>R05, R07, R10, R11, R29, R51"]
+    Rates --> T2["Administrative: 3 percent<br/>R02, R03, R04"]
+    Rates --> T3["Overall: 15 percent"]
+
+    T1 --> Enforce["Breach triggers mandatory inquiry.<br/>ODFI may be required to<br/>terminate the originator."]
+    T2 --> Enforce
+    T3 --> Enforce
+
+    NOC --> Fix["Originator must correct within<br/>6 banking days or before the<br/>next entry, whichever is later"]
+
+    style R10 fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style R11 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Enforce fill:#ffcdd2,stroke:#b71c1c,stroke-width:3px
+    style Posted fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style NOC fill:#fff3e0,stroke:#e65100,stroke-width:2px

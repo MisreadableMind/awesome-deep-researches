@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant B as Broker
+    participant V as Venue book
+
+    Note over C,V: Case 1: the cancel wins
+
+    C->>B: OrderCancelRequest 35=F<br/>41=ORD-000417 OrigClOrdID<br/>11=CXL-000418 new ClOrdID<br/>37=BRX-8891204 OrderID
+    B->>C: ExecutionReport 150=6 PendingCancel, 39=6
+    B->>V: cancel
+    V->>B: cancelled, 3500 shares removed
+    B->>C: ExecutionReport 150=4 Canceled, 39=4<br/>11=CXL-000418, 41=ORD-000417<br/>151=0 LeavesQty, 14=6500 CumQty
+    Note over C: CumQty survives the cancel.<br/>6500 shares are still a real position.
+
+    Note over C,V: Case 2: the fill wins
+
+    C->>B: OrderCancelRequest 35=F<br/>41=ORD-000417, 11=CXL-000419
+    V-->>B: fill 3500 at 187.45 already matched
+    B->>C: ExecutionReport 150=F Trade, 39=2 Filled<br/>151=0 14=10000
+    B->>C: OrderCancelReject 35=9<br/>11=CXL-000419, 41=ORD-000417<br/>39=2 Filled<br/>434=1 CxlRejResponseTo<br/>102=0 CxlRejReason, too late to cancel
+    Note over C: The reject carries OrdStatus 39<br/>so the client can resynchronise<br/>without asking.
+
+    Note over C,V: Case 3: cancel-replace, a partial fill lands mid-flight
+
+    C->>B: OrderCancelReplaceRequest 35=G<br/>41=ORD-000417, 11=RPL-000420<br/>38=10000 OrderQty, 44=187.50 new Price
+    B->>C: ExecutionReport 150=E PendingReplace, 39=E
+    V-->>B: 1000 more shares fill at 187.45
+    B->>C: ExecutionReport 150=F, 39=1<br/>32=1000, 14=7500, 151=2500
+    V->>B: replace applied to the residual
+    B->>C: ExecutionReport 150=5 Replaced, 39=1<br/>11=RPL-000420, 41=ORD-000417<br/>38=10000, 14=7500, 151=2500, 44=187.50
+    Note over C,V: OrderQty 38 is always the TOTAL order size,<br/>never the remainder. Sending the remainder<br/>silently shrinks the order. This mistake<br/>is common and expensive.
+
+    Note over C,V: The rule underneath all three cases:<br/>the venue owns the book, the client owns the intent,<br/>and the gap between them is measured in microseconds<br/>during which both are correct.

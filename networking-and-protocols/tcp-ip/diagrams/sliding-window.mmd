@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Send["The sender's byte stream, divided into four regions"]
+        direction LR
+        S1["1. Sent and acknowledged<br/>Freed from the send buffer.<br/>Below SND.UNA."]
+        S2["2. Sent, not yet acknowledged<br/>SND.UNA to SND.NXT.<br/>This is FlightSize. Every byte<br/>here is held in kernel memory<br/>because it may need resending."]
+        S3["3. Usable window<br/>SND.NXT up to<br/>SND.UNA + min(cwnd, rwnd).<br/>May be sent right now."]
+        S4["4. Not yet usable<br/>The application has written it<br/>but the window will not allow it.<br/>Or it has not been written at all."]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    subgraph Two["Two windows, only one of which is on the wire"]
+        direction TB
+        T1["rwnd, the receive window.<br/>Advertised by the peer in the<br/>16-bit Window field, multiplied<br/>by 2^shift from the Window Scale<br/>option. Protects the receiver<br/>from a fast sender."]
+        T2["cwnd, the congestion window.<br/>Purely local to the sender.<br/>Never appears in any header.<br/>Never advertised. Protects the<br/>network from the sender."]
+        T3["The sender may have<br/>min(cwnd, rwnd) bytes<br/>outstanding. Whichever is smaller<br/>is the one to fix."]
+        T1 --> T3
+        T2 --> T3
+    end
+
+    subgraph Arith["The arithmetic that decides throughput"]
+        direction TB
+        A1["Throughput ceiling = window / RTT.<br/>65535 bytes with no window scaling<br/>over an 80 ms path is 6.55 Mbit/s.<br/>That is the entire connection,<br/>on any link speed."]
+        A2["Bandwidth-delay product is the<br/>window required.<br/>1 Gbit/s at 100 ms RTT<br/>= 12.5 MB in flight.<br/>10 Gbit/s at 100 ms = 125 MB."]
+        A3["Window scale caps the shift at 14,<br/>so the largest window is 2^30 bytes,<br/>1 GiB. At 100 ms RTT that ceilings<br/>a single TCP flow at about<br/>86 Gbit/s. Nothing above that<br/>runs on one connection."]
+    end
+
+    subgraph Stall["When the window goes to zero"]
+        direction TB
+        Z1["Receiver advertises win=0.<br/>The sender must stop.<br/>The window-update ACK that reopens<br/>it is a pure ACK and pure ACKs<br/>are not retransmitted."]
+        Z2["Persist timer. The sender sends a<br/>1-byte window probe on a backed-off<br/>timer until the receiver answers.<br/>Without it, a lost window update<br/>deadlocks the connection forever."]
+        Z3["Silly window syndrome:<br/>a receiver that advertises 1 byte<br/>as soon as the app reads 1 byte.<br/>RFC 1122 forbids advertising an<br/>increase below one MSS or half<br/>the buffer, whichever is smaller."]
+        Z1 --> Z2 --> Z3
+    end
+
+    Send --> Two --> Arith --> Stall
+
+    style Send fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Two fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Arith fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Stall fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

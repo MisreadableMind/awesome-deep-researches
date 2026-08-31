@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Src["Solidity source<br/>pragma solidity ^0.8.36"]
+    Lex["Scanner and parser<br/>produces the abstract syntax tree"]
+    Analyse["Name resolution and type checking<br/>storage layout assigned here:<br/>slot 0 upward, packed into 32 byte words"]
+    IR["Yul intermediate representation<br/>viaIR pipeline, opt-in behind a flag.<br/>Old codegen is still the default"]
+    Opt["Optimiser<br/>runs parameter trades deploy size<br/>against call cost.<br/>200 is the conventional setting"]
+    CodeGen["EVM code generation"]
+
+    subgraph Out["What solc emits"]
+        Init["Creation bytecode<br/>constructor logic plus the<br/>runtime code as a payload,<br/>with constructor arguments<br/>ABI encoded and appended"]
+        Runtime["Runtime bytecode<br/>what actually lands in the<br/>account's codeHash"]
+        ABI["ABI JSON<br/>a description, not a protocol object.<br/>Nothing on chain reads it"]
+        Meta["Metadata<br/>CBOR trailer with an IPFS hash<br/>of the source and compiler settings"]
+        Map["Source maps<br/>bytecode offset back to source range,<br/>what debuggers and verifiers use"]
+    end
+
+    subgraph Disp["The runtime dispatcher solc writes"]
+        D1["CALLDATASIZE check,<br/>fall through to receive or fallback"]
+        D2["CALLDATALOAD 0, shift right 224 bits<br/>to isolate the 4 byte selector"]
+        D3["Binary search or linear compare<br/>over sorted selectors"]
+        D4["JUMP to the function body,<br/>decode arguments from calldata"]
+        D5["No match: fallback,<br/>or REVERT with empty data"]
+    end
+
+    Src --> Lex --> Analyse --> IR --> Opt --> CodeGen --> Out
+    Runtime --> Disp
+
+    style Out fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Disp fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CodeGen fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

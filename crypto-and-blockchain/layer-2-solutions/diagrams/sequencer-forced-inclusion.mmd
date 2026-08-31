@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant SEQ as Sequencer (one company)
+    participant INB as L1 delayed inbox / portal
+    participant L1 as Ethereum L1
+    participant DER as Any L2 node's<br/>derivation pipeline
+
+    Note over SEQ: What a sequencer can do:<br/>order transactions, delay them, drop them,<br/>front-run them, and stop entirely.<br/>What it cannot do: forge a state transition<br/>or move funds it does not control.
+
+    U->>SEQ: Ordinary transaction
+    alt Sequencer behaves
+        SEQ-->>U: Included, soft confirmation in 200ms to 2s
+    else Sequencer censors or is down
+        SEQ--xU: Silence
+        Note over U: The escape hatch is the reason<br/>this is a rollup and not a database.
+        U->>INB: Submit the same transaction<br/>directly on L1 and pay L1 gas
+        INB->>L1: Event recorded in the L1 block
+        Note over INB: OP Stack: TransactionDeposited event on<br/>OptimismPortal becomes a type-0x7E deposited<br/>transaction. No signature, no nonce, identified<br/>by sourceHash. Gas is bought on L1 and is<br/>not refundable on L2.
+        Note over INB: Arbitrum: message sits in the delayed inbox.<br/>forceInclusion() becomes callable after<br/>24 hours on Arbitrum One and Nova. The<br/>Censorship Timeout can shrink that via a<br/>delayBuffer between 30 minutes and 48 hours.
+        Note over INB: ZKsync Era: requestL2Transaction appends to<br/>the priority queue. The bootloader tracks<br/>numberOfPriorityTransactions and a<br/>priorityOperationsRollingHash that L1 checks,<br/>so the operator cannot skip or invent entries.
+        L1-->>DER: The derivation rules make inclusion mandatory
+        DER->>DER: Any node building the canonical L2 chain<br/>must include this transaction
+        Note over DER: If the sequencer never posts a batch at all,<br/>OP Stack derivation falls back after<br/>SEQUENCING_WINDOW_SIZE = 3600 L1 blocks<br/>(12 hours) to a chain of deposits only.
+        DER-->>U: Transaction executes. Hours, not seconds.
+    end
+
+    Note over U,DER: The honest summary: censorship resistance on<br/>every major L2 is a delayed, expensive, manual<br/>fallback. It protects the withdrawal. It does<br/>not protect the trade.
+
+    Note over SEQ,L1: Ordering is also a revenue line.<br/>Arbitrum Timeboost auctions a 60-second<br/>express lane by sealed-bid second-price,<br/>bids closing 15 seconds before the round,<br/>a 200ms delay on everyone else, minimum bid<br/>0.001 WETH, proceeds to the chain owner.

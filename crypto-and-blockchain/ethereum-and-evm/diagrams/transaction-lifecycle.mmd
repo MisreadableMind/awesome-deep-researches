@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Alice
+    participant W as Wallet
+    participant RPC as RPC provider
+    participant MP as Mempool
+    participant BD as Builder
+    participant RL as Relay
+    participant PR as Proposer
+    participant EL as Execution client
+    participant AT as 902,945 attesters
+
+    Alice->>W: Send 250 USDC to Bob
+    W->>RPC: eth_call to simulate,<br/>eth_estimateGas, eth_feeHistory
+    RPC-->>W: gas 61,364 and baseFee 0.218 gwei
+    W->>W: Build type 0x02:<br/>nonce 42, gasLimit 65,000,<br/>maxFee 1 gwei, maxPriority 0.05 gwei,<br/>data = a9059cbb || address || amount
+    W->>W: Sign keccak256(0x02 || rlp[payload])<br/>with secp256k1, yParity plus r and s
+    W->>RPC: eth_sendRawTransaction
+    RPC-->>W: txHash = keccak256(raw bytes)
+
+    RPC->>MP: Gossip over devp2p
+    MP->>BD: Builders subscribe to the public pool<br/>and to private order flow
+    BD->>BD: Order transactions to maximise<br/>tips plus MEV. Build the payload.
+    BD->>RL: Submit payload plus bid
+    RL->>RL: Simulate, verify the bid is payable
+
+    PR->>RL: getHeader for this slot
+    RL-->>PR: Best header, value 0.0376 ETH
+    PR->>PR: Sign the header blind.<br/>The body is still not visible.
+    PR->>RL: signedBlindedBeaconBlock
+    RL-->>PR: Full payload released
+
+    PR->>EL: engine_newPayloadV4
+    EL->>EL: Apply state transition,<br/>charge 61,364 gas,<br/>burn 0.0000134 ETH
+    EL-->>PR: VALID, new stateRoot
+    PR->>AT: Broadcast the beacon block
+
+    Note over AT: 4 seconds into the slot,<br/>each attester votes head, source, target
+    AT-->>AT: up to 64 committees per slot,<br/>one vote per validator per epoch
+
+    Note over AT: Two epochs later, about 12.8 minutes,<br/>the block is justified then finalised.<br/>Reverting it now costs one third of 42.5 million ETH.

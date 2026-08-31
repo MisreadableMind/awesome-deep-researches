@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Header["The 9-octet frame header, RFC 9113 section 4.1"]
+        direction TB
+        H1["Bytes 0-2: Length, 24-bit unsigned.<br/>Payload octets only, header excluded.<br/>Max 2^14 = 16,384 unless the peer<br/>raised SETTINGS_MAX_FRAME_SIZE.<br/>Ceiling 2^24-1 = 16,777,215."]
+        H2["Byte 3: Type, 8-bit.<br/>Unknown types MUST be ignored<br/>and discarded, which is the<br/>extension point."]
+        H3["Byte 4: Flags, 8-bit.<br/>Meaning is per type. END_STREAM<br/>is 0x01 on DATA and HEADERS;<br/>END_HEADERS is 0x04; ACK is 0x01<br/>on SETTINGS and PING."]
+        H4["Bytes 5-8: 1 reserved bit set to 0,<br/>then Stream Identifier, 31-bit.<br/>0x00 means the connection itself,<br/>not a stream."]
+    end
+
+    subgraph Types["Frame types defined in RFC 9113 section 6"]
+        direction TB
+        T1["0x00 DATA - message body<br/>0x01 HEADERS - field block, opens a stream<br/>0x02 PRIORITY - deprecated, format retained<br/>0x03 RST_STREAM - abort one stream, 4-byte error"]
+        T2["0x04 SETTINGS - connection parameters, stream 0<br/>0x05 PUSH_PROMISE - announce a server push<br/>0x06 PING - 8 opaque bytes, RTT and liveness<br/>0x07 GOAWAY - stop opening streams, last-stream-id"]
+        T3["0x08 WINDOW_UPDATE - grant flow-control credit<br/>0x09 CONTINUATION - more field block fragment<br/>0x10 PRIORITY_UPDATE - RFC 9218 replacement<br/>0x0a ALTSVC - RFC 7838 alternative service"]
+    end
+
+    subgraph Preface["Connection preface, RFC 9113 section 3.4"]
+        direction TB
+        P1["Client sends 24 fixed octets:<br/>0x505249202a20485454502f322e300d0a0d0a534d0d0a0d0a"]
+        P2["As ASCII: PRI * HTTP/2.0 CRLF CRLF SM CRLF CRLF.<br/>Chosen so an HTTP/1.1 server parses it as a<br/>request with an unknown method and rejects it<br/>instead of misinterpreting the frames."]
+        P3["Both peers then send SETTINGS as the<br/>first frame. Each acknowledges the other's<br/>with SETTINGS and the ACK flag."]
+    end
+
+    subgraph Compare["Same request, both formats"]
+        direction TB
+        C1["HTTP/1.1, roughly 380 bytes of ASCII:<br/>GET / HTTP/1.1 CRLF<br/>Host: www.example.com CRLF<br/>User-Agent: ... CRLF<br/>Accept: ... CRLF CRLF"]
+        C2["HTTP/2: one HEADERS frame.<br/>9 header octets, then an HPACK<br/>field block. First request on a<br/>connection compresses to roughly<br/>100-150 bytes; a repeat request<br/>on the same connection can fall<br/>under 20."]
+    end
+
+    subgraph Life["Stream lifecycle, RFC 9113 section 5.1"]
+        direction TB
+        S0["idle: every stream identifier<br/>that has not been used yet."]
+        S1["open: HEADERS sent or received.<br/>Both peers may send DATA.<br/>Counts against<br/>SETTINGS_MAX_CONCURRENT_STREAMS."]
+        S2["reserved (local) and reserved (remote):<br/>reached only by PUSH_PROMISE.<br/>A pushed response has no request<br/>body, so the HEADERS that follows<br/>skips open entirely."]
+        S3["half-closed (local) and<br/>half-closed (remote): one side sent<br/>END_STREAM, the other may still send.<br/>Still counts against the<br/>concurrency limit."]
+        S4["closed: terminal, and it frees the<br/>concurrency slot at once.<br/>CVE-2023-44487, Rapid Reset, exploits<br/>exactly that: open, reset, repeat, at<br/>a rate the concurrency limit never<br/>bounds, because the limit counts<br/>open streams and not the backend<br/>work they started."]
+        S0 -->|"send or recv HEADERS"| S1
+        S0 -->|"send or recv PUSH_PROMISE"| S2
+        S2 -->|"HEADERS on the promised id"| S3
+        S1 -->|"send or recv END_STREAM"| S3
+        S1 -->|"RST_STREAM"| S4
+        S2 -->|"RST_STREAM"| S4
+        S3 -->|"END_STREAM or RST_STREAM"| S4
+    end
+
+    Preface --> Header
+    Header --> Types
+    Types --> Compare
+    Types --> Life
+
+    style Preface fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Header fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Types fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Compare fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Life fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["A query arrives at a recursive resolver."]
+
+    Hit{"In cache and<br/>TTL not expired?"}
+
+    subgraph Positive["Positive caching"]
+        P1["Serve from cache with the<br/>REMAINING TTL, counted down.<br/>Two queries 4 seconds apart<br/>to the same name should show<br/>a TTL 4 lower. If it does not,<br/>anycast sent you to another node."]
+        P2["The TTL is the zone owner's<br/>promise, not a hint.<br/>RFC 2181 caps it at 2^31-1<br/>and forbids negative values."]
+    end
+
+    subgraph Negative["Negative caching - RFC 2308"]
+        N1["NXDOMAIN: the name does not exist.<br/>NODATA: the name exists but has<br/>no record of that type. NOERROR<br/>with ANCOUNT 0. These are<br/>different answers."]
+        N2["Both are cached, and the lifetime<br/>is the SMALLER of the SOA MINIMUM<br/>field and the SOA record's own TTL.<br/>org publishes 3600 for both,<br/>so a typo is remembered for an hour."]
+        N3["RFC 8020: NXDOMAIN at a name<br/>means NXDOMAIN for everything<br/>beneath it. RFC 8198: a validated<br/>NSEC record proves a whole range<br/>of names absent, so the resolver<br/>can answer without asking."]
+    end
+
+    subgraph Failure["When the authoritative server is down"]
+        F1["RFC 8767 serve-stale:<br/>keep expired data for up to<br/>a configured period and serve it<br/>with a short TTL rather than<br/>SERVFAIL. Implemented in BIND,<br/>Unbound and Knot Resolver.<br/>Off by default in all three."]
+        F2["SERVFAIL itself is cached briefly,<br/>which is why a DNSSEC misconfiguration<br/>keeps failing for minutes after<br/>the fix lands."]
+    end
+
+    subgraph Layers["Where a TTL is actually honoured"]
+        Y1["Authoritative server: sets it"]
+        Y2["Recursive resolver: honours it,<br/>usually with a floor and a ceiling"]
+        Y3["Stub and OS: caches briefly<br/>or not at all"]
+        Y4["Application: the JVM once cached<br/>DNS forever by default.<br/>Browsers keep their own cache.<br/>Connection pools keep sockets open<br/>to an address long after the<br/>record changed. This is why<br/>lowering a TTL does not<br/>guarantee anyone moves."]
+    end
+
+    Q --> Hit
+    Hit -->|yes| Positive
+    Hit -->|no| Resolve["Recurse from the deepest<br/>known delegation"]
+    Resolve --> Negative
+    Resolve --> Failure
+    Positive --> Layers
+    Negative --> Layers
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Positive fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Negative fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Failure fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Layers fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

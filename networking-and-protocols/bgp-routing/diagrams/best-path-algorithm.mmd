@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Candidate routes for one prefix<br/>in the Adj-RIBs-In"]
+    S0{"Is NEXT_HOP resolvable<br/>in the routing table?"}
+    Drop["Route is not a candidate.<br/>Never installed, never advertised.<br/>The most common cause of<br/>'the route is there but not used'."]
+    S1{"1. Highest WEIGHT<br/>Cisco only, local to the router,<br/>never advertised. Default 0,<br/>32768 for locally originated."}
+    S2{"2. Highest LOCAL_PREF<br/>the dominant policy knob.<br/>Customer 200 beats peer 100<br/>beats provider 50."}
+    S3{"3. Locally originated<br/>network statement or redistribution<br/>beats anything learned"}
+    S4{"4. Shortest AS_PATH<br/>AS_SET counts as 1.<br/>Confederation segments<br/>do not count."}
+    S5{"5. Lowest ORIGIN<br/>IGP 0 beats EGP 1<br/>beats INCOMPLETE 2"}
+    S6{"6. Lowest MED<br/>only between routes from<br/>the same neighbour AS,<br/>unless always-compare-med"}
+    S7{"7. eBGP beats iBGP"}
+    S8{"8. Lowest IGP metric<br/>to the NEXT_HOP.<br/>This is hot potato routing:<br/>hand the packet off at the<br/>nearest exit."}
+    S9{"9. Multipath?<br/>install several if configured<br/>and the tie is exact"}
+    S10{"10. Oldest eBGP route<br/>stability heuristic, not in RFC 4271.<br/>Prefers the incumbent to avoid<br/>churn on every reconvergence."}
+    S11{"11. Lowest BGP Identifier<br/>or ORIGINATOR_ID if<br/>the route was reflected"}
+    S12{"12. Shortest CLUSTER_LIST<br/>fewest reflection hops"}
+    S13["13. Lowest neighbour address<br/>final deterministic tiebreak"]
+    Best["Best path<br/>installed in Loc-RIB,<br/>offered to export policy,<br/>programmed into the FIB"]
+
+    Start --> S0
+    S0 -->|"no"| Drop
+    S0 -->|"yes"| S1
+    S1 -->|"tie"| S2 -->|"tie"| S3 -->|"tie"| S4 -->|"tie"| S5
+    S5 -->|"tie"| S6 -->|"tie"| S7 -->|"tie"| S8 -->|"tie"| S9
+    S9 -->|"tie"| S10 -->|"tie"| S11 -->|"tie"| S12 -->|"tie"| S13
+    S13 --> Best
+    S1 -->|"winner"| Best
+    S2 -->|"winner"| Best
+    S4 -->|"winner"| Best
+    S8 -->|"winner"| Best
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Drop fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style S2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style S4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style S8 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Best fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

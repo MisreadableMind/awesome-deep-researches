@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Biller as Biller<br/>utility, landlord, merchant
+    participant BB as Biller's bank
+    participant Net as Instant network
+    participant PB as Payer's bank
+    participant Payer
+
+    Note over Biller,Payer: Request to Pay inverts the ask<br/>without inverting the money movement
+    Biller->>BB: Create request<br/>amount, due date, reference
+    BB->>Net: pain.013 Request to Pay<br/>or UPI collect request
+    Net->>PB: Deliver request
+    PB->>Payer: Push notification<br/>"ACME Energy requests 84.20,<br/>due 15 Sep"
+
+    alt Payer accepts
+        Payer->>PB: Approve and authenticate
+        PB->>Net: pacs.008 credit push
+        Net->>BB: Payment delivered and settled
+        BB->>Biller: Paid, matched to the<br/>original request reference
+        Note over Biller: Reconciliation is exact.<br/>The payment carries the invoice ID.
+    else Payer declines
+        Payer->>PB: Decline
+        PB->>Net: pain.014 negative response
+        Net->>BB: Declined
+        BB->>Biller: No payment. No failed<br/>direct debit fee, no return code.
+    else Payer part-pays or defers
+        Payer->>PB: Pay 40 now, rest later
+        PB->>Net: pacs.008 for 40
+        Note over Biller: The scheme allows what a<br/>direct debit never could:<br/>negotiation before the debit.
+    end
+
+    Note over Biller,Payer: Why it matters: the payer keeps control,<br/>so the unauthorised-debit dispute<br/>disappears. Why adoption lags:<br/>billers must rebuild dunning,<br/>and the payer can always say no.
+
+    rect rgb(240, 244, 248)
+        Note over Net: Scheme names for the same idea:<br/>RTP Request for Payment,<br/>FedNow Request for Payment,<br/>UPI collect and AutoPay mandates,<br/>Pix Automatico and Pix Cobranca,<br/>SEPA Request to Pay
+    end

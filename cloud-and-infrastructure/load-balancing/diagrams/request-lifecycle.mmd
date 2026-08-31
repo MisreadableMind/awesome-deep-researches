@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as Browser<br/>198.51.100.20 in Frankfurt
+    participant R as Recursive resolver<br/>Deutsche Telekom
+    participant D as Authoritative DNS<br/>for shop.example.com
+    participant Rt as Provider edge router<br/>ECMP over 8 next hops
+    participant L4 as L4 balancer<br/>Maglev-class, VIP 203.0.113.10
+    participant L7 as L7 balancer<br/>Envoy, 10.0.4.31
+    participant B as Backend<br/>10.0.9.77:8443
+    participant S as Session store<br/>Redis
+
+    Note over U,S: Worked example. Fleet: 3 zones, 60 backends,<br/>steady state 40,000 requests per second,<br/>average request 8 ms of CPU.
+
+    U->>R: A? shop.example.com
+    R->>D: A? shop.example.com<br/>EDNS Client Subnet 198.51.100.0/24
+    D-->>R: 203.0.113.10, TTL 60,<br/>SCOPE PREFIX-LENGTH 24
+    Note over R: The scope of 24 means this answer is<br/>valid only for that /24. The resolver now<br/>caches one entry per client prefix,<br/>not one entry per name.
+    R-->>U: 203.0.113.10
+
+    U->>Rt: TCP SYN to 203.0.113.10:443<br/>src 198.51.100.20:51514
+    Note over Rt: 203.0.113.10 is anycast, announced from<br/>9 sites. BGP picks Frankfurt.<br/>ECMP hashes the 5-tuple over<br/>8 L4 balancer next hops.
+
+    Rt->>L4: SYN arrives at balancer 5 of 8
+    L4->>L4: hash5 = h(198.51.100.20, 51514,<br/>203.0.113.10, 443, 6)<br/>index = hash5 mod 65537<br/>entry[index] = L7 proxy 10.0.4.31
+    L4->>L4: Insert into the connection table<br/>so later packets skip the hash
+    L4->>L7: Encapsulate and forward<br/>outer 10.0.2.5 to 10.0.4.31<br/>inner packet untouched, client IP preserved
+
+    L7->>U: SYN-ACK, then TLS 1.3 handshake<br/>one round trip, or zero with a ticket
+    U->>L7: GET /cart HTTP/2<br/>cookie AWSALB not present
+
+    Note over L7: Now, and only now, is the request visible.<br/>Path /cart, method GET, host, cookies,<br/>user agent, and the ALPN it negotiated.
+
+    L7->>L7: Route match on /cart to cluster shop-api<br/>60 endpoints, the 20 in this zone at first priority,<br/>the other 40 as spillover if this zone fails
+    L7->>L7: Least request with choice_count 2<br/>Sample 10.0.9.77 (3 in flight)<br/>and 10.0.9.81 (7 in flight)<br/>Choose 10.0.9.77
+    L7->>B: HTTP/2 stream on a pooled connection<br/>x-forwarded-for 198.51.100.20<br/>x-request-id 01J8...
+
+    B->>S: GET session:9f2c
+    S-->>B: session blob, 1.4 KB
+    Note over B,S: Session state lives here, not in the process.<br/>That is what lets the balancer treat all<br/>20 endpoints as interchangeable.
+
+    B-->>L7: 200 OK, 12 ms
+    L7->>L7: Record 12 ms into the endpoint's<br/>in-flight counter and EWMA
+    L7-->>U: 200 OK
+
+    alt Backend returns 503
+        B-->>L7: 503, 2 ms
+        L7->>L7: Retry budget check<br/>Envoy default 20% of active requests,<br/>minimum 3 concurrent retries
+        L7->>B: Retry on a different endpoint,<br/>x-envoy-attempt-count 2
+        L7->>L7: Outlier detection counter for 10.0.9.77<br/>5 consecutive 5xx ejects it for 30 s,<br/>60 s on the second ejection, capped at 300 s
+    end
+
+    alt Backend is saturated
+        B-->>L7: 503 with x-envoy-overloaded<br/>or a queue drop after 5 ms of sojourn time
+        L7-->>U: 503 immediately, no retry
+        Note over L7,B: Shedding is cheaper than queueing.<br/>A request that will time out anyway should<br/>be rejected before it consumes CPU.
+    end

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph H1["RFC 6455 over HTTP/1.1"]
+        direction TB
+        A1["GET with Upgrade: websocket.<br/>Sec-WebSocket-Key is a 16-byte<br/>nonce. The 101 response carries<br/>Sec-WebSocket-Accept, the base64<br/>SHA-1 of the key concatenated<br/>with the fixed GUID<br/>258EAFA5-E914-47DA-95CA-C5AB0DC85B11."]
+        A2["One WebSocket consumes one whole<br/>TCP connection. Browsers cap<br/>parallel HTTP/1.1 connections at<br/>six per origin, but WebSocket is<br/>exempt from that cap in every<br/>major browser."]
+        A3["Universally supported. This is<br/>the version that is actually<br/>deployed."]
+    end
+
+    subgraph H2["RFC 8441 over HTTP/2, September 2018"]
+        direction TB
+        B1["Server advertises<br/>SETTINGS_ENABLE_CONNECT_PROTOCOL,<br/>identifier 0x08, value 1.<br/>Default is 0, so absence means no."]
+        B2["Client sends extended CONNECT<br/>on a new stream:<br/>:method = CONNECT<br/>:protocol = websocket<br/>:scheme = https<br/>:path = /chat<br/>:authority = server.example.com<br/>plus sec-websocket-version: 13"]
+        B3["Sec-WebSocket-Key and<br/>Sec-WebSocket-Accept disappear.<br/>RFC 8441 states the functionality<br/>has been superseded by the<br/>:protocol pseudo-header field."]
+        B4["Server replies :status 200,<br/>not 101. The stream becomes the<br/>tunnel and carries RFC 6455<br/>frames unchanged, masking<br/>included."]
+        B5["Win: many WebSockets share one<br/>TCP and TLS connection with<br/>ordinary page traffic.<br/>Loss: HTTP/2 flow control now<br/>applies per stream, and one lost<br/>TCP segment stalls every stream."]
+    end
+
+    subgraph H3["RFC 9220 over HTTP/3, June 2022"]
+        direction TB
+        C1["Same extended CONNECT,<br/>same SETTINGS_ENABLE_CONNECT_PROTOCOL<br/>value 0x08, registered separately<br/>for HTTP/3."]
+        C2["QUIC streams are independent, so<br/>the cross-stream head-of-line<br/>blocking of HTTP/2 is gone.<br/>Within one WebSocket the ordering<br/>guarantee is unchanged."]
+        C3["Stream closure semantics differ:<br/>a QUIC FIN is an orderly close and<br/>a stream error replaces the<br/>TCP reset."]
+    end
+
+    subgraph Reality["Deployment reality, August 2026"]
+        direction TB
+        D1["Browser support for RFC 8441 is<br/>partial and has been for years.<br/>Firefox implements it. Chromium<br/>does not, so a page that opens a<br/>WebSocket gets HTTP/1.1 on a<br/>dedicated connection even when the<br/>origin serves HTTP/2 or HTTP/3."]
+        D2["Where RFC 8441 does earn its<br/>keep is server to server and<br/>proxy to origin, where both ends<br/>are controlled and connection<br/>count is the cost."]
+        D3["Practical consequence: design for<br/>one TCP connection per WebSocket<br/>and multiplex logical channels<br/>inside it yourself."]
+    end
+
+    H1 --> H2 --> H3
+    H2 --> Reality
+    H3 --> Reality
+
+    style H1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style H2 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style H3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Reality fill:#eceff1,stroke:#37474f,stroke-width:3px

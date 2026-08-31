@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Corp["THE CORPORATION OF LLOYD'S<br/>Writes no insurance. Owns no risk.<br/>It licenses, supervises, sets capital,<br/>runs the Central Fund and holds the<br/>market's ratings and trading licences."]
+
+    Council["Council of Lloyd's<br/>Statutory governing body under the<br/>Lloyd's Acts of 1871 and 1982.<br/>Approves business plans, sets<br/>capital, admits and expels."]
+
+    subgraph Capital["Who puts up the money"]
+        direction TB
+        CM["Corporate members<br/>Admitted from 1994. Limited liability.<br/>Insurance groups, private equity,<br/>listed vehicles. Now most of the market."]
+        NM["Individual members, the Names<br/>Historically unlimited liability,<br/>every asset pledged. Around 2% of<br/>capacity by 2014 and falling."]
+        MA2["Members' agents<br/>Advise individual members on which<br/>syndicates to back. Four remain."]
+    end
+
+    subgraph Operate["Who runs the underwriting"]
+        direction TB
+        MA["Managing agents<br/>Around 50 firms. FCA and PRA<br/>authorised. Employ the underwriters,<br/>own the business plan, carry the<br/>regulatory liability."]
+        SY["Syndicates<br/>Around 80 in a typical recent year.<br/>Not companies. Annual ventures,<br/>reconstituted every 1 January."]
+        SPA["Special purpose arrangements<br/>Single-syndicate vehicles that write<br/>a quota share of a host syndicate"]
+    end
+
+    subgraph Distribute["Who brings the business"]
+        direction TB
+        BK["Lloyd's brokers<br/>Over 400 registered. Until 1982 many<br/>also owned managing agents.<br/>The Acts forced them apart."]
+        CH["Coverholders<br/>Over 3,000 worldwide. Bind business<br/>on syndicate paper under a<br/>binding authority."]
+        SC["Service companies<br/>Coverholders owned by the<br/>managing agent itself"]
+    end
+
+    subgraph Year["The annual venture and how it ends"]
+        direction TB
+        Y1["A syndicate year of account runs<br/>three years before it closes"]
+        Y2["Reinsurance to close: the closing year<br/>pays a premium to the following year,<br/>which assumes all its liabilities"]
+        Y3["RITC is how a 1970s asbestos policy<br/>became a 1990s Name's problem.<br/>Each generation inherited the last."]
+        Y4["A year that cannot be closed is left<br/>in run-off and reported separately"]
+    end
+
+    Corp --> Council
+    Council --> MA
+    CM --> SY
+    NM --> MA2
+    MA2 --> SY
+    MA --> SY
+    MA --> SPA
+    BK --> SY
+    CH --> SY
+    SC --> SY
+    SY --> Year
+
+    Fin["2025 market result<br/>Gross written premium 57.9bn GBP<br/>Combined ratio 87.6%<br/>Profit before tax 10.6bn GBP<br/>Investment return 6.0bn GBP<br/>Fourth largest reinsurance group in<br/>the world by 2025 premium, 27.1bn USD"]
+
+    SY --> Fin
+
+    style Corp fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Council fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Capital fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Operate fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Distribute fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Year fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Fin fill:#fce4ec,stroke:#880e4f,stroke-width:3px

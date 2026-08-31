@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Stores["The four stores that matter, TLS-capable roots as of 29 Aug 2026"]
+        direction TB
+        Chrome["Chrome Root Store<br/>100 TLS roots, 44 owners<br/>Launched Sep 2022, shipped by<br/>component updater on Windows,<br/>macOS, ChromeOS, Linux and<br/>Android. Never on iOS.<br/>Policy v1.8, 5 Feb 2026"]
+        Mozilla["Mozilla NSS<br/>138 TLS roots, 47 owners<br/>Shipped inside Firefox and reused<br/>by most Linux distributions,<br/>curl, and half the language<br/>runtimes on earth"]
+        Apple["Apple<br/>121 TLS roots, 39 owners<br/>Shipped with macOS, iOS,<br/>watchOS and tvOS updates.<br/>Own CT policy, own<br/>lifetime enforcement"]
+        Microsoft["Microsoft Trusted Root Program<br/>203 TLS roots, 64 owners<br/>The broadest store, because it<br/>also serves code signing,<br/>document signing and S/MIME"]
+    end
+
+    subgraph Shared["The shared plumbing"]
+        direction TB
+        CCADB["Common CA Database<br/>Run by Mozilla, used by all four.<br/>Roots, intermediates, CP/CPS,<br/>audit letters, incident reports,<br/>revocation disclosures"]
+        CABF["CA/Browser Forum, Server<br/>Certificate Working Group<br/>Certificate Issuers and Certificate<br/>Consumers vote separately.<br/>A ballot needs a majority in each.<br/>Ten Certificate Consumers,<br/>four of whom run root programs"]
+        Audits["WebTrust for CAs and<br/>ETSI EN 319 411-1<br/>Annual, at most 365 days apart.<br/>An attestation that the CA<br/>followed its own CPS.<br/>Not a security test"]
+    end
+
+    subgraph Enforce["How enforcement actually happens"]
+        direction TB
+        Incident["Public incident report<br/>Mozilla Bugzilla, CA Program.<br/>106 bugs in 2022, 133 in 2023,<br/>236 in 2024, 223 in 2025,<br/>228 in the first eight<br/>months of 2026"]
+        Response["Required response<br/>Preliminary report within 72 hours,<br/>full report with root cause,<br/>weekly updates until closed"]
+        Constraint["Graduated sanction<br/>SCTNotAfter constraint: certificates<br/>logged after a date stop working,<br/>existing ones keep working.<br/>Only possible because CT makes<br/>issuance time verifiable"]
+        Removal["Removal<br/>The root leaves the store.<br/>Every certificate under it<br/>fails, everywhere, forever"]
+        Incident --> Response --> Constraint --> Removal
+    end
+
+    subgraph Limits["What the stores do not control"]
+        direction TB
+        Lag["Devices that stopped updating.<br/>A new root is useless on the<br/>installed base for years.<br/>This is why cross-signing exists"]
+        Other["Non-browser trust stores.<br/>Java cacerts, Windows enterprise<br/>GPO, container base images,<br/>embedded devices. Different lists,<br/>different cadence"]
+        Enterprise["Enterprise roots.<br/>An administrator-installed root<br/>overrides SCT constraints and<br/>bypasses CT enforcement.<br/>This is how TLS interception works"]
+        Lag --> Other --> Enterprise
+    end
+
+    Stores --> Shared --> Enforce --> Limits
+
+    style Stores fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Shared fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Enforce fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Limits fill:#eceff1,stroke:#37474f,stroke-width:2px

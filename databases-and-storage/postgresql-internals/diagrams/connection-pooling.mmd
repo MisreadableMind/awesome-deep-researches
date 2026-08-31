@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph NOPOOL["Without a pooler"]
+        direction TB
+        N1["5,000 application threads"]
+        N2["5,000 TCP connections"]
+        N3["5,000 forked backend processes"]
+        N4["Each costs about 7.6 MiB of true<br/>overhead with huge_pages off,<br/>about 1.3 MiB with huge_pages on.<br/>Measured by Andres Freund, 2020."]
+        N5["Worse: every backend appears in ProcArray.<br/>Snapshot building, lock table scans and<br/>the clock sweep all get more expensive<br/>with connection count, whether or not<br/>the connections are doing anything."]
+        N1 --> N2 --> N3 --> N4 --> N5
+    end
+
+    subgraph POOL["With PgBouncer in transaction mode"]
+        direction TB
+        P1["5,000 client connections<br/>max_client_conn, default 100,<br/>routinely raised to tens of thousands"]
+        P2["PgBouncer: single-threaded event loop,<br/>roughly 2 kB of memory per idle client.<br/>so_reuseport lets several processes<br/>share the listen socket."]
+        P3["default_pool_size, default 20,<br/>server connections per<br/>database+user pair"]
+        P4["20 backend processes doing the work"]
+        P1 --> P2 --> P3 --> P4
+    end
+
+    subgraph MODES["The three pool modes and what each costs you"]
+        direction TB
+        M1["session - server released when the<br/>client disconnects. Safe for everything.<br/>Saves only the fork cost."]
+        M2["transaction - server released at COMMIT.<br/>The mode everyone actually wants.<br/>Breaks: session-level SET, LISTEN/NOTIFY,<br/>WITH HOLD cursors, advisory session locks,<br/>plain server-side prepared statements.<br/>max_prepared_statements, default 200,<br/>works around the last one."]
+        M3["statement - server released after<br/>each statement. Multi-statement<br/>transactions are rejected outright."]
+        M1 --> M2 --> M3
+    end
+
+    SIZING["Sizing rule that survives contact with production:<br/>pool size near 2 to 4 times the core count,<br/>plus enough for concurrent disk waits.<br/>A 16-core box rarely benefits above 40 to 60<br/>active backends. Beyond that, throughput<br/>falls while latency rises."]
+
+    NOPOOL --> POOL --> MODES --> SIZING
+
+    style NOPOOL fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style POOL fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style MODES fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SIZING fill:#fce4ec,stroke:#880e4f,stroke-width:2px

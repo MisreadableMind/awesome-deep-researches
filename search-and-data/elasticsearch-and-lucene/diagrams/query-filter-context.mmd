@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["POST /products/_search"]
+
+    subgraph QC["Query context - contributes to _score"]
+        QC1["bool.must<br/>bool.should<br/>the top-level query"]
+        QC2["Each matching document gets<br/>a BM25 score. The scorer must<br/>read freqs and norms."]
+        QC3["Never cached. The score depends<br/>on shard-level statistics that<br/>change on every refresh."]
+    end
+
+    subgraph FC["Filter context - yes or no only"]
+        FC1["bool.filter<br/>bool.must_not<br/>constant_score.filter<br/>filter aggregations"]
+        FC2["No score is computed.<br/>The scorer produces a<br/>DocIdSetIterator and stops."]
+        FC3["Eligible for the node query cache,<br/>a bitset per segment per query."]
+    end
+
+    subgraph Cache["Node query cache - the caching policy"]
+        C1["Never cached: TermQuery,<br/>MatchAllDocsQuery, FieldExistsQuery.<br/>Already faster than a bitset."]
+        C2["Cached after 2 uses:<br/>MultiTermQuery, TermInSetQuery,<br/>point range queries.<br/>Expensive to build."]
+        C3["Cached after 5 uses, 4 for<br/>bool and dis_max. History<br/>window is the last 256 queries."]
+        C4["Only on segments with at least<br/>10,000 documents and more than<br/>half the average docs per segment.<br/>Small segments merge away too fast."]
+        C5["indices.queries.cache.size = 10% of heap<br/>indices.queries.cache.count = 10,000 entries"]
+    end
+
+    INV["Every merge and every refresh invalidates<br/>the cache entries for the segments involved.<br/>Cache hit rates are a function of<br/>refresh_interval, not of query shape alone."]
+
+    Q --> QC1
+    Q --> FC1
+    QC1 --> QC2 --> QC3
+    FC1 --> FC2 --> FC3
+    FC3 --> C1
+    FC3 --> C2
+    FC3 --> C3
+    C2 --> C4
+    C3 --> C4
+    C4 --> C5
+    C5 --> INV
+
+    style QC fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FC fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cache fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style INV fill:#ffebee,stroke:#b71c1c,stroke-width:2px

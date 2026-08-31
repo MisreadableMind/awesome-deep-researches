@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Fabric["IXP layer 2 fabric<br/>one broadcast domain, e.g. 198.51.100.0/24"]
+        SW["Ethernet switching fabric<br/>no layer 3, no forwarding decisions,<br/>no view of member traffic"]
+    end
+
+    RS1["Route server 1<br/>AS 64511<br/>does NOT prepend its ASN<br/>does NOT modify NEXT_HOP"]
+    RS2["Route server 2<br/>redundant, independent"]
+
+    A["Member A<br/>AS 64496"]
+    B["Member B<br/>AS 64498"]
+    C["Member C<br/>AS 64499"]
+    D["Member D<br/>AS 64500<br/>restrictive policy:<br/>bilateral sessions only"]
+
+    A ---|"port"| SW
+    B ---|"port"| SW
+    C ---|"port"| SW
+    D ---|"port"| SW
+
+    A -->|"BGP session over the fabric"| RS1
+    B -->|"BGP session"| RS1
+    C -->|"BGP session"| RS1
+    A -->|"BGP session"| RS2
+    B -->|"BGP session"| RS2
+
+    B <-->|"bilateral BGP session,<br/>negotiated directly"| D
+
+    Traffic["Data plane: A sends to B's MAC address<br/>directly across the switch.<br/>The route server sees no packets."]
+    Ribs["Per-client RIBs, RFC 7947 section 2.3.2<br/>One Adj-RIB-In per client, one Loc-RIB per client.<br/>Without them, the route server picks one best path<br/>and the other clients never learn the alternatives.<br/>That is the path hiding problem."]
+    Filter["Route server filtering, RFC 7948<br/>IRR-derived prefix filters, RPKI ROV,<br/>max-prefix limits, bogon filters,<br/>large communities for per-peer control:<br/>0:peer to block, rs-asn:peer to allow."]
+
+    SW -.-> Traffic
+    RS1 -.-> Ribs
+    RS1 -.-> Filter
+
+    style Fabric fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style RS1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style RS2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Traffic fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Ribs fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Filter fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

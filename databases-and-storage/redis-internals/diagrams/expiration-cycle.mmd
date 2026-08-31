@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Store["Where the TTL lives"]
+        ST["Each database holds two keyspaces:<br/>db-&gt;keys maps key to value,<br/>db-&gt;expires maps key to an<br/>absolute Unix time in milliseconds.<br/>A key with no TTL is absent from expires."]
+    end
+
+    subgraph Lazy["Path 1: lazy expiration, on access"]
+        LZ1["Any command calls lookupKeyRead<br/>or lookupKeyWrite"]
+        LZ2["expireIfNeeded compares the<br/>stored millisecond timestamp<br/>with mstime"]
+        LZ3["Expired: delete the key, fire a<br/>keyspace notification, propagate<br/>a DEL or UNLINK to the AOF and<br/>to every replica"]
+        LZ4["Reply as if the key never existed"]
+    end
+
+    subgraph Active["Path 2: active expiration, activeExpireCycle"]
+        AC1["FAST cycle, run in beforeSleep on<br/>every event loop iteration.<br/>Budget ACTIVE_EXPIRE_CYCLE_FAST_DURATION<br/>= 1000 microseconds, and never twice<br/>within 2000 microseconds."]
+        AC2["SLOW cycle, run from serverCron at<br/>server.hz, default 10 hertz.<br/>Budget ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC<br/>= 25 percent of the tick period,<br/>so 25 milliseconds at hz 10."]
+        AC3["Per database: sample<br/>ACTIVE_EXPIRE_CYCLE_KEYS_PER_LOOP = 20<br/>random keys from db-&gt;expires,<br/>scanning at most 20 times 20 buckets"]
+        AC4["Delete every sampled key<br/>found expired"]
+        AC5["Repeat on the same database while<br/>the expired fraction exceeds<br/>ACTIVE_EXPIRE_CYCLE_ACCEPTABLE_STALE,<br/>10 percent by default"]
+        AC6["Stop on the time budget, remember<br/>the database index and the scan<br/>cursor, resume there next tick"]
+    end
+
+    subgraph Effort["active-expire-effort, 1 to 10"]
+        EF["Each step above 1 adds 25 percent<br/>to the keys per loop and to the<br/>fast duration, adds 2 points to the<br/>CPU percentage, and subtracts 1 from<br/>the acceptable stale percentage."]
+    end
+
+    subgraph Repl["Replicas never expire on their own"]
+        RP1["A replica keeps a logically expired<br/>key in memory until the primary's<br/>DEL arrives"]
+        RP2["Read commands on a replica still<br/>report the key as missing, using the<br/>replica's own clock, so reads stay correct"]
+        RP3["Once promoted, the new primary<br/>starts expiring independently"]
+    end
+
+    Store --> Lazy
+    Store --> Active
+    LZ1 --> LZ2 --> LZ3 --> LZ4
+    AC1 --> AC3
+    AC2 --> AC3
+    AC3 --> AC4 --> AC5 --> AC6
+    AC5 -.under threshold.-> AC6
+    Active --> Effort
+    LZ3 --> Repl
+    AC4 --> Repl
+
+    style Store fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Lazy fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Active fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Effort fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Repl fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

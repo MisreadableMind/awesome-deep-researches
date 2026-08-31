@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Scarce["SCARCE - the steep segment"]
+        direction TB
+        S1["Reserves below the point where<br/>the marginal bank still needs one<br/>more dollar to settle its day"]
+        S2["Small quantity changes<br/>move the rate a lot.<br/>Elasticity is high in magnitude."]
+        S3["September 2019 lived here.<br/>Reserves fell 120 billion USD in<br/>two days to under 1.4 trillion.<br/>SOFR printed above 5 percent."]
+        S4["Symptom: standing facility use<br/>becomes routine, not exceptional"]
+    end
+
+    subgraph Abundant["ABUNDANT - the flat segment"]
+        direction TB
+        A1["Reserves so far past need that<br/>no bank bids for an extra dollar"]
+        A2["Large quantity changes move<br/>the rate not at all.<br/>Elasticity near zero."]
+        A3["2021 lived here. Reserves peaked<br/>at 4.28 trillion USD on 8 Dec 2021<br/>and ON RRP absorbed<br/>2.55 trillion at its 30 Dec 2022 peak."]
+        A4["Symptom: the ON RRP fills up<br/>because there is nowhere<br/>else to put cash"]
+    end
+
+    subgraph Ample["AMPLE - the target, on the flat part with a margin"]
+        direction TB
+        M1["Reserves comfortably past the<br/>kink, but not so far that the<br/>balance sheet is larger than needed"]
+        M2["August 2026: 2.92 trillion USD,<br/>EFFR at 3.63 against IORB at 3.65,<br/>ON RRP take-up 175 million USD,<br/>standing repo essentially unused"]
+        M3["The Fed measures the distance<br/>to the kink with the New York Fed's<br/>Reserve Demand Elasticity, which<br/>estimates the local slope daily"]
+        M4["Dec 2025 onwards: the Fed buys<br/>Treasury bills to keep reserves growing<br/>with currency and the TGA,<br/>not to add stimulus"]
+    end
+
+    Scarce -->|"add reserves"| Ample -->|"add more reserves"| Abundant
+    Abundant -->|"quantitative tightening"| Ample -->|"tighten too far"| Scarce
+
+    style Scarce fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Ample fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Abundant fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

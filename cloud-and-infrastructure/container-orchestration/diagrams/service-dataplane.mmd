@@ -1,0 +1,65 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph CP["Control plane"]
+        SVC["Service web<br/>clusterIP: 10.96.71.40<br/>port 80 -> targetPort 8080<br/>selector app=web"]
+        ESC["EndpointSlice controller<br/>watches pods matching the selector"]
+        ES["EndpointSlice web-abcde<br/>addressType: IPv4<br/>endpoints:<br/>- 10.244.1.12 ready:true<br/>- 10.244.2.31 ready:true<br/>- 10.244.3.17 ready:true<br/>100 endpoints per slice by default,<br/>1000 maximum"]
+    end
+
+    SVC --> ESC --> ES
+
+    subgraph Node["Every node runs kube-proxy, which watches Services and EndpointSlices"]
+        KP["kube-proxy<br/>minSyncPeriod 1s:<br/>batches many changes<br/>into one dataplane write"]
+    end
+
+    ES --> KP
+
+    subgraph Modes["Three Linux dataplane modes"]
+        direction TB
+
+        subgraph IPT["iptables - the default"]
+            direction TB
+            I1["KUBE-SERVICES chain in nat PREROUTING/OUTPUT<br/>one rule per Service, matched LINEARLY"]
+            I2["-> KUBE-SVC-XXXX per Service<br/>statistic mode random probability<br/>0.33333, then 0.5, then 1.0"]
+            I3["-> KUBE-SEP-YYYY per endpoint<br/>DNAT to 10.244.1.12:8080"]
+            I4["KUBE-MARK-MASQ + KUBE-POSTROUTING<br/>SNAT when the source is off-cluster<br/>or hairpinning back to itself"]
+            I5["Cost: O(n) rule traversal per packet<br/>and a full ruleset rewrite per change.<br/>Tens of thousands of rules at scale"]
+        end
+
+        subgraph IPVS["IPVS"]
+            direction TB
+            V1["Virtual servers in the kernel's<br/>IPVS hash tables, not linear chains"]
+            V2["kube-ipvs0 dummy interface holds<br/>every ClusterIP"]
+            V3["Schedulers: rr (default), wrr, lc, wlc,<br/>lblc, lblcr, sh, dh, sed, nq, mh"]
+            V4["O(1) lookup. Still needs an iptables<br/>ipset for masquerade and node ports"]
+        end
+
+        subgraph NFT["nftables"]
+            direction TB
+            N1["Verdict maps keyed on<br/>destination IP and port"]
+            N2["O(1) lookup, incremental updates:<br/>one endpoint change is one element<br/>add, not a ruleset rewrite"]
+            N3["Requires Linux kernel 5.13+.<br/>Slated to become the default"]
+        end
+    end
+
+    KP --> IPT
+    KP --> IPVS
+    KP --> NFT
+
+    subgraph Pkt["What a client pod actually does"]
+        direction TB
+        P1["1. curl http://web.prod.svc.cluster.local"]
+        P2["2. CoreDNS returns A 10.96.71.40"]
+        P3["3. SYN to 10.96.71.40:80 leaves the pod netns"]
+        P4["4. netfilter DNAT rewrites destination<br/>to 10.244.2.31:8080 and records it<br/>in the conntrack table"]
+        P5["5. Packet is routed to the pod, by the CNI.<br/>No proxy process is ever in the path"]
+        P6["6. Reply is un-DNATed by conntrack,<br/>the client sees a reply from 10.96.71.40"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    end
+
+    IPT -.-> Pkt
+
+    style CP fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Modes fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Pkt fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

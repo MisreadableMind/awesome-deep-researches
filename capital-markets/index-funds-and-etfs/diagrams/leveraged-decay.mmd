@@ -1,0 +1,24 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["TWO-DAY ROUND TRIP<br/>Index starts at 100. Fund starts at 100."]
+
+    Start --> D1["DAY 1: index rises 10 percent<br/>Index 100 to 110<br/>3x fund 100 to 130<br/>Minus-3x fund 100 to 70"]
+
+    D1 --> Reb["AT THE CLOSE THE FUND MUST REBALANCE<br/>3x fund now has 330 of exposure against<br/>130 of equity. Target is 390.<br/>IT MUST BUY 60 MORE.<br/>Minus-3x fund must BUY BACK exposure<br/>to shrink its short. Both trade WITH the move."]
+
+    Reb --> D2["DAY 2: index falls 9.0909 percent<br/>back to exactly 100<br/>3x fund: 130 x 0.727273 = 94.5455<br/>Minus-3x fund: 70 x 1.272727 = 89.0909"]
+
+    D2 --> Res["RESULT AFTER A ZERO ROUND TRIP<br/>Index: 0.00 percent<br/>3x fund: MINUS 5.45 percent<br/>Minus-3x fund: MINUS 10.91 percent<br/>Minus-1x fund: MINUS 1.82 percent"]
+
+    Res --> Long["TWENTY TRADING DAYS<br/>Index alternates plus 5 and minus 5 percent.<br/>Each two-day cycle: index x 0.9975,<br/>3x fund x 0.9775.<br/>After 10 cycles:<br/>index MINUS 2.47 percent<br/>3x times index return = MINUS 7.42 percent<br/>3x fund actual = MINUS 20.35 percent<br/>GAP OF 12.94 PERCENTAGE POINTS<br/>from path alone, in one month."]
+
+    Long --> Formula["THE CLOSED FORM<br/>Expected drag per unit time<br/>= minus (L squared minus L) x sigma squared / 2<br/><br/>L = 2 : 1 x sigma squared<br/>L = 3 : 3 x sigma squared<br/>L = minus 1 : 1 x sigma squared<br/>L = minus 2 : 3 x sigma squared<br/>L = minus 3 : 6 x sigma squared<br/><br/>At 20 percent annualised volatility:<br/>3x loses 12 percent a year to path.<br/>Minus-3x loses 24 percent a year."]
+
+    Formula --> Reg["REGULATORY BOX<br/>Rule 6c-11 covers leveraged and inverse ETFs<br/>only if they comply with Rule 18f-4,<br/>per the 2021 amendment to 6c-11 paragraph c 4.<br/>Rule 18f-4, compliance from 19 August 2022:<br/>relative VaR limit 200 percent of a reference<br/>portfolio, or absolute VaR 20 percent of net assets.<br/>Funds operating above 200 percent as of<br/>28 October 2020 are grandfathered on conditions."]
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Reb fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Res fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Long fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Formula fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

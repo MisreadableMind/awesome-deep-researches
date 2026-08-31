@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Problem["The 24x7 liquidity problem:<br/>payments settle at 3am on a Sunday,<br/>but the wholesale funding markets<br/>that refill a bank's position<br/>are closed."]
+
+    subgraph M1["Model A: prefunded joint account - RTP"]
+        direction TB
+        A1["All participants fund one account<br/>at the New York Fed, held by TCH"]
+        A2["Each participant has a position<br/>inside that account"]
+        A3["A payment cannot be sent if the<br/>position is short. Hard stop."]
+        A4["Refill during Fedwire hours,<br/>or via a FedNow Liquidity<br/>Management Transfer out of hours"]
+        A5["Risk: none to the system.<br/>Cost: idle cash all weekend."]
+    end
+
+    subgraph M2["Model B: direct on central bank accounts - FedNow, Pix, TIPS"]
+        direction TB
+        B1["Settlement moves value between<br/>accounts at the central bank itself"]
+        B2["Pix uses dedicated PI accounts;<br/>FedNow uses ordinary master accounts"]
+        B3["No intermediary balance to<br/>reconcile, no joint account risk"]
+        B4["Still needs funding out of hours.<br/>Fed offers LMT; BCB lets<br/>participants top up PI accounts<br/>during STR hours"]
+        B5["Risk: none. Cost: the central bank<br/>must run a 24x7 ledger."]
+    end
+
+    subgraph M3["Model C: deferred net with prefunded caps - UK FPS, UPI"]
+        direction TB
+        C1["Payments clear instantly to the<br/>customer, settle later in net cycles"]
+        C2["Between clearing and settlement,<br/>banks hold exposure to each other"]
+        C3["UK answer: prefund the maximum<br/>net debit position at the Bank of England.<br/>Exposure becomes collateralised."]
+        C4["India answer: NPCI nets across<br/>cycles into RBI current accounts,<br/>with limits enforced at the switch"]
+        C5["Risk: managed, not eliminated.<br/>Cost: the cheapest of the three."]
+    end
+
+    subgraph Tools["Shared tooling"]
+        direction TB
+        T1["Net sender caps and<br/>velocity throttles"]
+        T2["Auto top-up rules and<br/>intraday sweeps"]
+        T3["Weekend and holiday buffers,<br/>sized off historical peaks"]
+        T4["Treasury teams that now<br/>need weekend coverage"]
+    end
+
+    Problem --> M1
+    Problem --> M2
+    Problem --> M3
+    M1 --> Tools
+    M2 --> Tools
+    M3 --> Tools
+
+    Insight["The real constraint is not<br/>technology. It is that a bank must<br/>hold idle central bank money in<br/>case its customers pay each other<br/>on a Sunday night."]
+
+    Tools --> Insight
+
+    style Problem fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style M1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style M2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Tools fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Insight fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Dep as Uninsured depositors
+    participant SVB as Silicon Valley Bank
+    participant SIG as Signature Bank
+    participant DFPI as CA DFPI / NY DFS
+    participant FDIC as FDIC
+    participant Treas as Treasury / Fed
+
+    Note over SVB: Year-end 2022: 209 bn USD assets,<br/>175.4 bn USD deposits per the FDIC receivership release,<br/>94 percent of domestic deposits uninsured,<br/>unrealised securities losses = 104 percent of tier 1
+    Note over SIG: Year-end 2022: 110 bn USD assets,<br/>88.6 bn USD deposits,<br/>almost 90 percent uninsured,<br/>unrealised losses = 32 percent of tier 1
+
+    Note over SVB,Dep: Wed 8 March 2023
+    SVB->>Dep: Announces sale of 21 bn USD of AFS securities<br/>at a 1.8 bn USD after-tax loss and a<br/>2.25 bn USD capital raise
+    Note over Dep: Silvergate announces self-liquidation the same day.<br/>11.3 bn USD assets, 98 percent uninsured at YE2022.
+
+    Note over SVB,Dep: Thu 9 March 2023
+    Dep->>SVB: 42 bn USD withdrawn by end of day
+    Note over SVB: Management expects 100 bn USD more on 10 March.<br/>Combined, roughly 85 percent of the deposit base.
+
+    Note over SVB,FDIC: Fri 10 March 2023, morning
+    DFPI->>SVB: California DFPI closes the bank
+    DFPI->>FDIC: Appoints the FDIC receiver
+    FDIC->>Dep: Creates the Deposit Insurance National Bank<br/>of Santa Clara for insured deposits.<br/>Uninsured get an advance dividend<br/>and receivership certificates.
+
+    Note over SIG,Dep: Fri 10 March 2023, afternoon
+    Dep->>SIG: 20 percent of deposits withdrawn in hours
+    Note over SIG: Ends the day with a negative balance<br/>at the Federal Reserve
+
+    Note over FDIC,Treas: Sun 12 March 2023
+    DFPI->>SIG: NYDFS closes Signature
+    FDIC->>SIG: Establishes Signature Bridge Bank, N.A.
+    FDIC->>Treas: FDIC and Federal Reserve boards each<br/>recommend by two-thirds vote
+    Treas->>FDIC: Secretary Yellen determines systemic risk<br/>after consulting the President.<br/>All depositors at both banks protected.
+    Treas->>Dep: Federal Reserve announces the<br/>Bank Term Funding Program
+
+    Note over FDIC,Dep: Mon 13 March 2023
+    FDIC->>SVB: Silicon Valley Bridge Bank, N.A. opens
+    FDIC->>Dep: Depositors have access to all their money
+
+    Note over FDIC: Mon 20 March 2023
+    FDIC->>SIG: Flagstar assumes all Signature deposits<br/>except about 4 bn USD of digital-asset deposits,<br/>plus 38.4 bn USD of assets including 12.9 bn USD<br/>of loans at a 2.7 bn USD discount.<br/>60 bn USD of loans stay in the receivership.
+
+    Note over FDIC: Mon 27 March 2023
+    FDIC->>SVB: First Citizens assumes 119 bn USD of deposits<br/>and about 72 bn USD of assets at a 16.5 bn USD discount,<br/>with commercial loan loss share and equity<br/>appreciation rights worth up to 500 m USD
+
+    Note over FDIC: Mon 1 May 2023
+    DFPI->>FDIC: California DFPI closes First Republic Bank<br/>229.1 bn USD assets, 103.9 bn USD deposits
+    FDIC->>Dep: JPMorgan Chase assumes all deposits and buys<br/>substantially all assets. Price and discount not published.<br/>Loss share on single-family and commercial loans.<br/>Estimated cost to the fund about 13 bn USD.<br/>NO systemic risk exception: the all-deposit bid<br/>was already least cost.

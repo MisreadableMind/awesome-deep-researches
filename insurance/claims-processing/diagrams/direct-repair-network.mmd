@@ -1,0 +1,63 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Deal["The Bargain in the DRP Contract"]
+        Give["What the shop gives up<br/>rate concession off the posted door rate,<br/>parts-use requirements where policy and<br/>state law allow, the carrier's estimating<br/>platform, audit and re-inspection rights"]
+        Get["What the shop gets<br/>assignment volume it does not have<br/>to buy with advertising,<br/>direct payment, fewer supplement fights"]
+        Warr["What the insured gets<br/>workmanship warranty for as long as<br/>the vehicle is owned, a guaranteed<br/>cycle time, one point of contact"]
+    end
+
+    subgraph Flow["The Assignment Loop"]
+        FNOL2["FNOL: vehicle drivable<br/>or towed"]
+        Offer["Carrier offers a network shop.<br/>Recommending is lawful.<br/>Requiring is not"]
+        Choice{"Insured chooses<br/>the shop"}
+        InNet["In network<br/>shop writes the estimate<br/>in the carrier's platform"]
+        OutNet["Out of network<br/>carrier pays a prevailing rate<br/>it determines by area survey"]
+        Repair["Repair, supplements<br/>approved inside the shop's file"]
+        Reins["Carrier re-inspection<br/>on a sampled percentage"]
+    end
+
+    subgraph Score["The Scorecard That Allocates Volume"]
+        M1["Keys-to-keys cycle time"]
+        M2["Touch time versus idle days"]
+        M3["Supplement frequency<br/>and supplement amount"]
+        M4["Average severity against peers<br/>on comparable damage"]
+        M5["Comeback and rework rate"]
+        M6["Customer satisfaction score"]
+        Alloc["Assignment share adjusted.<br/>Below tolerance means<br/>fewer cars, then removal"]
+    end
+
+    subgraph Prop2["The Property Equivalent"]
+        MRP["Managed repair or preferred<br/>contractor network. Same bargain:<br/>fixed price list, workmanship warranty,<br/>carrier-run assignment engine"]
+        AOB["Assignment of benefits runs it backwards.<br/>The contractor takes the insured's<br/>claim rights and sues in the insured's place"]
+    end
+
+    Give --> Get --> Warr
+    FNOL2 --> Offer --> Choice
+    Choice -->|Network shop| InNet
+    Choice -->|Own shop| OutNet
+    InNet --> Repair --> Reins
+    Reins --> M1
+    Reins --> M2
+    Reins --> M3
+    Reins --> M4
+    Reins --> M5
+    Reins --> M6
+    M1 --> Alloc
+    M2 --> Alloc
+    M3 --> Alloc
+    M4 --> Alloc
+    M5 --> Alloc
+    M6 --> Alloc
+    Alloc --> Offer
+    Warr --> Offer
+    MRP --> AOB
+
+    Anti["Anti-steering statutes constrain the language,<br/>not the programme. Most states bar an insurer<br/>from requiring a particular repairer and require<br/>a disclosure that the choice belongs to the owner."]
+    Offer -.constrained by.-> Anti
+
+    style Deal fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Flow fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Score fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Prop2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Anti fill:#fff9c4,stroke:#f57f17,stroke-width:2px

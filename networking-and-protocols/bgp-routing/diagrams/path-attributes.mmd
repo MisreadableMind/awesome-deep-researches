@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph WKM["Well-known mandatory<br/>must be present on every announced route"]
+        direction TB
+        A1["1 ORIGIN, 1 octet<br/>0 = IGP, 1 = EGP, 2 = INCOMPLETE.<br/>Lower wins. Almost always 0 or 2.<br/>A 1994 distinction nobody needs."]
+        A2["2 AS_PATH<br/>segments of type 1 AS_SET,<br/>2 AS_SEQUENCE, 3 AS_CONFED_SEQUENCE,<br/>4 AS_CONFED_SET.<br/>Loop detection and length tiebreak.<br/>AS_SET and AS_CONFED_SET deprecated<br/>by RFC 9774, May 2025."]
+        A3["3 NEXT_HOP, 4 octets<br/>where to send the packet.<br/>Rewritten on eBGP, preserved on iBGP.<br/>Must be resolvable by the IGP<br/>or the route is unusable."]
+    end
+
+    subgraph WKD["Well-known discretionary"]
+        direction TB
+        B1["5 LOCAL_PREF, 4 octets<br/>higher wins. iBGP only, never on eBGP.<br/>The first and dominant tiebreak.<br/>Convention: customer 200, peer 100,<br/>provider 50, default 100."]
+        B2["6 ATOMIC_AGGREGATE, 0 octets<br/>a flag: this aggregate hides<br/>more specific paths"]
+    end
+
+    subgraph OT["Optional transitive<br/>passed on even if not understood"]
+        direction TB
+        C1["7 AGGREGATOR, 6 or 8 octets<br/>the AS and router ID that aggregated"]
+        C2["8 COMMUNITIES, RFC 1997<br/>4 octets each, ASN in the top 2.<br/>NO_EXPORT 0xFFFFFF01,<br/>NO_ADVERTISE 0xFFFFFF02,<br/>NO_EXPORT_SUBCONFED 0xFFFFFF03,<br/>BLACKHOLE 0xFFFF029A per RFC 7999,<br/>GRACEFUL_SHUTDOWN 0xFFFF0000 per RFC 8326"]
+        C3["16 EXTENDED COMMUNITIES, RFC 4360<br/>8 octets, typed. Carries route targets<br/>for MPLS VPNs, and the origin<br/>validation state per RFC 8097."]
+        C4["32 LARGE_COMMUNITY, RFC 8092<br/>12 octets: Global Administrator,<br/>Local Data 1, Local Data 2.<br/>Exists because a 4-byte ASN<br/>does not fit in a 4-byte community."]
+        C5["17 AS4_PATH, 18 AS4_AGGREGATOR<br/>32-bit path carried past<br/>16-bit-only speakers"]
+        C6["35 OTC, Only to Customer, RFC 9234<br/>4 octets. Marks a route as<br/>not for upstream propagation."]
+    end
+
+    subgraph ONT["Optional non-transitive<br/>dropped if not understood"]
+        direction TB
+        D1["4 MULTI_EXIT_DISC, 4 octets<br/>lower wins. Compared only between<br/>routes from the same neighbour AS.<br/>A hint from a neighbour about<br/>which of its entry points to use."]
+        D2["9 ORIGINATOR_ID, 10 CLUSTER_LIST<br/>RFC 4456. Loop prevention<br/>for route reflection."]
+        D3["14 MP_REACH_NLRI, 15 MP_UNREACH_NLRI<br/>RFC 4760. AFI plus SAFI plus next hop<br/>plus NLRI. Everything that is not<br/>IPv4 unicast travels here."]
+        D4["26 AIGP, RFC 7311<br/>accumulated IGP metric<br/>across a trusted administrative domain"]
+    end
+
+    WKM --> WKD --> OT --> ONT
+
+    style WKM fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style WKD fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style OT fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ONT fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

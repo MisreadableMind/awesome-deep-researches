@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Programs["THE THREE PROGRAMS - Regulation A, 12 CFR 201.4"]
+        direction TB
+        P1["PRIMARY CREDIT<br/>Eligibility: generally sound condition,<br/>CAMELS 1, 2 or 3<br/>Term: usually overnight, up to a few weeks<br/>Purpose: unrestricted, no questions asked<br/>Rate: set at the top of the<br/>federal funds target range since March 2020"]
+        P2["SECONDARY CREDIT<br/>Eligibility: institutions that do not<br/>qualify for primary credit<br/>Term: usually overnight<br/>Purpose: restricted, must be consistent<br/>with a return to market funding<br/>Rate: above the primary credit rate"]
+        P3["SEASONAL CREDIT<br/>Eligibility: small banks with recurring<br/>intra-year swings, farm and resort towns<br/>Term: up to nine months<br/>Rate: a market-based average"]
+    end
+
+    subgraph Collateral["COLLATERAL - the part that decides everything"]
+        C1["Loans and securities pledged in advance<br/>under a Borrower-in-Custody arrangement<br/>or delivered to the Reserve Bank"]
+        C2["Lendable value = market value<br/>minus a margin. Whole loans take<br/>deeper haircuts than Treasuries."]
+        C3["Pledging takes days to weeks<br/>to set up. A bank that pledges<br/>during the run has already lost."]
+        C1 --> C2 --> C3
+    end
+
+    subgraph Stigma["THE STIGMA LOOP"]
+        S1["Borrowing is disclosed with the<br/>borrower's name after two years,<br/>under Dodd-Frank section 1103"]
+        S2["Counterparties read borrowing<br/>as a signal of distress"]
+        S3["Banks would rather pay above the<br/>discount rate in the market<br/>than be seen at the window"]
+        S4["Because nobody borrows in normal times,<br/>borrowing in bad times is informative"]
+        S5["Which makes it a stronger signal,<br/>which deters more borrowing"]
+        S1 --> S2 --> S3 --> S4 --> S5
+        S5 -.reinforces.-> S2
+    end
+
+    subgraph Evidence["WHAT THE NUMBERS SHOW"]
+        E1["Wednesday 15 March 2023:<br/>primary credit 152.85 bn USD,<br/>an all-time high"]
+        E2["Same day: 142.80 bn of other credit<br/>extensions to the FDIC bridge banks<br/>for SVB and Signature"]
+        E3["The BTFP was created on 12 March 2023<br/>specifically to lend at par against<br/>underwater collateral. It peaked at<br/>167.6 bn in the week to 13 March 2024<br/>and stopped new loans on 11 March 2024."]
+        E4["Week to 26 August 2026:<br/>primary credit 5.35 bn USD.<br/>Back to a rounding error."]
+    end
+
+    Programs --> Collateral
+    Collateral --> Stigma
+    Stigma --> Evidence
+
+    Evidence --> Fix["THE REGULATORY ANSWER:<br/>supervisors now expect banks to<br/>test the window periodically so that<br/>borrowing carries no information.<br/>A facility nobody will use is not<br/>a lender of last resort."]
+
+    style Programs fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Collateral fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Stigma fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Evidence fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Fix fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

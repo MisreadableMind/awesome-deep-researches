@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Cause["What triggered it"]
+        CA["2015-2020: AWS sells a managed<br/>Elasticsearch service. Elastic sells<br/>a managed Elasticsearch service.<br/>The code is Apache 2.0."]
+        CB["Sept 2019: AWS launches Open<br/>Distro for Elasticsearch, an<br/>Apache 2.0 distribution with its<br/>own security and alerting plugins"]
+        CC["Jan 2021: Elastic relicenses<br/>Elasticsearch and Kibana to<br/>SSPL plus Elastic License 2.0.<br/>Neither is OSI-approved."]
+    end
+
+    subgraph Fork["The split"]
+        FA["12 Apr 2021: AWS announces<br/>OpenSearch, forked from<br/>Elasticsearch 7.10.2,<br/>Apache 2.0"]
+        FB["12 Jul 2021: OpenSearch 1.0 GA<br/>26 May 2022: OpenSearch 2.0<br/>6 May 2025: OpenSearch 3.0"]
+        FC["16 Sept 2024: AWS transfers the<br/>project to the OpenSearch Software<br/>Foundation under the Linux Foundation"]
+    end
+
+    subgraph Diverge["Where the codebases diverged"]
+        DA["Names: _xpack becomes _plugins.<br/>Security, alerting, anomaly detection<br/>ship free rather than under a<br/>commercial licence."]
+        DB["Vectors: OpenSearch keeps FAISS and<br/>Lucene engines side by side, plus<br/>experimental GPU index building.<br/>Elasticsearch is Lucene-only."]
+        DC["Query languages: Elasticsearch adds<br/>the ES-QL piped language. OpenSearch<br/>adds PPL and SQL."]
+        DD["Storage: OpenSearch adds remote-backed<br/>segment replication to object storage.<br/>Elasticsearch adds stateless Serverless."]
+    end
+
+    subgraph Now["Where it stands, August 2026"]
+        NA["29 Aug 2024: Elastic adds AGPL v3<br/>as a third option from 8.16,<br/>calling the fork settled"]
+        NB["Elasticsearch 9.5.2 on Lucene 10.5.1.<br/>OpenSearch 3.8.0 on Lucene 10."]
+        NC["Clients are not interchangeable<br/>above 7.10. Elastic's own clients<br/>refuse to talk to OpenSearch."]
+        ND["Both remain Lucene downstreams.<br/>Every index-format improvement<br/>reaches both."]
+    end
+
+    CA --> CB --> CC --> FA --> FB --> FC
+    FC --> Diverge
+    Diverge --> Now
+
+    style Cause fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Fork fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Diverge fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Now fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

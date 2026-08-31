@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Mode1["Mode 1: capacity and authority"]
+        direction TB
+        A1["Hazell v Hammersmith and Fulham<br/>House of Lords, 24 January 1991<br/>Borrowings 390m GBP against<br/>swap notional 6,052m GBP.<br/>All swaps void as ultra vires.<br/>~400 open swaps, ~203 proceedings."]
+        A2["Rule produced:<br/>the ISDA capacity representation<br/>and mandatory netting opinions<br/>for every new jurisdiction"]
+    end
+
+    subgraph Mode2["Mode 2: suitability and disclosure"]
+        direction TB
+        B1["Gibson Greetings and Procter and Gamble<br/>v Bankers Trust, 1994.<br/>Leveraged swaps the clients<br/>could not value. BT staff repeatedly<br/>gave incorrect valuations.<br/>Recorded calls: 'we set 'em up'.<br/>Procter and Gamble settled May 1996."]
+        B2["Rule produced:<br/>non-reliance representations,<br/>arm's-length dealing language,<br/>and business conduct standards<br/>for swap dealers under Title VII"]
+    end
+
+    subgraph Mode3["Mode 3: a correct hedge that cannot be funded"]
+        direction TB
+        C1["Metallgesellschaft, 1993.<br/>Stack-and-roll long futures against<br/>long-dated customer forwards.<br/>Margin calls in cash, offsetting<br/>gains unfunded for years.<br/>Loss approximately $1.3 billion."]
+        C2["Orange County, 6 December 1994.<br/>Pools leveraged 158% to 292%<br/>via reverse repos. ~$2 billion lost.<br/>Chapter 9 after CSFB refused to<br/>roll $1.25 billion of repos.<br/>Citron pleaded guilty to six felonies."]
+        C3["Rule produced:<br/>liquidity risk as a distinct discipline,<br/>and the distinction between an<br/>economic hedge and a cash-flow hedge"]
+    end
+
+    subgraph Mode4["Mode 4: concentration invisible to the counterparty"]
+        direction TB
+        D1["LTCM, September 1998.<br/>Equity $4.7bn, borrowings $124.5bn,<br/>off-balance-sheet notional ~$1.25 trillion.<br/>Lost $4.6bn in under four months.<br/>Equity $400m by 25 September.<br/>$3.625bn recapitalisation organised by<br/>the New York Fed with 14 institutions."]
+        D2["Amaranth, September 2006.<br/>Natural gas calendar spreads.<br/>About $6.6bn lost from $9.2bn of assets,<br/>$4.6bn of it in one week.<br/>CFTC charged attempted manipulation<br/>July 2007; settled 2014, $750,000 fine.<br/>FERC penalty vacated by the DC Circuit, 2013."]
+        D3["Archegos, 26 March 2021.<br/>Total return swaps concealed<br/>the aggregate position from every<br/>prime broker. Credit Suisse $5.5bn,<br/>Nomura $2.85bn, Morgan Stanley $911m,<br/>UBS $774m, MUFG $300m.<br/>Hwang sentenced to 18 years, Nov 2024."]
+        D4["Rule produced:<br/>concentration add-ons in CCP margin,<br/>position accountability levels,<br/>security-based swap position reporting"]
+    end
+
+    subgraph Mode5["Mode 5: control failure on the desk"]
+        direction TB
+        E1["Barings, insolvent 26 February 1995.<br/>Account 88888. Nikkei futures and<br/>short straddles on SIMEX and Osaka.<br/>Loss 827m GBP, about $1.3 billion.<br/>ING bought Barings for 1 GBP."]
+        E2["Societe Generale, January 2008.<br/>~49.9bn EUR of unauthorised index<br/>futures concealed behind faked hedges.<br/>4.9bn EUR lost unwinding over three<br/>days from 21 January.<br/>Kerviel convicted 5 October 2010."]
+        E3["JPMorgan London Whale, 2012.<br/>CDX.NA.IG Series 9 10-year tranches.<br/>$2bn announced May, $5.8bn by July,<br/>over $6bn total. $920m of fines<br/>including 137.6m GBP in the UK."]
+        E4["Rule produced:<br/>segregation of trading and settlement,<br/>mandatory leave, gross position<br/>monitoring, and the Volcker Rule's<br/>hedge documentation requirement"]
+    end
+
+    Lesson["The pattern across all five:<br/>the loss is never the payoff formula.<br/>It is the authority to trade,<br/>the cash to hold the position,<br/>or the ability to see it at all."]
+
+    Mode1 --> Lesson
+    Mode2 --> Lesson
+    Mode3 --> Lesson
+    Mode4 --> Lesson
+    Mode5 --> Lesson
+
+    style Mode1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Mode2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Mode3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Mode4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Mode5 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Lesson fill:#fce4ec,stroke:#880e4f,stroke-width:3px

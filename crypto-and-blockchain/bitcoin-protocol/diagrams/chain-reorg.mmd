@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Normal["Ordinary one-block race, a handful of times a year"]
+        A0["Block 964,750<br/>common ancestor"]
+        A1["Block 964,751-A<br/>found in Iceland"]
+        A2["Block 964,751-B<br/>found in Texas 1.2 s later"]
+        A3["Block 964,752<br/>built on A"]
+        A0 --> A1
+        A0 --> A2
+        A1 --> A3
+        A2 -.->|"stale. Its transactions<br/>return to the mempool<br/>unless already in A."| Stale["Stale block.<br/>Miner earns nothing.<br/>Not called 'orphan':<br/>an orphan is a block<br/>whose parent is unknown."]
+    end
+
+    subgraph Deep["Deep reorg, requires sustained majority hashrate"]
+        B0["Block N<br/>attacker deposits 1,000 BTC<br/>at an exchange"]
+        B1["N+1 ... N+6<br/>public chain confirms it"]
+        B2["Exchange credits, attacker<br/>withdraws to another chain"]
+        B3["Attacker releases a private chain<br/>from N, of greater work,<br/>omitting the deposit"]
+        B4["Every node reorganises.<br/>Deposit never happened.<br/>Withdrawal already settled elsewhere."]
+        B0 --> B1 --> B2
+        B0 -.->|"mined privately"| B3
+        B3 --> B4
+    end
+
+    subgraph What["What a reorg can and cannot do"]
+        C1["CAN: erase recent transactions,<br/>enabling double spend of<br/>the attacker's own coins"]
+        C2["CAN: censor, by refusing to<br/>include and orphaning blocks<br/>that do include"]
+        C3["CANNOT: spend coins whose<br/>private key the attacker lacks.<br/>Signatures are checked by every node."]
+        C4["CANNOT: create coins beyond<br/>the subsidy schedule.<br/>Nodes reject such a block."]
+        C5["CANNOT: change any consensus rule.<br/>A majority mining an invalid chain<br/>simply forks itself off."]
+    end
+
+    Deep --> What
+
+    Math["Confirmation arithmetic, Nakamoto section 11:<br/>with attacker hashrate q = 0.10,<br/>P(catch up from 6 behind) = 0.00024<br/>q = 0.30 -> 0.13 at 6 confirmations<br/>q = 0.45 -> 0.77 at 6 confirmations<br/>q &gt;= 0.50 -> 1.0 at any depth"]
+    What --> Math
+
+    style Normal fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Deep fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style What fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Math fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

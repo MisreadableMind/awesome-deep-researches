@@ -1,0 +1,64 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Users["Users and applications"]
+        direction TB
+        U1["End user<br/>Signs transactions.<br/>Holds the escape hatch<br/>and almost never uses it."]
+        U2["Application<br/>Deploys contracts on L2.<br/>Cares about gas price<br/>and composability."]
+    end
+
+    subgraph Operator["The operator set, usually one company"]
+        direction TB
+        SEQ["Sequencer<br/>Orders transactions, issues<br/>soft confirmations in 200ms to 2s.<br/>Cannot steal. Can censor and reorder.<br/>Single instance on every major L2."]
+        BAT["Batcher / DA poster<br/>Compresses ordered transactions<br/>and posts them to L1 as blobs.<br/>Pays the largest L1 bill."]
+        PROP["Proposer<br/>Posts state roots or output roots<br/>to the L1 bridge contract.<br/>Bonded on optimistic chains."]
+        PRV["Prover<br/>ZK chains only. Turns execution<br/>into a SNARK or STARK.<br/>GPU or CPU cluster, minutes per batch."]
+    end
+
+    subgraph L1["Ethereum L1, the settlement layer"]
+        direction TB
+        BR["Bridge / portal contract<br/>Custodies every deposited asset.<br/>The single largest honeypot<br/>in the design."]
+        VER["Verifier<br/>Fraud proof VM (MIPS64 or WASM)<br/>or a SNARK/STARK verifier contract"]
+        INB["Inbox / delayed queue<br/>The censorship escape hatch.<br/>Anyone can force a transaction<br/>into the L2 from L1."]
+        BLOB["Blob space<br/>4844 blobs, pruned after<br/>about 18 days"]
+    end
+
+    subgraph Watchers["The parties who make it a rollup"]
+        direction TB
+        VAL["Validator / challenger<br/>Re-derives L2 state from L1 data<br/>and disputes a wrong root.<br/>Optimistic chains need one honest one."]
+        DAC["Data availability committee<br/>Validiums and optimiums only.<br/>Signs that it holds the data.<br/>Trust assumption, not a proof."]
+        IDX["Indexers and explorers<br/>Reconstruct state for everyone else"]
+    end
+
+    subgraph Gov["Governance and upgrade"]
+        direction TB
+        SC["Security Council<br/>Multisig that can upgrade contracts<br/>and pause the bridge. Base runs a<br/>2-of-2 of a 3-of-6 and an 8-of-11."]
+        GUARD["Guardian<br/>Can blacklist a dispute game<br/>during the air-gap window"]
+        TOK["Token governance<br/>Sets parameters, funds the stack,<br/>and rarely constrains the sequencer"]
+    end
+
+    U1 --> SEQ
+    U2 --> SEQ
+    U1 -.censored? go direct.-> INB
+    INB --> SEQ
+    SEQ --> BAT
+    BAT --> BLOB
+    SEQ --> PROP
+    SEQ --> PRV
+    PRV --> VER
+    PROP --> BR
+    BLOB --> VAL
+    VAL --> VER
+    VER --> BR
+    DAC -.substitutes for.-> BLOB
+    BLOB --> IDX
+    SC --> BR
+    SC --> VER
+    GUARD --> BR
+    TOK --> SC
+
+    style Users fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Operator fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style L1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Watchers fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Gov fill:#fce4ec,stroke:#880e4f,stroke-width:2px

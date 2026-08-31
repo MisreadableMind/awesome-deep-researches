@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> FNOL: Loss occurs, insured reports
+
+    FNOL --> Setup: Claim number issued<br/>features created per coverage
+    Setup --> Coverage: Policy pulled as of date of loss
+
+    Coverage --> Denied: No policy in force,<br/>peril excluded, no insurable interest
+    Coverage --> ROR: Coverage doubtful but<br/>investigation must continue
+    Coverage --> Triage: Coverage confirmed
+
+    ROR --> Triage: Reservation of rights letter issued<br/>defence continues, defences preserved
+    ROR --> DecAction: Declaratory judgment filed
+    DecAction --> Denied: Coverage found not to apply
+    DecAction --> Triage: Coverage confirmed,<br/>claim resumes
+
+    Triage --> FastTrack: Low severity, no injury,<br/>no third party
+    Triage --> Standard: Field inspection required
+    Triage --> Complex: Large loss, coverage dispute,<br/>multi-party
+    Triage --> SIU: Fraud indicators fire
+
+    FastTrack --> Estimate
+    Standard --> Investigate
+    Complex --> Investigate
+    SIU --> Investigate: EUO, recorded statements,<br/>ISO ClaimSearch match report
+
+    Investigate --> Estimate: Scope of damage established
+    Estimate --> Reserve: Case reserve set to<br/>most likely outcome
+
+    Reserve --> Negotiate: Third-party or disputed value
+    Reserve --> Pay: First-party, agreed scope
+
+    Negotiate --> Litigation: Suit filed or<br/>time-limited demand rejected
+    Negotiate --> Pay: Release signed
+
+    Litigation --> Pay: Verdict, judgment, or<br/>settlement on the courthouse steps
+    Litigation --> BadFaith: Excess judgment,<br/>unreasonable denial
+
+    Pay --> Recovery: Subrogation or salvage<br/>identified at intake
+    Pay --> Closed
+
+    Recovery --> Closed: Recovery booked<br/>against the loss
+    Denied --> Closed
+    BadFaith --> Closed
+
+    Closed --> Reopened: Supplement, new damage,<br/>statute not yet run
+    Reopened --> Estimate
+    Closed --> [*]

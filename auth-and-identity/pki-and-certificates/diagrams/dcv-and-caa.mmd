@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Live["Methods a CA may still use, Baseline Requirements 3.2.2.4"]
+        direction TB
+        M19["3.2.2.4.19 Agreed-Upon Change<br/>to Website - ACME, the http-01<br/>challenge. Token at<br/>/.well-known/acme-challenge/TOKEN<br/>on port 80. Must return 2xx.<br/>Redirects only 301, 302, 307, 308<br/>to http or https on authorised ports"]
+        M20["3.2.2.4.20 TLS Using ALPN,<br/>the tls-alpn-01 challenge, RFC 8737.<br/>Answer a handshake on port 443<br/>with ALPN acme-tls/1 and a<br/>self-signed certificate carrying<br/>the token in an extension"]
+        M7["3.2.2.4.7 DNS Change,<br/>the dns-01 challenge.<br/>TXT record at<br/>_acme-challenge.example.com.<br/>The only method that can<br/>authorise a wildcard"]
+        M21["3.2.2.4.21 DNS Labeled with<br/>Account ID - ACME, dns-account-01.<br/>Label derived from the ACME<br/>account, so several accounts can<br/>validate the same name in parallel"]
+        M22["3.2.2.4.22 DNS TXT Record with<br/>Persistent Value, DNS-PERSIST-01,<br/>adopted by ballot SC-088 on<br/>9 Oct 2025. One TXT record at<br/>_validation-persist that never<br/>changes. 10-day reuse cap"]
+    end
+
+    subgraph Dead["Methods on the way out"]
+        direction TB
+        D1["Sunset 15 Jul 2025:<br/>3.2.2.4.2 email, fax, SMS or postal<br/>mail to Domain Contact, and<br/>3.2.2.4.15 phone contact with<br/>Domain Contact. Ballot SC-080"]
+        D2["Sunset 15 Mar 2026:<br/>3.2.2.4.8 IP Address"]
+        D3["Sunset 15 Mar 2027:<br/>3.2.2.4.16 and 3.2.2.4.17 phone<br/>with DNS TXT or CAA contact,<br/>3.2.2.5.2 and 3.2.2.5.5 for<br/>IP addresses. Ballot SC-090"]
+        D4["Sunset 15 Mar 2028:<br/>3.2.2.4.4 email to constructed<br/>address, 3.2.2.4.13 email to CAA<br/>contact, 3.2.2.4.14 email to<br/>DNS TXT contact. The last<br/>human-in-the-loop methods"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph MPIC["Multi-Perspective Issuance Corroboration, ballot SC-067"]
+        direction TB
+        Q1["The problem: an adversary who<br/>announces a more specific BGP<br/>prefix for the victim's address<br/>space can answer an http-01<br/>challenge from the CA's single<br/>vantage point, then withdraw"]
+        Q2["The fix: run the same check from<br/>remote network perspectives at<br/>least 500 km apart, in at least<br/>two distinct Regional Internet<br/>Registry service regions.<br/>No shared DNS cache"]
+        Q3["Quorum: with 2 to 5 remote<br/>perspectives, 1 may disagree.<br/>With 6 or more, 2 may disagree"]
+        Q4["Schedule: 2 remote perspectives<br/>advisory from 15 Mar 2025 and<br/>blocking from 15 Sep 2025,<br/>3 from 15 Mar 2026,<br/>4 from 15 Jun 2026,<br/>5 from 15 Dec 2026"]
+        Q1 --> Q2 --> Q3 --> Q4
+    end
+
+    subgraph CAA["CAA, RFC 8659, checked at issuance time"]
+        direction TB
+        C1["example.com. CAA 0 issue<br/>letsencrypt.org<br/>One flags octet, a tag length,<br/>an ASCII tag, then the value.<br/>Bit 0 of flags is Issuer Critical"]
+        C2["Tags: issue, issuewild, iodef,<br/>issuemail, contactemail.<br/>Parameters accounturi and<br/>validationmethods from RFC 8657<br/>become mandatory to process<br/>on 15 Mar 2027, ballot SC-098"]
+        C3["The CA walks up the DNS tree<br/>from the requested name to the<br/>registrable domain and stops at<br/>the first name with a CAA RRset"]
+        C4["From 15 Mar 2026 DNSSEC<br/>validation to the IANA root<br/>trust anchor is mandatory for<br/>CAA and DCV lookups from the<br/>primary perspective, and a<br/>SERVFAIL is not permission to issue"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    Live --> Dead
+    Live --> MPIC
+    MPIC --> CAA
+
+    style Live fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Dead fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style MPIC fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CAA fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant APP as Source application<br/>token bridge, governance,<br/>NFT, oracle
+    participant SEND as Source endpoint<br/>Mailbox, Endpoint, Router,<br/>Core Bridge, ICS26Router
+    participant OBS as Observer set<br/>guardians, DVNs, validators,<br/>light client relayer
+    participant REL as Relayer / executor<br/>pays destination gas
+    participant VER as Destination verifier<br/>ISM, ULN, OffRamp,<br/>light client
+    participant RECV as Destination application
+
+    APP->>SEND: dispatch(destinationDomain, recipient, body)
+    SEND->>SEND: assign nonce, compute messageId<br/>store or emit a commitment
+    SEND-->>OBS: emit event with the encoded message
+
+    Note over OBS: The only step that cannot be on-chain.<br/>Somebody must watch.
+
+    OBS->>OBS: wait for source finality<br/>confirmations parameter
+    OBS->>OBS: sign the digest, or build a<br/>merkle or ZK proof
+
+    OBS-->>REL: attestation available
+    REL->>VER: submit(message, metadata)
+
+    VER->>VER: replay check on nonce
+    VER->>VER: verify(metadata, message)
+    alt verification fails
+        VER-->>REL: revert, nothing happens
+    else verification passes
+        VER->>RECV: handle(origin, sender, body)
+        RECV->>RECV: application logic:<br/>mint, release, execute
+        RECV-->>VER: success or revert
+    end
+
+    Note over VER,RECV: A reverting handler must not<br/>consume the message, or funds<br/>are burned in transit.

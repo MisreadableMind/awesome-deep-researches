@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Event["A link fails.<br/>AS 64496 loses its path<br/>to 203.0.113.0/24"]
+
+    subgraph Explore["Path exploration"]
+        direction TB
+        X1["t=0: router withdraws its best path"]
+        X2["Neighbour has an alternative<br/>through a different AS.<br/>It advertises the alternative,<br/>not a withdrawal."]
+        X3["That alternative also depended<br/>on the failed link.<br/>It is withdrawn one MRAI later."]
+        X4["A third path is tried,<br/>then a fourth.<br/>Each step costs up to 30 seconds<br/>on eBGP, 5 on iBGP."]
+        X5["Measured result:<br/>20 to 45 seconds to stability<br/>for IPv4, 40 to 50 for IPv6,<br/>across 2023 to 2026"]
+        X1 --> X2 --> X3 --> X4 --> X5
+    end
+
+    subgraph MRAI["MinRouteAdvertisementInterval"]
+        direction TB
+        M1["Suppresses repeated updates<br/>for the same prefix to the same peer.<br/>RFC 4271 suggested defaults:<br/>30s eBGP, 5s iBGP."]
+        M2["Reduces churn.<br/>Adds latency to every real change.<br/>Many operators now set it to 0<br/>on iBGP and low values on eBGP."]
+    end
+
+    subgraph RFD["Route flap damping, RFC 2439, Nov 1998"]
+        direction TB
+        F1["Each withdrawal adds a penalty<br/>of 1,000 to a figure of merit"]
+        F2["The penalty decays exponentially.<br/>Half-life default 15 minutes."]
+        F3["Above the suppress threshold,<br/>default 2,000, the route is not used<br/>and not advertised"]
+        F4["Below the reuse threshold,<br/>default 750, it becomes usable again.<br/>Maximum suppress time 60 minutes."]
+        F5["Defect: a well connected network<br/>generates more updates per event<br/>because more paths are explored.<br/>Rich topology looks like instability."]
+        F6["RIPE-378, May 2006:<br/>do not deploy RFD.<br/>Most operators disabled it."]
+        F7["RFC 7196, May 2014:<br/>keep it, raise the thresholds.<br/>Max penalty at least 50,000,<br/>suppress 6,000 aggressive<br/>or 12,000 conservative.<br/>Half-life 15 min, reuse 750,<br/>max suppress 60 min unchanged."]
+        F1 --> F2 --> F3 --> F4 --> F5 --> F6 --> F7
+    end
+
+    Event --> Explore
+    Explore --> MRAI
+    MRAI --> RFD
+
+    Alt["What operators use instead<br/>BFD, RFC 5880, for sub-second link failure detection.<br/>Graceful restart, RFC 4724, to keep forwarding<br/>while a control plane restarts.<br/>Long-lived graceful restart, RFC 9494.<br/>Send hold timer, RFC 9687, for a peer that stops reading.<br/>ADD-PATH, RFC 7911, so a backup path is<br/>already installed when the primary fails."]
+
+    RFD --> Alt
+
+    style Event fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Explore fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style MRAI fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style RFD fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Alt fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

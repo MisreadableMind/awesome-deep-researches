@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Push["Direct pay - the default"]
+        direction TB
+        PU1["Payer initiates<br/>ReqPay with PIN"]
+        PU2["Money leaves on the spot"]
+        PU3["~85% of UPI volume"]
+    end
+
+    subgraph Collect["Collect - the payee asks"]
+        direction TB
+        C1["Payee sends a collect request<br/>to the payer's VPA"]
+        C2["Payer sees a notification,<br/>enters PIN to approve"]
+        C3["Heavily abused by scammers:<br/>'approve to receive your refund'<br/>actually authorises a debit"]
+        C4["NPCI throttled collect for<br/>most merchant categories<br/>because of exactly this"]
+    end
+
+    subgraph Mandate["AutoPay - a standing permission"]
+        direction TB
+        M1["One-time PIN entry creates<br/>a mandate: payee, cap,<br/>frequency, validity window"]
+        M2["Recurring debits execute<br/>without further PIN, up to the cap"]
+        M3["Pre-debit notification 24h ahead;<br/>payer can cancel any time"]
+        M4["Powers subscriptions, SIPs,<br/>insurance premiums, EMIs"]
+    end
+
+    subgraph Credit["Credit on the rail"]
+        direction TB
+        CR1["RuPay credit card linked to UPI, 2022:<br/>scan a QR, pay with credit"]
+        CR2["Pre-sanctioned credit lines on UPI,<br/>RBI 2023: the bank extends<br/>a line that spends like a balance"]
+        CR3["Turns a debit rail into a<br/>distribution channel for credit,<br/>at zero merchant discount rate"]
+    end
+
+    subgraph Lite["UPI Lite and 123Pay - shedding the round trip"]
+        direction TB
+        L1["UPI Lite: an on-device wallet.<br/>Small payments settle locally,<br/>no PIN, no core banking call."]
+        L2["Built because the switch was<br/>drowning in sub-200-rupee payments"]
+        L3["UPI 123Pay: IVR and missed call<br/>for feature phones, no data needed"]
+    end
+
+    Root["One authorisation model,<br/>four products.<br/>The rail did not change."]
+
+    Root --> Push
+    Root --> Collect
+    Root --> Mandate
+    Root --> Credit
+    Root --> Lite
+
+    style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Push fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Collect fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Mandate fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Credit fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Lite fill:#fce4ec,stroke:#880e4f,stroke-width:2px

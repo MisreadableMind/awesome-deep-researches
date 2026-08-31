@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Fiat["Fiat leg, off-chain"]
+        Bank["Commercial banks<br/>hold operating cash,<br/>send and receive wires"]
+        MMF["Money market fund<br/>Circle Reserve Fund, USDXX<br/>manager BlackRock Advisors"]
+        Cust["Reserve custodians<br/>and repo counterparties"]
+    end
+
+    subgraph Issuer["Issuer"]
+        Treas["Treasury operations<br/>holds unissued inventory"]
+        MM["masterMinter<br/>sets per-minter allowances"]
+        Minter["Minter addresses<br/>call mint and burn"]
+        BL["blacklister<br/>freezes balances"]
+        Pause["pauser<br/>halts all transfers"]
+    end
+
+    subgraph Primary["Primary market, vetted only"]
+        AP["Circle Mint customers,<br/>Tether direct clients:<br/>exchanges, market makers,<br/>brokers, fintechs, banks"]
+    end
+
+    subgraph Secondary["Secondary market, permissionless"]
+        CEX["Centralised exchanges<br/>Binance, Coinbase, OKX"]
+        DEX["AMM pools<br/>Curve, Uniswap"]
+        Wallets["End users<br/>17.5 m USDT holders on Ethereum<br/>9.0 m USDC holders on Ethereum"]
+    end
+
+    subgraph Chain["Blockchain layer"]
+        Contract["Token contract<br/>proxy plus implementation"]
+        Validators["Validators or miners<br/>order and finalise transfers"]
+    end
+
+    Reg["Regulators<br/>OCC, state regulators, NYDFS,<br/>EBA and national competent<br/>authorities under MiCA"]
+    Audit["Accounting firms<br/>attestation and audit"]
+
+    AP -->|"wire USD"| Bank
+    Bank --> MMF
+    Bank --> Cust
+    MM -->|"configureMinter"| Minter
+    Minter -->|"mint to AP address"| Contract
+    AP -->|"send tokens back,<br/>request redemption"| Treas
+    Treas --> Minter
+    Minter -->|"burn"| Contract
+    AP --> CEX
+    AP --> DEX
+    CEX --> Wallets
+    DEX --> Wallets
+    Wallets -->|"transfer"| Contract
+    Contract --> Validators
+    BL -->|"blacklist address"| Contract
+    Pause -->|"pause"| Contract
+    Reg -->|"lawful orders"| BL
+    Audit -->|"examine month-end<br/>reserve report"| Issuer

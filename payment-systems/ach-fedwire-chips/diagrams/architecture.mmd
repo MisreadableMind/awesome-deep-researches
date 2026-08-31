@@ -1,0 +1,86 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Corp["Originating Systems"]
+        ERP["ERP / Payroll<br/>SAP, Oracle, Workday"]
+        TMS["Treasury Workstation"]
+        Fintech["Fintech platform<br/>via sponsor bank"]
+    end
+
+    subgraph Access["Bank Connectivity"]
+        SFTP["SFTP + PGP<br/>Nacha file transmission"]
+        API["Bank API<br/>file generated server-side"]
+        Portal["Cash management portal<br/>manual wire entry"]
+    end
+
+    subgraph BankCore["Bank Core and Controls"]
+        Core["Core banking system<br/>Ledger, posting, holds"]
+        Edits["Format edits<br/>counts, hashes, check digits"]
+        Exposure["Exposure limits<br/>credit decision per originator"]
+        Screen["OFAC screening<br/>origination and receipt"]
+        Fraud["Fraud controls<br/>callback, dual auth, allowlist"]
+    end
+
+    subgraph FedLine["FedLine Access Channels"]
+        Direct["FedLine Direct<br/>computer to computer,<br/>dedicated circuits, STP"]
+        Command["FedLine Command<br/>automated file exchange"]
+        Advantage["FedLine Advantage<br/>web over VPN"]
+        Web["FedLine Web / FedMail<br/>inquiry and reporting"]
+    end
+
+    subgraph Rails["Payment Rails"]
+        FedACH["FedACH<br/>batch sort by routing number"]
+        EPN["EPN<br/>The Clearing House"]
+        Fedwire["Fedwire Funds<br/>real-time gross settlement"]
+        FedSec["Fedwire Securities<br/>delivery versus payment"]
+        CHIPS["CHIPS<br/>prefunded continuous netting"]
+        RTP["RTP<br/>24x7 instant"]
+        FedNow["FedNow<br/>24x7 instant"]
+    end
+
+    subgraph Settle["Settlement Layer"]
+        NSS["National Settlement Service<br/>net positions of private<br/>clearing arrangements"]
+        Master["Federal Reserve Master Accounts<br/>CENTRAL BANK MONEY<br/>the settlement asset for everything above"]
+    end
+
+    ERP --> SFTP
+    ERP --> API
+    TMS --> Portal
+    Fintech --> API
+
+    SFTP --> Edits
+    API --> Edits
+    Portal --> Fraud
+
+    Edits --> Exposure --> Screen --> Core
+    Fraud --> Screen
+
+    Core --> Direct
+    Core --> Command
+    Core --> Advantage
+    Core --> Web
+
+    Direct --> FedACH
+    Direct --> Fedwire
+    Direct --> FedSec
+    Direct --> FedNow
+    Command --> FedACH
+    Advantage --> Fedwire
+    Advantage --> FedACH
+    Core --> EPN
+    Core --> CHIPS
+    Core --> RTP
+
+    FedACH --> Master
+    EPN --> NSS
+    RTP --> Master
+    CHIPS --> Master
+    Fedwire --> Master
+    FedSec --> Master
+    FedNow --> Master
+    NSS --> Master
+
+    style Settle fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Master fill:#c8e6c9,stroke:#1b5e20,stroke-width:4px
+    style Rails fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BankCore fill:#fff3e0,stroke:#e65100,stroke-width:2px

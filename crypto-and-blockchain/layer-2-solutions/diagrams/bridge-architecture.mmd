@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Canon["Canonical bridge: part of the protocol"]
+        direction TB
+        subgraph In["Deposit: L1 to L2, minutes"]
+            direction TB
+            D1["User calls depositTransaction()<br/>on the L1 portal, sending ETH or tokens"]
+            D2["Contract locks the asset and emits<br/>TransactionDeposited"]
+            D3["Every L2 node's derivation pipeline<br/>turns that event into a type-0x7E<br/>deposited transaction it MUST include"]
+            D4["Credited on L2 after the L1 block is<br/>seen, typically 1 to 15 minutes.<br/>The sequencer cannot refuse it."]
+        end
+        subgraph Out["Withdrawal: L2 to L1, the slow direction"]
+            direction TB
+            W1["User burns or locks on L2 and the VM<br/>emits an L2-to-L1 message.<br/>ZKsync uses the to_l1 opcode; OP Stack<br/>writes to the L2ToL1MessagePasser."]
+            W2["Wait for the message to be included in<br/>a batch posted to L1"]
+            W3["Optimistic: prove the withdrawal, then wait<br/>the 7-day proof maturity delay (OP Stack),<br/>the 6.4-day BoLD challenge period (Arbitrum),<br/>or 5 days on Base, 1 day when both<br/>of its proof arms commit"]
+            W4["Validity: wait for proveBatches to land,<br/>plus any ValidatorTimelock delay.<br/>Minutes to hours, no challenge window."]
+            W5["Finalise on L1. The portal releases<br/>the asset it has been holding all along."]
+        end
+    end
+
+    subgraph Fast["Third-party fast bridge: a market, not a protocol"]
+        direction TB
+        F1["User sells the pending withdrawal to a<br/>liquidity provider who already holds L1 funds"]
+        F2["LP pays out in minutes, charges<br/>roughly 5 to 30 basis points"]
+        F3["LP then does the slow canonical exit itself.<br/>The user bought time; the LP financed it."]
+        F4["Trust: the LP's solvency and the bridge<br/>contract, for the length of one transfer"]
+    end
+
+    subgraph Ext["External bridge between independent chains"]
+        direction TB
+        E1["No shared settlement layer, so no proof<br/>is possible. A validator set or a multisig<br/>attests that a deposit happened."]
+        E2["Ronin: 624 million USD, Mar 2022,<br/>five of nine validator keys"]
+        E3["Poly Network: 611 million USD, Aug 2021<br/>BNB Bridge: 586 million USD, Oct 2022<br/>Wormhole: 326 million USD, Feb 2022<br/>Nomad: 190 million USD, Aug 2022<br/>Multichain 126.3, Harmony 100, Orbit 81.5<br/>Eight incidents, 2,644.8 million USD total"]
+        E4["Every one of those was an external bridge.<br/>Not one was a canonical rollup bridge.<br/>The category matters more than the code."]
+    end
+
+    Point["Where the risk actually sits:<br/>the L1 portal holds every deposited asset<br/>and is upgradeable by a multisig on every<br/>Stage 0 and Stage 1 chain. The proof system<br/>protects the state transition. It does not<br/>protect against a contract upgrade."]
+
+    Canon --> Point
+    Fast --> Point
+    Ext --> Point
+
+    style Canon fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style In fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Out fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fast fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Ext fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+    style Point fill:#fce4ec,stroke:#880e4f,stroke-width:3px

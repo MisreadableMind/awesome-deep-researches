@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant B as Primary backend
+    participant WS as walsender
+    participant WR as walreceiver on standby
+    participant SU as startup process on standby
+    participant RO as Read-only query on standby
+
+    WR->>WS: Connect with replication=true
+    WR->>WS: IDENTIFY_SYSTEM
+    WS-->>WR: systemid, timeline, xlogpos, dbname
+    WR->>WS: START_REPLICATION SLOT s1 PHYSICAL 2A/B7000000
+    Note over WS,WR: The connection switches to COPY BOTH mode.<br/>Everything after this is CopyData.
+
+    C->>B: COMMIT
+    B->>B: XLogFlush to local pg_wal, fsync
+    B-->>WS: signal: new WAL is durable
+
+    WS->>WR: CopyData 'w' XLogData<br/>Int64 start LSN, Int64 server WAL end,<br/>Int64 server clock, then raw WAL bytes
+    WR->>WR: Write to pg_wal, then fsync
+    WR->>SU: Signal: WAL available to replay
+    SU->>SU: Apply records. Conflicts with running<br/>queries are resolved after<br/>max_standby_streaming_delay, 30s.
+    SU-->>RO: Newly applied rows become visible
+
+    WR->>WS: CopyData 'r' Standby status update<br/>Int64 write LSN, Int64 flush LSN,<br/>Int64 apply LSN, Int64 clock, Byte1 reply flag
+    Note over WR: Sent every wal_receiver_status_interval, 10s
+
+    WS->>WR: CopyData 'k' Primary keepalive<br/>Int64 WAL end, Int64 clock, Byte1 reply-now
+    Note over WS: wal_sender_timeout 60s drops a silent standby
+
+    WR->>WS: CopyData 'h' Hot standby feedback<br/>clock, xmin, epoch, catalog_xmin, epoch
+    Note over WS: Only when hot_standby_feedback = on.<br/>It holds back the primary's vacuum horizon,<br/>trading standby query cancellations for bloat.
+
+    alt synchronous_commit = on and this standby is in synchronous_standby_names
+        B->>B: Block the COMMIT until the 'r' message<br/>reports flush LSN at or past the commit LSN
+        B-->>C: COMMIT returns
+    else synchronous_commit = local or off
+        B-->>C: COMMIT returns immediately.<br/>A failover can lose the transaction.
+    end
+
+    Note over WS,WR: A physical slot keeps WAL until the standby has it.<br/>max_slot_wal_keep_size = -1 means unlimited,<br/>which is how a forgotten slot fills the disk.

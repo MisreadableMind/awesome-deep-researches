@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Is["What a passkey IS"]
+        direction TB
+        I1["An asymmetric key pair.<br/>Private key in the authenticator,<br/>public key on the server."]
+        I2["Scoped to one RP ID.<br/>The authenticator binds the key<br/>to that RP ID and refuses<br/>to sign for anything else."]
+        I3["Discoverable.<br/>The authenticator can list its<br/>credentials for an RP ID with<br/>no allowCredentials hint."]
+        I4["Bound to a user handle.<br/>An opaque byte string chosen<br/>by the RP, up to 64 bytes,<br/>which is not the email address."]
+        I5["Usable only after a local<br/>gesture: a touch (UP) or a<br/>biometric or PIN (UV)."]
+    end
+
+    subgraph Not["What a passkey IS NOT"]
+        direction TB
+        N1["NOT a fingerprint.<br/>No biometric template ever<br/>leaves the device. The sensor<br/>unlocks a key. It is not the key."]
+        N2["NOT a password stored better.<br/>There is no shared secret at all.<br/>The server holds a public key<br/>that is useless to an attacker."]
+        N3["NOT a second factor.<br/>A passkey with user verification<br/>is possession plus knowledge or<br/>inherence in one gesture."]
+        N4["NOT the same as a security key.<br/>A security key is one kind of<br/>authenticator. A passkey is a<br/>kind of credential."]
+        N5["NOT immune to everything.<br/>Malware on an unlocked device,<br/>stolen session cookies and weak<br/>account recovery all still work."]
+    end
+
+    Is --> Model["Mental model:<br/>a per-site signing key that the<br/>browser will only use on the site<br/>it was made for, unlocked by a<br/>local gesture, and kept alive by<br/>a sync fabric the user does not control."]
+    Not --> Model
+
+    style Is fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Not fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Model fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

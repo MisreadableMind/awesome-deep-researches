@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant N as NAT / network
+    participant S as Server
+
+    Note over C,S: Handshake establishes two independent CID sets
+    C->>S: Initial, DCID = 8 random bytes (server has not chosen one yet),<br/>SCID = the client's own CID the server should use
+    S->>C: Initial, SCID = the server's chosen CID<br/>Transport parameters carry<br/>original_destination_connection_id and<br/>initial_source_connection_id, binding the<br/>handshake to the IDs used
+    Note over C,S: Each side now addresses packets to the<br/>peer's CID. The two IDs are unrelated<br/>and often different lengths.
+
+    S->>C: NEW_CONNECTION_ID: sequence 1, CID, 128-bit stateless reset token
+    S->>C: NEW_CONNECTION_ID: sequence 2, CID, token
+    Note over C,S: active_connection_id_limit transport<br/>parameter caps how many are held.<br/>nginx defaults to 2.
+
+    Note over C,N: Phone leaves Wi-Fi. Address changes<br/>from 192.0.2.10:51000 to 198.51.100.7:44321.
+
+    C->>S: 1-RTT packet on the NEW path,<br/>using an UNUSED CID from the pool
+    Note over S: Server sees a known CID from an<br/>unknown address. It does not trust<br/>it yet: an attacker could have<br/>spoofed the source to redirect the flow.
+
+    S->>C: PATH_CHALLENGE with 64 bits of entropy,<br/>sent to the new address
+    C->>S: PATH_RESPONSE echoing the same 64 bits
+    Note over S: Path validated. Congestion controller<br/>and RTT estimator are RESET for the<br/>new path, because the old estimates<br/>describe a different network.
+
+    C->>S: RETIRE_CONNECTION_ID for the old sequence number
+
+    Note over C,S: Privacy: a new CID per path means an<br/>observer on the Wi-Fi network and one<br/>on the cellular network cannot link the<br/>two flows by CID. Using the same CID<br/>on both paths would defeat that, so<br/>RFC 9000 requires a fresh one.
+
+    Note over C,S: Failure mode: if the client cannot get<br/>a fresh CID, it must not migrate.<br/>A server that issues too few CIDs<br/>silently disables migration.

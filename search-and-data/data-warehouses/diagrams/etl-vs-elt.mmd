@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph ETL["Traditional ETL"]
+        direction LR
+        E1["Extract<br/>Pull from sources"]
+        T1["Transform<br/>Clean, join, aggregate<br/>ON SEPARATE SERVER"]
+        L1["Load<br/>Insert transformed data<br/>into warehouse"]
+        E1 --> T1 --> L1
+    end
+
+    subgraph ELT["Modern ELT"]
+        direction LR
+        E2["Extract<br/>Pull from sources"]
+        L2["Load<br/>Dump raw data<br/>into warehouse"]
+        T2["Transform<br/>Clean, join, aggregate<br/>INSIDE THE WAREHOUSE<br/>using SQL / dbt"]
+        E2 --> L2 --> T2
+    end
+
+    subgraph Comparison["Why ELT Won"]
+        direction TB
+        P1["ETL: Transform bottleneck<br/>on ETL server CPU"]
+        P2["ELT: Transform uses warehouse<br/>MPP compute - 10-100x faster"]
+        P3["ETL: Schema must be decided<br/>before loading (schema-on-write)"]
+        P4["ELT: Load everything, decide<br/>schema later (schema-on-read)"]
+        P5["ETL: Changes require<br/>pipeline rebuild"]
+        P6["ELT: Changes require<br/>a new SQL model in dbt"]
+    end
+
+    style ETL fill:#e53e3e,color:#fff
+    style ELT fill:#38a169,color:#fff
+    style Comparison fill:#2b6cb0,color:#fff

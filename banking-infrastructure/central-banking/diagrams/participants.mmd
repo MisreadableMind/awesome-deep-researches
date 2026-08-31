@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Policy["Policy makers - who decides the rate"]
+        direction TB
+        P1["FOMC<br/>7 governors plus 5 of 12<br/>Reserve Bank presidents.<br/>New York votes permanently."]
+        P2["Board of Governors<br/>sets IORB and approves the<br/>primary credit rate. Separate<br/>legal authority from the FOMC."]
+        P3["ECB Governing Council<br/>6 Executive Board members plus<br/>21 national central bank governors,<br/>voting on rotation"]
+    end
+
+    subgraph Ops["Operators - who executes"]
+        direction TB
+        O1["Open Market Trading Desk<br/>Federal Reserve Bank of New York.<br/>Runs ON RRP, standing repo,<br/>and SOMA purchases"]
+        O2["SOMA manager<br/>holds every security the<br/>System owns, on behalf of<br/>all twelve Reserve Banks"]
+        O3["Reserve Bank discount windows<br/>twelve of them, each lending<br/>against collateral to its<br/>own district's institutions"]
+    end
+
+    subgraph Cpty["Counterparties - who transacts"]
+        direction TB
+        C1["Primary dealers<br/>26 firms as of August 2026.<br/>Bid in every Treasury auction,<br/>eligible for both facilities"]
+        C2["Standing repo counterparties<br/>47 depository institutions<br/>plus the primary dealers"]
+        C3["Reverse repo counterparties<br/>banks, all 11 Federal Home Loan<br/>Banks, Fannie, Freddie, and roughly<br/>110 named money market funds<br/>run by 28 investment managers"]
+        C4["Foreign and international<br/>monetary authorities<br/>FIMA repo and reverse repo"]
+    end
+
+    subgraph Users["Balance sheet users - who is affected"]
+        direction TB
+        U1["Depository institutions<br/>hold master accounts,<br/>earn IORB, settle on Fedwire"]
+        U2["US Treasury<br/>holds the TGA. Its cash<br/>management moves reserves<br/>more than most policy actions"]
+        U3["Money market funds<br/>cannot hold reserves.<br/>ON RRP is their only<br/>direct access to the Fed"]
+        U4["Households and firms<br/>touch the system only through<br/>banknotes and deposits"]
+    end
+
+    Policy -->|"directive and<br/>implementation note"| Ops
+    Ops -->|"operations at<br/>administered rates"| Cpty
+    Cpty -->|"arbitrage sets<br/>market rates"| Users
+    Users -->|"reserve demand,<br/>currency demand"| Policy
+
+    style Policy fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Ops fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cpty fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Users fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,72 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#2d3748', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4a5568', 'lineColor': '#718096', 'secondaryColor': '#4299e1', 'tertiaryColor': '#f7fafc', 'fontSize': '14px'}}}%%
+
+erDiagram
+    FACT_SALES {
+        bigint sale_id PK
+        date sale_date FK
+        int product_id FK
+        int store_id FK
+        int customer_id FK
+        int promo_id FK
+        decimal quantity
+        decimal unit_price
+        decimal discount
+        decimal total_amount
+        decimal cost_of_goods
+    }
+
+    DIM_DATE {
+        date date_id PK
+        int year
+        int quarter
+        int month
+        int week
+        int day_of_week
+        boolean is_holiday
+        varchar fiscal_period
+    }
+
+    DIM_PRODUCT {
+        int product_id PK
+        varchar product_name
+        varchar category
+        varchar subcategory
+        varchar brand
+        decimal list_price
+        varchar supplier
+    }
+
+    DIM_STORE {
+        int store_id PK
+        varchar store_name
+        varchar city
+        varchar state
+        varchar country
+        varchar region
+        varchar store_type
+        date open_date
+    }
+
+    DIM_CUSTOMER {
+        int customer_id PK
+        varchar name
+        varchar segment
+        varchar tier
+        date first_purchase
+        varchar acquisition_channel
+    }
+
+    DIM_PROMOTION {
+        int promo_id PK
+        varchar promo_name
+        varchar promo_type
+        decimal discount_pct
+        date start_date
+        date end_date
+    }
+
+    FACT_SALES ||--o{ DIM_DATE : "sale_date"
+    FACT_SALES ||--o{ DIM_PRODUCT : "product_id"
+    FACT_SALES ||--o{ DIM_STORE : "store_id"
+    FACT_SALES ||--o{ DIM_CUSTOMER : "customer_id"
+    FACT_SALES ||--o{ DIM_PROMOTION : "promo_id"

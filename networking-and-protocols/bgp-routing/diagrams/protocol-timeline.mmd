@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Origins<br/>1982-1994"]
+        direction TB
+        E1A["Oct 1982: EGP proposed, RFC 827.<br/>Formally specified Apr 1984, RFC 904.<br/>Assumes one backbone and<br/>a strict tree. Cannot express<br/>two providers for one network."]
+        E1B["Jun 1989: BGP-1, RFC 1105.<br/>Lougheed and Rekhter.<br/>Path vector replaces distance<br/>vector. AS_PATH is the loop check."]
+        E1C["Jun 1990: BGP-2, RFC 1163<br/>Oct 1991: BGP-3, RFC 1267"]
+        E1D["Jul 1994: BGP-4, RFC 1654.<br/>Carries a prefix length,<br/>so CIDR becomes possible.<br/>Class A, B, C die."]
+    end
+
+    subgraph Era2["The Commercial Internet<br/>1995-2005"]
+        direction TB
+        E2A["Mar 1995: RFC 1771 restates BGP-4"]
+        E2B["Aug 1996: RFC 1997 communities.<br/>Policy becomes a tag<br/>a customer can set."]
+        E2C["Apr 1997: AS7007.<br/>One router deaggregates the<br/>table into /24s and reoriginates it."]
+        E2D["Nov 1998: RFC 2439 route<br/>flap damping. Later found to<br/>punish well-connected networks."]
+        E2E["Apr 2006: RFC 4456 route<br/>reflection. Aug 2007: RFC 5065<br/>confederations. Full mesh iBGP dies."]
+    end
+
+    subgraph Era3["Scale and Deaggregation<br/>2006-2015"]
+        direction TB
+        E3A["Jan 2006: RFC 4271, the<br/>current BGP-4 base spec"]
+        E3B["Jan 2007: RFC 4760 MP-BGP.<br/>One protocol now carries IPv6,<br/>VPNs, EVPN, flowspec, link state."]
+        E3C["Feb 2008: Pakistan Telecom<br/>takes YouTube off the internet<br/>for 2 hours 14 minutes"]
+        E3D["Dec 2012: RFC 6793,<br/>four-octet AS numbers"]
+        E3E["Aug 2014: the 512k day.<br/>Table crosses 512,000 routes.<br/>A vendor TCAM default, not<br/>a protocol limit."]
+    end
+
+    subgraph Era4["Security Retrofit<br/>2012-2022"]
+        direction TB
+        E4A["Feb 2012: RFC 6480, RPKI<br/>Jan 2013: RFC 6811, origin validation"]
+        E4B["Sep 2017: RFC 8205 BGPsec.<br/>Path signatures. Two router<br/>certificates exist worldwide<br/>as of Aug 2026."]
+        E4C["Jul 2017: RFC 8212.<br/>An eBGP session with no policy<br/>must now announce nothing."]
+        E4D["Jun 2019: a BGP optimizer<br/>inside DQE AS33154 splits Cloudflare<br/>prefixes. Customer AS396531 leaks them<br/>to Verizon AS701. Cloudflare loses<br/>about 15% of global traffic."]
+        E4E["May 2022: RFC 9234 roles<br/>and the Only to Customer attribute"]
+    end
+
+    subgraph Era5["Measured Deployment<br/>2023-2026"]
+        direction TB
+        E5A["Oct 2021: Facebook withdraws<br/>its own DNS prefixes and is<br/>offline for about 5.5 hours"]
+        E5B["May 2024: RFC 9582 restates<br/>the ROA profile. Jun 2024: FCC<br/>opens PS Docket 24-146."]
+        E5C["Nov 2024: RFC 9687 send<br/>hold timer. May 2025: RFC 9774<br/>deprecates AS_SET."]
+        E5D["Aug 2026: 63.9% of advertised<br/>IPv4 address space is<br/>ROA-valid, 0.4% invalid"]
+        E5E["Aug 2026: 1.08 to 1.12 million<br/>IPv4 routes, 79,667 ASes,<br/>average AS path 3.86 hops"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["Principal risk:<br/>the risk of delivering<br/>and not being paid.<br/>DVP links the two legs<br/>so that one cannot happen<br/>without the other."]
+
+    subgraph M1["Model 1 - gross securities, gross cash"]
+        A1["Each trade settles individually<br/>Securities and cash move together<br/>Finality trade by trade"]
+        B1["Used by: Fedwire Securities,<br/>most RTGS-linked CSDs, T2S<br/>Cost: enormous intraday liquidity<br/>or enormous intraday credit"]
+    end
+
+    subgraph M2["Model 2 - gross securities, net cash"]
+        A2["Securities move gross through the day<br/>Cash settles net at the end of the day<br/>The two legs are linked by rule"]
+        B2["Used by: DTC and NSCC<br/>Cost: an intraday exposure that must be<br/>capped and fully collateralised"]
+    end
+
+    subgraph M3["Model 3 - net securities, net cash"]
+        A3["Both legs settle net<br/>at the end of a processing cycle<br/>Simultaneous final transfer"]
+        B3["Used by: several European<br/>batch settlement systems<br/>Cost: an unwind risk if one<br/>participant fails to fund"]
+    end
+
+    Q --> M1
+    Q --> M2
+    Q --> M3
+
+    Warn["All three eliminate principal risk.<br/>None of them eliminates replacement cost risk<br/>or liquidity risk. That is what margin is for."]
+    M1 --> Warn
+    M2 --> Warn
+    M3 --> Warn
+
+    style M1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style M2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style M3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Warn fill:#fff3e0,stroke:#e65100,stroke-width:2px

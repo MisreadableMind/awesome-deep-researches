@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    TRIG["Trigger: OFAC designation, court order,<br/>law-enforcement request, or the issuer's<br/>own compliance finding"]
+
+    TRIG --> USDCP["USDC path"]
+    TRIG --> USDTP["USDT path"]
+    USDCP --> U1
+    USDTP --> T1
+
+    subgraph USDCP2["USDC: freeze, do not destroy"]
+        U1["blacklister role calls<br/>blacklist(address)"]
+        U1 --> U2["_setBlacklistState sets bit 255 of<br/>balanceAndBlacklistStates[account]"]
+        U2 --> U3["notBlacklisted modifier now reverts<br/>on transfer, transferFrom, approve,<br/>mint to, and burn by that address"]
+        U3 --> U4["_setBalance reverts for a blacklisted<br/>account, so the balance is frozen<br/>in place, not zeroed"]
+        U4 --> U5["Circle reclassifies the tokens as<br/>'access denied tokens' and moves the<br/>matching reserve into a segregated<br/>bank account"]
+        U5 --> U6["Liability is not extinguished until the<br/>funds go to the authority, or the<br/>denial is reversed and the holder redeems"]
+        U6 --> U7["123.2 m USD of access denied tokens<br/>at 30 June 2026, down from<br/>166.6 m a year earlier"]
+    end
+
+    subgraph USDTP2["USDT: freeze, then optionally destroy"]
+        T1["owner calls addBlackList(address)"]
+        T1 --> T2["isBlackListed[addr] = true"]
+        T2 --> T3["transfer reverts for that sender.<br/>Note: the legacy contract checks<br/>the sender only, not the recipient"]
+        T3 --> T4["owner may call<br/>destroyBlackFunds(address)"]
+        T4 --> T5["balances[addr] = 0<br/>_totalSupply -= dirtyFunds<br/>emit DestroyedBlackFunds"]
+        T5 --> T6["The tokens cease to exist.<br/>The reserve behind them stays<br/>with Tether unless surrendered."]
+        T6 --> T7["Roughly 3,100 addresses banned<br/>holding about 1.733 bn USDT,<br/>as at 1 August 2026"]
+    end
+
+    U7 --> LIM["What the switch cannot do"]
+    T7 --> LIM
+    LIM --> L1["Cannot reverse a completed transfer"]
+    LIM --> L2["Cannot reach tokens that have already<br/>moved to a fresh address"]
+    LIM --> L3["Cannot act faster than a transaction,<br/>so a warned holder simply moves first"]
+    LIM --> L4["Cannot touch a different chain's<br/>deployment without a separate call"]

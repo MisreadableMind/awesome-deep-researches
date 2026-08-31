@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Colo["Colocated tick to trade - the fast path, same data centre"]
+        direction TB
+        L1["Market data packet leaves the venue switch<br/>t = 0"]
+        L2["Cross connect, a few metres of fibre<br/>+ 0.1 to 0.5 us"]
+        L3["NIC to application<br/>kernel bypass 1 to 3 us<br/>plain sockets 10 to 30 us<br/>FPGA on the wire 0.05 to 0.5 us"]
+        L4["Decode: SBE or ITCH read at a fixed offset<br/>+ 0.025 us<br/>tag=value parse and convert<br/>+ 2 to 10 us"]
+        L5["Book update and strategy decision<br/>+ 0.2 to 5 us in software"]
+        L6["Encode the order and write to the NIC<br/>+ 0.5 to 3 us"]
+        L7["Wire to the venue gateway<br/>+ 0.1 to 0.5 us"]
+        L8["Gateway, risk check, matching engine<br/>venue-owned, typically tens of microseconds"]
+        L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8
+    end
+
+    subgraph Inst["Institutional order path - the slow path, and it does not matter"]
+        direction TB
+        I1["PM decision to OMS<br/>seconds to hours"]
+        I2["Compliance check in the OMS<br/>10 to 500 ms"]
+        I3["OMS to EMS FIX hop<br/>1 to 20 ms across a corporate network"]
+        I4["EMS to broker over an extranet<br/>2 to 40 ms depending on geography"]
+        I5["Broker risk gate, SEC 15c3-5<br/>0.1 to 5 ms"]
+        I6["Broker algo schedules child orders<br/>seconds to hours by design"]
+        I7["Child order to venue<br/>0.05 to 2 ms"]
+        I1 --> I2 --> I3 --> I4 --> I5 --> I6 --> I7
+    end
+
+    subgraph Geo["Geography, which no engineering removes"]
+        G1["Light in vacuum: 3.34 us per km<br/>Light in single-mode fibre: 4.90 us per km"]
+        G2["Aurora IL to Carteret NJ,<br/>great circle 1,186 km"]
+        G3["Fibre, allowing 15 percent route slack:<br/>6.7 ms one way, 13.4 ms round trip"]
+        G4["Microwave line of sight, straight path:<br/>3.96 ms one way, 7.9 ms round trip"]
+        G5["IEX inserts exactly 350 us in each<br/>direction with a 38-mile fibre coil,<br/>SEC approved 17 June 2016"]
+    end
+
+    subgraph Clock["What the regulator requires you to measure"]
+        R1["MiFID II RTS 25, venues with<br/>gateway-to-gateway latency at or below 1 ms:<br/>100 us maximum divergence from UTC,<br/>1 us timestamp granularity"]
+        R2["Members doing high frequency algorithmic<br/>trading: 100 us divergence, 1 us granularity"]
+        R3["Any other trading activity:<br/>1 ms divergence, 1 ms granularity"]
+        R4["Voice and RFQ with human intervention:<br/>1 second, 1 second"]
+    end
+
+    Colo -.-> Geo
+    Inst -.-> Geo
+    Geo -.-> Clock
+
+    style Colo fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Inst fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Geo fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Clock fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph File["dump.rdb, byte by byte"]
+        direction TB
+        F1["'REDIS' magic, 5 ASCII bytes"]
+        F2["RDB version, 4 ASCII digits.<br/>Redis 8.0 writes 0012"]
+        F3["AUX fields, opcode 250:<br/>redis-ver, redis-bits, ctime,<br/>used-mem, repl-id, repl-offset,<br/>aof-base"]
+        F4["SELECTDB, opcode 254,<br/>then the database number"]
+        F5["RESIZEDB, opcode 251:<br/>hash table size and expires size,<br/>so the loader preallocates once"]
+        F6["Key-value pairs"]
+        F7["EOF, opcode 255"]
+        F8["CRC64 checksum, 8 bytes.<br/>Zero when rdbchecksum is no"]
+    end
+
+    subgraph KV["One key-value pair"]
+        direction TB
+        K1["Optional EXPIRETIME_MS, opcode 252,<br/>8-byte little-endian milliseconds"]
+        K2["Optional IDLE opcode 248 for LRU,<br/>or FREQ opcode 249 for the LFU counter"]
+        K3["1-byte value type, RDB_TYPE_*"]
+        K4["Key, a length-prefixed string"]
+        K5["Value, serialised by type"]
+    end
+
+    subgraph Len["Length encoding, the first two bits"]
+        L1["00: 6-bit length in the same byte"]
+        L2["01: 14-bit length across two bytes"]
+        L3["10000000: 32-bit length follows"]
+        L4["10000001: 64-bit length follows"]
+        L5["11: special format. LZF-compressed<br/>string, or an 8, 16 or 32-bit integer<br/>stored as a string"]
+    end
+
+    subgraph Types["Value types that reveal the encoding"]
+        T1["0 string, 1 list, 2 set,<br/>3 zset, 4 hash, 5 zset_2"]
+        T2["11 set_intset, 14 list_quicklist,<br/>16 hash_listpack, 17 zset_listpack,<br/>18 list_quicklist_2, 20 set_listpack"]
+        T3["21 stream_listpacks_3,<br/>24 hash_metadata,<br/>25 hash_listpack_ex"]
+        T4["The type byte encodes the in-memory<br/>encoding, not just the logical type.<br/>An RDB written by a newer Redis can<br/>therefore be unreadable by an older one."]
+    end
+
+    File --> KV --> Len
+    KV --> Types
+
+    style File fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style KV fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Len fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Types fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

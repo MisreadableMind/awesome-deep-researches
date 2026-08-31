@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Night["Overnight"]
+        N1["2:15 a.m. ET<br/>Next-day file deadline"]
+        N2["8:30 a.m. ET<br/>Settlement"]
+        N3["Credits available<br/>by 9:00 a.m. local"]
+        N1 --> N2 --> N3
+    end
+
+    subgraph SD1["Same Day Window 1"]
+        S1A["10:30 a.m. ET<br/>Submission deadline"]
+        S1B["1:00 p.m. ET<br/>Settlement"]
+        S1A --> S1B
+    end
+
+    subgraph SD2["Same Day Window 2"]
+        S2A["2:45 p.m. ET<br/>Submission deadline"]
+        S2B["5:00 p.m. ET<br/>Settlement"]
+        S2A --> S2B
+    end
+
+    subgraph SD3["Same Day Window 3"]
+        S3A["4:45 p.m. ET<br/>Submission deadline"]
+        S3B["6:00 p.m. ET<br/>Settlement"]
+        S3A --> S3B
+    end
+
+    Avail["Nacha rule:<br/>Same Day credits must be<br/>available to the receiver by<br/>5:00 p.m. RDFI local time"]
+
+    Limit["Same Day ACH limits:<br/>1,000,000 USD per payment<br/>(raised from 100,000 in March 2022)<br/>IAT entries not eligible"]
+
+    Night --> SD1 --> SD2 --> SD3
+    SD1 --> Avail
+    SD2 --> Avail
+    SD3 --> Avail
+    SD3 --> Limit
+
+    style Night fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SD1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SD2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SD3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Avail fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px

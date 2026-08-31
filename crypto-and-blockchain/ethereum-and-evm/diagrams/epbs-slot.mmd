@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant B as Staked builder
+    participant P as Proposer
+    participant V as Attesting committee
+    participant PTC as Payload timeliness committee<br/>PTC_SIZE 512
+    participant S as Beacon state
+
+    Note over B: Builders are in protocol now.<br/>They stake, they are registered in<br/>state.builders, and they skip the<br/>validator activation queue.
+
+    B->>P: SignedExecutionPayloadBid<br/>parent hash, committed block hash,<br/>builder index, value, blob commitments
+    P->>P: Pick the best bid.<br/>The payload itself is not seen.
+    P->>V: BeaconBlock carrying<br/>signed_execution_payload_bid<br/>and payload_attestations from slot t-1
+
+    Note over V: Attestation due at 25 percent of the slot, 3.0s
+    V->>S: Vote on the consensus block.<br/>Execution validity is not part of this vote.
+
+    S->>S: Deduct the bid value from the<br/>builder's balance immediately.<br/>Queue a BuilderPendingPayment.
+
+    Note over B: Payload due at 50 percent of the slot, 6.0s
+    B->>PTC: SignedExecutionPayloadEnvelope<br/>payload, execution_requests, builder_index,<br/>beacon_block_root, parent_beacon_block_root
+
+    Note over PTC: Payload attestation due at 75 percent, 9.0s
+    PTC->>S: Vote only on two questions:<br/>was the payload revealed on time,<br/>and was the blob data available
+
+    alt Builder revealed on time
+        S->>S: Payload becomes canonical.<br/>BuilderPendingWithdrawal queued,<br/>MIN_BUILDER_WITHDRAWABILITY_DELAY 64 epochs
+        S-->>P: Proposer paid from the builder's stake,<br/>credited to a 0xb0 prefixed<br/>builder withdrawal address
+    else Builder withholds
+        S->>S: Payload is skipped.<br/>The consensus block still stands.
+        S-->>P: Proposer is paid anyway.<br/>The builder loses the bid value.
+    end
+
+    Note over B,S: The escrow that mev-boost relays<br/>provide off protocol becomes a<br/>state transition. The relay is no<br/>longer a trusted third party.

@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph RANGE["RANGE PARTITIONING - order preserved"]
+        direction TB
+        R1["Split the key space into contiguous ranges.<br/>customers 1000 to 2000, then 2000 to 3000"]
+        R2["USED BY: Bigtable, HBase, Spanner,<br/>CockroachDB, TiDB, YugabyteDB, FoundationDB"]
+        R3["WINS: range scans hit few shards.<br/>ORDER BY on the key is nearly free.<br/>Splits and merges are local operations."]
+        R4["LOSES: a monotonically increasing key<br/>puts 100% of writes on the last range.<br/>The classic timestamp-primary-key hotspot."]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph HASH["HASH PARTITIONING - order destroyed"]
+        direction TB
+        H1["token = hash of the partition key<br/>Cassandra: Murmur3, 64-bit token space"]
+        H2["USED BY: Cassandra, DynamoDB,<br/>MongoDB hashed shard keys, Riak"]
+        H3["WINS: uniform load by construction.<br/>Sequential keys spread perfectly."]
+        H4["LOSES: no range scan on the partition key.<br/>WHERE ts BETWEEN a AND b<br/>touches EVERY shard.<br/>A hot single key is still hot."]
+        H1 --> H2 --> H3 --> H4
+    end
+
+    subgraph CONS["CONSISTENT HASHING - hash plus stable ownership"]
+        direction TB
+        C1["Map nodes and keys to the same ring.<br/>A key belongs to the next node clockwise."]
+        C2["Karger et al., STOC 1997.<br/>Adding one node of N moves ~1/N of keys,<br/>not all of them as naive modulo would."]
+        C3["VIRTUAL NODES: give each physical node<br/>many ring positions, so a join takes a<br/>small slice from many neighbours.<br/>Cassandra: num_tokens.<br/>2.x needed ~256 with random allocation.<br/>3.x+ deterministic allocator;<br/>shipped default is 16 in 4.0 and 5.0."]
+        C4["COST: each token adds up to 2*(RF-1)<br/>ring neighbours. More tokens means more<br/>failure combinations that lose a range,<br/>and more discrete repair operations."]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph REB["REBALANCING - what actually breaks"]
+        direction TB
+        B1["TRIGGER: node added, node removed,<br/>range too big, range too small,<br/>disk fullness, locality constraint violated"]
+        B2["CockroachDB: split at 512 MiB,<br/>merge below 128 MiB, allocator enqueues<br/>work on the replicate queue,<br/>rate-limited Raft snapshots"]
+        B3["Cassandra: bootstrap streams SSTables<br/>from current owners; the operator must<br/>run nodetool cleanup afterwards to<br/>reclaim ranges the node no longer owns"]
+        B4["THE REAL FAILURE MODE:<br/>rebalancing competes with foreground<br/>traffic for disk and network. Teams<br/>discover the interaction during an<br/>incident, not during capacity planning."]
+        B1 --> B2
+        B1 --> B3
+        B2 --> B4
+        B3 --> B4
+    end
+
+    RANGE --> REB
+    HASH --> REB
+    CONS --> REB
+
+    style B4 fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style RANGE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style HASH fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CONS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

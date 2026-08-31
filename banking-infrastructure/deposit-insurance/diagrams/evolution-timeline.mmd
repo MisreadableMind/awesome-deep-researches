@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Panic and Founding<br/>1908-1935"]
+        direction TB
+        E1A["1908-1930: eight states run their own<br/>deposit guarantee funds.<br/>All of them fail."]
+        E1B["1930-1933: about 1,350, 2,300, 1,450<br/>and 4,000 bank suspensions per year.<br/>3,800 of the 1933 total by March 16."]
+        E1C["16 Jun 1933: Banking Act of 1933<br/>creates the FDIC and a Temporary Fund<br/>effective 1 Jan 1934 at 2,500 USD"]
+        E1D["1 Jul 1934: limit to 5,000 USD.<br/>3 Jul 1934: first payout, Fon Du Lac<br/>State Bank, East Peoria, Illinois"]
+        E1E["23 Aug 1935: Banking Act of 1935<br/>makes the FDIC permanent"]
+    end
+
+    subgraph Era2["The Ratchet<br/>1950-1980"]
+        direction TB
+        E2A["21 Sep 1950: 10,000 USD.<br/>Federal Deposit Insurance Act<br/>consolidates FDIC authority"]
+        E2B["16 Oct 1966: 15,000 USD<br/>23 Dec 1969: 20,000 USD"]
+        E2C["28 Oct 1974: 40,000 USD"]
+        E2D["10 Nov 1978: IRA and Keogh<br/>coverage to 100,000 USD"]
+        E2E["31 Mar 1980: DIDMCA<br/>takes the general limit to 100,000 USD"]
+    end
+
+    subgraph Era3["The Bill Arrives<br/>1980-1993"]
+        direction TB
+        E3A["Thrift failures: 11 in 1980,<br/>73 in 1982, 185 in 1988"]
+        E3B["Mar and May 1985: Ohio and Maryland<br/>private state funds go insolvent"]
+        E3C["9 Aug 1989: FIRREA abolishes FSLIC,<br/>creates the RTC with 50 bn USD,<br/>splits BIF and SAIF"]
+        E3D["1991: FDICIA adds prompt corrective<br/>action and the least-cost test.<br/>1993: national depositor preference"]
+    end
+
+    subgraph Era4["Crisis Pricing<br/>2006-2010"]
+        direction TB
+        E4A["8 Feb 2006: Reform Act enacted.<br/>31 Mar 2006: BIF and SAIF merge into the DIF.<br/>1 Apr 2006: retirement accounts<br/>to 250,000 USD"]
+        E4B["11 Jul 2008: IndyMac fails,<br/>31 bn USD assets.<br/>25 Sep 2008: WaMu, 307 bn USD"]
+        E4C["3 Oct 2008: EESA lifts the limit<br/>to 250,000 USD temporarily.<br/>14 Oct 2008: TAGP guarantees<br/>non-interest transaction accounts"]
+        E4D["21 Jul 2010: Dodd-Frank makes<br/>250,000 USD permanent, retroactive<br/>to 1 Jan 2008, minimum reserve<br/>ratio to 1.35 percent"]
+    end
+
+    subgraph Era5["Speed and Reform<br/>2023-2026"]
+        direction TB
+        E5A["10-12 Mar 2023: SVB and Signature fail.<br/>Systemic risk exception protects<br/>all depositors"]
+        E5B["1 May 2023: First Republic fails and<br/>is resolved on a least-cost basis"]
+        E5C["16 Nov 2023: special assessment rule.<br/>1 Apr 2024: new trust coverage rule"]
+        E5D["1 Dec 2025: UK FSCS limit to 120,000 GBP.<br/>30 Mar 2026: EU adopts DGSD3"]
+        E5E["Jun-Aug 2026: FDIC proposes lower<br/>assessments and implements a<br/>30 bn USD reciprocal deposit cap"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

@@ -1,0 +1,2237 @@
+# Bridges and Cross-Chain: Complete Technical Deep Dive
+
+---
+
+## Table of Contents
+
+1. [History and Overview](#1-history-and-overview)
+2. [Why Blockchains Cannot See Each Other](#2-why-blockchains-cannot-see-each-other)
+3. [What a Bridge Is and What It Is Not](#3-what-a-bridge-is-and-what-it-is-not)
+4. [Key Participants and Roles](#4-key-participants-and-roles)
+5. [The Three Asset Designs](#5-the-three-asset-designs)
+6. [Wrapped Asset Mechanics](#6-wrapped-asset-mechanics)
+7. [Trust Models: Who You Are Actually Trusting](#7-trust-models-who-you-are-actually-trusting)
+8. [Generic Message Passing](#8-generic-message-passing)
+9. [Cosmos IBC: Light Client Verification in Detail](#9-cosmos-ibc-light-client-verification-in-detail)
+10. [IBC v2, Eureka, and the Cost of Verifying Cosmos on Ethereum](#10-ibc-v2-eureka-and-the-cost-of-verifying-cosmos-on-ethereum)
+11. [Wormhole: Nineteen Guardians and the VAA](#11-wormhole-nineteen-guardians-and-the-vaa)
+12. [LayerZero v2: Security as a Configuration File](#12-layerzero-v2-security-as-a-configuration-file)
+13. [CCIP, CCTP, Hyperlane, and Axelar](#13-ccip-cctp-hyperlane-and-axelar)
+14. [Atomic Swaps and Hashed Timelock Contracts](#14-atomic-swaps-and-hashed-timelock-contracts)
+15. [A Worked End-to-End Example](#15-a-worked-end-to-end-example)
+16. [Why Bridges Are the Largest Source of Crypto Losses](#16-why-bridges-are-the-largest-source-of-crypto-losses)
+17. [Seven Exploits Dissected by Root Cause](#17-seven-exploits-dissected-by-root-cause)
+18. [Security Engineering: The Controls That Work](#18-security-engineering-the-controls-that-work)
+19. [Economics: What It Costs to Run, Who Pays](#19-economics-what-it-costs-to-run-who-pays)
+20. [Regulation and Compliance](#20-regulation-and-compliance)
+21. [Intents: From Bridging to Filling](#21-intents-from-bridging-to-filling)
+22. [Shared Sequencers and Native Interop](#22-shared-sequencers-and-native-interop)
+23. [Comparisons and Alternatives](#23-comparisons-and-alternatives)
+24. [Modern Developments](#24-modern-developments)
+25. [Appendix](#25-appendix)
+26. [Key Takeaways](#26-key-takeaways)
+
+---
+
+## 1. History and Overview
+
+A bridge exists because a blockchain is deliberately blind, and every design in this document is an answer to the same question: who is allowed to tell chain B what happened on chain A. The answers range from one company with a private key to a full cryptographic proof of the other chain's consensus. The cost, the latency, and the loss record all follow from that single choice.
+
+Eighty-eight recorded bridge incidents have destroyed 3.356 billion dollars. Five of them account for 72.2% of that.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+timeline
+    title Cross-chain interoperability milestones and losses, 2013 to 2026
+    section Primitives
+        2013 : Tier Nolan describes the first atomic cross-chain swap protocol on bitcointalk
+        2017-03 : BIP-199 is assigned, standardising the Hashed Time-Locked Contract script
+        2017-09 : Decred and Litecoin complete the first publicly documented on-chain atomic swap
+    section Custodial wrapping
+        2019-01 : WBTC launches with BitGo as custodian and a merchant allowlist
+        2019-06 : Cosmos publishes the IBC specification drafts, ICS-002 through ICS-024
+        2021-02 : IBC goes live on the Cosmos Hub with the Stargate upgrade
+    section The bridge boom
+        2020-2021 : Polygon PoS, Avalanche, BSC and Ronin ship multisig-secured deposit contracts
+        2021-08-10 : Poly Network loses 611 million dollars to a function selector collision
+        2021-10-04 : pNetwork loses 13 million dollars to a spoofed event log
+    section The reckoning
+        2022-01-28 : Qubit loses 80 million dollars to a missing input check
+        2022-02-02 : Wormhole loses 120,000 wETH to an unchecked Solana sysvar account
+        2022-03-15 : LayerZero deploys its v1 Endpoint at Ethereum block 14,388,880, entering a lock-and-mint market Wormhole and Multichain already share
+        2022-03-23 : Ronin loses 173,600 ETH and 25.5 million USDC to five of nine validator keys
+        2022-06-23 : Harmony Horizon loses 100 million dollars to two of five multisig keys
+        2022-08-01 : Nomad loses 190 million dollars to a zero merkle root, drained by hundreds of copycats
+        2022-10-06 : BNB Bridge mints 2 million BNB from a forged IAVL proof
+    section Consolidation
+        2023-04 : Circle ships CCTP, burn-and-mint USDC with an issuer attestation
+        2023-07-07 : Multichain loses 126 million dollars and shuts down after its CEO is detained
+        2024-01 : LayerZero v2 replaces the oracle and relayer pair with configurable DVNs
+        2024-04-11 : ERC-7683 is drafted to standardise cross-chain intents
+    section Intents and native verification
+        2025-02 : ERC-7930 proposes a binary interoperable address format
+        2025 : IBC v2, Eureka, brings a Tendermint light client to Ethereum using SP1 proofs
+        2026-04-18 : KelpDAO loses 116,500 rsETH to a single-DVN LayerZero configuration and forged RPC data
+        2026-08 : Intent fills at roughly 2 seconds displace lock-and-mint for retail-sized transfers
+```
+
+### 1.1 The Problem Arrives Before the Solution
+
+Cross-chain demand predates every mechanism that serves it, which is why the first mechanisms were custodial.
+
+Bitcoin and Ethereum were designed as closed systems. Neither has a way to observe the other, and neither was built to. The first serious attempt at connecting them, described by the pseudonymous Tier Nolan on the Bitcointalk forum in 2013, needed no bridge at all: two parties lock funds on two chains behind the same hash, and one party revealing a preimage to claim on one chain necessarily reveals it on the other. This is the atomic swap. It works, it requires no trusted third party, and it is almost never used, for reasons covered in section 14.
+
+What the market wanted was not a swap. It wanted Bitcoin inside an Ethereum smart contract. WBTC shipped that on 31 January 2019 by doing the obvious thing: a custodian holds the Bitcoin, an ERC-20 contract mints one token per coin held, and a set of allowlisted merchants handle mint and burn requests. There is no cryptography connecting the two chains. There is a company and an attestation.
+
+That design still holds 116,132.18 BTC.
+
+### 1.2 The Multi-Chain Explosion Creates the Bridge Industry
+
+Between 2020 and 2022 the number of chains an application had to reach went from one to dozens, and each new chain arrived with a bridge as its first piece of infrastructure.
+
+The reason is bootstrapping. A new chain launches with no assets. Nobody will deploy a lending market on it without a stablecoin, and nobody will issue a native stablecoin on a chain with no users. The escape from that loop is to import someone else's assets, which means a bridge, which means a deposit contract on Ethereum holding real value and a mint contract on the new chain issuing claims against it. The deposit contract is guarded by whoever the new chain's team trusts. Usually that was a multisig of between two and nine keys.
+
+By early 2022 contracts of exactly this shape held enough that 13 incidents took 1,905,570,836 dollars out of bridges before the year ended. The economics were plain: the value locked in a bridge is concentrated in one address, the security is a small threshold of keys, and the reward for breaking it is the whole balance rather than a slice of it. Attackers noticed before defenders did.
+
+2022 is the year bridges were 52.4% of all recorded crypto losses.
+
+### 1.3 Scale Today
+
+The bridge market split into three tiers that price and secure themselves differently, and the split is visible in the loss record.
+
+| Tier | Examples | Verification | Typical latency | Loss record |
+|------|----------|--------------|-----------------|-------------|
+| **Native verification** | IBC, rollup canonical bridges, IBC v2 Eureka | Light client or fraud/validity proof of the source chain | Seconds within Cosmos, 7 days for optimistic rollup withdrawals | No recorded loss traced to light client verification itself; the 2022 Dragonberry flaw in ICS-23 proof checking was patched before exploitation |
+| **External verification** | Wormhole, Axelar, LayerZero, Multichain, Ronin, Harmony | A signature threshold over a named committee | 15 seconds to 20 minutes, dominated by source finality | Roughly 2.9 bn dollars of the 3.36 bn total |
+| **Liquidity and intent networks** | Across, Stargate, Relay, Circle CCTP | A filler fronts capital, settlement verified later | 2 to 20 seconds to the user | Losses concentrated in the settlement layer, not the fill |
+
+Two arithmetic facts frame everything that follows. The average bridge incident in the DefiLlama hacks dataset costs 38.1 million dollars against 14.6 million for the average non-bridge incident, a ratio of 2.6 to 1. And 89.6% of all bridge losses come from just ten incidents.
+
+Bridges do not fail often. They fail completely.
+
+---
+
+## 2. Why Blockchains Cannot See Each Other
+
+A blockchain cannot read another blockchain because reading is not a deterministic operation, and every validator must reach the same answer from the same inputs or consensus breaks. This one constraint generates the entire bridge industry.
+
+### 2.1 The Determinism Requirement
+
+Consensus works by replaying the same computation on thousands of independent machines and requiring identical output. A block is valid if and only if every honest validator, given the block's transactions and the prior state, computes the same new state root. That property is what makes a chain a chain.
+
+Now consider a smart contract that wants to know the balance of an address on Solana. To answer, the EVM would have to make a network call. Two validators making that call a millisecond apart may get different answers, because Solana produced a block in between, or because one validator's RPC provider is behind, or lying, or offline. The two validators compute different state roots. The chain forks.
+
+So the EVM has no network primitive. Neither does the SVM, the Move VM, or the CosmWasm runtime. The instruction set contains arithmetic, storage, and calls to other contracts on the same chain. It contains nothing that reaches outside the machine. This is not an oversight and it is not fixable by adding a syscall.
+
+Determinism and external I/O are mutually exclusive. Pick one.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph CHAIN_A["Chain A execution environment"]
+        A1["Contract code"]
+        A2["Storage: only chain A state"]
+        A3["Opcodes: arithmetic, storage,<br/>same-chain calls"]
+        A4["No network syscall<br/>No clock beyond block.timestamp<br/>No randomness beyond RANDAO"]
+    end
+
+    subgraph BOUNDARY["The determinism boundary"]
+        B1["Every validator must compute<br/>the same state root from<br/>the same inputs"]
+        B2["An external read returns<br/>different values to different<br/>validators at different times"]
+        B3["Different values<br/>equals different state roots<br/>equals a chain split"]
+    end
+
+    subgraph CHAIN_B["Chain B execution environment"]
+        C1["Its own validator set"]
+        C2["Its own finality rule"]
+        C3["Its own fork choice"]
+    end
+
+    A3 --> A4
+    A4 -.->|"cannot call"| CHAIN_B
+    B1 --> B2 --> B3
+
+    subgraph ESCAPE["The only escape: make the external fact an input"]
+        E1["A transaction carries the claim<br/>about chain B as calldata"]
+        E2["Chain A verifies the claim<br/>with a deterministic function"]
+        E3["Verification is arithmetic:<br/>signature checks, merkle proofs,<br/>ZK proof verification"]
+    end
+
+    CHAIN_B -.->|"someone observes"| E1
+    E1 --> E2 --> E3
+    E3 -->|"deterministic, replayable"| A1
+
+    style CHAIN_A fill:#e3f2fd,stroke:#1565c0
+    style CHAIN_B fill:#fff3e0,stroke:#e65100
+    style BOUNDARY fill:#ffebee,stroke:#c62828
+    style ESCAPE fill:#e8f5e9,stroke:#2e7d32
+```
+
+### 2.2 The Only Escape Is to Turn a Fact Into Calldata
+
+The workaround is to stop asking the chain to fetch and start asking a transaction to carry.
+
+Someone off-chain watches chain B, packages a claim about it, and submits that claim as calldata in a chain A transaction. Chain A then runs a deterministic function over the claim and decides whether to believe it. Every validator sees the same calldata and runs the same function, so determinism survives. The external fact has become an input, not a fetch.
+
+This restructures the problem completely. The question is no longer "how does a chain read another chain" but "what function does chain A run to decide whether a claim about chain B is true". Every bridge in existence is an answer to that second question, and the answers form a short list:
+
+- **Check a signature threshold.** A committee signs the claim. Chain A checks that at least `k` of `n` known public keys signed. Cost: one ECDSA recovery per signature, roughly 3,000 gas each on the EVM.
+- **Check a merkle proof against a header you already trust.** Chain A stores chain B's block headers and verifies an inclusion proof. It still needs to have learned the headers from somewhere, which recurses into the next item.
+- **Run chain B's consensus rules.** Chain A implements a light client of chain B: it verifies the validator signatures on chain B's headers according to chain B's own rules. Nothing is trusted except chain B's consensus.
+- **Verify a succinct proof.** A prover computes off-chain that a light client update is correct and produces a SNARK. Chain A verifies the SNARK. Same trust as a light client, at fixed and much lower gas.
+- **Assume the claim is true and let anyone object.** Chain A accepts the claim after a delay, during which any party may post a fraud proof. Trust reduces to one honest watcher.
+
+Everything else is packaging.
+
+### 2.3 Finality Makes It Worse
+
+Even a perfect proof of a chain B block is a proof about a block that may be reverted, which is why every bridge has a confirmation parameter and why that parameter is a security setting rather than a latency knob.
+
+Ethereum finalises in two epochs, 64 slots, 12.8 minutes under normal conditions. Bitcoin never finalises absolutely and is treated as settled at six confirmations, roughly an hour. Optimistic rollups produce blocks in two seconds but their state is only as final as the L1 batch that carries it, and their withdrawals wait out a seven-day dispute window. Solana's optimistic confirmation arrives in under a second, with full finality after 32 slots.
+
+A bridge that mints on the destination before the source is final can be attacked by reorganising the source. The attacker deposits, waits for the mint, then reorgs away the deposit. Chainlink CCIP encodes this directly by making finality a per-lane parameter, and Circle's CCTP v2 puts it in the wire format: `minFinalityThreshold` is a `uint32` at byte offset 140 of the message, and `finalityThresholdExecuted` at offset 144 records what the attestation service actually waited for.
+
+Latency in a bridge is not slowness. It is the price of not being reorged.
+
+---
+
+## 3. What a Bridge Is and What It Is Not
+
+A bridge is a pair of contracts on two chains plus an off-chain process that carries claims between them, and the entire security question is which claims the destination contract accepts. Everything visible to a user, the wrapped token, the deposit screen, the confirmation, is downstream of that.
+
+### 3.1 The Precise Definition
+
+A cross-chain bridge consists of four components, and every deployed system has all four whether or not it names them.
+
+**A source-chain endpoint** that consumes value or emits an event. It either escrows a token, burns a token, or simply logs a message. In LayerZero this is `Endpoint.send()`. In Wormhole it is `publishMessage`. In IBC it is `sendPacket`. In Circle's CCTP it is `depositForBurn`, selector `0x6fd3504e`.
+
+**An off-chain observer** that notices the source event and does something with it. This is the guardian network, the DVN, the relayer, the validator set, the attestation service. It is always off-chain because on-chain code cannot watch anything.
+
+**A verification function on the destination chain** that decides whether to believe the observer. This is the whole security model compressed into one function. It is `parseAndVerifyVM` in Wormhole, `verify(metadata, message)` in a Hyperlane ISM, `verifyMembership` in an IBC light client, and a threshold count of DVN attestations in LayerZero v2.
+
+**A destination-chain endpoint** that acts on the verified message: mints, releases, or calls a contract.
+
+The observer is untrusted in a good design and load-bearing in a bad one. That is the only structural difference between IBC and Ronin.
+
+### 3.2 What a Bridge Is Not
+
+**A bridge does not move a token.** Nothing crosses. The asset on the destination chain is new, issued by the destination contract, and backed by a liability on the source chain. Wrapped ETH on Arbitrum minted by a third-party bridge is not ETH. It is a claim on a contract that holds ETH, and its value is the minimum of the ETH price and the market's confidence in that contract.
+
+**A bridge does not make two chains one chain.** The composite system has the security of the weakest component in the path, not the strongest. An application on Ethereum that accepts a token bridged from a 21-validator chain has taken on that chain's security for that position, regardless of Ethereum's own.
+
+**A bridge is not a messaging protocol, though every bridge contains one.** Token bridges are applications built on message passing. Wormhole's Token Bridge is an application over the Wormhole core contract. IBC's ICS-20 transfer module is an application over the IBC transport layer. Separating these two layers is the single most useful mental model in this document, because the security lives in the transport and the accounting bugs live in the application.
+
+**A bridge is not an oracle, though the failure mode is identical.** An oracle asserts a price. A bridge asserts an event. Both are external claims verified by a deterministic function, and both fail when the asserting party is compromised. The KelpDAO loss of April 2026 was a bridge failure caused by feeding a verifier bad chain data, which is exactly how oracle manipulation works.
+
+**A bridge is not necessarily slower than the chains it connects.** An intent-based system fills on the destination in roughly 2 seconds, faster than Ethereum finality, because the filler takes the reorg risk instead of the user.
+
+### 3.3 Two Misconceptions Worth Correcting Explicitly
+
+**Misconception one: "trustless bridge" means no trust.** It does not. A light client bridge such as IBC removes trust in a bridge operator and replaces it with trust in the counterparty chain's validator set. If a Cosmos chain with 100 million dollars of stake attacks its own consensus, every IBC connection to it accepts forged packets, and the light client is functioning exactly as specified. Native verification bounds your risk by the counterparty chain's security. It does not eliminate it. The correct phrase is trust-minimised, and the minimum is not zero.
+
+**Misconception two: burn-and-mint is safer than lock-and-mint.** It is not safer; it relocates the failure. Lock-and-mint concentrates value in an escrow contract, so a break steals the escrow and the wrapped token depegs. Burn-and-mint holds no escrow, so a break mints unbacked supply and the token inflates. BNB Bridge in October 2022 was burn-and-mint in effect: the attacker minted 2,000,000 BNB out of nothing. Nomad was lock-and-mint and the escrow was drained. The 3.36 billion dollars of losses split across both designs. What actually differs is that a burn-and-mint failure is unbounded, because there is no escrow balance to cap it, while a lock-and-mint failure is capped at the escrow.
+
+Choose the design for the accounting you want, not the safety you imagine.
+
+---
+
+## 4. Key Participants and Roles
+
+Six roles appear in every bridge, and the security model is determined by which of them can be removed without breaking the system.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    USER["User or application<br/>wants value or a call<br/>on another chain"]
+
+    subgraph SOURCE["Source chain"]
+        SEP["Source endpoint<br/>escrow, burn, or emit<br/>Endpoint.send, depositForBurn,<br/>sendPacket, publishMessage"]
+        SESC["Escrow or token pool<br/>holds the backing assets"]
+    end
+
+    subgraph OFFCHAIN["Off-chain layer"]
+        OBS["Observer / attester<br/>guardians, DVNs, validators,<br/>attestation service"]
+        REL["Relayer / executor<br/>pays destination gas,<br/>submits the transaction"]
+        FILL["Filler / solver<br/>fronts capital on the<br/>destination, gets repaid later"]
+        WATCH["Watcher / disputer<br/>only needs to be honest once"]
+    end
+
+    subgraph DEST["Destination chain"]
+        VER["Verification function<br/>signature threshold, merkle proof,<br/>light client, ZK verifier"]
+        DEP["Destination endpoint<br/>mint, release, or call"]
+        RECV["Receiver contract<br/>the application"]
+    end
+
+    GOV["Governance / upgrade authority<br/>multisig, DAO, or timelock<br/>can replace the verifier"]
+    LP["Liquidity providers<br/>capital for fillers<br/>earn a utilisation-based fee"]
+
+    USER -->|"1. deposit or call"| SEP
+    SEP --> SESC
+    SEP -->|"2. emits event"| OBS
+    OBS -->|"3. signs or proves"| REL
+    REL -->|"4. submits claim as calldata"| VER
+    VER -->|"5. accepts or reverts"| DEP
+    DEP --> RECV
+    FILL -.->|"optional fast path:<br/>fills before verification"| RECV
+    LP --> FILL
+    WATCH -.->|"can dispute during<br/>an optimistic window"| VER
+    GOV -.->|"can change keys,<br/>libraries, and thresholds"| VER
+
+    style SOURCE fill:#e3f2fd,stroke:#1565c0
+    style DEST fill:#e8f5e9,stroke:#2e7d32
+    style OFFCHAIN fill:#fff3e0,stroke:#e65100
+    style GOV fill:#ffebee,stroke:#c62828
+```
+
+### 4.1 The Roles
+
+| Role | What it does | Can it steal? | Examples |
+|------|--------------|---------------|----------|
+| **User** | Signs the source transaction, bears the outcome | No | Anyone |
+| **Source endpoint** | Escrows, burns, or emits | Only via a bug | Wormhole Token Bridge, CCTP `TokenMessenger`, IBC transfer module |
+| **Observer / attester** | Watches the source and asserts what happened | Yes, in an externally verified design | 19 Wormhole Guardians, LayerZero DVNs, Axelar validators, Circle's attestation service |
+| **Relayer / executor** | Delivers the claim and pays destination gas | No, in every correct design | LayerZero Executor, Hyperlane relayer, IBC relayer, Wormhole relayer |
+| **Filler / solver** | Fronts capital for an instant fill, repaid on settlement | No, it risks its own money | Across relayers, UniswapX fillers, CCTP Fast Transfer allowance holders |
+| **Watcher / disputer** | Objects to a false claim during a challenge window | No, it can only stop things | Across disputers via UMA, Nomad watchers, rollup fault provers |
+| **Verification function** | The deterministic decision on the destination | It is the decision | `parseAndVerifyVM`, `IInterchainSecurityModule.verify`, `verifyMembership` |
+| **Governance** | Rotates keys, swaps message libraries, pauses | Yes, completely and legally | Bridge multisigs, LayerZero OApp owners, Wormhole guardian set governance |
+| **Liquidity provider** | Supplies inventory for fills | No | Across HubPool LPs, Stargate pool depositors |
+
+### 4.2 The Two Roles That Decide Everything
+
+**The observer is the whole security model in an externally verified bridge.** Ronin's observers were nine validator keys with a five-signature threshold, and taking five of them took 624 million dollars. Harmony's were five keys with a threshold of two, and taking two took 100 million. Wormhole's are 19 keys with a threshold of 13, which has never been broken, but the February 2022 loss came from tricking the destination contract into believing a signature check had happened at all. The number of observers matters less than whether the destination chain independently verifies the claim.
+
+**Governance is the attack surface nobody prices.** Every bridge in this document has an address that can change the verifier. In LayerZero v2 the owner of an OApp sets its `UlnConfig`, meaning a compromised application owner can set `requiredDVNs` to an attacker-controlled address and every subsequent message is whatever the attacker says. Poly Network in August 2021 was not a cryptography failure; it was an attacker acquiring the authority to replace the keeper public keys, then using that authority correctly.
+
+The verifier is only as trustworthy as the party that can replace it.
+
+### 4.3 The Relayer Is Not a Trusted Party, and Saying Otherwise Is a Red Flag
+
+A relayer submits a transaction and pays for gas. In a correct design it cannot alter, censor beyond delay, or forge anything, because the verification function on the destination rejects any claim that is not properly attested. IBC relayers are fully permissionless for exactly this reason: anyone can relay, and a malicious relayer accomplishes nothing except wasting its own gas.
+
+The test for whether a protocol has confused these two roles is simple. Ask what a compromised relayer can do. If the answer is anything other than "delay messages", the relayer is really an observer, and the protocol's security is the relayer's key management.
+
+---
+
+## 5. The Three Asset Designs
+
+Three mechanisms move value between chains, they differ in where the backing sits, and the choice determines both the accounting and the shape of the failure.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph LM["Lock and mint"]
+        LM1["Chain A: escrow contract<br/>locks 100 USDC"]
+        LM2["Bridge asserts the lock"]
+        LM3["Chain B: bridge mints<br/>100 bUSDC, a new token"]
+        LM4["Supply: A unchanged,<br/>B increased by 100"]
+        LM5["Failure: escrow drained,<br/>bUSDC goes to zero.<br/>Loss capped at escrow"]
+        LM1 --> LM2 --> LM3 --> LM4 --> LM5
+    end
+
+    subgraph BM["Burn and mint"]
+        BM1["Chain A: 100 USDC burned,<br/>total supply falls by 100"]
+        BM2["Issuer or protocol<br/>attests the burn"]
+        BM3["Chain B: 100 canonical USDC<br/>minted, same token contract"]
+        BM4["Supply: global total<br/>constant, distribution moves"]
+        BM5["Failure: unbacked mint,<br/>token inflates.<br/>Loss unbounded"]
+        BM1 --> BM2 --> BM3 --> BM4 --> BM5
+    end
+
+    subgraph LN["Liquidity network / intent"]
+        LN1["Chain A: user's 100 USDC<br/>goes to a filler"]
+        LN2["No message needed<br/>before the user is paid"]
+        LN3["Chain B: filler pays<br/>99.94 existing USDC<br/>from its own inventory"]
+        LN4["Supply: unchanged on<br/>both chains"]
+        LN5["Failure: filler unpaid at<br/>settlement. User already has<br/>the money. Loss falls on capital"]
+        LN1 --> LN2 --> LN3 --> LN4 --> LN5
+    end
+
+    style LM fill:#e3f2fd,stroke:#1565c0
+    style BM fill:#fff3e0,stroke:#e65100
+    style LN fill:#e8f5e9,stroke:#2e7d32
+```
+
+### 5.1 Lock and Mint
+
+Lock-and-mint escrows the asset on the source chain and issues a synthetic claim on the destination, and it is the only design that works for an asset whose issuer will not cooperate.
+
+The mechanics are three steps. A user sends 100 USDC to an escrow contract on Ethereum. The bridge asserts to Polygon that the lock happened. A minter contract on Polygon issues 100 units of a new ERC-20 that the bridge controls. The supply of real USDC on Ethereum has not changed, because the coins are still there, sitting in the escrow. The supply of the wrapped representation on Polygon has gone up by 100.
+
+Returning burns the wrapped token and releases from escrow. The invariant that must hold at all times is that the escrow balance is greater than or equal to the total wrapped supply across all destination chains. Every lock-and-mint exploit is a violation of exactly that inequality.
+
+Two properties follow that the industry underweights. First, the wrapped token is a distinct asset with its own price. If the market doubts the escrow, the wrapper trades below the original, and every lending market that priced them as equal becomes insolvent. Second, the design fragments liquidity: Wormhole-wrapped ETH, Multichain-wrapped ETH, and canonical-bridge ETH on the same chain are three different tokens that do not net against each other.
+
+Wormhole's Token Bridge is the canonical implementation and it adds a wrinkle worth knowing: all amounts are truncated to a maximum of 8 decimals on the wire, because some supported chains cannot represent more. An 18-decimal ERC-20 amount of `1000000000000000000` travels as `100000000`, and the dust that cannot be represented must be refunded to the user on deposit. The specification also caps the total bridged amount of any token at `MaxUint64` post-shift units across all target chains combined, even though the wire field is 32 bytes.
+
+### 5.2 Burn and Mint
+
+Burn-and-mint destroys supply on the source and creates it on the destination, keeping one global supply, and it requires the token's issuer to authorise both sides.
+
+The user calls a burn function that reduces total supply on Ethereum by 100. An attestation is produced. A mint function on Arbitrum increases supply there by 100. The token on Arbitrum is the same token, not a wrapper, because the same issuer controls both contracts. There is no escrow, no separate ticker, and no depeg risk from a custodian failure.
+
+Circle's CCTP is the reference case. `depositForBurn` on the source burns USDC. Circle's attestation service observes and signs. `receiveMessage` on the destination mints native USDC. The burn message is exactly 132 bytes: a 4-byte version, then `burnToken`, `mintRecipient`, `amount`, and `messageSender` at 32 bytes each. Wrapped in the 116-byte v1 envelope, a complete CCTP transfer message is 248 bytes.
+
+The constraint is authority. Only the issuer can do this, which is why CCTP works for USDC and cannot work for ETH. Wormhole's Native Token Transfers and Chainlink's `BurnMintTokenPool` generalise the pattern to any token whose deployer is willing to grant mint rights to the bridge, and the honest way to describe that is that the token issuer has chosen a bridge as a co-issuer.
+
+The failure mode is inflation, and it has no ceiling. When BNB Bridge's proof verifier was tricked in October 2022, the attacker minted 1,000,000 BNB twice. No escrow existed to limit the amount, so the limit was whatever the attacker asked for. Roughly 127 million dollars left the chain before validators halted it about 90 minutes after the second mint, stranding the rest.
+
+### 5.3 Liquidity Networks and Intents
+
+A liquidity network never issues anything: it pays the user out of inventory that already exists on the destination chain, and settles the two sides afterwards.
+
+The user's 100 USDC on Ethereum goes to a filler. The filler sends 99.94 USDC it already holds on Arbitrum to the user. Both are real, canonical USDC. No supply changed anywhere. The filler is now short on Arbitrum and long on Ethereum, and it rebalances at its convenience.
+
+The user's experience improves sharply because the fill does not wait for source finality. Across reports fills at roughly 2 seconds, faster than the 12.8 minutes Ethereum needs to finalise, because the filler, not the user, carries the reorg risk. This is the same trade a foreign exchange market maker makes: quote now, settle later, price the interval.
+
+The design has three costs. It needs inventory on every destination, so capital efficiency is the binding constraint. It cannot move an asset that does not already exist on the destination, so it is useless for bootstrapping a new chain. And it still needs a verification layer, because the filler must eventually be repaid from the user's deposit, which means proving to the source chain that a fill happened. Across defers that proof into bundles secured by the UMA Optimistic Oracle, so the verification cost is O(1) per bundle rather than O(N) per transfer. Two clocks govern that deferral and they are not the same number: Across documents a proposal interval of 1.5 hours minimum, and the on-chain challenge window is `liveness()` = 1,800 seconds, 30 minutes, read from the `HubPool` at `0xc186fA914353c44b2E33eBE05f21846F1048bEda`.
+
+Fast for the user. Slow and cheap underneath.
+
+### 5.4 Which Design for Which Job
+
+| Requirement | Lock and mint | Burn and mint | Liquidity network |
+|-------------|---------------|---------------|-------------------|
+| Works without issuer cooperation | Yes | No | Yes |
+| Bootstraps an asset onto a new chain | Yes | Yes | No |
+| Destination token is canonical | No | Yes | Yes |
+| Needs capital on the destination | No | No | Yes, continuously |
+| User waits for source finality | Yes | Yes for standard mode | No |
+| Failure mode | Escrow drained, wrapper depegs | Unbacked mint, token inflates | Filler unpaid, user unaffected |
+| Loss ceiling | The escrow balance | None | The filler's own capital |
+
+---
+
+## 6. Wrapped Asset Mechanics
+
+A wrapped asset is a token on chain B whose value comes entirely from a promise recorded on chain A, and the mechanics of that promise are the difference between a 116,000-coin custodial ledger and a cryptographic claim.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant M as Merchant<br/>allowlisted, KYC'd
+    participant C as Custodian<br/>holds the BTC
+    participant DAO as WBTC DAO<br/>multisig, adds and<br/>removes members
+    participant TC as WBTC ERC-20<br/>on Ethereum
+    participant DEFI as Aave, Uniswap,<br/>Curve
+
+    Note over U,DEFI: Minting: the only path from BTC to WBTC
+    U->>M: Request mint, pass KYC and AML
+    M->>C: Initiate mint request on-chain
+    U->>C: Send BTC to the custodian address
+    C->>C: Confirm the BTC deposit<br/>6 confirmations
+    C->>TC: mint(merchant, amount)
+    TC-->>M: WBTC credited
+    M-->>U: WBTC delivered, minus the merchant fee
+
+    Note over U,DEFI: Circulation: the promise becomes collateral
+    U->>DEFI: Supply WBTC as collateral
+    DEFI->>DEFI: Price WBTC using a BTC/USD oracle<br/>The oracle prices BTC, not the promise
+
+    Note over U,DEFI: Burning: redemption is merchant-only
+    U->>M: Request redeem
+    M->>TC: burn(amount)
+    TC->>TC: totalSupply decreases
+    M->>C: Redeem request
+    C->>U: Send BTC on the Bitcoin chain
+
+    Note over DAO,TC: Governance is the real backstop
+    DAO->>C: Add or remove a custodian
+    DAO->>M: Add or remove a merchant
+
+    Note over U,DEFI: Failure: if the custodian's BTC is gone,<br/>WBTC stays at the BTC oracle price<br/>until the market notices, then goes to zero
+```
+
+### 6.1 WBTC, and the Fact That There Is No Cryptography In It
+
+WBTC is a receipt, and the only thing standing between 116,132.18 wrapped coins and zero is a custodial arrangement.
+
+The mechanics, unchanged since the January 2019 launch: a merchant with completed KYC requests a mint, a user sends BTC to a custodian-controlled Bitcoin address, the custodian observes the deposit and calls `mint` on the Ethereum ERC-20, and the merchant delivers the token. Redemption reverses it and is available only to merchants, which means an ordinary holder cannot redeem directly and must sell into the market instead. A DAO multisig controls the merchant and custodian sets.
+
+At Ethereum block 25,870,387, read on 30 August 2026, `totalSupply()` on the WBTC contract at `0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599` returns `0xa8fe9bff7f8`, which is 11,613,218,273,272 base units. With 8 decimals that is 116,132.18 BTC. Two competitors on the same chain: Coinbase's cbBTC at 50,233.55 BTC and Threshold's tBTC at 4,308.94 BTC.
+
+None of the three verifies Bitcoin's consensus on Ethereum. cbBTC is a Coinbase liability. tBTC is secured by a threshold signature group with staked collateral, which is stronger than a single custodian and weaker than a proof. WBTC is a custodial promise with a governance layer, and its August 2024 custody restructuring produced a visible market reaction precisely because holders understood that the promise, not the Bitcoin, is the asset.
+
+The oracle prices the Bitcoin. The market prices the promise. They diverge exactly when it matters.
+
+### 6.2 The Denomination Problem, Solved Properly by IBC
+
+The technically correct way to name a wrapped asset is to encode its entire path, and IBC is the only widely used system that does it.
+
+ICS-20 defines the transfer packet as `FungibleTokenPacketData` with five fields: `denom`, `amount`, `sender`, `receiver`, and an optional `memo`. When a token leaves its home chain, the receiving chain prefixes the denomination with its own port and the channel the packet arrived on, producing `{port}/{channel}/{denom}`, for example `transfer/channel-0/uatom`, the trace ATOM carries on Osmosis after arriving over Osmosis's `channel-0`. SHA-256 of that string is `27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2`, which is the `ibc/27394FB0...` denomination minted in the section 9.5 diagram. Chains store this as `ibc/` followed by the uppercase hex SHA-256 hash of the full trace, because the raw string is unbounded.
+
+The prefix stacks. ATOM sent from the Hub to Osmosis and then to Juno carries two hops in its denomination on Juno. Send it back through the same channel and the most recent prefix is stripped. The rule that decides escrow versus burn is purely textual: if the outgoing denomination does not begin with the prefix of the channel it is leaving through, the chain is the source zone and it escrows; if it does begin with that prefix, the chain is a sink and it burns the voucher while the counterparty un-escrows.
+
+Two consequences follow. Round-tripping through a different channel produces a different denomination that does not net against the original, which is a real and regularly encountered user problem. And the specification warns that base denominations must never be able to contain arbitrary prefixes, because the reference parser assumes channel identifiers match `channel-{n}`, and a token named to mimic a trace would let a chain claim to be the source of an asset it is not.
+
+The escrow address itself is derived per channel via `newAddress(portIdentifier, channelIdentifier)` and stored in `channelEscrowAddresses[channelIdentifier]`, so each channel's liabilities are isolated from every other channel's.
+
+### 6.3 Why Wrapped Assets Depeg
+
+A wrapped token depegs when the market's estimate of the backing falls below par, and the three causes are distinguishable.
+
+**Backing loss.** The escrow is drained or the custodian defaults. Wormhole-wrapped ETH on Solana was momentarily unbacked by 120,000 ETH in February 2022, and the peg held only because Jump Crypto replaced the shortfall within about 24 hours. Without that balance sheet, whETH would have traded at a fraction of ETH.
+
+**Redemption friction.** The backing exists but cannot be reached. Optimistic rollup withdrawals take about seven days, so bridged assets leaving those chains through the canonical path trade at a discount reflecting the time value and the risk of the window. Fast bridges exist precisely to sell that discount as a service.
+
+**Bridge shutdown.** Multichain's collapse in July 2023 left wrapped assets on multiple chains with no functioning redemption path. The tokens did not become worthless because the escrow was stolen. They became worthless because the process that would release the escrow stopped running.
+
+The general rule: a wrapped asset trades at par only while both the backing and the process that releases it are believed to be intact. Bridges publish proof of the first. Almost none publish proof of the second.
+
+---
+
+## 7. Trust Models: Who You Are Actually Trusting
+
+Four verification models exist, they form a strict ordering by trust assumption, and the entire loss record follows the ordering.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph EXT["1. External verification"]
+        E1["A named committee signs.<br/>Destination checks k of n keys."]
+        E2["Trust: an honest majority<br/>of a set you did not choose"]
+        E3["Break cost: k private keys"]
+        E4["Wormhole 13/19, Axelar,<br/>Ronin 5/9, Harmony 2/5,<br/>Multichain MPC"]
+    end
+    subgraph OPT["2. Optimistic verification"]
+        O1["Claim accepted after a delay<br/>unless someone objects."]
+        O2["Trust: one honest watcher<br/>online and funded"]
+        O3["Break cost: censor or outlast<br/>every watcher for the window"]
+        O4["Nomad 30 min, Across via UMA,<br/>optimistic rollups 7 days,<br/>Hyperlane optimistic ISM"]
+    end
+    subgraph LC["3. Light client verification"]
+        L1["Destination runs the source<br/>chain's own consensus rules."]
+        L2["Trust: the source chain's<br/>validator set, nothing else"]
+        L3["Break cost: a third of the<br/>source chain's stake"]
+        L4["IBC ICS-07, Ethereum sync<br/>committee clients, Tendermint<br/>clients on Ethereum"]
+    end
+    subgraph NAT["4. Native / validity proof"]
+        N1["The destination chain's own<br/>consensus derives the source state."]
+        N2["Trust: the settlement layer<br/>and a proof system"]
+        N3["Break cost: break the SNARK<br/>or the L1"]
+        N4["Rollup canonical bridges,<br/>SP1ICS07Tendermint,<br/>Across V4 SP1 settlement"]
+    end
+
+    EXT -->|"trust decreases"| OPT -->|"cost increases"| LC --> NAT
+
+    style EXT fill:#ffebee,stroke:#c62828
+    style OPT fill:#fff3e0,stroke:#e65100
+    style LC fill:#e8f5e9,stroke:#2e7d32
+    style NAT fill:#e3f2fd,stroke:#1565c0
+```
+
+### 7.1 External Verification
+
+External verification asks a committee whether something happened and believes the answer if enough members agree, which makes the bridge exactly as secure as the committee's key management.
+
+The destination contract stores `n` public keys and a threshold `k`. It accepts a message when it recovers `k` valid signatures over the message digest. On the EVM each `ecrecover` costs 3,000 gas, so a 13-of-19 check costs about 39,000 gas plus overhead, which is why this design dominated: it is cheap, it is chain-agnostic, and it can be shipped in a week.
+
+The problem is that `k` keys held by `n` operators is an operational security problem, not a cryptographic one. Of the 3.356 billion dollars of recorded bridge losses, 986.6 million across 15 incidents are classified as key compromise, and 888.1 million of that is specifically validator keys. Add improper access control at 618.1 million and the two categories account for 47.8% of all bridge losses without a single line of broken cryptography.
+
+Variants shuffle the same assumption. Multi-party computation splits one key into shares, as Axelar and Multichain do, which removes the single key file but not the operator set. Proof-of-stake committees such as Axelar's add slashing, which prices misbehaviour but does not prevent it: the stake securing the committee is almost always far smaller than the value in the escrow it guards, so the rational attack is to burn the stake and take the bridge.
+
+Check whether the bond exceeds the escrow. It usually does not.
+
+### 7.2 Optimistic Verification
+
+Optimistic verification accepts a claim by default and gives honest parties a window to object, which reduces the trust assumption to one honest watcher who is online, funded, and paying attention.
+
+The mechanics: a proposer posts a claim with a bond, a timer starts, and anyone may post a counter-bond and escalate to an adjudicator. If nobody objects, the claim finalises. The security argument is attractive because it needs one honest party rather than a majority, and the cost is latency, which is why optimistic rollup withdrawals take about seven days.
+
+Three failure modes are specific to this model and all three have been realised.
+
+**The window is too short to be watched.** Nomad's optimistic window was 30 minutes. A 30-minute window requires a watcher checking continuously with the ability to submit an on-chain transaction on a congested chain. When the exploit came, the mechanism was irrelevant anyway, because the bug made every message pass verification rather than making a false claim that a watcher could dispute.
+
+**The watchers are not economically motivated.** A watcher spends gas and attention to prevent a loss that falls on someone else. Across addresses this by bonding proposals and paying disputers from the forfeited bond, which converts watching into a business. Systems without that payment rely on altruism.
+
+**The adjudicator is the real trust root.** Across escalates disputes to UMA's Data Verification Mechanism, a token-holder vote. That is a governance system, and the honest-minority claim is really a claim about UMA token holders.
+
+Optimistic verification does not remove trust. It relocates it to whoever settles the argument.
+
+### 7.3 Light Client Verification
+
+Light client verification runs the source chain's consensus rules inside the destination chain, so the only thing trusted is the source chain itself.
+
+A light client stores just enough of the source chain to check headers: for Tendermint that is the hash of the next validator set, a commitment root, and a timestamp. When a new header arrives, the client verifies that enough of the validator set it already trusts signed it, then adopts the new state. Once a header is trusted, any state in that block can be proved by a merkle inclusion proof against the header's commitment root.
+
+The trust assumption is the source chain's own safety assumption and nothing more. There is no committee, no relayer trust, no multisig. IBC relayers are permissionless because they cannot lie: an incorrect header fails the signature check, and an incorrect proof fails the merkle check.
+
+Two real limits keep this from being universal. It is expensive, because verifying validator signatures and merkle proofs on a gas-metered chain costs real money, and it must be written per consensus algorithm, because a Tendermint client and an Ethereum client share no code. That is why light client bridges thrived inside the Cosmos ecosystem, where every chain runs the same consensus, and stalled everywhere else until succinct proofs made the gas affordable.
+
+### 7.4 Native Verification
+
+Native verification means the destination chain's own consensus already knows the source state, so there is no bridge in the security sense at all.
+
+Rollup canonical bridges are the case that matters. An L2's state is derived from data posted to Ethereum, so Ethereum can determine the L2's state without trusting anyone: either by executing the derivation, by waiting out a fault-proof window, or by verifying a validity proof. Deposits from L1 to L2 are trustless because the L2's derivation function reads L1. Withdrawals are trustless because L1 either proves or disproves the L2 claim.
+
+Which is why a rollup's canonical bridge has never lost funds to a verification failure, and every rollup-adjacent loss has come from third-party bridges built alongside it.
+
+The frontier is exporting this property. Succinct's SP1 proving system lets a Tendermint light client update be verified on Ethereum as a Groth16 or PLONK proof for roughly 230,000 gas, replacing the cost of checking a hundred validator signatures with the fixed cost of one pairing check. Across V4 uses the same trick in the other direction, proving Ethereum state so that new chains need no bespoke adapter.
+
+### 7.5 The Trust Model Table
+
+| Model | Honest assumption | Cost to break | Gas on the destination | Realised losses |
+|-------|-------------------|---------------|------------------------|-----------------|
+| External, k of n | k of n are honest | Compromise k keys | ~3,000 gas per signature | 2.9 bn dollars |
+| External, MPC | The operator set is honest | Compromise a threshold of share holders | Single signature check | Multichain, 126 m |
+| Optimistic | One watcher is honest and online | Censor or outlast the window | Cheap, plus a delay | Nomad, 190 m, though via a different bug |
+| Light client | The source chain's consensus is safe | A third of the source chain's stake | 200,000 to 1,000,000 gas | None recorded |
+| Validity proof | The proof system is sound | Break the SNARK | ~230,000 gas for a Groth16 verify | None recorded |
+| Native rollup | The settlement layer is safe | Break Ethereum | Varies | None recorded |
+
+---
+
+## 8. Generic Message Passing
+
+Message passing is the layer beneath every token bridge, and separating the two is the difference between reasoning about security and reasoning about accounting.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant APP as Source application<br/>token bridge, governance,<br/>NFT, oracle
+    participant SEND as Source endpoint<br/>Mailbox, Endpoint, Router,<br/>Core Bridge, ICS26Router
+    participant OBS as Observer set<br/>guardians, DVNs, validators,<br/>light client relayer
+    participant REL as Relayer / executor<br/>pays destination gas
+    participant VER as Destination verifier<br/>ISM, ULN, OffRamp,<br/>light client
+    participant RECV as Destination application
+
+    APP->>SEND: dispatch(destinationDomain, recipient, body)
+    SEND->>SEND: assign nonce, compute messageId<br/>store or emit a commitment
+    SEND-->>OBS: emit event with the encoded message
+
+    Note over OBS: The only step that cannot be on-chain.<br/>Somebody must watch.
+
+    OBS->>OBS: wait for source finality<br/>confirmations parameter
+    OBS->>OBS: sign the digest, or build a<br/>merkle or ZK proof
+
+    OBS-->>REL: attestation available
+    REL->>VER: submit(message, metadata)
+
+    VER->>VER: replay check on nonce
+    VER->>VER: verify(metadata, message)
+    alt verification fails
+        VER-->>REL: revert, nothing happens
+    else verification passes
+        VER->>RECV: handle(origin, sender, body)
+        RECV->>RECV: application logic:<br/>mint, release, execute
+        RECV-->>VER: success or revert
+    end
+
+    Note over VER,RECV: A reverting handler must not<br/>consume the message, or funds<br/>are burned in transit.
+```
+
+### 8.1 The Common Shape
+
+Every message passing protocol implements the same six primitives under different names.
+
+| Primitive | Hyperlane | LayerZero v2 | Wormhole | IBC | CCIP |
+|-----------|-----------|--------------|----------|-----|------|
+| Send | `Mailbox.dispatch` | `Endpoint.send` | `publishMessage` | `sendPacket` | `Router.ccipSend` |
+| Message id | `keccak256(message)` | `guid` | VAA digest | commitment path | `messageId` |
+| Attest | validator signatures | DVN verification | 13 of 19 guardian signatures | light client header update | committing DON merkle root |
+| Deliver | `Mailbox.process` | `Endpoint.lzReceive` | `parseAndVerifyVM` plus redeem | `recvPacket` | `OffRamp` execute |
+| Verify | `IInterchainSecurityModule.verify` | `UlnConfig` threshold | guardian set quorum | `verifyMembership` | commit report plus RMN check |
+| Replay guard | delivered mapping | per-path nonce | consumed digests | packet receipt or sequence | nonce plus executed state |
+
+### 8.2 Wire Formats, Byte by Byte
+
+Message formats are almost identical across protocols because the same fields are required to make routing and replay protection work.
+
+**Hyperlane**, from `Message.sol`, is the cleanest example. The message is a packed byte string with fixed offsets:
+
+```
+version      1 byte   offset 0
+nonce        4 bytes  offset 1     uint32, unique per origin chain
+origin       4 bytes  offset 5     uint32 domain id
+sender       32 bytes offset 9     bytes32, left-padded address
+destination  4 bytes  offset 41    uint32 domain id
+recipient    32 bytes offset 45    bytes32
+body         dynamic  offset 77
+```
+
+The message id is `keccak256(message)` over the whole thing. Seventy-seven bytes of header. No addresses larger than 32 bytes, which is what allows the same format to carry Solana and Cosmos addresses alongside EVM ones.
+
+**LayerZero v2**, from `PacketV1Codec.sol`, uses 113 bytes of header:
+
+```
+version      1 byte   offset 0     PACKET_VERSION = 1
+nonce        8 bytes  offset 1     uint64
+srcEid       4 bytes  offset 9     uint32 endpoint id
+sender       32 bytes offset 13    bytes32
+dstEid       4 bytes  offset 45    uint32 endpoint id
+receiver     32 bytes offset 49    bytes32
+guid         32 bytes offset 81    keccak256(nonce + path)
+message      dynamic  offset 113
+```
+
+The first 81 bytes are the header that DVNs sign over; the payload is `guid` concatenated with the message. The path, meaning the tuple of source endpoint id, sender, destination endpoint id, and receiver, defines a channel, and the nonce is per-path, which is how exactly-once delivery is enforced.
+
+**Circle CCTP v1**, from `Message.sol`, uses a 116-byte envelope:
+
+```
+version            4 bytes   offset 0
+sourceDomain       4 bytes   offset 4
+destinationDomain  4 bytes   offset 8
+nonce              8 bytes   offset 12
+sender             32 bytes  offset 20
+recipient          32 bytes  offset 52
+destinationCaller  32 bytes  offset 84
+messageBody        dynamic   offset 116
+```
+
+`destinationCaller` is the field worth noticing. Setting it to a non-zero address restricts who may submit the message on the destination, which prevents a third party from front-running a redemption into a contract that is not ready for it. Setting it to zero makes the message permissionlessly redeemable.
+
+**CCTP v2** changes three fields and the changes are informative. `nonce` widens from `uint64` to `bytes32`, ending the sequential-nonce bottleneck. `minFinalityThreshold`, a `uint32` at offset 140, lets the sender specify how final the source must be. `finalityThresholdExecuted`, at offset 144, records what the attester actually observed. The message body starts at offset 148. That single pair of fields converts finality from an operational policy into a signed, auditable claim.
+
+### 8.3 The Two Hard Problems
+
+**Replay.** A message must execute exactly once even though anyone may submit it and submission may be retried. Every protocol solves this with a nonce plus a delivered set, and the interesting variation is where the set lives. IBC ordered channels enforce strict sequence and close the channel on a gap. IBC unordered channels write a packet receipt per sequence number and accept any order. LayerZero v2 tracks a per-path nonce with an explicit `allowOutOfOrderExecution` flag. Wormhole stores consumed VAA digests. Getting this wrong does not lose money on the happy path and loses everything under retry.
+
+**Failed execution.** The destination application may revert after verification succeeds. If the protocol treats the message as consumed, the user's funds are gone on the source and nothing exists on the destination. If it treats the message as not consumed, the message can be replayed until it succeeds, which is correct but requires the verification result to be cached rather than recomputed. IBC handles this with acknowledgements: the receiving module writes an acknowledgement that may encode success or an application-level error, and the sending chain processes it in `acknowledgePacket`, which is where a failed ICS-20 transfer refunds the escrow. Protocols without an acknowledgement channel push the problem to the application, and that is where the accounting bugs live.
+
+An acknowledgement is not a nicety. It is the only way a source chain learns that its liability was discharged.
+
+---
+
+## 9. Cosmos IBC: Light Client Verification in Detail
+
+IBC is the only widely deployed bridge whose security assumption is exactly the security of the two chains it connects, and the reason is that the verification function is a light client rather than a signature check.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph SPEC["The IBC specification stack"]
+        direction TB
+        APP["Application layer<br/>ICS-20 fungible transfer<br/>ICS-27 interchain accounts<br/>ICS-721 NFT transfer"]
+        TAO["Transport, Authentication, Ordering<br/>ICS-26 routing and callbacks<br/>ICS-05 port allocation<br/>ICS-04 channels and packets<br/>ICS-03 connections<br/>ICS-02 client semantics"]
+        CLIENT["Client layer<br/>ICS-07 Tendermint client<br/>ICS-08 wasm client<br/>ICS-06 solo machine"]
+        COMMIT["Commitment layer<br/>ICS-23 vector commitments<br/>ICS-24 host requirements"]
+        APP --> TAO --> CLIENT --> COMMIT
+    end
+
+    subgraph CHAINA["Chain A stores a light client of B"]
+        CS_A["ClientState of B<br/>chainID, trustLevel,<br/>trustingPeriod, unbondingPeriod,<br/>maxClockDrift, frozenHeight,<br/>latestHeight, proofSpecs"]
+        CONS_A["ConsensusState of B at height h<br/>timestamp<br/>nextValidatorsHash<br/>commitmentRoot"]
+        CS_A --> CONS_A
+    end
+
+    subgraph CHAINB["Chain B stores a light client of A"]
+        CS_B["ClientState of A"]
+        CONS_B["ConsensusState of A at height h"]
+        CS_B --> CONS_B
+    end
+
+    REL["Relayer, permissionless<br/>carries headers and proofs<br/>cannot forge either"]
+
+    CHAINB -->|"signed header"| REL
+    REL -->|"MsgUpdateClient"| CS_A
+    CHAINA -->|"signed header"| REL
+    REL -->|"MsgUpdateClient"| CS_B
+
+    CONS_A -->|"commitmentRoot used by"| VERIFY["verifyMembership(path, value, proof, height)<br/>verifyNonMembership(path, proof, height)"]
+
+    style SPEC fill:#e3f2fd,stroke:#1565c0
+    style CHAINA fill:#e8f5e9,stroke:#2e7d32
+    style CHAINB fill:#fff3e0,stroke:#e65100
+```
+
+### 9.1 What a Light Client Actually Stores
+
+An IBC light client is two objects and a pair of verification functions, and the whole design fits on one page.
+
+**`ClientState`** holds the parameters that never change per update. For a Tendermint client under ICS-07 these are `chainID`, `trustLevel` as a rational number constrained to be at least 1/3 and at most 1, `trustingPeriod`, `unbondingPeriod`, `maxClockDrift`, `latestHeight`, an optional `frozenHeight` sentinel, an `upgradePath`, and `proofSpecs` describing the merkle tree layout to expect.
+
+**`ConsensusState`** is the trusted view of the counterparty at one height. Three fields: `timestamp`, `nextValidatorsHash`, and `commitmentRoot`. That is the entire trusted state. One consensus state is stored per verified height, and old ones are pruned once they fall outside the trusting period.
+
+**`verifyMembership(path, value, proof, height, delayPeriodTime, delayPeriodBlocks)`** checks that `value` exists at `path` in the counterparty's state at `height`, against the stored `commitmentRoot`. **`verifyNonMembership`** proves absence, which is what a timeout uses to show that a packet receipt was never written.
+
+The delay period parameters exist for a reason worth stating. A connection may specify that proofs are only accepted a fixed time or block count after the consensus state was submitted, which gives fraud monitors a window before a proof against a fresh header becomes usable.
+
+### 9.2 The Trusting Period and Why It Is Shorter Than Unbonding
+
+The trusting period is the security parameter that makes IBC work against long-range attacks, and it is always set below the counterparty's unbonding period.
+
+Tendermint validators who sign conflicting blocks can be slashed only while their stake is still bonded. Once unbonding completes, a past validator set can sign anything at zero cost, because there is nothing left to slash. This is the classic long-range attack.
+
+IBC's answer: a client only accepts headers signed by a validator set it learned within `trustingPeriod`, and `trustingPeriod` is set to a fraction of `unbondingPeriod`, commonly two thirds. A three-week unbonding period therefore pairs with a two-week trusting period. Any attempt to update the client with a header signed by a set that is older than the trusting period is rejected outright, and the client becomes expired, requiring governance to reinstate it.
+
+This is why an idle IBC channel dies. If no relayer submits a header for longer than the trusting period, the client expires and the connection is unusable until a governance proposal recovers it. Liveness is a maintenance obligation, not a property.
+
+`trustLevel` bounds the other direction. With the standard value of 1/3, a client can skip ahead many blocks and accept a header as long as at least a third of the validator set it already trusts has signed it. That threshold is what makes the skip safe. Tendermint assumes fewer than a third of voting power is Byzantine, so any set of signatures worth at least a third of the trusted validator set must contain at least one honest validator. A conflicting header carrying that weight therefore proves a still-bonded validator double-signed, which is slashable.
+
+### 9.3 Misbehaviour and Freezing
+
+A light client that detects two conflicting headers stops rather than choosing, which converts a consensus failure into a halt instead of a theft.
+
+`checkForMisbehaviour` runs on every update. It detects two consensus states at the same height with different commitment roots, timestamps that are not strictly increasing across heights, and BFT time violations. On detection, `updateStateOnMisbehaviour` sets `frozenHeight` and the client stops accepting updates. Every channel routed through that client stops moving packets.
+
+Unfreezing requires governance on the chain that holds the client. This is deliberate: the client cannot decide which of the two conflicting histories is correct, because that is exactly the question the counterparty's consensus failed to answer. A human decides, or nothing moves.
+
+Compare this to an externally verified bridge, where a compromised committee signing two conflicting messages produces two valid messages and the destination executes both.
+
+### 9.4 The Handshakes
+
+IBC establishes a connection and then a channel through two four-step handshakes, and each step carries a proof of the counterparty's state rather than a claim about it.
+
+The connection handshake, ICS-03, runs `ConnOpenInit` on A, `ConnOpenTry` on B, `ConnOpenAck` on A, and `ConnOpenConfirm` on B. Each of the last three carries a merkle proof, verified against the local light client, that the counterparty really is in the state it claims. The result is a pair of connection ends, each naming the other and each bound to a specific client identifier. The connection is the object that says "this client tracks that chain, and that chain's client tracks me".
+
+The channel handshake, ICS-04, runs `ChanOpenInit`, `ChanOpenTry`, `ChanOpenAck`, `ChanOpenConfirm` over an existing connection, and negotiates an application-level version string plus an ordering. A `ChannelEnd` stores `state`, `ordering` from `UNORDERED`, `ORDERED`, or `ORDERED_ALLOW_TIMEOUT`, `counterpartyPortIdentifier`, `counterpartyChannelIdentifier`, `connectionHops`, `version`, and `upgradeSequence`.
+
+The four-step shape is not ceremony. Two steps would let one side believe a channel is open while the other has no record of it, which is exactly the state in which an escrow exists with no counterparty to release it.
+
+### 9.5 The Packet Lifecycle
+
+An IBC packet is committed on the source, proved on the destination, acknowledged back, and only then released from the source's bookkeeping.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User on Cosmos Hub
+    participant TA as transfer module<br/>Hub
+    participant CA as IBC core<br/>Hub
+    participant R as Relayer<br/>permissionless
+    participant CB as IBC core<br/>Osmosis
+    participant TB as transfer module<br/>Osmosis
+    participant LC as Light client of Hub<br/>on Osmosis
+
+    U->>TA: MsgTransfer 100 ATOM<br/>to osmo1..., timeoutHeight,<br/>timeoutTimestamp
+    TA->>TA: source zone: denom "uatom" has no<br/>"transfer/channel-141" prefix,<br/>so escrow rather than burn
+    TA->>TA: escrow 100 ATOM to the<br/>channel escrow address
+    TA->>CA: sendPacket(sourcePort "transfer",<br/>sourceChannel "channel-141",<br/>data = FungibleTokenPacketData)
+    CA->>CA: sequence = nextSequenceSend, increment
+    CA->>CA: store hash at<br/>commitments/ports/transfer/<br/>channels/channel-141/sequences/7
+    CA-->>R: emit send_packet event
+
+    R->>CB: MsgUpdateClient with a signed<br/>Hub header at height h
+    CB->>LC: verifyClientMessage, checkForMisbehaviour
+    LC->>LC: at least trustLevel of the trusted<br/>validator set signed, and within trustingPeriod
+    LC->>LC: store ConsensusState at h:<br/>timestamp, nextValidatorsHash,<br/>commitmentRoot
+
+    R->>CB: MsgRecvPacket(packet, proofCommitment, h)
+    CB->>LC: verifyMembership(commitment path,<br/>packet hash, proof, h)
+    LC-->>CB: proof valid against commitmentRoot
+    CB->>CB: check timeoutHeight and<br/>timeoutTimestamp not passed
+    CB->>CB: write packet receipt<br/>unordered channel
+    CB->>TB: onRecvPacket
+    TB->>TB: denom "uatom" lacks the packet's<br/>source prefix "transfer/channel-141",<br/>so mint a voucher prefixed<br/>"transfer/channel-0"
+    TB->>TB: mint ibc/27394FB0... 100 units
+    TB-->>CB: acknowledgement: success
+    CB->>CB: writeAcknowledgement
+
+    R->>CA: MsgAcknowledgement(packet, ack,<br/>proofAcked, h')
+    CA->>CA: verifyMembership of the ack
+    CA->>TA: onAcknowledgementPacket
+    TA->>TA: success: escrow stays escrowed.<br/>error: refund the user
+    CA->>CA: delete the packet commitment
+
+    alt timeout instead of receipt
+        R->>CA: MsgTimeout with verifyNonMembership<br/>proving no receipt exists at the<br/>timeout height
+        CA->>TA: onTimeoutPacket
+        TA->>U: refund 100 ATOM from escrow
+    end
+```
+
+The `Packet` structure itself has eight fields: `sequence`, `timeoutHeight`, `timeoutTimestamp`, `sourcePort`, `sourceChannel`, `destPort`, `destChannel`, and opaque `data`. At least one of the two timeout fields must be non-zero, because a packet with no timeout can strand escrowed funds forever.
+
+The source chain stores only a constant-size hash of the packet at `commitments/ports/{portIdentifier}/channels/{channelIdentifier}/sequences/{sequence}`, not the packet itself. That is what the destination's merkle proof is checked against. State growth is therefore one hash per in-flight packet, and the commitment is deleted when the acknowledgement arrives.
+
+### 9.6 What IBC Gets Right, and What It Costs
+
+Right: the relayer is untrusted and permissionless, the trust assumption is exactly the two chains' consensus, misbehaviour halts rather than steals, timeouts are proved rather than assumed, and the application layer is cleanly separated from the transport layer so a transfer bug cannot become a transport bug.
+
+The costs are real. Every chain pays to store and update a light client of every counterparty, which is why IBC connections are a maintained relationship rather than a permissionless discovery. Idle channels expire. And the whole design assumes a fast-finality BFT consensus with a known validator set, which describes Tendermint and does not describe Bitcoin, Ethereum's fork-choice rule before finality, or any chain with probabilistic settlement.
+
+IBC solved interoperability for chains that all run the same consensus. That was a real achievement and a real limit.
+
+---
+
+## 10. IBC v2, Eureka, and the Cost of Verifying Cosmos on Ethereum
+
+IBC v2 removes the connection and channel handshakes and makes the client pair the connection primitive, which is the change that made deploying IBC on Ethereum economically possible.
+
+### 10.1 What Changed
+
+IBC Classic's handshake choreography assumed a cheap execution environment. Four connection messages and four channel messages, each carrying merkle proofs, are unremarkable on a Cosmos chain and prohibitive on Ethereum at scale.
+
+IBC v2 restructures around three elements. **Clients** become the connection identifier: a packet names a source client and a destination client directly, and there are no channels to open. **A router** consolidates routing by port identifier rather than distributing it across channel state. **Applications** implement an `IBCModule` interface with four callbacks: `OnSendPacket`, `OnRecvPacket`, `OnAcknowledgementPacket`, and `OnTimeoutPacket`.
+
+Packets carry multiple **payloads**, each specifying a source port, destination port, version, encoding, and application data, with atomic execution across all payloads in the packet. One packet can therefore carry a transfer and a contract call that either both succeed or both fail.
+
+The trust model is unchanged. The client still verifies the counterparty's consensus. What changed is the setup cost and the per-packet state.
+
+### 10.2 The Ethereum Implementation and Its Gas Bill
+
+`solidity-ibc-eureka` implements IBC v2 in Solidity, and its benchmarks put an exact price on trust minimisation.
+
+Three contracts do the work. `ICS26Router.sol` handles sequencing, replay protection, and timeout verification, and stores the provable IBC state. `ICS20Transfer.sol` implements fungible token transfer. `SP1ICS07Tendermint.sol` is a Tendermint light client whose consensus verification is performed off-chain by the SP1 zkVM and checked on-chain as a succinct proof.
+
+The measured numbers, from the repository's own benchmarks:
+
+| Operation | Gas | Note |
+|-----------|-----|------|
+| Groth16 or PLONK proof verification | ~230,000 | The fixed cost of one light client update |
+| Proof generation | ~25 seconds | Off-chain, on the prover |
+| `sendPacket` | ~165,000 | Source side, no proof needed |
+| `recvPacket`, first transfer of a new token | ~1,070,000 | Includes deploying the ERC-20 |
+| `recvPacket`, individual | ~524,474 | Per packet, unaggregated |
+| `recvPacket`, aggregated over 25 packets | ~179,471 average | The proof is amortised |
+
+The aggregation result is the important one. Verifying 25 packets individually costs about 13.1 million gas; aggregating them into one proof costs about 4.5 million, a reduction of roughly 66%. A light client bridge is expensive per packet and cheap per batch, which pushes it towards periodic settlement rather than per-transfer delivery, exactly like an intent system's bundle.
+
+Replacing signature counting with a pairing check is what makes cross-ecosystem light clients affordable. Before SP1-style proofs, verifying a 100-validator Tendermint commit on Ethereum meant a hundred signature verifications. After, it is one proof at roughly 230,000 gas regardless of the validator set size.
+
+The trust assumption is unchanged and the bill fell by an order of magnitude. That is the whole argument for zero-knowledge proofs in bridging.
+
+---
+
+## 11. Wormhole: Nineteen Guardians and the VAA
+
+Wormhole's security is 13 signatures from a set of 19 named operators, and every message it has ever carried is a single self-contained byte string that proves those signatures exist.
+
+### 11.1 The Guardian Set, Read On-Chain
+
+The guardian set is not a marketing number; it is stored in the core bridge contract and can be read directly.
+
+Calling `getCurrentGuardianSetIndex()`, selector `0x1cfe7951`, on the Ethereum core bridge at `0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B` on 30 August 2026 returns `7`. Calling `getGuardianSet(7)`, selector `0xf951975a`, returns an array whose length word is `0x13`, meaning 19 addresses, with an `expirationTime` of 0, meaning the set does not expire.
+
+Quorum is computed as `(numGuardians * 2) / 3 + 1`, which for 19 guardians is `(38 / 3) + 1 = 12 + 1 = 13`. Thirteen signatures make a valid VAA. Twelve do not.
+
+Guardian sets are rotated by governance VAAs signed by the outgoing set, and the index increments each time. Index 7 means the set has been replaced seven times since launch, because index 0 is the launch set rather than the first replacement. Reading `getGuardianSet(i)` for `i` from 0 to 8 shows the whole history: set 0 held 1 key and expired on 10 August 2021, sets 1 through 7 have each held 19, and set 8 returns an empty array. Three rotations landed in 2026 alone, with sets 4, 5 and 6 expiring on 5 March, 1 May and 27 June 2026. Old sets remain queryable so that historical VAAs can still be verified.
+
+### 11.2 The VAA, Byte by Byte
+
+A Verified Action Approval is a signed message that any chain can check without contacting anything, and its layout is fixed.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph HDR["Header, 6 bytes plus signatures, NOT signed"]
+        H1["version           1 byte    offset 0"]
+        H2["guardianSetIndex  4 bytes   offset 1   uint32, currently 7"]
+        H3["lenSignatures     1 byte    offset 5   uint8, 13 for quorum"]
+        H4["signatures        66 bytes each<br/>index 1 byte + ECDSA signature 65 bytes<br/>13 x 66 = 858 bytes"]
+    end
+
+    subgraph BODY["Body, 51 bytes fixed plus payload, THIS is what is signed"]
+        B1["timestamp         4 bytes   uint32, source block time"]
+        B2["nonce             4 bytes   uint32"]
+        B3["emitterChain      2 bytes   uint16, Wormhole chain id"]
+        B4["emitterAddress    32 bytes  bytes32, left-padded"]
+        B5["sequence          8 bytes   uint64, per-emitter counter"]
+        B6["consistencyLevel  1 byte    uint8, finality requirement"]
+        B7["payload           dynamic"]
+    end
+
+    subgraph PAYLOAD["Token Bridge Transfer payload, id 1, 133 bytes"]
+        P1["payloadID     1 byte   = 1"]
+        P2["amount        32 bytes uint256, truncated to 8 decimals"]
+        P3["tokenAddress  32 bytes bytes32"]
+        P4["tokenChain    2 bytes  uint16"]
+        P5["to            32 bytes bytes32"]
+        P6["toChain       2 bytes  uint16"]
+        P7["fee           32 bytes uint256, relayer fee, <= amount"]
+    end
+
+    subgraph DIGEST["The digest guardians sign"]
+        D1["body = timestamp .. payload"]
+        D2["digest = keccak256(keccak256(body))"]
+        D3["Double hash. Solana's secp256k1<br/>program hashes once itself, so the<br/>SVM path passes a single hash."]
+        D1 --> D2 --> D3
+    end
+
+    HDR --> BODY --> PAYLOAD
+    BODY -.-> DIGEST
+
+    TOTAL["Total for a 13-signature token transfer:<br/>6 + 858 + 51 + 133 = 1,048 bytes"]
+    PAYLOAD --> TOTAL
+
+    style HDR fill:#fff3e0,stroke:#e65100
+    style BODY fill:#e3f2fd,stroke:#1565c0
+    style PAYLOAD fill:#e8f5e9,stroke:#2e7d32
+    style DIGEST fill:#ffebee,stroke:#c62828
+```
+
+The arithmetic is worth stating plainly. Header 6 bytes, signatures 858 bytes, body 51 bytes, transfer payload 133 bytes: a complete Wormhole token transfer VAA is 1,048 bytes. Signature data is 82% of it.
+
+Two design decisions inside that layout drive everything else. The header is deliberately excluded from the signed digest, so the same VAA can be presented with a different subset of signatures without invalidating it. And the digest is `keccak256` applied twice, except on Solana where the secp256k1 precompile hashes internally, so the SVM path passes a single hash. That asymmetry is not a footnote. It is the surface on which the February 2022 exploit occurred.
+
+### 11.3 The Token Bridge on Top
+
+Wormhole's Token Bridge is an application over the core bridge, and it defines seven payload types.
+
+`Transfer`, payload id 1, releases or mints. `TransferWithPayload`, id 3, carries arbitrary application data and must be redeemed by the target address rather than by any relayer, because the recipient contract has to interpret the extra bytes. `AssetMeta`, id 2, attests decimals, symbol, and name, and must be delivered before a token can be bridged to a chain for the first time. The remaining four are governance: `RegisterChain`, `UpgradeContract`, `RecoverChainId`, and `SetPauserAddresses`.
+
+Authorisation runs on the `(emitter_chain, emitter_address)` tuple. Each chain's token bridge registers the emitter addresses of every other chain's token bridge, one per chain, immutable once set. A VAA whose emitter is not the registered token bridge for its claimed chain is rejected, which is what stops any user from publishing a message shaped like a transfer.
+
+The `SetPauserAddresses` governance path is newer and more interesting than it sounds. It defines three separable roles. A `pauser` may call `pause`, which sets `pauseExpiry` to `block.timestamp + PAUSE_DURATION`, initially a hard-coded 5 days, and may re-pause repeatedly. A `freezer` may call `freeze`, setting `pauseExpiry` to the maximum representable timestamp. An `unpauser` may lift either at any time. A permissionless `unpauseExpired` lets anyone clear the pause once `pauseExpiry` has passed. The point of the split is to let a low-threshold multisig stop the bridge quickly for a bounded window without being able to hold it hostage, while a higher-threshold key can freeze indefinitely.
+
+A 5-day self-expiring pause held by a 2-of-3 is a very different governance object from an indefinite pause held by the same key. Bridges learned that distinction the expensive way.
+
+---
+
+## 12. LayerZero v2: Security as a Configuration File
+
+LayerZero v2 does not have a security model; each application chooses its own by writing a struct, and the KelpDAO loss of April 2026 is what that means in practice.
+
+### 12.1 The Architecture
+
+Four components, each replaceable, with the immutable `Endpoint` as the only fixed point.
+
+**The Endpoint** is an immutable, permissionless contract deployed on every supported chain. `endpoint.send()` on the source, `endpoint.lzReceive()` on the destination. It holds nonces and enforces exactly-once delivery per path, and it does no verification of its own.
+
+**The Message Library** encodes the packet and enforces the verification rule. The default is the Ultra Light Node, whose configuration is the `UlnConfig` struct.
+
+**Decentralized Verifier Networks** are the observers. A DVN watches the source chain, waits for the configured number of confirmations, and attests to the packet hash on the destination. Each DVN is an independent operator with its own infrastructure.
+
+**The Executor** calls `lzReceive` on the destination and pays the gas. It cannot forge anything. It is a paid delivery service.
+
+The split between DVN and Executor is the correct separation of observer from relayer described in section 4.3, and LayerZero v2 gets it right at the protocol level.
+
+### 12.2 The UlnConfig Struct Is the Security Model
+
+The entire security of a LayerZero application is six fields, from `UlnBase.sol`:
+
+```solidity
+struct UlnConfig {
+    uint64 confirmations;         // source-chain confirmations before a DVN may attest
+    uint8  requiredDVNCount;      // 0 = use default, 255 = explicitly none
+    uint8  optionalDVNCount;      // 0 = use default, 255 = explicitly none
+    uint8  optionalDVNThreshold;  // must be in (0, optionalDVNCount]
+    address[] requiredDVNs;       // sorted ascending, no duplicates
+    address[] optionalDVNs;       // sorted ascending, no duplicates
+}
+```
+
+A packet is verified when every required DVN has attested and at least `optionalDVNThreshold` of the optional DVNs have attested. This is the "X of Y of N" model. `MAX_COUNT` is 127 per list, since `(type(uint8).max - 1) / 2` bounds the total below 255. A value of 0 in a count field means "inherit the default configuration"; the sentinel `NIL_DVN_COUNT`, 255, means "explicitly none, overriding the default".
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph SEND["Source chain"]
+        APP["OApp calls endpoint.send"]
+        EP["Endpoint, immutable<br/>assigns nonce, computes guid<br/>= keccak256(nonce + path)"]
+        LIB["SendUln302<br/>encodes PacketV1: 113-byte header<br/>+ guid + message"]
+        APP --> EP --> LIB
+    end
+
+    subgraph DVNS["Verification, configured per OApp per path"]
+        D1["Required DVN 1<br/>must attest"]
+        D2["Required DVN 2<br/>must attest"]
+        O1["Optional DVN A"]
+        O2["Optional DVN B"]
+        O3["Optional DVN C"]
+        THRESH["optionalDVNThreshold = 2<br/>any 2 of the 3 suffice"]
+        O1 --> THRESH
+        O2 --> THRESH
+        O3 --> THRESH
+    end
+
+    subgraph RECV["Destination chain"]
+        RLIB["ReceiveUln302<br/>counts attestations against UlnConfig"]
+        REP["Endpoint.lzReceive"]
+        RAPP["OApp receives"]
+        RLIB --> REP --> RAPP
+    end
+
+    EXEC["Executor<br/>pays destination gas<br/>cannot forge"]
+
+    LIB -.->|"emit PacketSent"| D1
+    LIB -.-> D2
+    LIB -.-> O1
+    LIB -.-> O2
+    LIB -.-> O3
+    D1 --> RLIB
+    D2 --> RLIB
+    THRESH --> RLIB
+    EXEC --> REP
+
+    subgraph KELP["KelpDAO configuration, 18 April 2026"]
+        K1["requiredDVNCount: 1"]
+        K2["optionalDVNCount: 0"]
+        K3["optionalDVNThreshold: 0"]
+        K4["One DVN attestation, one data path<br/>116,500 rsETH, 293 m dollars"]
+        K1 --> K4
+        K2 --> K4
+        K3 --> K4
+    end
+
+    style SEND fill:#e3f2fd,stroke:#1565c0
+    style DVNS fill:#fff3e0,stroke:#e65100
+    style RECV fill:#e8f5e9,stroke:#2e7d32
+    style KELP fill:#ffebee,stroke:#c62828
+```
+
+### 12.3 What v2 Fixed and What It Did Not
+
+v1 used a fixed pair, an Oracle and a Relayer, and the security argument was that the two would not collude. That is a two-party assumption with no threshold and no diversity, and it drew sustained criticism.
+
+v2 fixes the structure. Any number of independent verifiers, an explicit threshold, and a separately compensated executor that cannot verify. Applications can require attestations from operators with genuinely different infrastructure, jurisdictions, and data sources.
+
+What v2 does not fix is that the default is a choice and most applications do not make it. Setting `requiredDVNs` to a single address is legal, cheap, and fast. On 18 April 2026 KelpDAO's OFT configuration for its rsETH deployment was exactly that: `requiredDVNCount: 1`, `optionalDVNCount: 0`, `optionalDVNThreshold: 0`, with the single required DVN at `0x589dedbd617e0cbcb916a9223f4d1300c294236b`.
+
+The attack did not break a signature. It fed the DVN bad data. The reported mechanism is a compromise of the RPC infrastructure the DVN relied on: attackers obtained the node list, replaced binaries on two node clusters, degraded the remaining clean nodes to force failover, and then served forged chain data only to the DVN's addresses. The DVN honestly signed what it honestly observed, and what it observed was a burn of 116,500 rsETH on Unichain that never happened.
+
+The on-chain evidence of the forgery was unambiguous after the fact. Unichain's outbound nonce never advanced past 307 while Ethereum's inbound nonce accepted packet 308. Unichain's total rsETH supply was 49.26 tokens, so a burn of 116,500 was arithmetically impossible. Roughly 18% of the token's circulating supply left the Ethereum custody adapter, about 293 million dollars on DefiLlama's classification and 290 million on rekt.news's. The stolen tokens were immediately supplied to Aave v3 and used to borrow 82,650 WETH.
+
+Two lessons generalise beyond LayerZero. A verifier that reads the source chain through infrastructure it does not control has outsourced its security to that infrastructure, so DVN diversity means diverse data paths, not merely diverse signing keys. And a configurable security model puts the decision in the hands of an application team optimising for gas cost and launch date, which is a governance problem dressed as a parameter.
+
+Configurability moves the risk. It does not reduce it.
+
+---
+
+## 13. CCIP, CCTP, Hyperlane, and Axelar
+
+Four more protocols cover the remaining points in the design space: issuer-attested burn-and-mint, oracle-network verification, per-application modular security, and proof-of-stake committee verification.
+
+### 13.1 Circle CCTP: The Issuer Is the Bridge
+
+CCTP is the cleanest bridge design available and it is only available to the party that issues the token.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant TM as TokenMessenger<br/>Ethereum, domain 0
+    participant USDC_E as USDC contract<br/>Ethereum
+    participant MT as MessageTransmitter<br/>Ethereum
+    participant IRIS as Circle attestation service<br/>Iris API
+    participant MTB as MessageTransmitter<br/>Base, domain 6
+    participant TMB as TokenMessenger<br/>Base
+    participant USDC_B as USDC contract<br/>Base
+
+    U->>USDC_E: approve(TokenMessenger, 100e6)
+    U->>TM: depositForBurn(100e6, 6, recipient,<br/>USDC) selector 0x6fd3504e
+    TM->>USDC_E: burn 100 USDC
+    USDC_E->>USDC_E: totalSupply decreases by 100
+    TM->>MT: sendMessage with BurnMessage body<br/>132 bytes: version, burnToken,<br/>mintRecipient, amount, messageSender
+    MT-->>IRIS: emit MessageSent, 248 bytes total
+
+    Note over IRIS: Standard: wait for hard finality.<br/>~15 to 19 minutes on Ethereum.<br/>Fast: wait for the configured<br/>minFinalityThreshold. ~8 to 20 seconds.
+
+    IRIS->>IRIS: observe, wait for the finality<br/>threshold, sign the message hash
+    U->>IRIS: GET attestation by message hash
+    IRIS-->>U: attestation signature
+
+    U->>MTB: receiveMessage(message, attestation)
+    MTB->>MTB: verify the attestation signature
+    MTB->>MTB: replay check on nonce
+    MTB->>TMB: handleReceiveMessage
+    TMB->>USDC_B: mint 100 USDC to recipient
+    USDC_B->>USDC_B: totalSupply increases by 100
+
+    Note over U,USDC_B: Global USDC supply unchanged.<br/>No escrow exists. No wrapper exists.<br/>Trust: Circle, who could mint anyway.
+```
+
+The trust argument is unusual and worth stating precisely. Circle can already mint USDC arbitrarily, so a user of CCTP takes on no counterparty risk they were not already carrying by holding USDC. That is why CCTP is the only bridge whose trust assumption is genuinely free to its users, and also why the model does not generalise: for any asset whose issuer is not already trusted with unlimited minting, granting a bridge that power is a large new risk.
+
+CCTP v2 adds two things worth knowing. Fast Transfer completes in roughly 8 to 20 seconds rather than the 15 to 19 minutes that Ethereum hard finality requires, by having Circle attest before finality and backstop the reorg risk against an allowance. Hooks let the destination message trigger an action after the mint, so a bridge and a deposit into a lending pool become one user action.
+
+### 13.2 Chainlink CCIP: Two Networks and a Kill Switch
+
+CCIP separates the commitment of messages from their execution across two independent oracle networks, and adds a third component whose job is to stop everything.
+
+The on-chain path is `Router` to `OnRamp` on the source, and `OffRamp` to `Router` on the destination, with `TokenPool` contracts handling asset movement. The `Router` is deliberately minimal and immutable; everything else is upgradeable behind it.
+
+Off-chain, the **Committing DON** watches for `CCIPMessageSent` events and writes merkle roots into the destination `OffRamp` as an OCR report. The **Executing DON** watches for `CommitReportAccepted`, computes merkle proofs, batches messages by gas limit and calldata size, and executes them. Splitting these means an attacker must corrupt two independently keyed oracle networks.
+
+The **Risk Management Network** was designed as a second, independently implemented system that blesses committed roots and can curse a lane to halt it. As of the documentation read on 30 August 2026, the RMN's automated off-chain functionality is inactive, while the on-chain `RMNRemote` contract remains as an emergency safeguard, and the `OffRamp` still checks that the source chain is not cursed before executing.
+
+The message struct developers actually use is `Client.EVM2AnyMessage`:
+
+```solidity
+struct EVM2AnyMessage {
+    bytes receiver;                 // abi.encode(address) for EVM destinations
+    bytes data;                     // arbitrary payload
+    EVMTokenAmount[] tokenAmounts;  // token transfers
+    address feeToken;               // address(0) means pay in native gas
+    bytes extraArgs;                // tagged, chain-family specific
+}
+```
+
+`extraArgs` is a tagged union. `0x97a657c9` is the legacy EVM v1 gas-limit-only form. `0x181dcf10` is the generic v2 form carrying `gasLimit` and `allowOutOfOrderExecution`. `0x1f3b3aba` is the Solana form, carrying `computeUnits`, an `accountIsWritableBitmap`, a `tokenReceiver`, and up to 64 additional accounts. An empty `extraArgs` defaults to a 200,000 gas limit.
+
+Rate limiting is a token bucket, and the struct is short enough to quote:
+
+```solidity
+struct TokenBucket {
+    uint128 tokens;      // current balance
+    uint32  lastUpdated; // last refill timestamp
+    bool    isEnabled;
+    uint128 capacity;    // maximum burst
+    uint128 rate;        // tokens per second refill
+}
+```
+
+Capacity bounds the largest single transfer through a lane; rate bounds the sustained throughput. Setting capacity to a value below the total value at risk converts a total loss into a partial one, which is the single highest-leverage control in the entire document and is covered in section 18.
+
+CCIP supports four token pool combinations: Burn and Mint, Lock and Mint where the source is the issuing chain, Burn and Unlock where the destination is, and Lock and Unlock, which the documentation itself marks as not recommended because it fragments liquidity across both sides.
+
+### 13.3 Hyperlane: The Recipient Picks Its Own Security
+
+Hyperlane inverts the usual arrangement by letting each receiving application choose the verification function applied to its own messages.
+
+The `Mailbox` handles dispatch and delivery. The verification is delegated to an Interchain Security Module, an interface with exactly two functions:
+
+```solidity
+function moduleType() external view returns (uint8);
+function verify(bytes calldata _metadata, bytes calldata _message) external returns (bool);
+```
+
+`moduleType` tells relayers how to fetch and format the metadata. The enum in `IInterchainSecurityModule.sol` lists thirteen values: `UNUSED`, `ROUTING`, `AGGREGATION`, `LEGACY_MULTISIG`, `MERKLE_ROOT_MULTISIG`, `MESSAGE_ID_MULTISIG`, `NULL`, `CCIP_READ`, `ARB_L2_TO_L1`, `WEIGHTED_MERKLE_ROOT_MULTISIG`, `WEIGHTED_MESSAGE_ID_MULTISIG`, `OP_L2_TO_L1`, and `POLYMER`.
+
+Three of those are structural rather than a verification scheme. A **Routing ISM** dispatches to a different module depending on the origin chain, so messages from a rollup can be verified through its native `ARB_L2_TO_L1` or `OP_L2_TO_L1` path while messages from an unrelated chain go through a multisig. An **Aggregation ISM** requires m of n child modules to pass, which is how an application combines an independent multisig with a Wormhole-backed module and requires both. A recipient that implements `ISpecifiesInterchainSecurityModule` returns its own module; otherwise the `Mailbox` default applies.
+
+The design is honest about what it is. Hyperlane does not claim a security model; it provides the plumbing for the application to state one, and defaults to a multisig for those that do not.
+
+### 13.4 Axelar: A Chain That Exists to Be a Bridge
+
+Axelar is a Cosmos SDK proof-of-stake chain whose validators jointly control gateway contracts on every connected chain through threshold signatures.
+
+Validators run nodes for the connected chains and vote on whether a claimed source event occurred, with voting weight derived from staked AXL. The signing key for each gateway is split into shares distributed to validators in proportion to stake, so producing a valid gateway instruction requires a threshold of stake-weighted shares rather than a single key file. Validators earn increased rewards for supporting more chains, which is how coverage is incentivised.
+
+The trust model is external verification with a staking bond attached. Section 7.1 supplies the test: the staked AXL securing the gateway must exceed the value the gateway can move. Where it does not, slashing prices misbehaviour without preventing the rational attack.
+
+### 13.5 Protocol Comparison
+
+| Protocol | Verification | Threshold | Application chooses security? | Native asset support |
+|----------|--------------|-----------|-------------------------------|----------------------|
+| **IBC / IBC v2** | Light client of the counterparty | Counterparty's own consensus | No, fixed by the client | Lock-escrow or burn-voucher per ICS-20 |
+| **Wormhole** | Guardian signature set | 13 of 19 | No, fixed at the core bridge | Lock-and-mint, or NTT burn-and-mint |
+| **LayerZero v2** | DVN attestations | X of Y of N, per application | Yes, via `UlnConfig` | OFT, burn-and-mint or lock-and-mint adapter |
+| **CCIP** | Two DONs plus RMN curse | OCR consensus per DON | Partly, via lane and pool config | Four pool modes |
+| **Hyperlane** | Pluggable ISM | Per module | Yes, fully | Warp routes, collateral or synthetic |
+| **Axelar** | Stake-weighted validator vote | Threshold of staked shares | No | Lock-and-mint gateway |
+| **CCTP** | Circle attestation | Single issuer | No | Burn-and-mint, USDC only |
+| **Across** | Optimistic bundle via UMA, SP1 in v4 | One honest disputer | No | Liquidity network, no issuance |
+
+---
+
+## 14. Atomic Swaps and Hashed Timelock Contracts
+
+An atomic swap exchanges assets on two chains with no third party at all, it has worked correctly since 2017, and almost nobody uses it. The reason is economic, not technical.
+
+### 14.1 The Mechanism
+
+A hashed timelock contract makes payment conditional on revealing a secret, and the same secret unlocks both sides.
+
+BIP-199 specifies the Bitcoin script directly:
+
+```
+OP_IF
+    [HASHOP] <digest> OP_EQUALVERIFY OP_DUP OP_HASH160 <seller pubkey hash>
+OP_ELSE
+    <num> [TIMEOUTOP] OP_DROP OP_DUP OP_HASH160 <buyer pubkey hash>
+OP_ENDIF
+OP_EQUALVERIFY
+OP_CHECKSIG
+```
+
+`[HASHOP]` is `OP_SHA256` or `OP_HASH160`. `[TIMEOUTOP]` is `OP_CHECKLOCKTIMEVERIFY` for an absolute deadline or `OP_CHECKSEQUENCEVERIFY` for a relative one. Two spend paths and nothing else: the seller spends by revealing a preimage that hashes to `digest`, or the buyer refunds themselves after the timeout.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant A as Alice<br/>has 1 BTC, wants 15 ETH
+    participant BTC as Bitcoin chain
+    participant ETH as Ethereum chain
+    participant B as Bob<br/>has 15 ETH, wants 1 BTC
+
+    Note over A: Alice generates a random 32-byte secret s<br/>and computes H = sha256(s).<br/>Only Alice knows s.
+
+    A->>BTC: Lock 1 BTC in an HTLC.<br/>Spendable by Bob with s,<br/>or refunded to Alice after T1 = 48 hours.
+    A->>B: Publish H, not s
+
+    Note over B: Bob verifies the Bitcoin HTLC on-chain:<br/>correct amount, correct H,<br/>correct refund key, correct timeout.
+
+    B->>ETH: Lock 15 ETH in an HTLC.<br/>Spendable by Alice with s,<br/>or refunded to Bob after T2 = 24 hours.
+
+    Note over A,B: T1 must be strictly greater than T2.<br/>Standard practice is T1 = 2 x T2.
+
+    A->>ETH: Claim 15 ETH by presenting s
+    Note over ETH: s is now public in the calldata<br/>of Alice's claim transaction
+    B->>BTC: Read s from Ethereum,<br/>claim 1 BTC with s
+
+    Note over A,B: Both legs settled. No custodian.<br/>No committee. No wrapped token.
+
+    rect rgba(255,235,238,0.6)
+    Note over A,B: Failure branches
+    Note over B: If Alice never claims, Bob's ETH<br/>refunds at T2 = 24 h, and Alice's BTC<br/>refunds at T1 = 48 h. Both whole.
+    Note over A: If T2 were greater than T1, Alice could<br/>let her BTC refund at T1, then claim the ETH<br/>before T2. Bob loses everything.
+    end
+```
+
+### 14.2 The Timelock Asymmetry Is the Whole Security Argument
+
+The party who knows the secret must have the later deadline, and reversing that ordering hands them a free theft.
+
+Alice knows `s`. Bob does not. If Bob's refund deadline `T2` were later than Alice's `T1`, Alice could wait for `T1`, reclaim her Bitcoin, and then, still before `T2`, reveal `s` to claim Bob's Ethereum. She ends with both assets. The ordering `T1 > T2` closes this: by the time Alice's Bitcoin is refundable, Bob's Ethereum has already refunded.
+
+BIP-199 names the tension directly: the party posting first wants a shorter encumbrance, the counterparty wants a longer safety margin. The industry convention of `T1 = 2 * T2` is a compromise, not a derivation.
+
+### 14.3 Why Atomic Swaps Lost
+
+Atomic swaps are cryptographically sound and commercially dead, and the cause is the free option they hand the initiator.
+
+Alice locks first and holds `s`. For the duration of the window, typically 24 hours, she may claim or walk away. If BTC/ETH moves in her favour she claims; if it moves against her she does nothing, refunds at `T1`, and Bob's capital was locked for 24 hours for nothing. That is an American option with a 24-hour expiry, and Alice paid zero premium for it.
+
+Market makers price options. A rational Bob demands a spread wide enough to cover the volatility of a one-day option on the pair, which for BTC/ETH is far wider than the spread on any centralised venue or any bridge. Nobody trades at that price.
+
+Three further constraints finish the job. Both chains need compatible scripting, so hash locks and timelocks must exist on both. Both parties must be online and watching for the whole window. And the swap moves an existing asset between two existing holders, so it cannot bootstrap an asset onto a chain where it does not yet exist, which was the actual demand.
+
+HTLCs survive where these constraints do not bite: inside the Lightning Network, where the same construction routes payments through channels in seconds, and inside submarine swaps between Lightning and on-chain Bitcoin. Same primitive, different problem, real usage.
+
+The lesson generalises. A protocol that gives one party a free option and the other party a locked position will not find liquidity, whatever its cryptographic properties.
+
+---
+
+## 15. A Worked End-to-End Example
+
+Move 10 ETH from Ethereum mainnet to Arbitrum One. Four routes exist, they cost and trust different things, and running the same transfer through all four exposes the entire design space.
+
+### 15.1 Route A: The Canonical Rollup Bridge
+
+The canonical bridge is native verification, and its cost is time in one direction only.
+
+The user calls `depositEth` on the Arbitrum `Inbox` contract on Ethereum with 10 ETH. The deposit is recorded on L1. Arbitrum's sequencer, whose state derivation function reads L1, includes the deposit in an L2 block. The user has 10 ETH on Arbitrum in roughly 10 to 15 minutes, limited by the delay the sequencer applies before including L1 events.
+
+Nothing verifies anything, because nothing needs to. The L2's state is a deterministic function of L1 data, so an L1 deposit is already part of the L2's input. Trust assumption: Ethereum, plus Arbitrum's derivation rules.
+
+The reverse direction is where the cost lives. Withdrawing 10 ETH from Arbitrum to Ethereum requires the L2 state to be asserted on L1 and survive the dispute window, approximately 7 days on both Arbitrum One and OP Mainnet. During those 7 days the user holds a claim, not ETH. Every fast bridge in existence exists to buy that claim at a discount.
+
+Cost: L1 gas only. Trust: minimal. Latency: 15 minutes out, 7 days back.
+
+### 15.2 Route B: Lock and Mint Through an Externally Verified Bridge
+
+The externally verified route is fast in both directions and replaces Ethereum's security with a committee's.
+
+The user sends 10 ETH to the bridge's escrow on Ethereum. The source contract emits a message. Observers wait for the configured confirmations, which for Ethereum finality is 2 epochs, 64 slots, 12.8 minutes. Each observer signs. When the threshold is met, a relayer submits the attested message to Arbitrum, where the verifier checks the signatures and a minter issues 10 wrapped ETH.
+
+Concrete arithmetic for the Wormhole case. The VAA is 1,048 bytes: 6 bytes of header, 858 bytes of thirteen signatures, 51 bytes of body, 133 bytes of transfer payload. Verification on the destination costs roughly 13 `ecrecover` operations at 3,000 gas each, about 39,000 gas, plus parsing and storage. The amount field is truncated to 8 decimals on the wire, so 10 ETH travels as `1000000000` rather than `10000000000000000000`, and any dust below the 8-decimal precision is refunded at deposit.
+
+The token the user receives is not Arbitrum's canonical ETH. It is a wrapper whose value depends on the escrow remaining intact.
+
+Cost: source gas, destination gas, plus a relayer fee. Trust: 13 of 19 named operators. Latency: roughly 15 to 20 minutes, dominated by finality.
+
+### 15.3 Route C: An Intent Fill
+
+The intent route pays the user before anything is verified, and prices the interval.
+
+The user signs a deposit on Ethereum specifying an input of 10 ETH and a minimum output on Arbitrum. Across's `SpokePool` emits a `FundsDeposited` event, the bytes32-address successor to `V3FundsDeposited`, which `V3SpokePoolInterface.sol` still declares under a `LEGACY EVENTS` header with the comment that those events are unused and kept only for migration. A relayer, watching that event, sends its own ETH to the user on Arbitrum within roughly 2 seconds. The user is done. The relayer now holds an unpaid claim.
+
+Settlement happens later, on two separate clocks. A dataworker aggregates all fills across all chains into a bundle, builds merkle trees, and proposes the bundle to the `HubPool` on Ethereum with a bond of `bondAmount()` = 0.45 ETH; the proposal interval is a dataworker policy that Across documents as 1.5 hours minimum. The challenge window is an independent on-chain parameter: `liveness()` on the `HubPool` at `0xc186fA914353c44b2E33eBE05f21846F1048bEda` returns `0x708`, 1,800 seconds, 30 minutes. The UMA Optimistic Oracle secures the proposal across that window, any party may dispute inside it, and a single honest disputer is sufficient. After it closes, relayers claim repayment on whichever chain they nominated, and canonical bridges rebalance the `SpokePool` inventory.
+
+The fee has three components. The LP fee follows an Aave-style two-slope utilisation curve:
+
+```
+R(U) = R0 + (min(Ubar, U) / Ubar) * R1 + (max(0, U - Ubar) / (1 - Ubar)) * R2
+weekly rate = (1 + R_annual)^(1/52) - 1
+LP fee = weekly rate * transfer size
+```
+
+Take illustrative parameters `R0 = 0`, `R1 = 0.01`, `R2 = 1.00`, `Ubar = 0.65`, at a utilisation `U = 0.45`. Utilisation sits below the kink, so the second slope contributes nothing and `R(0.45) = (0.45 / 0.65) * 0.01 = 0.0069231` annualised, or 0.69231%. The weekly rate is `(1.0069231)^(1/52) - 1 = 0.00013269`, or 0.013269%. On 10 ETH that is 0.0013269 ETH, about 1.3 basis points. The parameter values are illustrative; Across publishes live values per token and route.
+
+The other two components are the relayer's destination gas cost and a capital fee covering both the opportunity cost of capital locked from fill until repayment, which is the bundle interval plus the 1,800-second challenge window, and a premium for capital at risk from bugs, reorgs, and settlement delay. The LP fee falls to zero when a relayer takes repayment on the origin chain, because no rebalancing is required.
+
+Cost: single-digit basis points on a liquid route. Trust: one honest disputer, plus UMA's dispute resolution. Latency: 2 seconds to the user.
+
+### 15.4 Route D: Native Burn and Mint, If the Asset Allows
+
+If the asset were USDC rather than ETH, a fourth route exists and it dominates the others.
+
+`depositForBurn(100000000, 3, recipient, USDC)` burns 100 USDC on Ethereum, domain 0. Circle's attestation service observes the `MessageSent` event, waits for the finality threshold, and signs. `receiveMessage(message, attestation)` on Arbitrum mints 100 canonical USDC. Global supply is unchanged. The user holds the same token they started with.
+
+Standard mode waits 15 to 19 minutes for hard finality. Fast Transfer completes in roughly 8 to 20 seconds with Circle carrying the reorg risk.
+
+This route is unavailable for ETH, because ETH has no issuer who can authorise a mint on Arbitrum. That is the entire reason the other three routes exist.
+
+### 15.5 The Comparison
+
+| | A. Canonical | B. Lock and mint | C. Intent fill | D. CCTP |
+|---|---|---|---|---|
+| Time to user, inbound | 10 to 15 minutes | 15 to 20 minutes | ~2 seconds | 8 seconds fast, 15 min standard |
+| Time to user, outbound | ~7 days | 15 to 20 minutes | ~2 seconds | Same as inbound |
+| Token received | Canonical ETH | A bridge wrapper | Canonical ETH | Canonical USDC |
+| Trust | Ethereum plus derivation | 13 of 19 operators | One honest disputer | Circle |
+| Fee beyond gas | None | Relayer fee | LP plus capital fee | Circle's fee schedule |
+| Works for any asset | Only via that rollup | Yes | Only if inventory exists | Only USDC |
+| Worst case | Rollup halt delays withdrawal | Escrow drained, wrapper to zero | Relayer unpaid, user unaffected | Circle mints without a burn |
+
+Four routes, four different parties bearing the risk. The user's choice of route is a choice of counterparty, and the interface almost never says so.
+
+---
+
+## 16. Why Bridges Are the Largest Source of Crypto Losses
+
+Bridges lose more money per incident than any other category of crypto infrastructure because they combine maximum value concentration with minimum verification, and the numbers make the mechanism visible.
+
+### 16.1 The Numbers
+
+From the DefiLlama hacks dataset, 1,245 recorded incidents totalling 20.204 billion dollars, read on 30 August 2026. Eighty-eight are flagged as bridge hacks, totalling 3.356 billion dollars, or 16.61% of all recorded losses.
+
+The per-incident arithmetic is the real finding. The average bridge incident costs 38,140,374 dollars. The average non-bridge incident costs 14,561,872 dollars, which is the 16,848,085,650 dollars of non-bridge losses divided by the 1,157 non-bridge entries. A bridge failure is 2.62 times more expensive than any other kind of failure.
+
+Concentration is extreme even within the category. The top five bridge incidents account for 72.2% of all bridge losses. The top ten account for 89.6%. Seventy-eight incidents share the remaining 10.4%.
+
+| Year | Bridge losses | All losses | Bridge share | Bridge incidents |
+|------|--------------:|-----------:|-------------:|-----------------:|
+| 2021 | 656,100,000 | 2,868,249,772 | 22.9% | 12 |
+| 2022 | 1,905,570,836 | 3,633,656,105 | **52.4%** | 13 |
+| 2023 | 300,656,000 | 1,626,253,369 | 18.5% | 7 |
+| 2024 | 36,840,000 | 1,669,697,215 | 2.2% | 7 |
+| 2025 | 38,273,693 | 2,714,154,819 | 1.4% | 11 |
+| 2026 to date | 418,912,354 | 1,382,391,484 | 30.3% | 38 |
+
+In 2022 bridges were more than half of everything stolen in crypto. By 2025 they were 1.4%. That collapse is the strongest evidence in this document that the controls in section 18 work, and the 2026 rebound to 30.3%, driven almost entirely by one incident, is the strongest evidence that they are not universally applied.
+
+### 16.2 The Five Structural Reasons
+
+**Value concentrates in one address.** A lending protocol's assets sit across thousands of positions with different collateral and different liquidation prices. A bridge's assets sit in one escrow contract. Breaking a lending protocol yields a slice. Breaking a bridge yields the balance. The reward for one exploit is the entire deposit base, which changes what an attacker will invest to find the bug.
+
+**Verification is the cheapest thing to get wrong and the hardest thing to test.** The verification function runs on the happy path with valid inputs during every test, and the bug is always in what it fails to reject. Nomad's `acceptableRoot` returned the correct answer for every real message and the wrong answer for `0x00`. Wormhole's `verify_signatures` verified real signatures correctly and failed to check that the account it read them from was the real sysvar. Neither bug is visible in a passing test suite.
+
+**The keys are operational, and operations decay.** Ronin's ninth validator was allowlisted in November 2021 for a legitimate reason, the arrangement ended in December 2021, and the allowlist entry was never removed. Nobody wrote the bug. Somebody failed to remove a permission, and 624 million dollars followed four months later.
+
+**Nobody owns the whole path.** A cross-chain transfer touches a source contract, an off-chain observer set, a relayer, a destination contract, and often a third-party application. Each team tests its own component. The Poly Network exploit lived precisely in the gap: `EthCrossChainManager` was allowed to call any contract, and `EthCrossChainData` trusted `EthCrossChainManager` as its owner. Both were correct in isolation.
+
+**State-level attackers target them specifically.** Chainalysis attributes 2 billion dollars of 2025 thefts to DPRK-linked actors, in a year when illicit addresses received at least 154 billion dollars, which it reports as a 162% year-over-year increase. Its 2024 estimate was revised upward from 40.9 billion to 57.2 billion. Ronin and Harmony were attributed to the Lazarus Group by OFAC and the FBI respectively, and the 2026 KelpDAO incident carries a preliminary attribution to the same cluster, with its proceeds observed commingling with funds from earlier TraderTraitor operations. A bridge multisig is a target for an adversary with a supply chain team and a social engineering budget, not just for a Solidity auditor.
+
+### 16.3 The Taxonomy of Root Causes
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    ROOT["3,356,352,883 dollars<br/>88 recorded bridge incidents<br/>DefiLlama, read 30 August 2026"]
+
+    ROOT --> C1["Bridge and Cross-Chain logic<br/>1,173,541,322, 35.0%, n=37"]
+    ROOT --> C2["Key Compromise<br/>986,609,000, 29.4%, n=15"]
+    ROOT --> C3["Access Control<br/>648,141,868, 19.3%, n=13"]
+    ROOT --> C4["Input Validation<br/>508,830,000, 15.2%, n=7"]
+    ROOT --> C5["Everything else<br/>39,230,693, 1.2%, n=16"]
+
+    C2 --> T1["Validator key compromised<br/>888,050,000, n=7<br/>Ronin, Harmony, Multichain"]
+    C2 --> T2["Hot wallet key compromised<br/>86,600,000, n=1<br/>Heco"]
+    C3 --> T3["Improper access control<br/>618,065,000, n=6<br/>Poly Network"]
+    C1 --> T4["Proof verifier bug<br/>572,854,486, n=2<br/>BNB Bridge"]
+    C1 --> T5["Cross-chain message spoofing<br/>307,970,000, n=5<br/>KelpDAO"]
+    C1 --> T6["Forged proof<br/>236,773,000, n=11<br/>Nomad"]
+    C4 --> T7["Signature verification flaw<br/>417,830,000, n=4<br/>Wormhole, Orbit"]
+    C4 --> T8["Missing input validation<br/>91,000,000, n=3<br/>Qubit"]
+
+    T1 --> F1["Control: raise the threshold,<br/>diversify operators,<br/>expire every permission"]
+    T2 --> F1
+    T3 --> F2["Control: restrict call targets,<br/>never let a router call<br/>its own configuration store"]
+    T4 --> F3["Control: differential testing<br/>of the proof verifier against<br/>the source chain's own code"]
+    T5 --> F4["Control: verifier data diversity,<br/>plus an on-chain nonce and<br/>supply invariant check"]
+    T6 --> F3
+    T7 --> F5["Control: check the account<br/>and the signer, not just<br/>that a signature parsed"]
+    T8 --> F5
+
+    style ROOT fill:#ffebee,stroke:#c62828
+    style C1 fill:#fff3e0,stroke:#e65100
+    style C2 fill:#fff3e0,stroke:#e65100
+    style C3 fill:#fff3e0,stroke:#e65100
+    style C4 fill:#fff3e0,stroke:#e65100
+    style F1 fill:#e8f5e9,stroke:#2e7d32
+    style F2 fill:#e8f5e9,stroke:#2e7d32
+    style F3 fill:#e8f5e9,stroke:#2e7d32
+    style F4 fill:#e8f5e9,stroke:#2e7d32
+    style F5 fill:#e8f5e9,stroke:#2e7d32
+```
+
+The distribution says something uncomfortable. Key compromise and access control together are 1.635 billion dollars, 48.7% of all bridge losses, and neither involves a cryptographic failure. The Solidity is mostly fine. The people and the permissions are not.
+
+---
+
+## 17. Seven Exploits Dissected by Root Cause
+
+Seven incidents account for 2.714 billion of the 3.356 billion dollars lost to bridges, 80.9% of the total, and each one failed at a different layer. Read together they form a complete list of the ways a bridge can be broken.
+
+### 17.1 Ronin, 23 March 2022, 624 Million Dollars: An Expired Permission
+
+Ronin failed because a temporary access grant outlived its purpose by four months.
+
+**The design.** Ronin ran a proof-of-authority sidechain for Axie Infinity with 9 validators and a 5-signature threshold on the Ethereum-side bridge contract. Sky Mavis, the operator, ran 4 of the 9. Four signatures are not five, so a compromise of Sky Mavis alone should not have been sufficient.
+
+**The permission.** In November 2021, during a period of extreme load on the Ronin network, Sky Mavis and the Axie DAO agreed that the Axie DAO validator would allowlist Sky Mavis to sign transactions on its behalf, so that a free-gas RPC node could keep operating. The arrangement ended in December 2021. The allowlist entry was not removed.
+
+**The attack.** The attacker compromised Sky Mavis infrastructure, obtaining four validator signatures, then used the still-active allowlist to obtain the fifth from the Axie DAO validator. Two withdrawal transactions moved 173,600 ETH and 25.5 million USDC to `0x098b716b8aaf21512996dc57eb0615e2383e2f96`. Total, about 624 million dollars.
+
+**The detection failure.** The withdrawals occurred on 23 March 2022. They were discovered on 29 March, six days later, when a user reported an inability to withdraw. No monitoring alerted on the largest bridge outflow in history for six days.
+
+**The response.** The threshold was raised to 8 of 9. US authorities later attributed the theft to North Korea's Lazarus Group and sanctioned the receiving address.
+
+**The generalisable failure.** A permission with no expiry is a permanent permission. The correct control is not better key management; it is that every delegation carries a deadline enforced in code, so that forgetting to revoke fails closed rather than open.
+
+### 17.2 Wormhole, 2 February 2022, 326 Million Dollars: A Verifier That Read the Wrong Account
+
+Wormhole failed because Solana's runtime lets a program be handed any account, and the bridge did not check which one it got.
+
+**The design.** On Solana, a program that needs to inspect other instructions in the same transaction reads the Instructions sysvar, a special account the runtime populates. Wormhole's `verify_signatures` used this to confirm that the secp256k1 precompile had already validated the guardian signatures, then wrote a `SignatureSet` account recording the result. `post_vaa` accepted a VAA if a valid `SignatureSet` existed for its digest.
+
+**The bug.** The implementation used the deprecated `solana_program::sysvar::instructions::load_instruction_at`, which parses instruction data from whatever account it is given without verifying that the account is the genuine Instructions sysvar. The checked variant, which validates the account address, existed and was not used.
+
+**The attack.** The attacker created an ordinary account, wrote into it bytes that decode as a successful secp256k1 verification instruction, and passed that account where the sysvar was expected. `verify_signatures` read the forged data, concluded the signatures had been verified, and wrote a `SignatureSet`. The attacker then submitted a VAA claiming a deposit of 120,000 ETH on Ethereum. `post_vaa` accepted it against the forged `SignatureSet`, and `complete_wrapped` minted 120,000 whETH on Solana. The wallet used held 0.1 ETH.
+
+**The response.** Jump Crypto replaced 120,000 ETH within roughly 24 hours to keep whETH backed one for one. Without that balance sheet, every whETH holder on Solana would have carried the loss.
+
+**The generalisable failure.** On any chain where accounts are passed in by the caller, verifying data is meaningless without verifying provenance. The question is never "is this signature valid" but "is this the account the runtime guarantees, and is this the signer I expect".
+
+### 17.3 Nomad, 1 August 2022, 190 Million Dollars: Zero Became a Valid Root
+
+Nomad failed because a routine upgrade initialised a trusted root to zero, and zero is also the default value of an unproven message.
+
+**The design.** Nomad's `Replica` contract stored a mapping `confirmAt` from merkle root to the timestamp at which that root becomes acceptable, and a mapping `messages` from message hash to status. `process()` checked `require(acceptableRoot(messages[_messageHash]), "!proven")` before executing.
+
+**The bug, in three lines of source.** The `initialize` function set `confirmAt[_committedRoot] = 1`. During a June 2022 upgrade, `initialize` was called with `_committedRoot` equal to `bytes32(0)`. That wrote `confirmAt[0x00] = 1`.
+
+`messages[_messageHash]` for a message that has never been proven is `bytes32(0)`, which the contract names `LEGACY_STATUS_NONE`. The pre-fix `acceptableRoot` only checked whether `confirmAt[_root]` was non-zero and whether the timestamp had passed. For `0x00` it found `1`, and `block.timestamp >= 1` is true for every block since 1970.
+
+So `acceptableRoot(messages[anyUnprovenMessage])` returned `true`. Every message passed verification, proven or not.
+
+**The attack.** The first attacker crafted a message draining a token from the bridge. Every subsequent participant copied that transaction from Etherscan, substituted their own address, and submitted it. No skill, no tooling, no coordination. Hundreds of addresses participated over roughly 2.5 hours. The top three took 47 million, 40 million, and 8 million dollars, 95 million between them.
+
+**The fix, in the current source.** `initialize` now reads `if (_committedRoot != bytes32(0)) confirmAt[_committedRoot] = 1;` and `acceptableRoot` now opens with two backwards-compatibility branches, `if (_root == LEGACY_STATUS_PROVEN) return true;` followed by `if (_root == LEGACY_STATUS_PROCESSED || _root == LEGACY_STATUS_NONE) return false;`, so both sentinel values are settled before the `confirmAt` lookup runs.
+
+**The generalisable failure.** Zero is the default value of every uninitialised storage slot on the EVM, so zero must never be a valid value in a security check. The second lesson is about incident dynamics: a bug that is trivially copyable turns one attacker into a crowd, and no response process operates faster than copy and paste.
+
+### 17.4 Harmony Horizon, 23 June 2022, 100 Million Dollars: A Threshold of Two
+
+Harmony failed because the threshold was set to a number an attacker could reach.
+
+**The design.** The Horizon bridge was controlled by a 5-key multisig with a threshold of 2. Two signatures authorised any withdrawal.
+
+**The attack.** Two of the five addresses, `0xf845A7ee8477AD1FB4446651E548901a2635A915` and `0x812d8622C6F3c45959439e7ede3C580dA06f8f25`, were compromised, and the attacker signed withdrawals draining roughly 100 million dollars. The theft was announced more than 14 hours after it occurred. The exact compromise vector has not been publicly established; reporting at the time pointed to hot wallets with keys held in plaintext on internet-connected servers.
+
+**The context that matters.** The bridge's security configuration had been criticised publicly in April 2022, more than two months before the theft, and was not changed.
+
+**The generalisable failure.** A threshold of 2 is not a multisig; it is two single points of failure with extra steps. The design question is not how many keys exist but how many independent compromises an attacker must achieve, and keys held by one team on one infrastructure are one compromise regardless of their count.
+
+### 17.5 Poly Network, 10 August 2021, 611 Million Dollars: A Four-Byte Collision
+
+Poly Network failed because a cross-chain executor was allowed to call the contract that stored its own configuration.
+
+**The design.** `EthCrossChainManager` exposed `verifyHeaderAndExecuteTx`, callable by anyone, which verified a header and a merkle proof and then executed the described call. `EthCrossChainData` stored the keeper public keys used to validate those headers, and its `putCurEpochConPubKeyBytes(bytes)` function was `onlyOwner`. The owner was `EthCrossChainManager`.
+
+**The bug.** The executor checked that the target was a contract but did not exclude `EthCrossChainData`. So the attacker could make `EthCrossChainManager` call the configuration store as its owner.
+
+**The collision, verified.** Solidity dispatches on the first four bytes of the keccak-256 hash of the function signature. Computing both:
+
+```
+keccak256("putCurEpochConPubKeyBytes(bytes)")      = 0x41973cd9ca2c3f7f...
+keccak256("f1121318093(bytes,bytes,uint64)")       = 0x41973cd95e41447f...
+```
+
+Both begin `0x41973cd9`. The attacker supplied a cross-chain message whose target method name was `f1121318093`, matching the signature shape the executor expected, and the EVM dispatched it to `putCurEpochConPubKeyBytes`.
+
+**The attack.** The keeper public keys were replaced with the attacker's own. Every subsequent cross-chain message the attacker signed verified correctly. Roughly 611 million dollars was withdrawn across Ethereum, BSC, and Polygon. The attacker later returned the funds.
+
+**The generalisable failure.** A four-byte selector space has 4.3 billion entries, and finding a collision with a chosen target is a small brute-force search. Never treat a four-byte selector as an authorisation. The deeper failure is architectural: a component that executes arbitrary calls must never be the owner of the component that stores its trust anchors.
+
+### 17.6 BNB Bridge, 6 October 2022, 570 Million Dollars: A Forged Merkle Proof
+
+BNB Bridge failed because its IAVL merkle proof verifier accepted a proof that did not prove anything.
+
+**The design.** BNB Smart Chain verified deposits from the legacy Beacon Chain using a precompile that checked IAVL merkle proofs against stored block headers.
+
+**The bug.** The verifier's proof-checking logic could be tricked into accepting a forged proof, constructed so that the verification arithmetic succeeded for a leaf that was never in the tree.
+
+**The attack.** The attacker fabricated a proof referencing an old Beacon Chain block, height 110217401, years behind the chain head at the time, and used it to mint 1,000,000 BNB directly to their own address. The block's exact timestamp is no longer readable: BNB Beacon Chain was sunset and its explorer API no longer answers. They repeated it for a second 1,000,000. Total minted: 2,000,000 BNB, roughly 570 to 586 million dollars at the time.
+
+**The containment.** No escrow existed to cap the mint, so the only limit was time. Validators halted BNB Smart Chain approximately 90 minutes after the second exploit transaction. By then the attacker had deposited 900,000 BNB into Venus Protocol as collateral, borrowed stablecoins against it, and moved roughly 127 million dollars to other chains. Between 443 and 459 million remained stranded on a chain that had stopped, the mint valuation minus what escaped.
+
+**The generalisable failure.** A hand-written proof verifier is the highest-risk code in a bridge and the least likely to be differentially tested against the source chain's own implementation. And the halt is the only reason this was a 127 million dollar loss rather than a 570 million dollar one, which is an argument for chains retaining the ability to stop and against believing they will not need it.
+
+### 17.7 KelpDAO, 18 April 2026, 293 Million Dollars: An Honest Verifier Fed Bad Data
+
+KelpDAO failed because a single verifier read the source chain through infrastructure it did not control.
+
+**The design.** rsETH used the LayerZero v2 OFT standard across more than twenty chains, with the Ethereum deployment acting as the custody adapter. The `UlnConfig` for the relevant path was `requiredDVNCount: 1`, `optionalDVNCount: 0`, `optionalDVNThreshold: 0`, with the single required DVN at `0x589dedbd617e0cbcb916a9223f4d1300c294236b`.
+
+**The attack.** Attackers obtained the DVN's RPC node list, compromised two independent node clusters and replaced their binaries, then degraded the remaining clean nodes to force failover onto the compromised ones. The malicious nodes served forged chain data to the DVN's addresses while answering other callers correctly. The DVN observed a burn of 116,500 rsETH on Unichain, signed truthfully, and the Ethereum endpoint released the corresponding value from the custody adapter.
+
+**The evidence that no burn occurred.** Unichain's outbound nonce never advanced past 307, while Ethereum's inbound nonce accepted packet 308. Unichain's total rsETH supply was 49.26 tokens. A burn of 116,500 was arithmetically impossible on a chain holding 49.26.
+
+**The downstream damage.** The stolen rsETH, roughly 18% of circulating supply, was supplied to Aave v3 and used to borrow 82,650 WETH. The resulting bad debt and the withdrawal surge that followed were larger than the theft itself.
+
+**The generalisable failure.** A verifier is only as honest as its inputs. Signing infrastructure diversity is not the same as data path diversity, and a one-of-one configuration provides neither. The second lesson is that the attack was detectable in real time from on-chain state alone: an inbound nonce ahead of the source outbound nonce, and a burn exceeding total supply, are both invariants a destination contract can check itself for a few thousand gas.
+
+### 17.8 What the Seven Have in Common
+
+| Incident | Layer that failed | Would a threshold have helped? | Would an on-chain invariant have helped? | Would a rate limit have helped? |
+|----------|-------------------|-------------------------------|------------------------------------------|--------------------------------|
+| Ronin | Key management and permission lifecycle | Yes, 8 of 9 was adopted after | No | Yes, capped at the limit |
+| Wormhole | Destination verification code | No | Yes, mint exceeded escrowed backing | Yes |
+| Nomad | Destination verification code | No | Yes, unproven message processed | Yes, drained over 2.5 hours |
+| Harmony | Key management | Yes | No | Yes |
+| Poly Network | Access control architecture | No | Yes, keeper rotation is a governance event | Partly |
+| BNB Bridge | Proof verifier | No | Yes, mint with no matching lock | Yes, the halt was a crude one |
+| KelpDAO | Verifier input data | Yes, more DVNs on diverse paths | Yes, nonce and supply checks | Yes |
+
+Six of seven would have been bounded by a rate limit. Five of seven would have been caught by an on-chain invariant check costing a few thousand gas. Two of seven were pure key management with no code defect at all.
+
+None of the seven required breaking a cryptographic primitive.
+
+---
+
+## 18. Security Engineering: The Controls That Work
+
+The controls that reduce bridge losses are cheap, unglamorous, and mostly not cryptographic, and the collapse of bridge losses from 52.4% of all crypto theft in 2022 to 1.4% in 2025 is evidence that they work when applied.
+
+### 18.1 Rate Limits Are the Highest-Leverage Control
+
+A rate limit converts a total loss into a partial one, and it is the only control that works against a bug nobody has found yet.
+
+The standard implementation is a token bucket, and CCIP's is representative: a `capacity` that bounds the largest burst and a `rate` in units per second that bounds sustained throughput, with `tokens` and `lastUpdated` tracking the current fill. A lane configured with a capacity of 5 million dollars and a rate that refills 1 million per hour caps a total compromise at 5 million immediately and 24 million over a day, regardless of how the compromise happened.
+
+Apply the counterfactual to section 17. Nomad's drain took roughly 2.5 hours; a per-hour cap would have stopped it after the first tranche. BNB Bridge's 2,000,000 BNB mint would have been capped at whatever the bucket held. Ronin's two withdrawal transactions moving 173,600 ETH would have failed on the first.
+
+The objection is that rate limits break large legitimate transfers. That is true and it is the point. A bridge that cannot move 100 million dollars in one transaction is a bridge that cannot lose 100 million dollars in one transaction, and institutional flow can be scheduled.
+
+### 18.2 On-Chain Invariants Cost Almost Nothing
+
+The invariants that would have caught five of the seven incidents are one comparison each.
+
+**Backing invariant.** For lock-and-mint: total wrapped supply across all destinations must never exceed the escrow balance. A destination that knows the escrowed total, refreshed by the same message channel, can refuse any mint that would violate it. Wormhole's whETH mint of 120,000 exceeded the escrow.
+
+**Nonce monotonicity across chains.** The destination's inbound nonce must never exceed the source's outbound nonce. KelpDAO's Ethereum endpoint accepted packet 308 when Unichain had emitted 307.
+
+**Supply sanity.** A burn cannot exceed the token's total supply on the burning chain. KelpDAO's forged burn was 116,500 against a supply of 49.26.
+
+**Proof-of-existence over proof-of-form.** A verification function must reject the default value of its input type explicitly, not implicitly. Nomad's `acceptableRoot` now names `LEGACY_STATUS_NONE` in a rejection branch.
+
+Each of these is a few thousand gas, checked once per message. Against a 38-million-dollar average incident, the cost is not the constraint.
+
+### 18.3 Key and Permission Hygiene
+
+Key compromise and access control are 48.7% of bridge losses, and the controls are organisational.
+
+**Every delegation expires.** Ronin's fifth signature came from a permission granted in November 2021 for a purpose that ended in December 2021. If the allowlist entry had carried a block-height expiry, the attack would have needed a fifth genuine key.
+
+**Thresholds must exceed one team.** A 5-of-9 where one operator runs 4 is a 1-of-2 with extra steps. Count independent operators, infrastructures, and jurisdictions, not keys.
+
+**Signers must not share infrastructure.** The KelpDAO lesson generalises to every committee: signers reading the source chain through the same RPC provider have one input, not many.
+
+**Governance changes are the highest-value target and should be the slowest action.** Rotating a keeper set, swapping a message library, or changing a DVN configuration should sit behind a timelock long enough for a watcher to react. Poly Network's keeper rotation executed in one transaction.
+
+### 18.4 Monitoring, Pausing, and the Ability to Stop
+
+The gap between exploit and detection is where recovery is decided, and the record is poor.
+
+Ronin took six days to notice. Harmony took more than 14 hours to announce. BNB Bridge took roughly 90 minutes to halt, and that 90 minutes is the difference between a 127 million dollar loss and a 570 million dollar one.
+
+The design implication is that a bridge must be able to stop, and the authority to stop must be cheaper to exercise than the authority to change anything else. Wormhole's `SetPauserAddresses` design encodes this correctly: a low-trust `pauser` can halt for a bounded 5 days and can re-pause, a higher-trust `freezer` can halt indefinitely, an `unpauser` can lift either, and anyone may clear an expired pause permissionlessly. A cheap, self-expiring stop is safe to hand to a fast-moving team. An indefinite stop is not.
+
+### 18.5 Verifier Engineering
+
+Three practices specifically address the verification code that failed in four of the seven incidents.
+
+**Differentially test the verifier against the source chain's own implementation.** A proof verifier reimplements another chain's logic in a different language. BNB Bridge's IAVL verifier and the reference IAVL implementation should have been fuzzed against each other on random and adversarial inputs.
+
+**Verify provenance, not just form.** Wormhole's Solana bug was reading real-looking data from a fake account. Every runtime that passes accounts or precompile results into a program requires an explicit check that the source is the one the runtime guarantees.
+
+**Prefer proofs to signatures where gas allows.** A light client verified through a SNARK at roughly 230,000 gas has no key to steal. The gas premium over a 13-signature check of roughly 39,000 gas is about 191,000 gas, which against a 38-million-dollar average incident is not a serious number.
+
+---
+
+## 19. Economics: What It Costs to Run, Who Pays
+
+A bridge is a business with three cost centres, and who pays which one determines the design more than any security argument.
+
+### 19.1 The Cost Structure
+
+**Destination gas is the largest recurring cost and it is unavoidable.** Every message ends in a transaction someone pays for. Verification is the expensive part: 13 `ecrecover` calls at 3,000 gas each is about 39,000 gas for a Wormhole VAA; an IBC `recvPacket` on Ethereum costs about 524,474 gas individually and about 179,471 aggregated across 25; a first transfer of a new token through IBC on Ethereum costs about 1,070,000 gas because it deploys the ERC-20.
+
+**Off-chain infrastructure is a fixed cost per operator.** A guardian, DVN, or validator runs full nodes for every chain it observes. Nodes for twenty chains, with redundancy, is a serious infrastructure bill that does not scale down with volume, which is why observer sets consolidate and why paying operators enough to keep their infrastructure independent is the security budget.
+
+**Capital is the cost that distinguishes liquidity networks.** A filler that pays out on the destination and then waits out a bundle interval plus a 1,800-second challenge window for repayment is financing the transfer. That cost is the opportunity cost of the capital plus a premium for the risk that settlement fails, and it is charged to the user as the capital fee. It scales with transfer size and with the settlement delay, which is why intent protocols work hard to shorten bundle windows.
+
+### 19.2 Who Pays
+
+| Model | Who pays | Mechanism | Typical charge |
+|-------|----------|-----------|----------------|
+| Rollup canonical bridge | User | Source and destination gas only | No protocol fee |
+| IBC | Relayer, often subsidised by chains | Gas on both sides, fee middleware optional | Frequently zero to the user |
+| Wormhole core messaging | User or application | A small message fee, plus relayer gas | Fee plus destination gas |
+| LayerZero v2 | Application, passed to the user | DVN fees plus Executor fee, quoted at send | Per-message, varies by DVN set |
+| CCIP | User | Fee in LINK or the native gas token via `feeToken` | Quoted per lane |
+| CCTP | User | Circle's published fee schedule, Fast Transfer priced higher | Basis points |
+| Across | User | LP fee plus relayer capital and gas fee, optional `appFee` | Single-digit basis points on liquid routes |
+| WBTC | User | Merchant fee on mint and redeem | Basis points, merchant-set |
+
+### 19.3 The Structural Problem With Bridge Revenue
+
+Bridge revenue scales with transfer volume while bridge risk scales with value locked, and the two diverge.
+
+A lock-and-mint bridge holding 1 billion dollars earns fees on flow, not on stock. If 5% of the balance moves per month at 5 basis points, the flow is 50 million dollars and monthly revenue is 25,000 dollars against a 1 billion dollar liability. The ratio of revenue to value at risk is 0.0025% per month, and it gets worse as the balance grows because deposits are stickier than flow.
+
+Two consequences follow. First, no bridge can afford insurance priced against its true exposure, which is why none carries it. Second, the operators securing a large escrow are paid from a small flow, so the budget for independent infrastructure, monitoring, and key ceremonies is structurally thin relative to what is at stake.
+
+Intent protocols invert the ratio, and that is the strongest argument for them. Across holds inventory sized to expected flow rather than to accumulated deposits, so the value at risk at any moment is bounded by capital deliberately deployed for the purpose rather than by everything anyone has ever bridged. A filler's exposure is its own working capital, priced by the filler, refreshed continuously.
+
+Revenue on flow, risk on flow. That is a business. Revenue on flow, risk on stock, is not.
+
+---
+
+## 20. Regulation and Compliance
+
+Bridges sit in a regulatory gap because no framework was written for a contract that converts an asset on one ledger into a claim on another, and the enforcement that has arrived came through sanctions rather than through licensing.
+
+### 20.1 Sanctions Are the Operative Regime
+
+The most consequential regulatory events for bridges are OFAC designations, not securities law.
+
+In April 2022 the US Treasury's Office of Foreign Assets Control added the Ethereum address that received the Ronin proceeds to the Specially Designated Nationals list, attributing the theft to the Lazarus Group. That designation made it a US sanctions violation for any person to transact with the address, which propagated instantly to every compliant exchange, custodian, and stablecoin issuer.
+
+In August 2022 OFAC designated Tornado Cash itself, the first time a set of immutable smart contracts rather than a person was sanctioned. The designation was challenged, and in November 2024 the Fifth Circuit held in Van Loon v. Department of the Treasury that immutable smart contracts are not property that can be blocked under the relevant statute. Treasury removed the designation in March 2025. The reasoning matters for bridges: an autonomous contract with no owner is, on that holding, not a sanctionable entity, while the humans who operate an off-chain observer set plainly are.
+
+That distinction is the compliance dividing line. A bridge whose off-chain component is an identifiable operator set is a service. A bridge whose off-chain component is a permissionless relayer carrying proofs is closer to infrastructure.
+
+### 20.2 Money Transmission and the Travel Rule
+
+A bridge that takes custody looks like a money transmitter, and a bridge that verifies proofs does not.
+
+Under the FATF standards, Recommendation 15 brings virtual asset service providers into scope and Recommendation 16, the Travel Rule, requires originator and beneficiary information to accompany transfers above a threshold. In the European Union this is implemented by Regulation (EU) 2023/1113 on transfers of funds, applicable from 30 December 2024 alongside MiCA.
+
+The application to bridges is unsettled and turns on custody. A lock-and-mint bridge with a named operator set holding an escrow accepts assets from one party and delivers to another, which is the shape of a transmission. A liquidity network filler is a principal trading its own inventory, which is the shape of a market maker. A light client bridge with permissionless relayers has no party in the middle at all, and no obvious respondent.
+
+None of these characterisations has been settled by a regulator in a published decision as of August 2026.
+
+### 20.3 MiCA and the Wrapped Asset Question
+
+Regulation (EU) 2023/1114, MiCA, fully applicable from 30 December 2024, creates a live question for wrapped assets that the text does not answer cleanly.
+
+A wrapped token that maintains a stable value by reference to a single official currency is an e-money token. One referencing a basket or another asset is an asset-referenced token. Both categories carry issuer authorisation, reserve, and redemption obligations. A token wrapping a crypto-asset, such as WBTC, is neither on a plain reading, and falls into the residual category of crypto-assets whose offeror must publish a white paper.
+
+The practical exposure sits in the redemption right. A wrapped asset whose issuer promises redemption at par has made a commitment that looks like the redemption obligations MiCA imposes on stablecoin issuers, and the WBTC design, where only allowlisted merchants can redeem, means the retail holder has no direct redemption right at all. That is a disclosure question with an obvious answer and no enforcement history.
+
+### 20.4 What Compliance Teams Actually Do
+
+Three controls are standard practice in 2026 regardless of the unsettled law.
+
+**Screening at the endpoint.** Front ends and relayers screen source and destination addresses against sanctions lists before submitting. This catches designated addresses and does nothing about a fresh address.
+
+**Refusing to serve designated addresses.** Circle can and does freeze USDC at specific addresses, which applies to CCTP output. This is the strongest enforcement tool in the stack and it exists only for assets with a centralised issuer.
+
+**Post-hoc tracing.** Chainalysis and similar firms trace stolen funds across bridges, which is precisely why bridges are used for laundering: a hop across a chain breaks naive tracing heuristics. Stablecoins now account for 84% of illicit transaction volume, and the combination of a stablecoin and a bridge is the standard laundering path.
+
+The tension is structural. The bridges most useful for compliance are the ones with an issuer who can freeze, and those are the ones with the most concentrated trust. The bridges with the least trust are the ones with nobody to serve a court order on.
+
+---
+
+## 21. Intents: From Bridging to Filling
+
+An intent replaces the instruction "move my tokens through this bridge" with the declaration "I want this outcome, someone bid for it", and the shift moves the verification problem off the user's critical path.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant SP_A as SpokePool<br/>Ethereum
+    participant SOLV as Solver / relayer network<br/>permissionless, competing
+    participant SP_B as SpokePool<br/>Arbitrum
+    participant DW as Dataworker<br/>off-chain bundler
+    participant HUB as HubPool<br/>Ethereum, holds LP capital
+    participant UMA as UMA Optimistic Oracle
+    participant DIS as Disputer<br/>one honest actor suffices
+
+    Note over U,SOLV: Phase 1: intent, seconds
+    U->>SP_A: deposit 10 ETH, declare minimum<br/>output on Arbitrum and a deadline
+    SP_A-->>SOLV: emit FundsDeposited
+
+    Note over SOLV: Solvers race. The winner is whoever<br/>quotes the best output and fills first.
+
+    SOLV->>SP_B: fill from the solver's own inventory
+    SP_B->>U: user receives output, ~2 seconds
+    Note over U: The user is finished here.<br/>Nothing has been verified yet.
+
+    Note over DW,DIS: Phase 2: settlement, bundles every 1.5 h minimum,<br/>then an 1,800 second challenge window
+    DW->>DW: aggregate every fill on every chain<br/>into merkle trees
+    DW->>HUB: propose the root bundle with a bond
+    HUB->>UMA: assert the bundle
+    UMA->>UMA: challenge window opens
+
+    alt bundle is valid
+        UMA-->>HUB: no dispute, bundle finalises
+        HUB->>SOLV: repay solvers on the chain<br/>each one nominated
+        HUB->>SP_A: rebalance inventory via<br/>canonical bridges
+    else bundle is invalid
+        DIS->>UMA: dispute with a counter-bond
+        UMA->>UMA: escalate to the Data<br/>Verification Mechanism vote
+        UMA-->>HUB: bundle rejected, proposer<br/>bond forfeited to the disputer
+    end
+
+    Note over U,DIS: Verification cost is O(1) per bundle,<br/>not O(N) per transfer.
+```
+
+### 21.1 What Changes
+
+Three properties change and each one is worth naming.
+
+**The user no longer waits for verification.** A traditional bridge makes the user wait for source finality plus attestation plus relay, 15 to 20 minutes on Ethereum. An intent fill happens in roughly 2 seconds because the solver, not the user, absorbs the risk that the source transaction is reorged. The solver prices that risk into the quote.
+
+**Verification amortises.** Across bundles every fill across every chain into merkle trees, proposed on a documented interval of 1.5 hours minimum and finalised after an 1,800-second on-chain challenge window. One optimistic assertion secures thousands of fills, so the per-transfer verification cost approaches zero. This is the same amortisation that made SP1-aggregated IBC packets 66% cheaper.
+
+**Competition sets the price.** Solvers bid against each other on output amount and speed. The user's counterparty is whoever bid best, not a monopoly bridge operator, and the fee is a market price rather than a posted schedule.
+
+**The failure mode moves.** If settlement fails, the solver is unpaid. The user already has the money. That is a materially better place to put the failure than on the person who initiated the transfer.
+
+### 21.2 The Standardisation Effort
+
+ERC-7683 exists because solver liquidity fragments across protocol-specific integrations, and its current form is not what the first draft proposed.
+
+The original draft, created 11 April 2024, standardised order encoding with `GaslessCrossChainOrder` and `OnchainCrossChainOrder` structs, an on-chain order feed via `IOriginSettler.open`, and escrow via `IOriginSettler.openFor`. Those were deliberately removed. The specification now says the standardisation boundary moved to the solver-facing resolution interface, preserving interoperability while letting protocols differ in how users create orders, how funds are authorised, how settlement is verified, and whether execution is escrow-first, fill-first with resource locks, or auction-based.
+
+The current interface is one function:
+
+```solidity
+interface IResolver {
+    struct ResolvedOrder {
+        bytes[] steps;         // IStep ABI calldata
+        bytes[] variables;     // IVariableRole ABI calldata
+        bytes[] payments;      // IPayment ABI calldata
+        Assumption[] assumptions;
+    }
+    struct Assumption { string name; bytes data; }
+    function resolve(bytes calldata payload) external view returns (ResolvedOrder memory);
+}
+```
+
+A protocol publishes orders as opaque payloads and deploys a resolver that decodes them into steps, variables, and payments. Solvers call `resolve` off-chain via `eth_call` and get a common representation they can evaluate for safety and profit without implementing the protocol's own logic.
+
+The vocabulary is small and precise. A step is a `Call` with a target, a 4-byte selector, arguments, and attributes. Attributes are `NeedsStep`, `NeedsVariable`, `SpendsERC20`, `SpendsGas`, `RevertPolicy`, and `TimingBounds`. Variable roles are `PaymentRecipient`, `PaymentChain`, `StepCaller`, `ExecutionOutput`, `Witness`, `Query`, and `QueryEvents`. Addresses are ERC-7930 interoperable addresses, a versioned length-prefixed binary envelope that binds a chain identifier to a raw address and works beyond EVM chains.
+
+The resolver's obligation is the interesting part. It must guarantee that an order can only abort as its declared revert policies allow, so a solver that begins executing can finish and be paid. Anything the resolver cannot itself guarantee must be surfaced as a named `Assumption` that the solver validates before acting.
+
+ERC-7683 is Draft as of 30 August 2026, and ERC-7930 is in Review.
+
+### 21.3 The Limits of Intents
+
+Intents are not a general replacement for bridges, and three limits are structural.
+
+**They cannot bootstrap.** A solver pays from inventory that must already exist on the destination. A new chain with no assets cannot be served by an intent network, and needs a lock-and-mint or burn-and-mint bridge to import its first tokens.
+
+**Capital efficiency caps the size.** A fill is bounded by what solvers hold. Transfers larger than solver inventory fall back to slower routes, which is why large institutional flows still use canonical bridges and CCTP.
+
+**The settlement layer is still a bridge.** Solvers must be repaid from the source chain, which requires proving fills to it. Across uses optimistic verification with UMA today and SP1 proofs of Ethereum state in V4. Intents move the trust assumption off the user's path; they do not remove it from the system.
+
+An intent is a better user experience layered on the same verification problem.
+
+---
+
+## 22. Shared Sequencers and Native Interop
+
+The frontier is to make cross-chain messaging unnecessary between chains that already share a settlement layer, and two approaches are being built.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph TB
+    subgraph CHAINA["Chain A in the dependency set"]
+        SRC["Contract emits a log:<br/>the initiating message"]
+        LOG["Log recorded in block N<br/>at index i, timestamp t"]
+        SRC --> LOG
+    end
+
+    subgraph IDENT["The Identifier that names it"]
+        I1["chainId: source chain"]
+        I2["origin: emitting contract"]
+        I3["blockNumber: N"]
+        I4["logIndex: i"]
+        I5["timestamp: t"]
+    end
+
+    subgraph CHAINB["Chain B in the dependency set"]
+        AL["EIP-2930 access list<br/>pre-declares the message:<br/>lookup entry, optional chain-id<br/>extension, checksum entry"]
+        INBOX["CrossL2Inbox.validateMessage<br/>predeploy"]
+        MSGR["L2ToL2CrossDomainMessenger<br/>calls the inbox on behalf<br/>of contracts"]
+        DST["Destination contract executes:<br/>the executing message"]
+        AL --> INBOX --> MSGR --> DST
+    end
+
+    subgraph SAFETY["Block safety, propagated across the set"]
+        S1["unsafe: gossiped only"]
+        S2["cross-unsafe: dependencies<br/>seen but not L1-derived"]
+        S3["safe: L1-derived AND every<br/>referenced initiating message<br/>is also safe"]
+        S4["finalized: derived from<br/>finalized L1 data"]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    LOG --> IDENT
+    IDENT --> AL
+    DST -.->|"a block is only safe once<br/>everything it depends on is"| SAFETY
+
+    ASSET["Assets: ETH and SuperchainERC20<br/>move by burn on the source<br/>and mint on the destination.<br/>No escrow, no wrapper."]
+    DST --> ASSET
+
+    style CHAINA fill:#e3f2fd,stroke:#1565c0
+    style CHAINB fill:#e8f5e9,stroke:#2e7d32
+    style IDENT fill:#fff3e0,stroke:#e65100
+    style SAFETY fill:#f3e5f5,stroke:#6a1b9a
+```
+
+### 22.1 Superchain Interop
+
+Superchain interop removes the verifier entirely for chains that share a settlement layer and a governance root, replacing it with block-building rules.
+
+The model has two halves. An **initiating message** is any log event emitted by any contract on a source chain in the dependency set. An **executing message** is a destination transaction that calls `CrossL2Inbox.validateMessage` naming that log. The naming is done through an `Identifier` carrying five values: the source chain id, the emitting contract address as `origin`, the source block number, the log index within that block, and the source block timestamp.
+
+Verification is not a signature check or a merkle proof. It is a block-building rule. Messages are pre-declared in an EIP-2930 access list targeting `CrossL2Inbox`, using three typed entries: a lookup identity entry, an optional chain-id extension, and a checksum entry that commits to the full `Identifier` and the message hash. A block builder that includes an executing message whose initiating message does not exist has produced an invalid block.
+
+Safety propagates. A block is `unsafe` when gossiped, `cross-unsafe` when its dependencies are observed but not yet derived from L1, `safe` only when it is L1-derived and every referenced initiating message has also reached safe, and `finalized` when derived from finalized L1 data. A chain in the set is only as safe as its dependencies, which is the honest statement of the trade being made.
+
+Assets move by burn and mint. ETH and `SuperchainERC20` tokens are burned on the source and minted on the destination with no escrow and no wrapper, which is possible only because every chain in the set shares the same L1 `ProxyAdmin` owner and the same governance process.
+
+The dependency set for the Superchain is fully connected: every chain has every other in its set. Rollout is iterative and the documentation as of 30 August 2026 describes interop as in active development without naming a mainnet date.
+
+### 22.2 What a Shared Sequencer Does and Does Not Do
+
+A shared sequencer gives several chains a common ordering, which enables atomic cross-chain transactions and does not by itself make anything trustless.
+
+The distinction matters and is regularly muddled. Ordering is not verification. A shared sequencer can guarantee that transaction A on chain 1 and transaction B on chain 2 land in the same slot or neither does, which enables atomic arbitrage and cross-chain swaps without an intermediate wrapped asset. It cannot guarantee that transaction B's precondition on chain 1 actually held, because that requires the chains to verify each other's state, which is the light client problem again.
+
+Espresso is the most developed instance and its own framing is precise about the split. It runs HotShot, a proof-of-stake consensus in the HotStuff family of Byzantine fault tolerant protocols, and separates consensus from execution: each connected environment keeps its own sequencer that orders transactions and streams them to Espresso for finalisation. Breaking the ordering requires control of at least one third of staked ESP. It runs on mainnet with a permissionless validator set and delegated staking, and its chains reference lists eight mainnet integrations: Rari, ApeChain, AppChain, Molten, T3rn, NodeOps, Rufus and Huddle01, every one of them deployed through Caldera as rollup-as-a-service provider, plus Celo on a devnet the page marks unstable. Rari was the first, live at block 1,486,407 on 29 January 2025.
+
+The honest summary is that shared sequencing plus a shared settlement layer removes the need for a bridge between the participating chains, and shared sequencing alone does not.
+
+### 22.3 Why This Does Not Generalise
+
+Superchain interop and shared sequencing both require the participating chains to agree on something outside themselves, and that agreement is the whole mechanism.
+
+The Superchain requires a shared L1 settlement layer and a shared governance root, which is why it connects OP Stack chains to each other and cannot connect any of them to Solana. Espresso requires the participating chains to stream their blocks to a common consensus, which they must opt into.
+
+For chains that will never share a settlement layer, and for connections to Bitcoin, the light client and proof approaches of sections 9 and 10 remain the only trust-minimised route. Native interop is the answer within a family. Between families, somebody still has to verify.
+
+---
+
+## 23. Comparisons and Alternatives
+
+Bridges are one of four ways to be useful on more than one chain, and the other three are frequently the better answer.
+
+### 23.1 The Four Strategies
+
+| Strategy | Mechanism | Trust added | When it is right |
+|----------|-----------|-------------|------------------|
+| **Bridge the asset** | Lock-and-mint, burn-and-mint, or intent fill | The bridge's verifier | The asset must exist on the destination |
+| **Issue natively on every chain** | The issuer deploys and mints on each chain | The issuer, who was already trusted | The issuer controls the token, as with USDC or a project's own token |
+| **Do not bridge, use a shared settlement layer** | Rollups on one L1, Superchain interop | The settlement layer only | The chains are in the same family |
+| **Do not bridge, trade** | Sell on chain A, buy on chain B via an exchange | The exchange, briefly | The user wants exposure, not a specific token |
+
+The fourth is what most users actually want and what most interfaces hide. Someone who wants ETH on Arbitrum and holds ETH on Ethereum does not need a bridge; they need an intent fill, which is economically a trade. The bridge is only required when the specific token, rather than the exposure, must appear on the destination.
+
+### 23.2 Bridges Against Their Non-Crypto Analogues
+
+Correspondent banking is the closest analogue, and the comparison is unflattering in both directions.
+
+A correspondent bank holds a nostro account for another bank, and a cross-border payment is a debit on one book and a credit on another with no money crossing a border. That is exactly lock-and-mint, with a bank in place of the escrow contract. The differences are that the bank is licensed, audited, capitalised against its liabilities, and subject to a court, while the escrow contract is none of these and settles in seconds rather than days.
+
+A bridge is faster than correspondent banking and has no capital requirement, no supervisor, and no recovery process. Both statements are consequences of the same design.
+
+### 23.3 Choosing
+
+| If you need | Use | Because |
+|-------------|-----|---------|
+| USDC on another chain | CCTP | The issuer already has the power, so no new trust is added |
+| ETH between rollups | An intent protocol | 2 seconds, canonical asset, failure lands on the solver |
+| ETH out of a rollup, no rush | The canonical bridge | Native verification, 7 days |
+| An asset onto a brand new chain | Lock-and-mint with rate limits | Nothing else can bootstrap |
+| Value between Cosmos chains | IBC | Light client verification, permissionless relayers |
+| Value between Cosmos and Ethereum | IBC v2 with SP1 proofs | Same trust, ~230,000 gas per update |
+| Arbitrary contract calls across families | Hyperlane or LayerZero v2 with a diverse verifier set | Configurable, and the configuration is the security |
+| Bitcoin inside a smart contract | A custodial wrapper, and price it as credit | No trust-minimised option is in production at scale |
+
+The last row is the honest one. Bitcoin has no finality gadget and no validator set to run a light client against, so every route from BTC to a smart contract chain terminates in a trusted party or a threshold group. 116,132.18 BTC sits behind that fact.
+
+---
+
+## 24. Modern Developments
+
+Four changes since 2024 are reshaping the field, and they all point the same direction: verification is becoming cheaper, so trusted committees are becoming harder to justify.
+
+### 24.1 Succinct Proofs Make Light Clients Affordable
+
+The gas cost of native verification fell by roughly an order of magnitude, and that changes which designs are defensible.
+
+`SP1ICS07Tendermint` verifies a Tendermint light client update on Ethereum as a Groth16 or PLONK proof for roughly 230,000 gas, with proof generation taking about 25 seconds off-chain. Aggregating 25 packets into one proof cuts the average `recvPacket` cost from about 524,474 gas to about 179,471.
+
+Across V4 applies the same idea in reverse, proving Ethereum state with SP1 so that new chains need only a `UniversalSpokePool` deployment rather than a bespoke bridge adapter and a fresh audit. The settlement trust becomes universal rather than tied to each chain's canonical bridge.
+
+The consequence is a change in the burden of argument. A 13-of-19 signature check saves roughly 191,000 gas over a proof verification. Against a category with a 38-million-dollar average incident, that saving no longer justifies the trust.
+
+### 24.2 Native Token Standards Replace Wrappers
+
+Token issuers are becoming their own bridges, and the wrapper is disappearing where the issuer cooperates.
+
+Wormhole's Native Token Transfers, LayerZero's OFT, and Chainlink's `BurnMintTokenPool` all implement the same idea: the token contract itself grants mint and burn rights to a bridge adapter, so the asset on the destination is the canonical token rather than a wrapper. NTT supports both burn-and-mint, which distributes supply across chains, and hub-and-spoke, which locks on a hub and mints on spokes without modifying the original contract.
+
+This eliminates depeg risk from a custodian and introduces mint risk from a bridge. The KelpDAO loss is the archetype: rsETH used OFT across more than twenty chains, and a single verifier's compromise produced an unbacked release. Native token standards do not remove the verification problem. They make the token issuer the party who chooses the verifier, which is at least the party with the right incentives.
+
+### 24.3 Intents Take the Retail Flow
+
+Retail-sized transfers have largely moved from lock-and-mint to intent fills, because 2 seconds beats 15 minutes and the canonical asset beats a wrapper.
+
+The mechanism is covered in section 21. The market consequence is that lock-and-mint bridges are being pushed towards two remaining jobs: bootstrapping assets onto new chains, and moving amounts larger than solver inventory. Both are lower-frequency and higher-value than the flow they lost, which makes the revenue-to-risk arithmetic of section 19.3 worse rather than better.
+
+### 24.4 Standardisation of Addresses and Orders
+
+ERC-7930 and ERC-7683 are attempts to stop every protocol inventing its own vocabulary, and their current state is instructive.
+
+ERC-7930 defines an interoperable address as a versioned, length-prefixed binary envelope binding a chain identifier to a raw address, with per-namespace serialisation rules supplied by CAIP-350. It exists because ERC-55 addresses carry no chain information, every protocol invented its own pairing convention, and a string format such as CAIP-10 is expensive to store on-chain. Status: Review, created 2 February 2025.
+
+ERC-7683 moved its standardisation boundary from order encoding to solver-facing resolution, as described in section 21.2. That retreat is the more interesting signal: the authors concluded that intent protocols differ too much in escrow, settlement, and pricing to share an order format, and that the only useful common surface is what a solver needs to evaluate and execute. Status: Draft.
+
+Standardising the interface and not the mechanism is usually the correct call, and it is rarely made this explicitly.
+
+---
+
+## 25. Appendix
+
+### 25.1 Key Terminology
+
+| Term | Meaning |
+|------|---------|
+| **Acknowledgement** | An IBC message written by the receiving module recording success or an application error, processed by the source in `acknowledgePacket`; the only way a source learns its liability was discharged. |
+| **Attestation** | A signed claim by an off-chain observer that a source-chain event occurred. |
+| **Burn and mint** | Destroy supply on the source, create it on the destination. One global supply. Requires issuer authority. |
+| **CCTP** | Circle's Cross-Chain Transfer Protocol. Burn-and-mint USDC secured by Circle's own attestation. |
+| **Client pair** | In IBC v2, the primitive replacing connection and channel handshakes; each side's client identifies the other. |
+| **ConsensusState** | An IBC light client's trusted view of a counterparty at one height: `timestamp`, `nextValidatorsHash`, `commitmentRoot`. |
+| **Consistency level** | The 1-byte VAA field specifying how final the source must be before guardians sign. |
+| **Curse** | CCIP's mechanism for disabling a lane during a security event, checked by the `OffRamp` before execution. |
+| **DVN** | Decentralized Verifier Network. A LayerZero v2 observer that attests to packets; the security set is chosen per application. |
+| **Executing message** | In Superchain interop, the destination transaction that calls `CrossL2Inbox.validateMessage` naming an initiating log. |
+| **Executor** | LayerZero v2's paid relayer. Pays destination gas, calls `lzReceive`, cannot forge. |
+| **Free option** | The payoff an HTLC initiator holds by knowing the preimage: claim if the price moves favourably, walk away otherwise. |
+| **Frozen client** | An IBC light client that detected misbehaviour and stopped accepting updates. Requires governance to recover. |
+| **GUID** | LayerZero v2's globally unique message identifier, `keccak256(nonce + path)`, at byte offset 81 of the packet. |
+| **HTLC** | Hashed Time-Locked Contract. BIP-199. Spendable by revealing a hash preimage, or refundable after a timeout. |
+| **IBC** | Inter-Blockchain Communication. A light-client-verified transport with permissionless relayers, specified in the ICS series. |
+| **Initiating message** | In Superchain interop, any log emitted on a source chain in the dependency set. |
+| **Intent** | A declared desired outcome that a competing solver fulfils, rather than an instruction naming a route. |
+| **ISM** | Interchain Security Module. Hyperlane's per-application verification contract, exposing `moduleType()` and `verify()`. |
+| **Lock and mint** | Escrow on the source, issue a wrapper on the destination. Works without issuer cooperation. Loss capped at the escrow. |
+| **Light client** | A contract that runs another chain's consensus rules to verify its headers, then verifies state with merkle proofs. |
+| **Liquidity network** | A design where a filler pays the user from existing destination inventory and is repaid at settlement. |
+| **NTT** | Wormhole Native Token Transfers. Burn-and-mint or hub-and-spoke without a wrapper, controlled by the token issuer. |
+| **OFT** | LayerZero's Omnichain Fungible Token standard. The token grants mint and burn rights to a LayerZero adapter. |
+| **Optimistic verification** | Accept a claim after a delay unless disputed. Trust reduces to one honest, funded, online watcher. |
+| **Packet commitment** | The constant-size hash IBC stores at `commitments/ports/{port}/channels/{channel}/sequences/{sequence}`. |
+| **Path** | LayerZero v2's channel identity: source endpoint id, sender, destination endpoint id, receiver. Nonces are per-path. |
+| **RMN** | CCIP's Risk Management Network. Automated off-chain function inactive as of August 2026; the on-chain contract remains. |
+| **Sink zone** | In ICS-20, a chain whose outgoing denomination carries the prefix of the channel it is leaving, so it burns vouchers. |
+| **Source zone** | In ICS-20, a chain whose outgoing denomination lacks the channel prefix, so it escrows the native asset. |
+| **Trusting period** | The window during which an IBC client accepts headers from a known validator set. Set below the unbonding period. |
+| **Trust level** | The fraction of a trusted Tendermint validator set that must sign for a skipped header to be accepted. At least 1/3. |
+| **UlnConfig** | LayerZero v2's per-application security struct: `confirmations`, required and optional DVN counts, threshold, and lists. |
+| **VAA** | Verified Action Approval. Wormhole's self-contained signed message. 1,048 bytes for a 13-signature token transfer. |
+| **Wrapped asset** | A destination-chain token whose value derives entirely from a liability recorded on the source chain. |
+
+### 25.2 Architecture Diagrams
+
+| Diagram | Source | Description |
+|---------|--------|-------------|
+| Bridge Timeline | [`diagrams/bridge-timeline.mmd`](diagrams/bridge-timeline.mmd) | Interoperability milestones and every major loss, 2013 to 2026 |
+| Determinism Boundary | [`diagrams/determinism-boundary.mmd`](diagrams/determinism-boundary.mmd) | Why a chain cannot read another chain, and the only escape |
+| Participants | [`diagrams/participants.mmd`](diagrams/participants.mmd) | The six roles, and which of them can steal |
+| Asset Designs | [`diagrams/asset-designs.mmd`](diagrams/asset-designs.mmd) | Lock-and-mint, burn-and-mint, and liquidity network side by side |
+| Wrapped Asset Lifecycle | [`diagrams/wrapped-asset-lifecycle.mmd`](diagrams/wrapped-asset-lifecycle.mmd) | WBTC mint, circulation, redemption, and the governance backstop |
+| Trust Model Spectrum | [`diagrams/trust-model-spectrum.mmd`](diagrams/trust-model-spectrum.mmd) | External, optimistic, light client, and native verification |
+| Message Passing Lifecycle | [`diagrams/message-passing-lifecycle.mmd`](diagrams/message-passing-lifecycle.mmd) | The six primitives every protocol implements |
+| IBC Light Client Stack | [`diagrams/ibc-light-client-stack.mmd`](diagrams/ibc-light-client-stack.mmd) | The ICS layers, ClientState, ConsensusState, and the relayer's role |
+| IBC Packet Lifecycle | [`diagrams/ibc-packet-lifecycle.mmd`](diagrams/ibc-packet-lifecycle.mmd) | An ICS-20 transfer from escrow through proof to acknowledgement |
+| VAA Structure | [`diagrams/vaa-structure.mmd`](diagrams/vaa-structure.mmd) | Wormhole's byte layout and the 1,048-byte arithmetic |
+| LayerZero Security Stack | [`diagrams/layerzero-security-stack.mmd`](diagrams/layerzero-security-stack.mmd) | DVN configuration, and the KelpDAO one-of-one |
+| CCTP Burn and Mint | [`diagrams/cctp-burn-mint.mmd`](diagrams/cctp-burn-mint.mmd) | Circle's issuer-attested transfer, standard and fast |
+| HTLC Atomic Swap | [`diagrams/htlc-atomic-swap.mmd`](diagrams/htlc-atomic-swap.mmd) | Two chains, one secret, and why T1 must exceed T2 |
+| Exploit Root Causes | [`diagrams/exploit-root-causes.mmd`](diagrams/exploit-root-causes.mmd) | 3.356 billion dollars by classification, technique, and control |
+| Intent Lifecycle | [`diagrams/intent-lifecycle.mmd`](diagrams/intent-lifecycle.mmd) | Fill in 2 seconds, bundle, then dispute inside an 1,800 second window |
+| Superchain Interop | [`diagrams/superchain-interop.mmd`](diagrams/superchain-interop.mmd) | Initiating and executing messages, Identifiers, and safety levels |
+
+### 25.3 Wire Format Reference
+
+| Protocol | Field | Bytes | Offset | Type |
+|----------|-------|------:|-------:|------|
+| **Hyperlane** | version | 1 | 0 | uint8 |
+| | nonce | 4 | 1 | uint32 |
+| | origin | 4 | 5 | uint32 domain |
+| | sender | 32 | 9 | bytes32 |
+| | destination | 4 | 41 | uint32 domain |
+| | recipient | 32 | 45 | bytes32 |
+| | body | dynamic | 77 | bytes |
+| **LayerZero v2** | version | 1 | 0 | uint8, = 1 |
+| | nonce | 8 | 1 | uint64 |
+| | srcEid | 4 | 9 | uint32 |
+| | sender | 32 | 13 | bytes32 |
+| | dstEid | 4 | 45 | uint32 |
+| | receiver | 32 | 49 | bytes32 |
+| | guid | 32 | 81 | bytes32 |
+| | message | dynamic | 113 | bytes |
+| **CCTP v1** | version | 4 | 0 | uint32 |
+| | sourceDomain | 4 | 4 | uint32 |
+| | destinationDomain | 4 | 8 | uint32 |
+| | nonce | 8 | 12 | uint64 |
+| | sender | 32 | 20 | bytes32 |
+| | recipient | 32 | 52 | bytes32 |
+| | destinationCaller | 32 | 84 | bytes32 |
+| | messageBody | dynamic | 116 | bytes |
+| **CCTP v2** | nonce | 32 | 12 | bytes32 |
+| | minFinalityThreshold | 4 | 140 | uint32 |
+| | finalityThresholdExecuted | 4 | 144 | uint32 |
+| | messageBody | dynamic | 148 | bytes |
+| **CCTP BurnMessage** | version | 4 | 0 | uint32 |
+| | burnToken | 32 | 4 | bytes32 |
+| | mintRecipient | 32 | 36 | bytes32 |
+| | amount | 32 | 68 | uint256 |
+| | messageSender | 32 | 100 | bytes32 |
+| **Wormhole VAA header** | version | 1 | 0 | uint8 |
+| | guardianSetIndex | 4 | 1 | uint32 |
+| | lenSignatures | 1 | 5 | uint8 |
+| | signatures | 66 each | 6 | index 1 + sig 65 |
+| **Wormhole VAA body** | timestamp | 4 | - | uint32 |
+| | nonce | 4 | - | uint32 |
+| | emitterChain | 2 | - | uint16 |
+| | emitterAddress | 32 | - | bytes32 |
+| | sequence | 8 | - | uint64 |
+| | consistencyLevel | 1 | - | uint8 |
+| | payload | dynamic | - | bytes |
+
+### 25.4 Constants and Values Read From Source or Chain
+
+| Constant | Value | Source |
+|----------|-------|--------|
+| Wormhole guardian set index | 7 | `getCurrentGuardianSetIndex()`, Ethereum, 30 Aug 2026 |
+| Wormhole guardian count | 19 (`0x13`) | `getGuardianSet(7)`, Ethereum, 30 Aug 2026 |
+| Wormhole quorum | 13 | `(19 * 2) / 3 + 1` |
+| Wormhole guardian set expiry | 0, never | `getGuardianSet(7)` |
+| Wormhole amount precision | 8 decimals, capped at `MaxUint64` | Token bridge whitepaper 0003 |
+| Wormhole `PAUSE_DURATION` | 5 days | Token bridge whitepaper 0003 |
+| WBTC `totalSupply()` | 116,132.18273272 BTC | Ethereum block 25,870,387, 30 Aug 2026 |
+| cbBTC `totalSupply()` | 50,233.5543617 BTC | Ethereum block 25,870,387, 30 Aug 2026 |
+| tBTC `totalSupply()` | 4,308.94167961 BTC | Ethereum block 25,870,387, 30 Aug 2026 |
+| LayerZero `PACKET_VERSION` | 1 | `PacketV1Codec.sol` |
+| LayerZero `MAX_COUNT` | 127 | `UlnBase.sol`, `(uint8.max - 1) / 2` |
+| LayerZero `NIL_DVN_COUNT` | 255 | `UlnBase.sol` |
+| KelpDAO `requiredDVNCount` | 1 | Incident configuration, 18 Apr 2026 |
+| KelpDAO required DVN | `0x589dedbd617e0cbcb916a9223f4d1300c294236b` | Incident configuration |
+| CCTP `depositForBurn` selector | `0x6fd3504e` | keccak256 of the signature, computed |
+| CCTP `BURN_MESSAGE_LEN` | 132 | `BurnMessage.sol` |
+| Poly Network colliding selector | `0x41973cd9` | keccak256 of both signatures, computed |
+| CCIP `EVM_EXTRA_ARGS_V1_TAG` | `0x97a657c9` | `Client.sol` |
+| CCIP `GENERIC_EXTRA_ARGS_V2_TAG` | `0x181dcf10` | `Client.sol` |
+| CCIP `SVM_EXTRA_ARGS_V1_TAG` | `0x1f3b3aba` | `Client.sol` |
+| CCIP `NO_EXECUTION_TAG` | `0xeba517d2` | `Client.sol` |
+| CCIP default gas limit | 200,000 | `Client.sol`, empty `extraArgs` |
+| CCIP `SVM_EXTRA_ARGS_MAX_ACCOUNTS` | 64 | `Client.sol` |
+| Nomad `LEGACY_STATUS_NONE` | `bytes32(0)` | `Replica.sol` |
+| Nomad `LEGACY_STATUS_PROVEN` | `bytes32(uint256(1))` | `Replica.sol` |
+| Nomad `LEGACY_STATUS_PROCESSED` | `bytes32(uint256(2))` | `Replica.sol` |
+| IBC `trustLevel` bounds | at least 1/3, at most 1 | ICS-07 |
+| SP1 Groth16 verify gas | ~230,000 | `solidity-ibc-eureka` benchmarks |
+| SP1 proof generation | ~25 seconds | `solidity-ibc-eureka` benchmarks |
+| IBC `recvPacket`, individual | ~524,474 gas | `solidity-ibc-eureka` benchmarks |
+| IBC `recvPacket`, 25 aggregated | ~179,471 gas average | `solidity-ibc-eureka` benchmarks |
+| `ecrecover` gas | 3,000 | EVM precompile 0x01 |
+
+### 25.5 Loss Reference
+
+| Incident | Date | Loss (USD) | Classification | Technique |
+|----------|------|-----------:|----------------|-----------|
+| Ronin Bridge | 2022-03-23 | 624,000,000 | Key Compromise | Validator key compromised |
+| Poly Network | 2021-08-10 | 611,000,000 | Access Control | Improper access control |
+| Binance Bridge | 2022-10-06 | 570,000,000 | Bridge and Cross-Chain | Proof verifier bug |
+| Portal (Wormhole) | 2022-02-02 | 326,000,000 | Input Validation | Signature verification flaw |
+| Kelp | 2026-04-18 | 293,000,000 | Bridge and Cross-Chain | Cross-chain message spoofing |
+| Nomad | 2022-08-01 | 190,000,000 | Bridge and Cross-Chain | Forged proof |
+| Multichain | 2023-07-07 | 126,000,000 | Key Compromise | Validator key compromised |
+| Harmony Bridge | 2022-06-23 | 100,000,000 | Key Compromise | Validator key compromised |
+| Heco Bridge | 2023-11-22 | 86,600,000 | Key Compromise | Hot wallet key compromised |
+| Orbit Bridge | 2023-12-31 | 81,700,000 | Input Validation | Signature verification flaw |
+| Qubit | 2022-01-28 | 80,000,000 | Input Validation | Missing input validation |
+| pNetwork | 2021-10-04 | 13,000,000 | Bridge and Cross-Chain | Spoofed event log |
+| Ronin Bridge (second) | 2024-08-06 | 12,000,000 | Access Control | Uninitialized proxy |
+| LiFi Finance | 2024-07-16 | 9,730,000 | Access Control | Token approval abuse |
+
+### 25.6 Primary Sources
+
+- Cosmos IBC specification: ICS-002 client semantics, ICS-004 channel and packet semantics, ICS-007 Tendermint client, ICS-020 fungible token transfer
+- Cosmos SDK IBC documentation, including the IBC v2 (Eureka) architecture
+- `cosmos/solidity-ibc-eureka`, contracts and gas benchmarks
+- `wormhole-foundation/wormhole`, whitepaper 0003 (Token Bridge), and Wormhole protocol documentation on VAAs and Guardians
+- Wormhole core bridge `0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B` on Ethereum, `getCurrentGuardianSetIndex()` and `getGuardianSet(i)` for `i` from 0 to 8, read at block 25,870,387 on 30 August 2026
+- `LayerZero-Labs/LayerZero-v2`: `PacketV1Codec.sol`, `UlnBase.sol`; LayerZero v2 protocol documentation
+- LayerZero v1 Endpoint `0x66A71Dcef29A0fFBDBE3c6a460a3B5BC225Cd675`, first carrying code at Ethereum block 14,388,880, 15 March 2022, established by binary search over `eth_getCode` against an archive node
+- `circlefin/evm-cctp-contracts`: `Message.sol`, `MessageV2.sol`, `BurnMessage.sol`; Circle CCTP developer documentation
+- `smartcontractkit/chainlink-ccip`: `Client.sol`, `RateLimiter.sol`; Chainlink CCIP architecture and token documentation
+- `hyperlane-xyz/hyperlane-monorepo`: `Message.sol`, `IInterchainSecurityModule.sol`; Hyperlane modular security documentation
+- `nomad-xyz/monorepo`: `Replica.sol`, showing both the vulnerable initialisation pattern and the current fix, whose `acceptableRoot` opens with the `LEGACY_STATUS_PROVEN` branch
+- Axelar network documentation on validators, key shares, and gateways
+- BIP-199, Hashed Time-Locked Contract transactions, Sean Bowe and Daira Hopwood
+- EIP-7683 (Cross Chain Intents) and EIP-7930 (Interoperable Addresses), Ethereum ERCs repository
+- Across Protocol documentation: intents architecture, actors, fees, security model, Across V4, and the stated bundle proposal interval of 1.5 hours minimum
+- `across-protocol/contracts`: `V3SpokePoolInterface.sol`, which declares `FundsDeposited` under `EVENTS` and `V3FundsDeposited` under `LEGACY EVENTS`
+- Across `HubPool` `0xc186fA914353c44b2E33eBE05f21846F1048bEda` on Ethereum, `liveness()` = `0x708` = 1,800 seconds and `bondAmount()` = 0.45 ETH, read 30 August 2026
+- Optimism developer documentation on Superchain interoperability
+- Espresso Systems documentation on HotShot and the confirmation layer, including the Live on Espresso chains reference
+- DefiLlama hacks dataset, 1,245 incidents, read 30 August 2026
+- rekt.news incident write-ups and leaderboard for Ronin, Wormhole, Nomad, Harmony, Poly Network, BNB Bridge, and KelpDAO, which values KelpDAO at 290,000,000 dollars against DefiLlama's 293,000,000
+- Chainalysis 2026 Crypto Crime Report
+- Selector collisions and hashes in this document were computed with a local Keccak-256 implementation and verified against known values; ICS-20 denomination traces were hashed with SHA-256, giving `27394FB0...` for `transfer/channel-0/uatom`
+
+---
+
+## 26. Key Takeaways
+
+**1. A chain cannot read another chain because reading is not deterministic.** Consensus requires every validator to compute the same state root from the same inputs, and a network call returns different answers to different validators. Every bridge exists to turn an external fact into calldata that a deterministic function can check. The whole field is a consequence of one constraint.
+
+**2. The verification function is the entire security model, and everything else is packaging.** Ask what function the destination chain runs to decide whether a claim about the source is true. Signature threshold, merkle proof against a trusted header, full light client, succinct proof, or optimistic delay. The wrapped token, the interface, and the branding are downstream of that single answer.
+
+**3. Bridges fail rarely and completely.** The average bridge incident costs 38.1 million dollars against 14.6 million for every other kind, a ratio of 2.62 to 1. Ten incidents account for 89.6% of all 3.356 billion dollars lost. Value concentrated in one address changes what an attacker will invest to find one bug.
+
+**4. Key compromise and access control are 48.7% of bridge losses, and neither is a cryptography problem.** Ronin's fifth signature came from an allowlist entry granted in November 2021 for a purpose that ended in December 2021. Harmony's threshold was two. Poly Network's executor was allowed to call its own configuration store. No primitive was broken in any of them.
+
+**5. Zero must never be a valid value in a security check.** Nomad's `initialize` wrote `confirmAt[bytes32(0)] = 1`, and `bytes32(0)` is also the status of every message that was never proven, so `acceptableRoot` returned true for everything. 190 million dollars left over 2.5 hours, most of it taken by people copying a transaction from Etherscan.
+
+**6. Verifying data is worthless without verifying provenance.** Wormhole's Solana program read a real-looking secp256k1 result from an account the attacker created, because it used `load_instruction_at` rather than the checked variant that validates the sysvar address. 120,000 wETH followed. The same class of error appears on every runtime where the caller supplies accounts.
+
+**7. A verifier is only as honest as its inputs.** KelpDAO's DVN signed truthfully about a burn that never happened, because its RPC infrastructure had been compromised and served it forged chain data. Signer diversity is not data path diversity, and a `requiredDVNCount` of 1 provides neither.
+
+**8. Rate limits and on-chain invariants would have bounded six of the seven largest incidents.** A token bucket with a capacity and a refill rate converts a total loss into a partial one against bugs nobody has found. A destination that checks that its inbound nonce does not exceed the source's outbound nonce, or that a burn does not exceed total supply, spends a few thousand gas to catch the two most recent 300-million-dollar failures.
+
+**9. Light client verification does not remove trust, it bounds it by the counterparty chain.** IBC's assumption is exactly the two chains' consensus and nothing else, which is why its relayers are permissionless and why misbehaviour freezes a client instead of stealing from it. The cost is a trusting period below the unbonding period, expiring clients on idle channels, and a client implementation per consensus algorithm.
+
+**10. Succinct proofs removed the gas argument for trusting committees.** An SP1 Groth16 verification of a Tendermint light client update costs roughly 230,000 gas, against roughly 39,000 for a 13-signature check. Aggregating 25 IBC packets into one proof cuts the average cost by about 66%. A 191,000 gas premium is not a defensible reason to add nineteen trusted operators to a system holding hundreds of millions of dollars.
+
+**11. Burn-and-mint is not safer than lock-and-mint; it removes the loss ceiling.** Lock-and-mint caps a failure at the escrow balance. Burn-and-mint has no escrow, so BNB Bridge's forged proof minted 2,000,000 BNB and the only limit was how long the chain took to halt, about 90 minutes.
+
+**12. Intents win the retail flow because they move the risk off the user.** A solver fills in roughly 2 seconds from its own inventory, absorbing the reorg risk the user would otherwise wait out, and settlement amortises verification across a bundle proposed every 1.5 hours minimum and challengeable for 1,800 seconds. If settlement fails the solver is unpaid and the user is already paid, which is a better place for the failure than the alternative.
+
+**13. Bridge revenue scales with flow and bridge risk scales with stock, and that arithmetic does not work.** A 1 billion dollar escrow turning over 5% a month at 5 basis points earns 25,000 dollars a month against a 1 billion dollar liability. No bridge can insure that, and none does. Intent networks invert the ratio by holding inventory sized to flow.
+
+**14. The best bridge is the one you do not need.** USDC moves through CCTP because Circle can already mint. Rollups in the same family move value through shared settlement and burn-mint with no escrow at all. Someone who wants exposure rather than a specific token wants a trade, not a bridge. The bridge is required only when a specific asset must exist on a chain whose issuer will not put it there.
+
+**15. Bitcoin remains the unsolved case.** No finality gadget and no validator set means no light client, so every route from BTC into a smart contract terminates in a custodian or a threshold group. 116,132.18 BTC of WBTC, 50,233.55 of cbBTC, and 4,308.94 of tBTC all sit behind that fact, and the oracle prices the Bitcoin while the market prices the promise.
+
+---
+
+*Figures in this document are drawn from protocol source code, official specifications, published incident analyses, and on-chain reads performed on 30 August 2026 at Ethereum block 25,870,387. Loss statistics come from the DefiLlama hacks dataset read the same day and move as incidents are added and reclassified. Protocol parameters set by governance change without notice. The arithmetic is reproducible from the stated inputs.*

@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Sell["Market maker sells 1 base-case call<br/>at 25% implied volatility for $3.021141"]
+
+    Sell --> H0["Immediately buy delta:<br/>0.532560 x 100 = 53.256 shares<br/>Short call delta -53.26 plus<br/>long stock +53.26 = neutral"]
+
+    H0 --> Loop{"Underlying moves"}
+
+    Loop -->|"S rises to 101"| Up["Call delta rises to 0.587274.<br/>Short call is now short 58.73 deltas<br/>against 53.26 shares held.<br/>BUY 5.47 more shares - at a higher price."]
+    Loop -->|"S falls to 99"| Dn["Call delta falls to 0.476668.<br/>Too many shares held.<br/>SELL shares - at a lower price."]
+
+    Up --> Cost["Every rehedge buys high or sells low.<br/>That is the cost of being short gamma.<br/>Theta is the compensation."]
+    Dn --> Cost
+
+    Cost --> PnL["P&L over the option's life<br/>= integral of 0.5 x GAMMA x S^2<br/>x (realised var - implied var) dt"]
+
+    subgraph Sim["Simulated: sell at 25% IV, rehedge 750 times, 5,000 paths"]
+        direction TB
+        S1["Realised vol 15%:<br/>mean +1.1488, sd 0.3275"]
+        S2["Realised vol 25%:<br/>mean -0.0000, sd 0.0919"]
+        S3["Realised vol 35%:<br/>mean -1.1518, sd 0.5197"]
+        S4["Vega x change in vol:<br/>11.3992 x 0.10 = 1.1399.<br/>Simulation matches the<br/>vega estimate to under 1%."]
+    end
+
+    PnL --> Sim
+
+    subgraph Disc["The residual that cannot be hedged away"]
+        direction TB
+        R1["Rehedge 30 times: sd 0.4513<br/>on a 3.02 premium"]
+        R2["Rehedge 750 times: sd 0.0938"]
+        R3["sd falls as 1/sqrt(n).<br/>Continuous hedging does not exist.<br/>The residual is priced into the spread."]
+    end
+
+    Sim --> Disc
+
+    subgraph Agg["Aggregate dealer gamma"]
+        direction TB
+        G1["Short gamma across the street:<br/>dealers buy as the market rises<br/>and sell as it falls.<br/>Moves are AMPLIFIED."]
+        G2["Long gamma across the street:<br/>dealers sell into strength<br/>and buy weakness.<br/>Moves are DAMPENED."]
+        G3["Caveat: aggregate dealer<br/>positioning is estimated by<br/>third parties from trade prints.<br/>It is not published."]
+    end
+
+    Disc --> Agg
+
+    style Sell fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Cost fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Sim fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Disc fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Agg fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

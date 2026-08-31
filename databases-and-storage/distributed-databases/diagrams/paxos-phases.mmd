@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant P as Proposer
+    participant A1 as Acceptor 1
+    participant A2 as Acceptor 2
+    participant A3 as Acceptor 3
+    participant L as Learner
+
+    Note over P,A3: PHASE 1 - PREPARE. Find out what has already been accepted.
+
+    P->>A1: prepare(n=5)
+    P->>A2: prepare(n=5)
+    P->>A3: prepare(n=5)
+
+    Note over A1,A3: P1a. Accept a proposal numbered n only if<br/>you have not responded to a prepare > n.<br/>maxPromised and (acceptedNum, acceptedVal)<br/>MUST survive a crash. Fsync them.
+
+    A1-->>P: promise(n=5, accepted=none)
+    A2-->>P: promise(n=5, accepted=(3, "x=3"))
+    A3--xP: no reply, crashed or partitioned
+
+    Note over P: Majority of 3 is 2. Got 2 promises.<br/>P2c: some acceptor accepted (3,"x=3").<br/>The proposer MUST now propose "x=3",<br/>not its own value.
+
+    Note over P,A3: PHASE 2 - ACCEPT. Get the value durable on a majority.
+
+    P->>A1: accept(n=5, v="x=3")
+    P->>A2: accept(n=5, v="x=3")
+    P->>A3: accept(n=5, v="x=3")
+
+    A1-->>P: accepted(5)
+    A2-->>P: accepted(5)
+
+    Note over P: 2 of 3 accepted. The value is CHOSEN.<br/>No acceptor knows this yet. Chosen is a<br/>property of the global state, not of any node.
+
+    P->>L: learn("x=3", n=5)
+    A1->>L: accepted(5, "x=3")
+    A2->>L: accepted(5, "x=3")
+
+    Note over L: A learner concludes the value is chosen<br/>when it hears accepted() from a majority.
+
+    Note over P,A3: LIVENESS. Two proposers can duel forever:<br/>p completes phase 1 with n1, q completes phase 1<br/>with n2 > n1, p's phase 2 is rejected, p retries<br/>with n3 > n2, q's phase 2 is rejected. Forever.<br/>FLP says no deterministic fix exists.<br/>The practical fix is one distinguished proposer.

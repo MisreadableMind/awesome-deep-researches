@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+
+    Note over C,S: HTTP/2 push, RFC 9113 section 8.4
+    C->>S: SETTINGS with SETTINGS_ENABLE_PUSH = 1 (the default)
+    C->>S: HEADERS stream 1: GET /index.html
+
+    Note over S: Server decides the page needs style.css.<br/>It cannot know whether the client<br/>already has it cached.
+
+    S->>C: PUSH_PROMISE on stream 1, promising stream 2<br/>carries the synthesised request field block<br/>:method GET, :scheme https,<br/>:authority www.example.com, :path /style.css
+    Note over C: Stream 2 enters reserved (remote).<br/>The client MAY cancel with<br/>RST_STREAM, but the bytes are<br/>already on the wire.
+
+    S->>C: HEADERS stream 1: 200 OK, then DATA stream 1 (the HTML)
+    S->>C: HEADERS stream 2: 200 OK, then DATA stream 2 (the CSS)
+
+    alt Client already had style.css cached
+        C->>S: RST_STREAM stream 2, CANCEL
+        Note over C,S: Wasted bandwidth. The cancel arrives<br/>one round trip after the push began.<br/>Chrome telemetry: over 60% of<br/>received pushes went unused.
+    else Client needed it
+        Note over C: Response is placed in the<br/>per-connection push cache,<br/>then matched to the request<br/>when the parser reaches the link.
+    end
+
+    Note over C,S: HTTP/3 keeps the machinery:<br/>MAX_PUSH_ID (0x0d) sets the ceiling,<br/>PUSH_PROMISE (0x05) announces,<br/>a unidirectional push stream (type 0x01)<br/>carries the response,<br/>CANCEL_PUSH (0x03) withdraws it.<br/>Default MAX_PUSH_ID is absent, so<br/>push is off until the client opts in.
+
+    Note over C,S: Replacement: 103 Early Hints, RFC 8297.<br/>The server sends an informational<br/>response with Link: rel=preload<br/>headers. The CLIENT then decides<br/>what to fetch, consulting its own cache.

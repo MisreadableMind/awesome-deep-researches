@@ -1,0 +1,65 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Edge["Intake Edge"]
+        IVR["Telephony and IVR"]
+        Mob["Mobile and web FNOL"]
+        EDI["Partner EDI<br/>ACORD loss notices,<br/>X12 837 for medical bills"]
+        Tel["Telematics and IoT ingest"]
+    end
+
+    subgraph Core["Claims Administration System"]
+        Intake["FNOL and setup service<br/>claim number, features,<br/>formula reserve"]
+        FSM["Claim state machine<br/>open, reopened, closed with payment,<br/>closed without payment"]
+        Fin["Financial ledger<br/>reserve, payment, recovery<br/>transactions by feature and coverage"]
+        Doc["Document and media store<br/>photos, statements, estimates,<br/>correspondence"]
+        Diary["Diary and workflow engine<br/>statutory clocks, follow-up tasks,<br/>supervisor referrals"]
+        Auth["Authority service<br/>who may reserve, pay,<br/>deny or close at what amount"]
+    end
+
+    subgraph Ext["External Services"]
+        Pol["Policy administration<br/>as-of-date-of-loss snapshot"]
+        Est["Estimating platforms<br/>Xactimate, CCC, Mitchell, Audatex"]
+        Val["Valuation services<br/>total loss market comparables"]
+        Fraud["Fraud scoring and<br/>ISO ClaimSearch match"]
+        Med["Medical bill review<br/>and PPO repricing"]
+        Pay["Payment rails<br/>print and mail draft, ACH,<br/>virtual card, real-time payment"]
+        Vend["Vendor network<br/>IA firms, contractors, tow,<br/>rental, restoration, experts"]
+        Leg["Legal e-billing<br/>LEDES invoices, UTBMS codes"]
+    end
+
+    subgraph Down["Downstream"]
+        Res["Actuarial reserving<br/>triangles by accident year"]
+        Stat["Statutory and regulatory reporting<br/>Schedule P, state data calls,<br/>Section 111 to CMS"]
+        BI["Claims analytics<br/>leakage audit, cycle time,<br/>file quality scoring"]
+        Rein["Reinsurance cession<br/>and large-loss notification"]
+    end
+
+    IVR --> Intake
+    Mob --> Intake
+    EDI --> Intake
+    Tel --> Intake
+
+    Intake --> FSM --> Fin
+    FSM --> Diary
+    FSM --> Doc
+    Fin --> Auth
+
+    Pol --> Intake
+    Est --> FSM
+    Val --> FSM
+    Fraud --> Intake
+    Med --> Fin
+    Fin --> Pay
+    FSM --> Vend
+    Leg --> Fin
+
+    Fin --> Res --> Stat
+    Fin --> Rein
+    Doc --> BI
+    Diary --> BI
+
+    style Edge fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Core fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Ext fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Down fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

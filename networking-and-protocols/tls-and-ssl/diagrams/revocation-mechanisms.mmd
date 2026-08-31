@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph CRL["1. CRL, RFC 5280"]
+        direction TB
+        R1["The CA publishes a signed list<br/>of revoked serial numbers with<br/>thisUpdate and nextUpdate"]
+        R2["Problem: an active CA's CRL<br/>reaches megabytes. Clients will<br/>not download it on the hot path."]
+        R3["Sharding: SC-063 permits<br/>partitioned CRLs, each shard<br/>at its own URL, referenced from<br/>cRLDistributionPoints"]
+        R4["Status since 15 Mar 2024:<br/>MANDATORY for public CAs"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph OCSP["2. OCSP, RFC 6960"]
+        direction TB
+        O1["Client asks the CA's responder<br/>about one serial number.<br/>Signed answer: good, revoked,<br/>or unknown."]
+        O2["Privacy failure: the responder<br/>learns which site the user visits,<br/>in real time, by IP address"]
+        O3["Availability failure: hard-fail<br/>breaks the web when a responder<br/>is down, so clients soft-fail,<br/>so an attacker just blocks it"]
+        O4["Latency failure: an extra DNS<br/>lookup plus HTTP round trip<br/>blocking the handshake,<br/>about 100 ms at the median"]
+        O5["Status since 15 Mar 2024:<br/>OPTIONAL. Let's Encrypt shut its<br/>responders down 6 Aug 2025."]
+        O1 --> O2 --> O3 --> O4 --> O5
+    end
+
+    subgraph Staple["3. OCSP stapling, RFC 6066 status_request"]
+        direction TB
+        S1["The SERVER fetches its own OCSP<br/>response periodically and attaches<br/>it to the handshake"]
+        S2["Fixes privacy and latency.<br/>Does not fix the attacker who<br/>simply omits the staple,<br/>because omission is legal."]
+        S3["OCSP Must-Staple, RFC 7633:<br/>an extension in the certificate<br/>that makes omission fatal.<br/>Almost nobody deployed it;<br/>Let's Encrypt stopped issuing it<br/>on 7 May 2025."]
+        S4["RFC 6961 multi-stapling:<br/>obsoleted by RFC 9846"]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    subgraph Push["4. Push the whole set to the client"]
+        direction TB
+        P1["Chrome CRLSets: a curated list<br/>Google selects. About 600 kB<br/>covering roughly 35,000 of<br/>4 million revocations, near 1%.<br/>Explicitly an emergency tool."]
+        P2["Firefox CRLite: a partitioned<br/>two-level cascade of Ribbon filters<br/>covering ALL revocations.<br/>Default from Firefox 137;<br/>OCSP for DV certificates disabled<br/>in Firefox 142."]
+        P3["CRLite numbers: 300 kB per day<br/>average, 4 MB full snapshot every<br/>45 days, updates every 12 hours.<br/>About 1000x cheaper than<br/>downloading the CRLs."]
+        P4["Measured effect: median TLS<br/>handshake time fell from 56.4 ms<br/>to 39.9 ms as CRLite reached<br/>80% of Firefox users"]
+        P1 --> P2 --> P3 --> P4
+    end
+
+    subgraph Short["5. The actual answer: short lifetimes"]
+        direction TB
+        T1["398 days to 200 (Mar 2026)<br/>to 100 (Mar 2027) to 47 (Mar 2029)"]
+        T2["ACME Renewal Information,<br/>RFC 9773: the CA moves a client's<br/>renewal window earlier when it<br/>needs bulk replacement"]
+        T3["Consequence: revocation becomes<br/>a coordination problem between<br/>CA and client, not a lookup<br/>problem at handshake time"]
+        T1 --> T2 --> T3
+    end
+
+    CRL --> OCSP --> Staple --> Push --> Short
+
+    style CRL fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style OCSP fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Staple fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Push fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Short fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

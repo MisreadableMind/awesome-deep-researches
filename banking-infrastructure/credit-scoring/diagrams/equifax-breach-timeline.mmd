@@ -1,0 +1,19 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+timeline
+    title Equifax 2017 breach - from patch to settlement
+    section Vulnerability
+        7 Mar 2017 : Apache discloses CVE-2017-5638 in Struts 2 : Patch available the same day : Remote code execution via a crafted Content-Type header
+        8-9 Mar 2017 : Equifax circulates an internal notice to apply the patch : The dispute portal is not patched
+    section Intrusion
+        13 May 2017 : Attackers enter through the online consumer dispute portal : The portal is an internet-facing Struts application
+        13 May to 29 Jul 2017 : Roughly 76 days undetected : 48 databases accessed : No effective segmentation between the portal and the data stores : Expired certificate on a traffic inspection device leaves egress unmonitored
+    section Detection
+        29 Jul 2017 : Renewed certificate restores traffic inspection : Suspicious traffic detected immediately : Access blocked
+        30 Jul 2017 : Struts patched, 145 days after it was available
+    section Disclosure
+        7 Sep 2017 : Public disclosure : Approximately 147 million US consumers : 15.2 million UK records : About 19,000 Canadians : Names, dates of birth, Social Security numbers, addresses, driver licence numbers, some payment card numbers, and consumer dispute documents
+    section Consequences
+        30 Aug 2018 : GAO-18-559 published : Failures in identification of the vulnerable system, detection of the intrusion, segmentation of database access, and data governance
+        22 Jul 2019 : Global settlement with the FTC, CFPB and 50 states and territories : At least 575 million USD, up to 700 million : 300 million consumer fund plus up to 125 million more : 175 million to 48 states, DC and Puerto Rico : 100 million CFPB civil penalty
+        Jan 2020 : Six additional free credit reports a year for seven years, on top of the statutory one

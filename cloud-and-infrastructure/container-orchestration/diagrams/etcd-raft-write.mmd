@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant API as kube-apiserver
+    participant L as etcd leader
+    participant F1 as etcd follower 1
+    participant F2 as etcd follower 2
+    participant W as Watchers<br/>(scheduler, controllers,<br/>kubelets via apiserver)
+
+    Note over L,F2: Raft: 3 members, quorum = 2.<br/>Heartbeat 100ms, election timeout 1000ms.<br/>Ongaro and Ousterhout, USENIX ATC 2014.
+
+    API->>L: Txn: compare mod_revision(key)==0,<br/>then Put /registry/deployments/prod/web
+
+    Note over L: 1. Append entry to local WAL.<br/>Entry = (term, index, command)
+    L->>L: fsync WAL to disk
+
+    par Replicate
+        L->>F1: AppendEntries(term, prevLogIndex,<br/>prevLogTerm, entries, leaderCommit)
+        F1->>F1: consistency check, append, fsync
+        F1-->>L: success, matchIndex
+    and
+        L->>F2: AppendEntries(...)
+        F2->>F2: consistency check, append, fsync
+        F2-->>L: success, matchIndex
+    end
+
+    Note over L: 2. Majority (2 of 3) have the entry.<br/>commitIndex advances. The entry is COMMITTED.<br/>A committed entry can never be lost or reordered.
+
+    L->>L: 3. Apply to the MVCC backend (bbolt).<br/>Global revision counter increments.<br/>Key gets create_revision, mod_revision, version
+    L-->>API: OK, header.revision = 4412907
+
+    API-->>API: resourceVersion = "4412907"
+
+    L->>W: 4. Watch event {type: PUT, kv, prev_kv}<br/>on every open watch stream past that revision
+
+    Note over API,W: The apiserver's watch cache absorbs this fan-out.<br/>5,000 kubelets do not each hold an etcd watch.
+
+    rect rgb(255, 235, 238)
+        Note over L,F2: Failure: leader's disk fsync exceeds<br/>the election timeout. Followers stop<br/>hearing heartbeats, term increments,<br/>a new leader is elected, writes stall for<br/>hundreds of milliseconds to seconds.<br/>Cause of most "the cluster froze" reports.
+    end

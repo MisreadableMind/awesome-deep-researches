@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph INV["The invariant"]
+        A["Reserves x = 1,000 WETH, y = 4,000,000 USDC<br/>k = x * y = 4.000e9<br/>marginal price P = y/x = 4,000 USDC per WETH"]
+    end
+
+    subgraph TRADE["A 10 WETH sell"]
+        B["Input 10 WETH<br/>fee haircut: 10 * 997/1000 = 9.97 effective"]
+        C["amountOut = 10*997*4,000,000 / (1,000*1,000 + 10*997)<br/>= 39,880,000,000 / 1,009,970<br/>= 39,486.32 USDC"]
+        D["Execution price = 39,486.32 / 10 = 3,948.63<br/>1.284% below the 4,000 spot"]
+    end
+
+    subgraph SPLIT["Where the 1.284% goes"]
+        E["0.294% is the fee, retained in reserves<br/>k rises from 4.000000e9 to 4.000119e9"]
+        F["0.990% is curve impact<br/>the same trade with zero fee<br/>returns 39,603.96 USDC"]
+    end
+
+    subgraph AFTER["New state"]
+        G["Reserves 1,010 WETH, 3,960,513.68 USDC<br/>new marginal price 3,921.30<br/>the pool now quotes 1.97% below the market"]
+        H["An arbitrageur buys WETH back<br/>until the pool matches the market<br/>the profit is the LPs' loss"]
+    end
+
+    A --> B --> C --> D
+    D --> E
+    D --> F
+    C --> G --> H
+
+    style A fill:#e3f2fd,stroke:#1565c0
+    style C fill:#fff3e0,stroke:#e65100
+    style H fill:#ffebee,stroke:#c62828

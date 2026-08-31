@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trading["Trading path - one session, one owner"]
+        T1["EMS or algo container"]
+        T2["Order entry FIX session<br/>35=D orders, 35=8 reports"]
+        T3["Venue"]
+        T1 --> T2 --> T3
+        T3 --> T2 --> T1
+    end
+
+    subgraph Drop["Drop copy - read only, parallel, different consumers"]
+        D1["Drop copy FIX session<br/>same 35=8 ExecutionReports,<br/>often the same bytes"]
+        D2["Risk desk<br/>real-time position and exposure"]
+        D3["Compliance surveillance<br/>market abuse, wash trades,<br/>layering detection"]
+        D4["Middle office and books<br/>independent copy for reconciliation"]
+        D5["Clearing member<br/>watching a client it guarantees"]
+        D1 --> D2
+        D1 --> D3
+        D1 --> D4
+        D1 --> D5
+    end
+
+    T3 -.->|"copied at the venue or the broker"| D1
+    T2 -.->|"or tee'd inside the broker"| D1
+
+    subgraph Post["Post-trade chain - the second half of the protocol"]
+        P1["TradeCaptureReport 35=AE<br/>the trade as a fact,<br/>independent of the order"]
+        P2["AllocationInstruction 35=J<br/>split the block across<br/>the underlying funds"]
+        P3["AllocationInstructionAck 35=P<br/>accepted, rejected,<br/>or block level received"]
+        P4["Confirmation 35=AK<br/>economics per account:<br/>net money, commission, fees, tax"]
+        P5["ConfirmationAck 35=AU<br/>affirmed by the buy side"]
+        P6["SettlementInstructions 35=T<br/>where the securities and cash go"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    end
+
+    Trading --> Post
+    P6 --> CSD["Custodian, CCP, CSD<br/>DTC, Euroclear, LCH, CME Clearing"]
+
+    Note1["Drop copy is not a backup session.<br/>It cannot send orders and it has no<br/>authority over the order. It is a<br/>second pair of eyes with no hands."]
+    Note2["The reason drop copy exists is<br/>separation of duty. The desk that<br/>trades should not be the only desk<br/>that can see what it traded."]
+
+    Drop -.-> Note1
+    Drop -.-> Note2
+
+    style Trading fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Drop fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Post fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Note1 fill:#fce4ec,stroke:#880e4f
+    style Note2 fill:#fce4ec,stroke:#880e4f

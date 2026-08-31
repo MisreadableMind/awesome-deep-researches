@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as Dana
+    participant B as Browser
+    participant SP1 as SP 1  CRM<br/>session participant
+    participant IdP as IdP<br/>session authority
+    participant SP2 as SP 2  Wiki
+    participant SP3 as SP 3  Analytics<br/>currently down
+
+    Note over U,SP3: Three SP sessions and one IdP session exist.<br/>Each SP session is a cookie the IdP cannot touch.<br/>Each was created from an AuthnStatement carrying<br/>SessionIndex=_a71c4b9e2f0d3856.
+
+    U->>SP1: Clicks Sign out
+    SP1->>SP1: Destroy the local session.<br/>Look up the stored NameID and SessionIndex.
+    SP1-->>B: 302 with a signed LogoutRequest<br/>on the HTTP-Redirect binding
+    B->>IdP: LogoutRequest arrives
+
+    IdP->>IdP: Verify. Identify every other session<br/>participant for this SessionIndex.
+
+    IdP-->>B: 302 LogoutRequest to SP 2
+    B->>SP2: destroy session
+    SP2-->>B: 302 LogoutResponse Success
+    B->>IdP: LogoutResponse from SP 2
+
+    IdP-->>B: 302 LogoutRequest to SP 3
+    B->>SP3: connection times out
+    Note over SP3: SP 3 is unreachable. The browser<br/>is now sitting on a blank page in the<br/>middle of a redirect chain.
+
+    alt The user waits
+        SP3-->>B: nothing
+        B->>IdP: user gives up and closes the tab
+        Note over IdP: The chain is abandoned. SP 2 is logged out,<br/>SP 3 is not, and the IdP never returns a<br/>LogoutResponse to SP 1. SP 1 shows a spinner.
+    else The IdP times out and gives up
+        IdP->>IdP: Abandon SP 3
+        IdP-->>B: 302 LogoutResponse to SP 1 with<br/>StatusCode urn:oasis:names:tc:SAML:2.0:status:PartialLogout
+        B->>SP1: LogoutResponse
+        SP1-->>U: Signed out, with a warning<br/>almost no product surfaces
+    end
+
+    rect rgb(255, 235, 238)
+        Note over U,SP3: WHY THIS FAILS IN PRACTICE
+        Note over U,SP3: Front channel logout is a serial chain of<br/>third-party redirects. Every SP must be online,<br/>must implement SLO, must not be blocked by<br/>third-party cookie policy, and must return in time.<br/>One failure stalls the rest. Back channel logout<br/>over SOAP avoids the browser but needs a direct<br/>path to every SP and cannot clear a browser cookie<br/>the SP stores only client side.
+    end
+
+    Note over U,SP3: What deployments do instead: short<br/>SessionNotOnOrAfter values, so sessions expire<br/>on their own, plus revocation at the IdP so the<br/>NEXT authentication fails. Existing SP sessions<br/>are allowed to die of old age.

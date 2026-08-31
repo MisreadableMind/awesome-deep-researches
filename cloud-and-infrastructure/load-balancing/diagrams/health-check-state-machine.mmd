@@ -1,0 +1,67 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    direction TB
+
+    [*] --> Initial: target registered
+
+    Initial: INITIAL
+    Initial: ALB reason code Elb.InitialHealthChecking.<br/>Receives no traffic. One passing check<br/>is enough to enter service, regardless<br/>of HealthyThresholdCount.
+
+    Healthy: HEALTHY
+    Healthy: Receives its share of traffic.<br/>Counters reset on every success.
+
+    TransDown: TRANSITIONALLY DOWN
+    TransDown: One or more checks have failed but<br/>fewer than the fall threshold.<br/>HAProxy switches to fastinter here<br/>if configured, probing more often<br/>to decide faster.
+
+    Unhealthy: UNHEALTHY
+    Unhealthy: Removed from the pool.<br/>ALB default UnhealthyThresholdCount is 2<br/>at a 30 s interval, so detection takes<br/>up to 60 s plus one 5 s timeout.<br/>HAProxy default fall is 3 at 2 s.
+
+    TransUp: TRANSITIONALLY UP
+    TransUp: Passing again but below the rise<br/>threshold. ALB default HealthyThresholdCount<br/>is 5. HAProxy default rise is 2.
+
+    SlowStart: SLOW START
+    SlowStart: Weight ramps from near zero to full.<br/>ALB slow_start.duration_seconds accepts<br/>30 to 900 s, default 0 meaning disabled.<br/>Envoy ramps by TimeFactor to the power<br/>of 1/aggression, aggression default 1.0,<br/>min_weight_percent default 10%.
+
+    Draining: DRAINING
+    Draining: Deregistering. No new connections.<br/>ALB and NLB deregistration_delay defaults<br/>to 300 s, range 0 to 3600 s.
+
+    Ejected: EJECTED BY OUTLIER DETECTION
+    Ejected: Envoy defaults are 5 consecutive 5xx,<br/>base_ejection_time 30 s multiplied by the<br/>number of times this host has been ejected,<br/>capped at max_ejection_time 300 s.<br/>max_ejection_percent default 10%,<br/>which stops the whole pool being ejected.
+
+    Initial --> Healthy: first check passes
+    Healthy --> TransDown: a check fails
+    TransDown --> Healthy: a check passes,<br/>counter resets
+    TransDown --> Unhealthy: fall consecutive failures
+    Unhealthy --> TransUp: a check passes
+    TransUp --> Unhealthy: a check fails,<br/>counter resets
+    TransUp --> SlowStart: rise consecutive successes
+    SlowStart --> Healthy: window elapses
+    Healthy --> Ejected: passive signal,<br/>no probe involved
+    Ejected --> SlowStart: ejection time elapses
+    Healthy --> Draining: operator deregisters
+    Draining --> [*]: delay elapses
+
+    note right of TransDown
+        The flapping problem lives in these two
+        transitional states. A server oscillating
+        just below capacity passes and fails
+        alternate checks. With rise=1 and fall=1
+        it enters and leaves the pool every
+        interval, and every entry hands it a
+        thundering herd under least connections.
+        Three defences: hysteresis (rise and fall
+        above 1), jitter (HAProxy spread-checks,
+        Envoy max_ejection_time_jitter), and
+        an exponential ejection multiplier so a
+        repeat offender stays out longer each time.
+    end note
+
+    note right of Unhealthy
+        Fail-open is the last defence.
+        If every target in a group is unhealthy,
+        ALB routes to all of them anyway,
+        on the assumption that a broken health
+        check is more likely than a fleet that
+        is simultaneously dead.
+    end note

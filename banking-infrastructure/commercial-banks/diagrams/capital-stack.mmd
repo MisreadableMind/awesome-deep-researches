@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Numerator["THE NUMERATOR - regulatory capital, in loss-absorbing order"]
+        direction TB
+        CET1["COMMON EQUITY TIER 1<br/>common shares, retained earnings,<br/>qualifying AOCI<br/>MINUS goodwill, other intangibles,<br/>certain deferred tax assets<br/>Absorbs losses first, while the bank lives"]
+        AT1["ADDITIONAL TIER 1<br/>perpetual non-cumulative preferred,<br/>contingent convertibles<br/>Absorbs at a trigger or in resolution"]
+        T2["TIER 2<br/>subordinated debt with at least<br/>5 years to maturity, 51 bn industry-wide<br/>Absorbs only in a gone-concern"]
+        CET1 --> AT1 --> T2
+    end
+
+    subgraph Stack["THE REQUIREMENT STACK - US, CET1 basis"]
+        direction TB
+        S1["4.5% minimum CET1<br/>12 CFR 217.10, hard floor"]
+        S2["+ Stress capital buffer<br/>floor 2.5%, set annually from the<br/>supervisory stress test.<br/>Range in effect from 1 Oct 2025:<br/>2.5% to 11.5%"]
+        S3["+ G-SIB surcharge, if applicable<br/>minimum 1.0%, as in effect 1 Jan 2026<br/>JPMorgan 4.5%, Citigroup 3.5%,<br/>Goldman 3.5%, BofA 3.0%,<br/>Morgan Stanley 3.0%"]
+        S4["+ Countercyclical buffer<br/>0% in the US since inception"]
+        S5["= Total CET1 requirement<br/>7.0% at PNC and Truist,<br/>11.4% at Goldman Sachs,<br/>11.5% at JPMorgan,<br/>11.6% at Citigroup,<br/>11.8% at Morgan Stanley"]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph Consequence["WHAT BREACHING THE BUFFER DOES"]
+        C1["Buffer is not a minimum.<br/>Falling into it does not close the bank."]
+        C2["It caps the eligible retained income<br/>that may leave: dividends, buybacks,<br/>discretionary bonuses"]
+        C3["Deeper into the buffer,<br/>tighter the cap, to 0%"]
+        C1 --> C2 --> C3
+    end
+
+    Numerator --> Ratio["CET1 ratio = CET1 capital / risk-weighted assets"]
+    Stack --> Ratio
+    Ratio --> Consequence
+
+    style Numerator fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Stack fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Consequence fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Ratio fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

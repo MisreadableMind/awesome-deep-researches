@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant U as User / StatefulSet
+    participant API as kube-apiserver
+    participant PROV as external-provisioner<br/>(sidecar)
+    participant CTRL as CSI controller plugin<br/>(Deployment)
+    participant SAN as Storage backend<br/>(EBS, Ceph, NetApp)
+    participant ATT as external-attacher<br/>(sidecar)
+    participant KUBELET as kubelet
+    participant NODE as CSI node plugin<br/>(DaemonSet)
+
+    U->>API: CREATE PersistentVolumeClaim<br/>storageClassName: gp3<br/>accessModes: [ReadWriteOnce]<br/>resources.requests.storage: 20Gi
+
+    Note over API: StorageClass gp3 has<br/>volumeBindingMode: WaitForFirstConsumer,<br/>so nothing happens yet. This is deliberate:<br/>the volume must be created in the zone<br/>the pod lands in, not before.
+
+    U->>API: CREATE Pod referencing the PVC
+    Note over API: Scheduler's VolumeBinding plugin picks a node,<br/>reserves the PV in preBind, and annotates the PVC<br/>with volume.kubernetes.io/selected-node
+
+    PROV-->>API: watch: PVC needs provisioning
+    PROV->>CTRL: CreateVolume(name, capacity_range,<br/>volume_capabilities, parameters,<br/>accessibility_requirements)
+    CTRL->>SAN: create a 20 GiB volume in us-east-1c
+    SAN-->>CTRL: vol-0a1b2c3d4e5f
+    CTRL-->>PROV: Volume{volume_id, capacity_bytes,<br/>accessible_topology}
+    PROV->>API: CREATE PersistentVolume,<br/>bind it to the PVC (claimRef)
+
+    ATT-->>API: watch: VolumeAttachment created<br/>for this PV and node
+    ATT->>CTRL: ControllerPublishVolume(volume_id,<br/>node_id, volume_capability)
+    CTRL->>SAN: attach vol-0a1b2c3d4e5f to i-0f9e8d7c
+    SAN-->>CTRL: attached as /dev/xvdba
+    CTRL-->>ATT: publish_context
+    ATT->>API: VolumeAttachment.status.attached = true
+
+    KUBELET->>NODE: NodeStageVolume(volume_id,<br/>staging_target_path, volume_capability)
+    Note over NODE: Format if unformatted (mkfs.ext4),<br/>then mount at a GLOBAL per-node path.<br/>Done ONCE per node per volume.
+    NODE-->>KUBELET: ok
+
+    KUBELET->>NODE: NodePublishVolume(volume_id,<br/>staging_target_path, target_path,<br/>readonly)
+    Note over NODE: Bind-mount the staging path into<br/>the pod's directory under<br/>/var/lib/kubelet/pods/UID/volumes/...<br/>Done once per POD.
+    NODE-->>KUBELET: ok
+
+    KUBELET->>KUBELET: start containers with the<br/>volume bind-mounted at volumeMounts.mountPath
+
+    rect rgb(255, 243, 224)
+        Note over KUBELET,SAN: Teardown reverses exactly:<br/>NodeUnpublishVolume, NodeUnstageVolume,<br/>ControllerUnpublishVolume, DeleteVolume.<br/>reclaimPolicy Delete destroys the backend volume.<br/>reclaimPolicy Retain leaves it and the PV goes Released.
+    end

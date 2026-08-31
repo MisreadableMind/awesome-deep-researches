@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Conceptual["The book as it is drawn"]
+        direction TB
+        A3["ASK 190.06  |  400 sh  |  2 orders"]
+        A2["ASK 190.05  |  900 sh  |  4 orders"]
+        A1["ASK 190.04  |  1,200 sh |  3 orders   [BEST OFFER]"]
+        SPREAD["SPREAD = 0.01<br/>MIDPOINT = 190.035"]
+        B1["BID 190.03  |  2,500 sh |  6 orders   [BEST BID]"]
+        B2["BID 190.02  |  1,800 sh |  5 orders"]
+        B3["BID 190.01  |  3,100 sh |  9 orders"]
+        A3 --- A2 --- A1 --- SPREAD --- B1 --- B2 --- B3
+    end
+
+    subgraph Queue["One price level, expanded"]
+        direction LR
+        Q1["Order 8811<br/>800 sh<br/>t=09:41:02.118<br/>HEAD"] --> Q2["Order 8907<br/>1,000 sh<br/>t=09:41:02.446"] --> Q3["Order 9014<br/>700 sh<br/>t=09:41:03.902<br/>TAIL"]
+    end
+
+    subgraph Impl["How it is actually built"]
+        direction TB
+        I1["Price levels: a flat array indexed by<br/>(price - floor) / tick.<br/>O(1) lookup, no tree, no hashing."]
+        I2["Each level: an intrusive doubly linked list.<br/>Order nodes carry prev/next pointers,<br/>so cancel is O(1) with no search."]
+        I3["Order id -> node: an open-addressed hash map<br/>or a dense slot array keyed by the<br/>exchange's own order reference number."]
+        I4["Best bid / best offer: two cached integers,<br/>advanced or retreated on level emptying.<br/>Never recomputed by scanning."]
+        I5["Aggregate size per level: a counter,<br/>maintained incrementally.<br/>Never summed on read."]
+        I1 --> I2 --> I3 --> I4 --> I5
+    end
+
+    Conceptual --> Queue --> Impl
+
+    style Conceptual fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Queue fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Impl fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
