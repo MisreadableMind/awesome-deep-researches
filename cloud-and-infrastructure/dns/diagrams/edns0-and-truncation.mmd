@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["A response is larger than<br/>what the client said it can take."]
+
+    subgraph Legacy["1987 to 1999: the 512-octet world"]
+        L1["RFC 1035 caps a UDP DNS message<br/>at 512 octets, chosen because<br/>576 octets is the minimum IPv4<br/>datagram every host must reassemble,<br/>minus headers."]
+        L2["Over 512, the server sets TC=1,<br/>truncates, and the client<br/>reasks over TCP. TCP was assumed<br/>rare and treated as optional<br/>by many operators. It is not<br/>optional: RFC 7766 makes it required."]
+    end
+
+    subgraph Ext["1999 onward: EDNS0, RFC 6891"]
+        E1["The client appends an OPT<br/>pseudo-record to the ADDITIONAL section.<br/>NAME is root, TYPE is 41."]
+        E2["The CLASS field is reused as<br/>the requestor's UDP payload size.<br/>The TTL field is reused as<br/>extended RCODE, version, and<br/>the DO bit that asks for DNSSEC."]
+        E3["RDATA carries options:<br/>3 NSID, 8 EDNS Client Subnet,<br/>10 DNS Cookies, 15 Extended DNS Errors"]
+    end
+
+    subgraph Frag["2013 to 2020: the fragmentation problem"]
+        F1["Resolvers advertised 4096.<br/>DNSSEC responses grew past<br/>the 1500-octet Ethernet MTU.<br/>IP fragments get dropped by<br/>middleboxes and can be spoofed."]
+        F2["DNS Flag Day 2020:<br/>operators agreed on 1232 octets,<br/>which is 1280, the IPv6 minimum MTU,<br/>minus 48 octets of IPv6 and UDP headers.<br/>Measured today: root 4096,<br/>org TLD 1232, 1.1.1.1 1232,<br/>8.8.8.8 and 9.9.9.9 512."]
+    end
+
+    subgraph Now["What happens now"]
+        N1["Response fits the advertised size<br/>-> one UDP datagram, done"]
+        N2["Response exceeds it<br/>-> TC=1, minimal ADDITIONAL section,<br/>client retries over TCP or TLS"]
+        N3["Measured: root NS with DNSSEC<br/>is 1,097 octets over TCP.<br/>Force 512 and it comes back<br/>503 octets with TC=1 and the<br/>ADDITIONAL section cut from 27<br/>records to 13."]
+    end
+
+    Start --> Legacy --> Ext --> Frag --> Now
+    N1 -.-> N3
+    N2 --> N3
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Legacy fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Ext fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Frag fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Now fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Root["' . ' the root<br/>zero-length label, always present,<br/>almost never typed.<br/>1,438 delegations, 2.25 MB zone,<br/>serial 2026083001"]
+
+    subgraph TLDs["Top-level domains - 1,438 of them"]
+        direction LR
+        Com["com<br/>gTLD, Verisign<br/>~161 M registrations"]
+        Org["org<br/>gTLD, Public Interest Registry"]
+        Uk["uk<br/>ccTLD, Nominet"]
+        Xn["xn--p1ai<br/>IDN ccTLD for .rf in Cyrillic<br/>one of 151 IDN TLDs"]
+        Arpa["arpa<br/>infrastructure TLD<br/>holds in-addr.arpa and ip6.arpa"]
+    end
+
+    subgraph SLD["Second level - where registrants live"]
+        direction LR
+        Wp["wikipedia.org"]
+        Ex["example.com"]
+        CoUk["co.uk<br/>a delegation, not a suffix.<br/>The tree does not care<br/>how many labels deep you are."]
+    end
+
+    subgraph Leaf["Below that - the zone owner's business"]
+        direction LR
+        Www["www.wikipedia.org"]
+        Srv["_xmpp-client._tcp.jabber.org<br/>underscore labels carry<br/>service metadata"]
+        Deep["a.b.c.d.e.f.example.com<br/>127 labels max,<br/>255 octets max in wire form,<br/>253 characters as text"]
+    end
+
+    Root --> Com
+    Root --> Org
+    Root --> Uk
+    Root --> Xn
+    Root --> Arpa
+
+    Com --> Ex
+    Org --> Wp
+    Uk --> CoUk
+
+    Wp --> Www
+    Org --> Srv
+    Ex --> Deep
+
+    Rule["Reading rule: a fully qualified name is read<br/>right to left, root first.<br/>www.wikipedia.org. is<br/>root, then org, then wikipedia, then www."]
+
+    Root -.-> Rule
+
+    style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style TLDs fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SLD fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Leaf fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Rule fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Op as Zone operator
+    participant Pri as Primary server<br/>holds the master copy
+    participant Sec as Secondary server<br/>serves the same zone
+    participant R as Resolver
+
+    Op->>Pri: Edit the zone, bump the SOA serial<br/>2026060420 -> 2026060421
+
+    Pri->>Sec: NOTIFY - RFC 1996<br/>opcode 4, "the zone changed"
+    Sec-->>Pri: NOTIFY response
+
+    Note over Sec: NOTIFY is a hint, not the data.<br/>The secondary still verifies.
+
+    Sec->>Pri: SOA query
+    Pri-->>Sec: SOA serial 2026060421
+
+    alt Serial is higher and the secondary has the previous copy
+        Sec->>Pri: IXFR - RFC 1995<br/>"send me the delta from 2026060420"<br/>signed with TSIG
+        Pri-->>Sec: Deletions, then additions,<br/>bracketed by SOA records.<br/>A few kilobytes for a<br/>million-record zone.
+    else No previous copy, or the primary cannot compute a delta
+        Sec->>Pri: AXFR - RFC 5936<br/>full zone transfer over TCP<br/>signed with TSIG
+        Pri-->>Sec: SOA, every record, SOA again.<br/>The whole zone. For com,<br/>this is tens of gigabytes.
+    end
+
+    Note over Pri,Sec: TSIG - RFC 8945 - is a shared-secret HMAC<br/>over the message plus a timestamp.<br/>Symmetric, so it authenticates the channel,<br/>not the data. SIG(0) and mutual TLS<br/>are the asymmetric alternatives.
+
+    Sec->>Sec: Optional: verify the ZONEMD record<br/>RFC 8976, a digest of the whole zone,<br/>which catches a transfer that<br/>authenticated but arrived incomplete
+
+    R->>Sec: Query
+    Sec-->>R: AA=1 answer, identical to the primary's
+
+    Note over Op,Sec: SOA timers govern the fallback when<br/>NOTIFY is lost: REFRESH 43200 says how often<br/>to poll, RETRY 7200 how soon to try again after<br/>a failure, EXPIRE 1209600 when to stop<br/>answering entirely - 14 days of primary<br/>outage before a secondary goes silent.

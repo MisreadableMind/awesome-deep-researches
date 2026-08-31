@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Addr["Addresses - the original job"]
+        A["A - type 1 - RFC 1035<br/>RDATA: 4 octets, one IPv4 address<br/>dyna.wikimedia.org. 180 IN A 185.15.58.224"]
+        AAAA["AAAA - type 28 - RFC 3596<br/>RDATA: 16 octets, one IPv6 address<br/>Named for four times the size of A"]
+    end
+
+    subgraph Alias["Aliasing - three answers to one problem"]
+        CNAME["CNAME - type 5<br/>RDATA: one domain name.<br/>Rule: if a CNAME exists at a name,<br/>NO other data may exist there.<br/>Therefore never at a zone apex,<br/>which already carries SOA and NS."]
+        DNAME["DNAME - type 39 - RFC 6672<br/>Redirects an entire subtree,<br/>not one name. Synthesises CNAMEs."]
+        ALIASr["ALIAS / ANAME / CNAME flattening<br/>NOT a protocol record.<br/>A vendor feature: the authoritative<br/>server resolves the target itself<br/>and serves the resulting A/AAAA<br/>at the apex. Route 53 alias,<br/>Cloudflare CNAME flattening,<br/>DNSimple ALIAS. Never on the wire."]
+    end
+
+    subgraph Infra["Zone infrastructure"]
+        SOA["SOA - type 6<br/>MNAME RNAME SERIAL REFRESH RETRY EXPIRE MINIMUM<br/>wikipedia.org. SOA ns0.wikimedia.org.<br/>hostmaster.wikimedia.org.<br/>2026060420 43200 7200 1209600 3600<br/>MINIMUM is the negative-caching TTL, RFC 2308"]
+        NS["NS - type 2<br/>RDATA: one nameserver name.<br/>Appears twice: in the parent as a<br/>delegation, in the child as apex data.<br/>Neither copy is signed at the parent."]
+    end
+
+    subgraph Svc["Service location and policy"]
+        MX["MX - type 15<br/>RDATA: 16-bit preference + exchange name.<br/>Lower preference wins. No IP addresses,<br/>and the target must not be a CNAME."]
+        SRV["SRV - type 33 - RFC 2782<br/>RDATA: priority weight port target<br/>_service._proto.name<br/>Carries a port. MX cannot."]
+        TXT["TXT - type 16<br/>RDATA: one or more length-prefixed<br/>strings, each at most 255 octets.<br/>Holds SPF, DKIM, DMARC, ACME<br/>challenges, and vendor proof-of-ownership."]
+        CAA["CAA - type 257 - RFC 8659<br/>RDATA: flags + tag + value<br/>issue, issuewild, iodef.<br/>Binds a name to the CAs allowed<br/>to issue for it. CAs must check it."]
+        HTTPS["SVCB and HTTPS - types 64 and 65 - RFC 9460<br/>Priority, target, and key=value params:<br/>alpn, port, ipv4hint, ech.<br/>Solves apex aliasing properly<br/>and carries Encrypted Client Hello."]
+    end
+
+    subgraph Sec["DNSSEC types"]
+        DNSKEY["DNSKEY 48, RRSIG 46,<br/>DS 43, NSEC 47, NSEC3 50,<br/>CDS 59, CDNSKEY 60"]
+    end
+
+    Addr --> Alias
+    Infra --> Svc
+    Svc --> Sec
+
+    style Addr fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Alias fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Infra fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Svc fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Sec fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    TA["TRUST ANCHOR - configured, not fetched<br/>Root KSK-2017, key tag 20326, algorithm 8<br/>Published by IANA at data.iana.org/root-anchors<br/>KSK-2024, key tag 38696, is published in the<br/>root zone alongside it as of Aug 2026<br/>and has not yet taken over signing."]
+
+    subgraph RootZ["Root zone - serial 2026083001"]
+        RK["DNSKEY 257 - KSK 20326<br/>signs only the DNSKEY RRset"]
+        RZ["DNSKEY 256 - ZSK<br/>signs everything else in the zone"]
+        RDS["com. IN DS 19718 13 2 8ACBB0CD...<br/>a hash of the child's KSK,<br/>signed by the root ZSK"]
+    end
+
+    subgraph ComZ["com zone - signed with algorithm 13, ECDSA P-256"]
+        CK["DNSKEY 257 - KSK<br/>its hash is the DS above"]
+        CZ["DNSKEY 256 - ZSK"]
+        CDS["cloudflare.com. IN DS 2371 13 2 32996839...<br/>signed by the com ZSK"]
+    end
+
+    subgraph LeafZ["cloudflare.com zone"]
+        LK["DNSKEY 257 - KSK, key tag 2371"]
+        LZ["DNSKEY 256 - ZSK, key tag 34505"]
+        LA["cloudflare.com. A 104.16.133.229<br/>RRSIG A 13 2 300 ... 34505 cloudflare.com."]
+    end
+
+    Result["Resolver sets AD=1.<br/>Break any link and the answer<br/>is SERVFAIL, not a warning.<br/>DNSSEC has no soft-fail."]
+
+    TA -->|"matches by hash"| RK
+    RK -->|"signs"| RZ
+    RZ -->|"signs"| RDS
+    RDS -->|"is the hash of"| CK
+    CK -->|"signs"| CZ
+    CZ -->|"signs"| CDS
+    CDS -->|"is the hash of"| LK
+    LK -->|"signs"| LZ
+    LZ -->|"signs"| LA
+    LA --> Result
+
+    Split["Why two keys.<br/>The KSK is long, rarely rotated, and its<br/>hash sits in the parent, so changing it<br/>needs a parent transaction. The ZSK is<br/>short, rotated on a schedule, and changing<br/>it needs nothing outside the zone.<br/>Splitting them makes routine rotation<br/>a local operation."]
+
+    RK -.-> Split
+
+    Denial["Proving a name does NOT exist.<br/>NSEC lists the next name in canonical order,<br/>which lets anyone walk the whole zone.<br/>NSEC3 hashes the names instead, at the cost<br/>of CPU and a GPU-crackable hash.<br/>RFC 9276 says use NSEC3 with 0 extra<br/>iterations and an empty salt, because the<br/>iterations only ever hurt the server.<br/>The root uses plain NSEC: its contents<br/>are public anyway."]
+
+    Result --> Denial
+
+    style TA fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style RootZ fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ComZ fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style LeafZ fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Result fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Split fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Denial fill:#eceff1,stroke:#37474f,stroke-width:2px

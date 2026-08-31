@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Root["DNS turns a small mistake into a<br/>total outage, because everything<br/>starts with a lookup and a cached<br/>wrong answer outlives the fix."]
+
+    subgraph Modes["The five ways DNS takes a service down"]
+        M1["1. The empty or wrong record<br/>Automation writes a state nobody<br/>reviewed. AWS, 19-20 Oct 2025:<br/>a race between two DynamoDB DNS<br/>Enactors left dynamodb.us-east-1<br/>with an empty record. 2h52m of<br/>DynamoDB impact, cascading through<br/>EC2 and Lambda until 14:20 PDT."]
+        M2["2. The unreachable authoritative server<br/>Meta, 4 Oct 2021: a backbone<br/>maintenance command isolated the<br/>data centres. Meta's DNS servers<br/>are built to withdraw their own<br/>BGP routes when they cannot reach<br/>the data centres, so they did.<br/>The servers were healthy and<br/>unreachable. Facebook, Instagram,<br/>and WhatsApp vanished for hours."]
+        M3["3. The DDoS on the authoritative layer<br/>Dyn, 21 Oct 2016: three Mirai<br/>waves, 11:10-13:20, 15:50-17:00,<br/>and 20:00-22:10 UTC. Twitter,<br/>Netflix, Reddit, GitHub, Spotify<br/>all unreachable, none of them<br/>attacked. Single-provider DNS<br/>was the shared dependency."]
+        M4["4. The expired or broken signature<br/>DNSSEC has no soft-fail. A lapsed<br/>RRSIG or a DS that no longer matches<br/>the child's KSK produces SERVFAIL<br/>at every validating resolver,<br/>which is roughly 38% of users."]
+        M5["5. The resolver, not the zone<br/>Cloudflare 1.1.1.1, 14 Jul 2025:<br/>a dormant config error from 6 June<br/>withdrew the resolver prefixes<br/>globally at 21:48 UTC. 62 minutes.<br/>The zones were fine. The<br/>road to them was not."]
+    end
+
+    subgraph Why["Why recovery is slow even after the fix"]
+        W1["Caches hold the wrong answer for<br/>the TTL you set BEFORE the incident.<br/>You cannot retroactively lower it."]
+        W2["Negative answers are cached too,<br/>for the SOA MINIMUM. An NXDOMAIN<br/>published by accident with a<br/>3600-second MINIMUM is an hour."]
+        W3["Every layer below the resolver has<br/>its own cache: the OS, the browser,<br/>the JVM, the connection pool,<br/>the service mesh sidecar."]
+        W4["Recovery traffic is a thundering herd.<br/>Every client that failed retries at<br/>once against a cold cache, and the<br/>fixed system falls over again."]
+    end
+
+    subgraph Fix["What actually reduces the blast radius"]
+        X1["Two independent DNS providers with<br/>separate NS delegations. Dyn's<br/>customers who had one stayed up."]
+        X2["Registry lock on the delegation,<br/>so no EPP command can move it."]
+        X3["Short TTLs before a change, restored<br/>after. TTL is a pre-commitment,<br/>not a runtime lever."]
+        X4["Validate the zone before publishing:<br/>ZONEMD for completeness, signature<br/>expiry alarms with weeks of margin,<br/>and a canary resolver that fails<br/>the deploy rather than the users."]
+        X5["Serve-stale on your own resolvers,<br/>RFC 8767, so an upstream outage<br/>degrades instead of stopping."]
+    end
+
+    Root --> Modes --> Why --> Fix
+
+    style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Modes fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Why fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

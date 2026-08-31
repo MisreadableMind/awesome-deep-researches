@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Reg as Registrant
+    participant RAR as Registrar<br/>ICANN-accredited
+    participant RY as Registry<br/>runs the TLD
+    participant DNSop as DNS operator<br/>Route 53, Cloudflare, self-hosted
+    participant Zone as TLD zone<br/>published to the world
+
+    Reg->>RAR: "I want example.com"<br/>pays 10 to 60 USD per year
+
+    RAR->>RY: EPP over TLS, port 700 - RFC 5734<br/>login, then check name="example.com"
+    RY-->>RAR: avail="1"
+
+    RAR->>RY: create - RFC 5731<br/>name, period 1y, ns list,<br/>registrant/admin/tech contacts,<br/>authInfo code
+    RY-->>RAR: 1000 command completed successfully<br/>crDate, exDate
+
+    Note over RAR,RY: The registry now holds the authoritative<br/>record. The registrar holds a<br/>sponsorship relationship, and can<br/>be replaced without the name moving.
+
+    RY->>Zone: Write the delegation:<br/>example.com. NS ns1.dnsop.net.<br/>plus glue if the nameserver name<br/>is inside example.com
+
+    Reg->>DNSop: Create the zone, add records
+    DNSop-->>Reg: Nameserver names
+
+    Reg->>RAR: Point the delegation at these names
+    RAR->>RY: update - add/rem ns
+    RY->>Zone: New NS set, next zone generation
+
+    Note over Reg,Zone: Two databases now describe one name.<br/>The registry says who may change it.<br/>The DNS operator says what it resolves to.<br/>Compromising either one is enough.
+
+    Reg->>RAR: Enable registry lock
+    RAR->>RY: update - add status<br/>serverUpdateProhibited,<br/>serverTransferProhibited,<br/>serverDeleteProhibited
+    Note over RY: Now no EPP command can change<br/>the name without an out-of-band<br/>human authentication step.<br/>This is the control that stops<br/>registrar-account hijacking.
+
+    Reg->>RAR: Transfer to another registrar
+    RAR-->>Reg: authInfo code
+    Note over RAR,RY: The gaining registrar sends transfer op="request"<br/>with the authInfo. The losing registrar has<br/>5 days to ack or nack, and silence approves.<br/>60-day lock after creation or a prior transfer.
