@@ -28,10 +28,10 @@ The deep-dive documents we wish existed before we started building. Each one goe
 |-------|:-:|--------|
 | [Commercial Banks: fractional reserve, balance sheets, lending](banking-infrastructure/commercial-banks/) | 20 | ✅ Done |
 | [Central Banking & Monetary Policy: Fed, ECB, rate mechanics](banking-infrastructure/central-banking/) | 16 | ✅ Done |
-| Core Banking Systems: Temenos, FIS, Mambu ledger architecture | | 🗓️ Planned |
+| [Core Banking Systems: Temenos, FIS, Mambu ledger architecture](banking-infrastructure/core-banking-systems/) | 16 | ✅ Done |
 | [KYC / AML Systems: identity verification, transaction monitoring](banking-infrastructure/kyc-aml-systems/) | 14 | ✅ Done |
-| Credit Scoring: FICO, credit bureaus, scoring models | | 🗓️ Planned |
-| Deposit Insurance: FDIC, DGS | | 🗓️ Planned |
+| [Credit Scoring: FICO, credit bureaus, scoring models](banking-infrastructure/credit-scoring/) | 16 | ✅ Done |
+| [Deposit Insurance: FDIC, DGS](banking-infrastructure/deposit-insurance/) | 16 | ✅ Done |
 
 ### 📈 [`capital-markets/`](capital-markets/) — How securities are traded, cleared, settled
 
@@ -61,7 +61,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | Topic | 📊 | Status |
 |-------|:-:|--------|
 | [Insurance Underwriting: risk pools, premium pricing](insurance/underwriting/) | 14 | ✅ Done |
-| Reinsurance: Lloyd's, treaty vs facultative | | 🗓️ Planned |
+| [Reinsurance: Lloyd's, treaty vs facultative](insurance/reinsurance/) | 16 | ✅ Done |
 | Claims Processing: FNOL, adjustment, subrogation | | 🗓️ Planned |
 
 ### ☁️ [`cloud-and-infrastructure/`](cloud-and-infrastructure/) — How cloud platforms operate
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      41 researches (660 diagrams)
-Planned:   10 researches
+Done:      45 researches (724 diagrams)
+Planned:   6 researches
 Categories: 10
 ```
 
