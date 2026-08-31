@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Cons["CONSUMER<br/>Supplies the data by borrowing.<br/>Pays nothing for it.<br/>Owns nothing.<br/>Statutory free file access<br/>via AnnualCreditReport.com"]
+
+    Furn["FURNISHER<br/>Pays its own reporting cost:<br/>Metro 2 build, transmission,<br/>dispute handling staff, e-OSCAR fees.<br/>Receives NO payment for the data.<br/>Buys back the aggregate as a report."]
+
+    CRA["CREDIT REPORTING AGENCY<br/>Equifax 6.08bn USD FY2025<br/>TransUnion 4.58bn USD FY2025<br/>Experian 8.45bn USD FY to Mar 2026<br/>Sells: reports, scores, attributes,<br/>marketing lists, verification,<br/>fraud and identity products"]
+
+    FICOco["FICO<br/>1.99bn USD FY to Sep 2025<br/>Scores segment 458.9m in Q3 FY2026, up 41%<br/>Owns no data. Licenses an algorithm.<br/>Royalty per score."]
+
+    Resell["TRI-MERGE RESELLER<br/>Buys three reports, merges,<br/>sells one file to the mortgage lender.<br/>Historically also marked up the score."]
+
+    Lender["LENDER / USER<br/>Pays per report and per score.<br/>Recovers it in the credit price."]
+
+    Borrower["BORROWER AT CLOSING<br/>Credit report and score fees appear<br/>on the Loan Estimate and Closing Disclosure"]
+
+    Cons -->|"borrows"| Furn
+    Furn -->|"Metro 2 data, free"| CRA
+    CRA -->|"report"| Resell
+    FICOco -->|"score algorithm"| CRA
+    FICOco -->|"direct licence since 2025"| Resell
+    Resell -->|"tri-merge + 3 scores"| Lender
+    CRA -->|"direct report and score"| Lender
+    Lender -->|"fee"| CRA
+    Lender -->|"fee"| Resell
+    Resell -->|"royalty"| FICOco
+    CRA -->|"royalty"| FICOco
+    Lender -->|"cost passed through"| Borrower
+    CRA -->|"consumer subscriptions"| Cons
+
+    Price["FICO MORTGAGE PRICING, 2026<br/>Performance model, Classic FICO:<br/>4.95 USD per score royalty<br/>+ 33 USD funded loan fee per borrower per score<br/><br/>FICO Score 10T only:<br/>0.99 USD per score<br/>+ 65 USD funded loan fee per borrower<br/><br/>Per-score-only model:<br/>10 USD per score, which FICO states was<br/>the average price the bureaus charged<br/>resellers in 2025 for Classic FICO"]
+
+    FICOco -.-> Price
+
+    style Cons fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style CRA fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style FICOco fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Lender fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Price fill:#eceff1,stroke:#37474f,stroke-width:2px

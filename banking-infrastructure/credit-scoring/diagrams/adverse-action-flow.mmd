@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    App["Application received"]
+
+    App --> Complete{"Application<br/>complete?"}
+    Complete -->|No| Incomp["Notify of incompleteness<br/>or take adverse action.<br/>If adverse action:<br/>30 days from the action"]
+    Complete -->|Yes| Decide{"Decision"}
+
+    Decide -->|Approve| Done["No notice required"]
+    Decide -->|Counteroffer| CO["Counteroffer<br/>If not accepted or used<br/>within 90 days, an adverse<br/>action notice is due"]
+    Decide -->|Deny or unfavourable change| AA["ADVERSE ACTION<br/>Notice within 30 days of<br/>receiving a completed application"]
+
+    AA --> Content["ECOA CONTENT - 12 CFR 1002.9(a)(2)<br/>1. Statement of the action taken<br/>2. Creditor's name and address<br/>3. ECOA section 701(a) notice<br/>4. Name and address of the federal agency<br/>enforcing compliance<br/>5. EITHER the specific reasons<br/>OR notice of the right to request them<br/>within 30 days, if asked within 60"]
+
+    Content --> Reasons["THE REASONS - 12 CFR 1002.9(b)(2)<br/>Specific, and the PRINCIPAL reasons.<br/>Must relate to and accurately describe<br/>the factors actually considered or scored.<br/>Official interpretation: no fixed number,<br/>but 'disclosure of more than four reasons<br/>is not likely to be helpful to the applicant.'<br/>INSUFFICIENT: 'did not meet internal<br/>standards', 'failed to achieve a<br/>qualifying score'"]
+
+    AA --> FCRAPath{"Was a consumer<br/>report used?"}
+    FCRAPath -->|Yes| FCRAN["FCRA 15 U.S.C. 1681m(a)<br/>Disclose the CRA's name, address,<br/>phone; that the CRA did not make<br/>the decision; the right to a free file<br/>within 60 days and to dispute"]
+    FCRAPath -->|"Yes, and a score was used"| ScoreD["FCRA 1681g(f) / 1681m(a)(2)<br/>Disclose the score, the range, the date,<br/>the source, and the KEY FACTORS that<br/>adversely affected it - at most FOUR,<br/>in order of importance.<br/>Inquiries count is exempt from the cap"]
+
+    Decide -->|"Approve but on worse terms<br/>than most consumers get"| RBP["RISK-BASED PRICING NOTICE<br/>FCRA 1681m(h), 12 CFR part 1022 subpart H.<br/>May be satisfied instead by giving every<br/>applicant a credit score disclosure exception<br/>notice - which is what most lenders do"]
+
+    style AA fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Reasons fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style ScoreD fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RBP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Consumer
+    participant CRA as Credit reporting agency
+    participant OS as e-OSCAR
+    participant F as Furnisher
+
+    C->>CRA: Dispute filed<br/>online, phone, mail, fax or in person
+    Note over CRA: 15 U.S.C. 1681i(a)(1)(A)<br/>30-day reinvestigation clock STARTS.<br/>Extends to 45 days only if the consumer<br/>supplies relevant new information<br/>during the first 30. No extension if the<br/>item is already found inaccurate or<br/>cannot be verified. 1681i(a)(1)(B),(C)
+
+    CRA->>CRA: Assign 1 or 2 reason codes<br/>from a list of 29
+    CRA->>CRA: Internal review against<br/>proprietary decision rules
+
+    alt Resolved internally - about 15% of tradeline disputes
+        CRA-->>C: Corrected or confirmed<br/>without contacting the furnisher
+    else Frivolous or irrelevant - 1681i(a)(3)
+        CRA-->>C: Notice within 5 business days<br/>with reasons and what is needed
+    else Referred to furnisher - about 85%
+        Note over CRA,OS: 1681i(a)(2)(A): notice to the furnisher<br/>within 5 BUSINESS DAYS of the dispute
+        CRA->>OS: ACDV<br/>Automated Consumer Dispute Verification<br/>dispute codes plus up to 255 characters<br/>of consumer text. Free text present in<br/>about 26% of transmissions.<br/>Mailed documents are generally NOT forwarded.
+        OS->>F: ACDV delivered
+        Note over F: 1681s-2(b): investigate, review all<br/>relevant information provided, report<br/>results, and if incomplete or inaccurate<br/>report to ALL nationwide agencies.<br/>Deadline = the agency's 1681i(a)(1) period.
+        F->>OS: One of four responses:<br/>(a) verify as accurate - about 22%<br/>(b) modify - about 61%<br/>(c) delete - about 13%<br/>(d) delete due to fraud - about 0.5%
+        OS->>CRA: Response returned
+    end
+
+    Note over CRA: No furnisher response within the<br/>statutory period: the agency deletes or<br/>modifies as the consumer indicated.<br/>About 4% of disputed tradelines in 2011,<br/>down from 16% in 2002.
+
+    CRA->>C: 1681i(a)(6): written results within<br/>5 BUSINESS DAYS of completing the<br/>reinvestigation, plus a revised report,<br/>notice of the right to a description of<br/>the procedure used, the right to add a<br/>statement, and the right to notify prior users
+
+    opt Consumer asks how it was investigated
+        C->>CRA: Request under 1681i(a)(6)(B)(iii)
+        CRA->>C: 1681i(a)(7): description within 15 days,<br/>including the furnisher's name, address<br/>and phone number where available
+    end
+
+    opt Item deleted and later reinserted
+        Note over CRA: 1681i(a)(5)(B): reinsertion allowed only if<br/>the furnisher CERTIFIES completeness and<br/>accuracy. Consumer must be notified in<br/>writing within 5 business days, with the<br/>furnisher's details and the right to add<br/>a statement to the file.
+        CRA->>C: Reinsertion notice
+    end
+
+    Note over F: Furnisher must also flag the account<br/>in Metro 2: Compliance Condition Code XB<br/>while disputed, XH when investigation is<br/>complete, XR to remove the flag.

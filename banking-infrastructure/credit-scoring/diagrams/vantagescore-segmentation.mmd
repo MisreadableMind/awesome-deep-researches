@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    All["All consumers<br/>score exclusions removed first:<br/>deceased files excluded entirely"]
+
+    All --> UENT["SEGMENT 1 - UENT<br/>No scorable trade, but has public<br/>records or unpaid collections<br/>0.70% of originations<br/>default rate 29.90%"]
+    All --> UEDR["SEGMENT 2 - UEDR<br/>Dormant: no file update in 6 months<br/>1.60% of originations<br/>default rate 20.30%"]
+    All --> FSTY["SEGMENT 3 - FSTY<br/>Thin and young: 2 or fewer trades,<br/>or no trade older than 6 months<br/>7.90% of originations<br/>default rate 13.30%"]
+    All --> Thick["Thick file<br/>scored by the DRG score"]
+
+    Thick -->|"DRG_SCORE &lt;= 600<br/>high derogatory risk"| DFH["DFH score"]
+    Thick -->|"DRG_SCORE &gt; 600<br/>low derogatory risk"| DFL["DFL score"]
+
+    DFH -->|"DFH &lt;= 545"| FSHH["SEGMENT 4 - FSHH<br/>Highest risk<br/>7.80% of originations<br/>default rate 25.80%"]
+    DFH -->|"DFH &gt; 545"| FSHL["SEGMENT 5 - FSHL<br/>Higher risk<br/>17.70%<br/>default rate 11.60%"]
+    DFL -->|"DFL &lt;= 670"| FSLH["SEGMENT 6 - FSLH<br/>Lower risk<br/>23.50%<br/>default rate 3.10%"]
+    DFL -->|"DFL &gt; 670"| FSLL["SEGMENT 7 - FSLL<br/>Lowest risk<br/>40.90%<br/>default rate 0.60%"]
+
+    Note["Each of the seven scorecards is a separate<br/>logistic regression, individually calibrated.<br/>Derogatory = charge-off or bankruptcy.<br/>Default = 90+ dpd short of charge-off.<br/>Segmentation stabilises the score by<br/>reducing movement between scorecards."]
+
+    FSLL --> Note
+
+    style All fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style UENT fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style UEDR fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style FSTY fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FSHH fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FSHL fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FSLH fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FSLL fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Note fill:#eceff1,stroke:#37474f,stroke-width:1px

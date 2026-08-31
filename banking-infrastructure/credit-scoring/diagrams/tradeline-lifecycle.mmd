@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Card as Card servicing system
+    participant M2 as Metro 2 builder
+    participant CRA as Credit reporting agency
+    participant Score as Scoring model
+
+    Note over Card: Account opened 14 Mar 2019<br/>Limit 8,000 USD
+
+    Card->>M2: Cycle close, Apr 2019
+    M2->>CRA: Portfolio R, Account Type 18, DateOpened 03142019<br/>CreditLimit 000008000, Status 11, PHP "0BBB..."
+    CRA->>Score: Age 1 month, utilisation 12%
+
+    Note over Card,Score: 82 clean cycles follow
+
+    Card->>M2: Cycle close, Jan 2026
+    M2->>CRA: Status 11, CurrentBalance 000003120,<br/>AmountPastDue 000000000, PHP "000000000000000000000000"
+    CRA->>Score: Utilisation 39%, no delinquency, age 82 months
+
+    Note over Card: Payment due 12 Feb 2026 missed
+
+    Card->>M2: Cycle close, Mar 2026
+    M2->>CRA: Status 71 (30-59 dpd)<br/>AmountPastDue 000000185<br/>DateFirstDelinquency 03142026<br/>PHP "000000000000000000000000"
+    CRA->>Score: First delinquency in 82 months
+
+    Note over Score: Payment history is 35% of a FICO Score<br/>and the largest single move in the model
+
+    Card->>M2: Cycle close, Apr 2026, consumer cures
+    M2->>CRA: Status 11, AmountPastDue 000000000<br/>DateFirstDelinquency 00000000 ZERO FILLED on cure<br/>PHP "100000000000000000000000"
+    CRA->>Score: Current again, DOFD zero filled, but the 1 stays in the 24-month history
+
+    Note over CRA: A cured delinquency zero-fills the DOFD.<br/>The seven-year clock under 15 U.S.C. 1681c(c) only ever<br/>runs from the DOFD reported on an account that goes<br/>to collection or charge-off.<br/>The 1 enters the 24-month PHP window at the April 2026<br/>cycle and falls off it at the April 2028 cycle.

@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Source["Furnisher systems"]
+        Core["Servicing platform<br/>balances, payments,<br/>delinquency buckets"]
+        Cycle["Cycle close<br/>statement date per account"]
+    end
+
+    subgraph Build["Metro 2 file construction"]
+        Extract["Extract as-of snapshot<br/>Date of Account Information"]
+        Map["Map internal status to<br/>Account Status code<br/>11, 71, 78, 80, 82, 83, 84, 93, 97"]
+        Seg["Attach segments<br/>J1/J2 co-obligors, K1 original creditor,<br/>K2 sold-to, K3 MERS, K4 balloon,<br/>L1 account number change, N1 employer"]
+        Hdr["Header record<br/>reporter name, activity date,<br/>per-agency program identifiers"]
+        Trl["Trailer record<br/>counts by status code,<br/>counts by segment type"]
+    end
+
+    subgraph Transmit["Transmission"]
+        SFTP["Encrypted transfer to each agency<br/>character or packed format"]
+    end
+
+    subgraph Agency["Agency ingestion"]
+        Edit["Format and edit checks<br/>reject file or reject records"]
+        Match["Matching<br/>name, address, SSN, DOB, phone"]
+        Post["Post to file<br/>flat file or PIN-linked relational"]
+        Frag["Unmatched goes to a fragment file<br/>or a new file is created"]
+    end
+
+    Core --> Cycle --> Extract --> Map --> Seg --> Hdr --> Trl --> SFTP --> Edit --> Match --> Post
+    Match -.no confident match.-> Frag
+    Frag -.later identifier links them.-> Post
+
+    style Source fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Build fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Transmit fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Agency fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    S1["1. DEFINE THE TARGET<br/>Observation date, performance window,<br/>good / bad / indeterminate definition.<br/>VantageScore 4.0: 24 months,<br/>bad = 90+ dpd, mortgage originations 60+,<br/>indeterminate = exactly 60 dpd, excluded"]
+
+    S2["2. ASSEMBLE THE SAMPLE<br/>Through-the-door population if available,<br/>booked accounts if not.<br/>Stratify: VantageScore used 3:1 good to bad.<br/>Split development / holdout, 50/50"]
+
+    S3["3. ENGINEER ATTRIBUTES<br/>Record type x industry x behaviour x function.<br/>VantageScore designed ~2,000 attributes<br/>across trade, inquiry, collection, public record<br/>and mortgage, auto, bankcard, student, retail"]
+
+    S4["4. BIN EACH ATTRIBUTE<br/>Coarse classify continuous variables<br/>into monotone risk bands.<br/>Utilisation 0%, 1-9%, 10-29%,<br/>30-49%, 50-74%, 75-89%, 90%+"]
+
+    S5["5. WEIGHT OF EVIDENCE<br/>WOE_i = ln( (goods_i / total goods) /<br/>(bads_i / total bads) )<br/>Replaces the raw value with a<br/>log-odds contribution, linearises the<br/>relationship, handles missing as its own bin"]
+
+    S6["6. INFORMATION VALUE<br/>IV = sum over bins of<br/>(g_i - b_i) * WOE_i<br/>Conventional screen:<br/>&lt;0.02 useless, 0.02-0.1 weak,<br/>0.1-0.3 medium, 0.3-0.5 strong,<br/>&gt;0.5 suspiciously strong, check for leakage"]
+
+    S7["7. SELECT AND FIT<br/>Stepwise or discriminant selection<br/>down to ~120 attributes.<br/>Resolve multicollinearity.<br/>Logistic regression:<br/>ln(p/(1-p)) = b0 + sum b_j * WOE_j"]
+
+    S8["8. SCALE TO POINTS<br/>score = offset + factor * ln(odds)<br/>factor = PDO / ln(2)<br/>Example: PDO 20, 600 pts at 50:1<br/>factor = 28.85, offset = 487.12<br/>Points per bin = -(b_j * WOE_ij) * factor"]
+
+    S9["9. SEGMENT<br/>Separate scorecard per population<br/>where the relationships differ.<br/>VantageScore 4.0 uses seven"]
+
+    S10["10. VALIDATE<br/>KS statistic, Gini / AUC on holdout,<br/>out-of-time validation,<br/>score-to-odds calibration curve,<br/>population stability index in production"]
+
+    S11["11. REVALIDATE PERIODICALLY<br/>12 CFR 1002.2(p)(1)(iv) requires it.<br/>Comment 2(p)-2: analyse delinquency rate<br/>per score interval, or population stability<br/>over time. Creditor must revalidate on<br/>its OWN data when available"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9 --> S10 --> S11
+    S11 -.if predictive ability lost.-> S3
+
+    style S1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S5 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style S7 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style S8 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style S11 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    TTD["THROUGH-THE-DOOR APPLICANTS<br/>100% of the population the model will score"]
+
+    TTD -->|"approved by the incumbent policy"| Acc["ACCEPTS<br/>outcome observed:<br/>good or bad is known"]
+    TTD -->|"declined by the incumbent policy"| Rej["REJECTS<br/>outcome NOT observed:<br/>would they have repaid?"]
+
+    Acc --> Book["BOOKED accounts<br/>some accepts never take the offer"]
+    Book --> Train["Naive training set<br/>ONLY accepts with known outcome"]
+
+    Train --> Bias["THE BIAS<br/>The sample is censored by the<br/>previous model's cutoff.<br/>Within accepts, high-risk attributes<br/>are under-represented, so their<br/>coefficients are attenuated.<br/>The new model inherits the old<br/>model's blind spots and calls it validation."]
+
+    Rej --> RI["REJECT INFERENCE<br/>assign inferred outcomes to rejects"]
+
+    RI --> M1["Augmentation / reweighting<br/>Fit an accept/reject model,<br/>weight each accept by 1/P(accept).<br/>Assumes missing at random<br/>given observed attributes."]
+    RI --> M2["Parcelling<br/>Score rejects with the accept model,<br/>split each score band into good and bad<br/>in the band's observed proportion,<br/>usually inflated by a factor of 2 to 4."]
+    RI --> M3["Fuzzy augmentation<br/>Duplicate each reject into a good row<br/>and a bad row weighted by the<br/>estimated probability of each."]
+    RI --> M4["Bivariate probit / Heckman<br/>Model selection and performance jointly.<br/>Identification needs a variable affecting<br/>acceptance but not repayment.<br/>Such variables are rare."]
+    RI --> M5["THE ONLY CLEAN ANSWER<br/>Randomised holdout: approve a small<br/>random slice below the cutoff and<br/>observe what actually happens.<br/>Costs real money. Works."]
+
+    M5 --> Truth["Unbiased performance data<br/>on the rejected region"]
+
+    Alt["VantageScore 4.0's approach:<br/>'No reject inference process was used.'<br/>A bureau score is built on the whole<br/>credit file population, not on one<br/>lender's approved applicants, so the<br/>censoring problem does not arise<br/>in the same form."]
+
+    Rej -.-> Alt
+
+    style TTD fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Bias fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style M5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Alt fill:#fff3e0,stroke:#e65100,stroke-width:2px
