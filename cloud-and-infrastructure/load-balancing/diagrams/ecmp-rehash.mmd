@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Before["Before: 4 balancers, 4 equal-cost next hops"]
+        R1["Router<br/>hash(5-tuple) mod 4"]
+        M1["Maglev 1<br/>conn table holds<br/>flows A, E, I"]
+        M2["Maglev 2<br/>flows B, F, J"]
+        M3["Maglev 3<br/>flows C, G, K"]
+        M4["Maglev 4<br/>flows D, H, L"]
+        R1 --> M1
+        R1 --> M2
+        R1 --> M3
+        R1 --> M4
+    end
+
+    subgraph After["After: Maglev 3 drained for a rolling upgrade"]
+        R2["Router<br/>hash(5-tuple) mod 3"]
+        N1["Maglev 1<br/>now receives A, D, G, J"]
+        N2["Maglev 2<br/>now receives B, E, H, K"]
+        N4["Maglev 4<br/>now receives C, F, I, L"]
+        R2 --> N1
+        R2 --> N2
+        R2 --> N4
+    end
+
+    subgraph Damage["What the rehash costs"]
+        direction TB
+        Mod["Naive modulo-N:<br/>(N-1)/N of flows move.<br/>With N=4 that is 75%<br/>of established connections<br/>arriving at a machine with<br/>no connection table entry."]
+        HT["Hash-threshold, RFC 2992:<br/>1/4 to 1/2 of flows move,<br/>depending on which next hop<br/>is removed. O(1) to compute."]
+        HRW["Highest random weight:<br/>1/N of flows move,<br/>the theoretical minimum.<br/>Costs O(N) per packet."]
+    end
+
+    subgraph Fix["Why the connections survive anyway"]
+        CH["Every Maglev computes the same<br/>consistent hash over the same<br/>backend set. A flow that lands on a<br/>different Maglev still resolves to the<br/>same backend, so the TCP connection<br/>continues. The connection table is the<br/>fast path; the consistent hash is the<br/>correctness guarantee underneath it."]
+    end
+
+    Before -->|"Maglev 3 withdraws its BGP announcement"| After
+    After --> Damage
+    Damage --> Fix
+
+    style Before fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style After fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Damage fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Fix fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

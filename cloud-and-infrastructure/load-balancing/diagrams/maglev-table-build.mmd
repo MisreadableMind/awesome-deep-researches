@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Inputs["Inputs"]
+        BE["Backend names<br/>b0 = 10.0.1.10:8080<br/>b1 = 10.0.1.11:8080<br/>b2 = 10.0.1.12:8080"]
+        M["Table size M<br/>must be prime.<br/>Google's production default is 65537.<br/>Rule of thumb: M greater than 100 x N,<br/>which caps the share difference<br/>between backends at about 1%."]
+    end
+
+    subgraph Perm["Step 1: build one preference list per backend"]
+        F1["offset = h1(name[i]) mod M"]
+        F2["skip = h2(name[i]) mod (M-1) + 1"]
+        F3["permutation[i][j] = (offset + j x skip) mod M"]
+        F4["Because M is prime and skip is in<br/>1..M-1, the sequence visits every<br/>slot exactly once. Each backend gets<br/>a full, differently ordered preference<br/>list over all M slots."]
+    end
+
+    subgraph Fill["Step 2: fill the table by taking turns"]
+        G1["next[i] = 0 for every backend<br/>entry[j] = empty for every slot"]
+        G2["Round robin over backends.<br/>Backend i proposes its next unused<br/>preference permutation[i][next[i]]."]
+        G3["If that slot is empty, claim it.<br/>If not, advance next[i] and try again."]
+        G4["Stop when all M entries are filled.<br/>Each backend ends up with within<br/>one entry of M/N slots."]
+    end
+
+    subgraph Lookup["Step 3: the data path"]
+        H1["hash5 = h(src IP, src port,<br/>dst IP, dst port, protocol)"]
+        H2["backend = entry[hash5 mod M]<br/>One array index. No ring walk,<br/>no comparison over N candidates.<br/>Table fits in cache."]
+    end
+
+    subgraph Cost["Rebuild cost, measured"]
+        C1["M = 65537: 1.8 ms to regenerate<br/>M = 655373: 22.9 ms<br/>One table per VIP, which is why<br/>M cannot grow without bound."]
+        C2["Trade: a larger table is more<br/>resilient to concurrent backend<br/>failures and slower to rebuild.<br/>Google chose 65537 because<br/>connection tracking is the primary<br/>protection and concurrent failure<br/>is expected to be rare."]
+    end
+
+    Inputs --> Perm --> Fill --> Lookup
+    Fill --> Cost
+
+    style Inputs fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Perm fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Fill fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Lookup fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Cost fill:#fff3e0,stroke:#e65100,stroke-width:2px

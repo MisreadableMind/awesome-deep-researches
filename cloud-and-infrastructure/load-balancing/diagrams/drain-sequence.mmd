@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Op as Operator or scheduler
+    participant CP as Control plane<br/>Kubernetes, Auto Scaling, ELB API
+    participant LB as Load balancer<br/>data plane
+    participant App as Application process
+    participant Cli as In-flight clients
+
+    Note over Op,Cli: The goal is to remove a backend with zero failed requests.<br/>Every step below exists because one earlier system did it wrong.
+
+    Op->>CP: Deregister target or delete pod
+    Note over CP,App: Kubernetes sends SIGTERM and removes the<br/>endpoint concurrently, not in sequence.<br/>That race is why a preStop sleep exists.
+
+    par Endpoint removal
+        CP->>LB: Remove backend from the eligible set<br/>EndpointSlice update, EDS push, or target deregistration
+        LB->>LB: Stop selecting this backend<br/>for new connections
+    and Process shutdown
+        CP->>App: SIGTERM
+        App->>App: preStop hook sleeps<br/>long enough for the endpoint<br/>removal to propagate
+    end
+
+    Note over LB: State becomes DRAINING.<br/>ALB and NLB deregistration_delay<br/>defaults to 300 s, range 0 to 3600 s.
+
+    LB-->>Cli: Existing connections keep flowing
+    Cli->>LB: Request on an established keepalive connection
+    LB->>App: Forwarded, because the connection<br/>was already bound to this backend
+
+    App->>App: Stop accepting new connections<br/>close the listening socket
+    App->>Cli: HTTP/1.1 response carrying Connection close
+    App->>Cli: HTTP/2 GOAWAY with the last<br/>processed stream identifier
+    Note over App,Cli: GOAWAY is the only correct way to end an<br/>HTTP/2 connection. It tells the peer exactly<br/>which streams were handled, so the client<br/>knows which requests are safe to retry.
+
+    Cli->>LB: Opens a new connection
+    LB->>LB: Draining backend is not eligible
+    LB-->>Cli: Routed to a healthy backend
+
+    App->>App: Finish in-flight requests<br/>flush logs, commit, release locks
+    App-->>CP: Process exits with status 0
+
+    alt Drain window elapses first
+        CP->>LB: Deregistration delay expired
+        LB->>App: Terminate remaining connections<br/>NLB does this only when<br/>deregistration_delay.connection_termination.enabled
+        Note over LB,App: Kubernetes sends SIGKILL at<br/>terminationGracePeriodSeconds,<br/>default 30 s. Anything still running dies.
+    end
+
+    Note over Op,Cli: The three failures this sequence prevents:<br/>1. Killing the process before the balancer stopped sending to it.<br/>2. Closing a keepalive connection mid-request instead of after it.<br/>3. A grace period shorter than the longest legitimate request.

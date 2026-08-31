@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Curve["What happens as offered load passes capacity"]
+        direction TB
+        Z1["Region 1, below capacity<br/>Goodput tracks offered load.<br/>Latency is dominated by service time.<br/>Queues are empty."]
+        Z2["Region 2, at capacity<br/>Goodput flattens. Latency starts<br/>rising because queueing time is now<br/>the dominant term. Nothing has failed yet."]
+        Z3["Region 3, beyond capacity<br/>Goodput FALLS. Every queued request<br/>consumes memory and scheduler time,<br/>then exceeds the caller's timeout and is<br/>discarded after being paid for.<br/>The server is doing maximum work<br/>and delivering minimum value."]
+        Z1 --> Z2 --> Z3
+    end
+
+    subgraph Wrong["What does not fix it"]
+        direction TB
+        W1["A bigger queue. Turns a fast failure<br/>into a slow failure and adds latency<br/>to every request that would have succeeded."]
+        W2["More retries. Adds load in the region<br/>where load is the problem."]
+        W3["A load balancer algorithm change.<br/>The pool is uniformly saturated.<br/>There is no lighter server to pick."]
+    end
+
+    subgraph Right["What does fix it, at three layers"]
+        direction TB
+        R1["Queue discipline: controlled delay.<br/>Measure sojourn time, the wait a request<br/>records when it is dequeued, not queue depth.<br/>Drop when the minimum sojourn time over a<br/>whole interval stays above target. Combine<br/>with LIFO so that under overload the freshest<br/>request is served, since the oldest is closest<br/>to its caller's timeout anyway."]
+        R2["Concurrency limit, adapted.<br/>Envoy's adaptive concurrency filter measures<br/>a minimum round trip time, then sets<br/>limit_new = gradient x limit_old + headroom<br/>where gradient = (minRTT + buffer) / sampleRTT<br/>and headroom is the square root of the limit.<br/>Rising latency lowers the limit automatically."]
+        R3["Client-side throttling.<br/>Each client tracks requests and accepts over<br/>a two-minute window and rejects locally with<br/>probability max(0, (requests - K x accepts) /<br/>(requests + 1)), K = 2. Load stops at the<br/>caller, so it never reaches the network."]
+    end
+
+    subgraph Order["Shed in priority order, not at random"]
+        O1["Google's criticality levels, highest first:<br/>CRITICAL_PLUS, CRITICAL,<br/>SHEDDABLE_PLUS, SHEDDABLE.<br/>Batch traffic defaults to SHEDDABLE_PLUS,<br/>production requests to CRITICAL.<br/>Shedding without priority sheds the<br/>checkout as readily as the recommendation."]
+    end
+
+    Curve --> Wrong
+    Curve --> Right --> Order
+
+    style Curve fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Wrong fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Right fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Order fill:#fff3e0,stroke:#e65100,stroke-width:2px

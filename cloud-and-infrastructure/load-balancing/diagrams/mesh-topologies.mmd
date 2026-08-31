@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Problem["The problem the mesh exists to solve"]
+        P1["HTTP/2 and gRPC multiplex many requests<br/>onto one long-lived TCP connection.<br/>A Layer 4 balancer sees one flow and<br/>makes one decision, at connect time."]
+        P2["Kubernetes Services are Layer 4.<br/>kube-proxy in iptables mode, still the<br/>default in Kubernetes 1.37, picks a backend<br/>per connection with a random rule.<br/>Ten clients holding one connection each<br/>to a fleet of fifty pods will use ten pods."]
+    end
+
+    subgraph Side["Topology 1: sidecar per pod"]
+        direction LR
+        SA["App container"] --> SP["Sidecar proxy<br/>in the same network namespace"]
+        SP -->|"per-request choice<br/>over all endpoints"| SB["Sidecar of the callee"]
+        SB --> SC["Callee app"]
+    end
+
+    subgraph Node["Topology 2: per-node L4 plus per-service L7"]
+        direction LR
+        NA["App pod<br/>no sidecar"] --> NZ["ztunnel<br/>one per node<br/>L4, mTLS, HBONE tunnel"]
+        NZ -->|"L7 policy needed?"| NW["waypoint proxy<br/>Envoy, one per service,<br/>scales independently"]
+        NW --> NB["Callee pod"]
+        NZ -->|"L4 only"| NB
+    end
+
+    subgraph Prox["Topology 3: proxyless, in the client library"]
+        direction LR
+        PA["gRPC client<br/>xDS-aware"] -->|"resolves endpoints<br/>and balances in-process"| PB["Server"]
+        PC["Control plane<br/>xDS"] -.config.-> PA
+    end
+
+    subgraph Trade["What each topology costs"]
+        direction TB
+        T1["Sidecar: one proxy process per pod.<br/>Full L7 features on every hop.<br/>Costs memory and CPU per pod and adds<br/>two proxy hops to every call."]
+        T2["Per-node: one proxy per node for L4,<br/>one per service for L7 where it is asked for.<br/>Fewer processes, but a node-level proxy is a<br/>node-level blast radius and cannot enforce<br/>per-pod L7 policy without a waypoint."]
+        T3["Proxyless: zero extra hops, lowest latency.<br/>Only works for languages with an xDS-aware<br/>client, and puts policy enforcement inside<br/>code the platform team does not control."]
+    end
+
+    Problem --> Side
+    Problem --> Node
+    Problem --> Prox
+    Side --> Trade
+    Node --> Trade
+    Prox --> Trade
+
+    style Problem fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Side fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Node fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Prox fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Trade fill:#fff3e0,stroke:#e65100,stroke-width:2px

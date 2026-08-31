@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Distribution Without a Balancer<br/>to 1997"]
+        direction TB
+        E1A["Late 1980s onward: nameservers<br/>rotate multiple A records per query.<br/>Clients spread across addresses<br/>with no health signal at all."]
+        E1B["Apr 1995: RFC 1794, DNS Support<br/>for Load Balancing, Brisco.<br/>Documents the caching ceiling:<br/>BIND treats any TTL under<br/>300 s as irrational and<br/>substitutes 300."]
+        E1C["Mid-1990s: dedicated appliances<br/>appear. Cisco LocalDirector,<br/>F5 BIG-IP, Alteon ACEswitch.<br/>Deployed in active-passive pairs.<br/>Capacity is one chassis."]
+    end
+
+    subgraph Era2["Software on Commodity Hardware<br/>1998-2008"]
+        direction TB
+        E2A["1998: Linux Virtual Server.<br/>VS/NAT, VS/TUN, VS/DR.<br/>IPVS enters mainline Linux<br/>in the 2.4 kernel."]
+        E2B["16 Dec 2001: HAProxy 1.0,<br/>Willy Tarreau. Userspace<br/>TCP and HTTP reverse proxy."]
+        E2C["4 Oct 2004: nginx 0.1.0,<br/>Igor Sysoev. Event-driven<br/>worker model, first public version."]
+        E2D["2008: Maglev enters production<br/>at Google. ECMP from routers,<br/>consistent hashing to backends,<br/>kernel bypass in userspace."]
+    end
+
+    subgraph Era3["The Cloud Turns It Into a Product<br/>2009-2017"]
+        direction TB
+        E3A["2009: AWS Elastic Load Balancing.<br/>Later renamed Classic Load Balancer."]
+        E3B["Aug 2016: AWS Application Load<br/>Balancer, L7, path and host routing.<br/>Sep 2017: Network Load Balancer,<br/>L4, flow hash, static IP."]
+        E3C["2016: Lyft open sources Envoy.<br/>Mar 2016: Maglev published at NSDI.<br/>Aug 2016: consistent hashing with<br/>bounded loads, arXiv 1608.01350."]
+    end
+
+    subgraph Era4["The Balancer Dissolves Into the Fleet<br/>2018-2022"]
+        direction TB
+        E4A["22 May 2018: Meta open sources<br/>Katran. XDP and eBPF, IPIP<br/>encapsulation, modified Maglev hash,<br/>colocated with backends."]
+        E4B["28 Nov 2018: Envoy graduates<br/>from the CNCF. xDS becomes<br/>the config API other proxies copy."]
+        E4C["9 Sep 2020: Cloudflare publishes<br/>Unimog. GUE encapsulation, XDP,<br/>daisy chaining, a control loop<br/>driven by CPU utilisation."]
+        E4D["2019-2022: service mesh sidecars.<br/>Balancing moves from one hop<br/>at the edge to every hop inside."]
+    end
+
+    subgraph Era5["Consolidation<br/>2023-2026"]
+        direction TB
+        E5A["7 Nov 2024: Istio ambient mode<br/>reaches GA in 1.24. ztunnel at L4<br/>per node, waypoint at L7 per service.<br/>The sidecar stops being mandatory."]
+        E5B["10 Mar 2026: nginx 1.29.6 moves<br/>the sticky directive into open source.<br/>13 May 2026: nginx 1.31.0 moves<br/>least_time into open source."]
+        E5C["Aug 2026: nginx 1.31.4,<br/>HAProxy 3.4 LTS, Istio 1.30.x,<br/>Kubernetes 1.37 with kube-proxy<br/>still defaulting to iptables."]
+        E5D["Aug 2026: draft-ietf-quic-load-balancers<br/>expired at revision 21 without<br/>becoming an RFC, while AWS NLB<br/>ships QUIC connection ID routing."]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

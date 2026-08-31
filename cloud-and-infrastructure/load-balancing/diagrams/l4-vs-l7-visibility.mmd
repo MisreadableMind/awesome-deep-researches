@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Packet["One TCP segment on the wire"]
+        direction TB
+        Eth["Ethernet header, 14 bytes<br/>dst MAC, src MAC, ethertype 0x0800"]
+        IP["IPv4 header, 20 bytes minimum<br/>src IP, dst IP, protocol 6, TTL,<br/>total length, fragment offset"]
+        TCP["TCP header, 20 bytes plus options<br/>src port, dst port, seq, ack,<br/>flags, window, checksum"]
+        TLSREC["TLS record, 5-byte header<br/>type 0x16 handshake or 0x17 app data,<br/>version, length. Body is encrypted<br/>after the handshake completes."]
+        HTTP["HTTP request<br/>method, :authority, :path,<br/>cookies, user agent, body"]
+    end
+
+    subgraph L4View["What a Layer 4 balancer reads"]
+        direction TB
+        L4Fields["5-tuple only:<br/>src IP, src port, dst IP,<br/>dst port, IP protocol number.<br/>Plus TCP flags to spot a SYN.<br/>AWS NLB adds the TCP sequence<br/>number to its TCP flow hash."]
+        L4Can["Can: pick a backend per flow,<br/>survive at 350 ns per packet,<br/>forward without terminating,<br/>preserve the client IP."]
+        L4Cannot["Cannot: see a URL, a cookie,<br/>a gRPC method, or a response code.<br/>Cannot rebalance streams inside<br/>one HTTP/2 connection.<br/>Cannot retry a failed request."]
+    end
+
+    subgraph L7View["What a Layer 7 balancer reads"]
+        direction TB
+        L7Fields["Everything above, after<br/>terminating TCP and decrypting TLS:<br/>method, path, host, headers,<br/>cookies, body, status code,<br/>time to first byte."]
+        L7Can["Can: route by path, retry an<br/>idempotent request elsewhere,<br/>inject headers, rate limit per user,<br/>balance per request not per connection."]
+        L7Cannot["Cannot: avoid holding two connections<br/>and a buffer per client. Cannot see<br/>the original client IP unless the<br/>previous hop wrote it into<br/>X-Forwarded-For or PROXY protocol."]
+    end
+
+    subgraph SNIView["The exception: SNI routing"]
+        SNI["A balancer that does not terminate TLS<br/>can still read server_name from the<br/>unencrypted ClientHello, extension 0x0000.<br/>Encrypted Client Hello removes even this."]
+    end
+
+    Eth --> IP --> TCP --> TLSREC --> HTTP
+    TCP -.visible.-> L4Fields
+    IP -.visible.-> L4Fields
+    HTTP -.visible only after termination.-> L7Fields
+    TLSREC -.ClientHello only.-> SNI
+
+    style Packet fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style L4View fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style L7View fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style SNIView fill:#fff3e0,stroke:#e65100,stroke-width:2px

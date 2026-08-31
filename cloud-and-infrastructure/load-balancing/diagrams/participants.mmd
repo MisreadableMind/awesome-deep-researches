@@ -1,0 +1,64 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Client["Client Side"]
+        UA["User agent<br/>browser, mobile app, gRPC stub<br/>caches DNS, opens connections,<br/>retries on failure"]
+        Stub["Resolver stub<br/>honours or ignores TTL,<br/>may add EDNS Client Subnet"]
+    end
+
+    subgraph Steer["Steering Tier - decides which site"]
+        AuthDNS["Authoritative DNS<br/>returns A and AAAA sets,<br/>GeoDNS, weighted records<br/>Granularity: one resolver cache entry<br/>Reacts in: one TTL, 60 s at best<br/>Fails at: withdrawing a dead site.<br/>Resolvers, stubs, runtimes and browsers<br/>all cache past the TTL."]
+        Anycast["Anycast and BGP<br/>same VIP announced from<br/>many sites, chosen by AS path<br/>Granularity: one packet<br/>Reacts in: BGP convergence,<br/>seconds to low minutes<br/>Fails at: mid-flow stability. A path change<br/>hands an established connection to a site<br/>with no state for it, which answers RST."]
+    end
+
+    subgraph L4["Layer 4 Tier - decides which machine"]
+        ECMP["Router ECMP<br/>hashes the 5-tuple across<br/>equal-cost next hops<br/>Granularity: one flow<br/>Reacts in: immediately, on link<br/>or session state change<br/>Fails at: membership change. Modulo-N<br/>moves N-1 over N of all flows,<br/>hash-threshold a quarter to a half,<br/>highest random weight 1 over N."]
+        L4LB["L4 load balancer<br/>Maglev, Katran, Unimog, IPVS, NLB<br/>sees the 5-tuple only<br/>Granularity: one flow<br/>Reacts in: one health check interval,<br/>2 to 30 s<br/>Fails at: request-level fairness.<br/>One HTTP/2 connection is one flow, so<br/>a thousand streams land on one backend."]
+    end
+
+    subgraph L7["Layer 7 Tier - decides which process"]
+        L7LB["L7 load balancer<br/>nginx, HAProxy, Envoy, ALB<br/>terminates TCP and TLS,<br/>parses method, path, headers<br/>Granularity: one request<br/>Reacts in: the next request, milliseconds<br/>Fails at: cost. Two sockets, a buffer and<br/>a TLS session per client, and the client<br/>IP is lost unless a header carries it."]
+        Mesh["Sidecar or node proxy<br/>Envoy, ztunnel, linkerd2-proxy<br/>balances every internal hop<br/>Granularity: one RPC"]
+    end
+
+    subgraph Back["Backend Side"]
+        App["Application instances<br/>the only tier that knows<br/>what a request actually costs"]
+        Shed["Local admission control<br/>concurrency limits, queues,<br/>load shedding, criticality"]
+    end
+
+    subgraph Control["Control Plane"]
+        Reg["Service registry<br/>Consul, EndpointSlice, EDS<br/>the set of eligible backends"]
+        HC["Health checker<br/>active probes, passive counters,<br/>outlier detection"]
+        Cfg["Config distribution<br/>xDS, Kubernetes API,<br/>DNS zone push"]
+    end
+
+    UA --> Stub
+    Stub --> AuthDNS
+    UA --> Anycast
+    Anycast --> ECMP
+    ECMP --> L4LB
+    L4LB --> L7LB
+    L7LB --> App
+    App --> Mesh
+    Mesh --> App
+    App --> Shed
+
+    Reg -.membership.-> L4LB
+    Reg -.membership.-> L7LB
+    Reg -.membership.-> Mesh
+    HC -.eligibility.-> L4LB
+    HC -.eligibility.-> L7LB
+    Cfg -.policy.-> L7LB
+    Cfg -.policy.-> Mesh
+    Shed -.back pressure.-> L7LB
+
+    Note["Reading upward, each tier is coarser, slower and cheaper<br/>per unit of traffic. Production systems run all of them, because<br/>no single tier both withdraws a dead backend fast enough and<br/>costs little enough to decide every request."]
+    Shed --> Note
+
+    style Client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Steer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L7 fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Back fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Control fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Note fill:#fff8e1,stroke:#f9a825,stroke-width:2px

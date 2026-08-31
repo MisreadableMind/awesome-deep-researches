@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Kernel["In-kernel and kernel-bypass L4"]
+        direction TB
+        IPVS["IPVS<br/>In mainline Linux since the 2.4 kernel.<br/>Schedulers rr, wrr, lc, wlc, lblc, lblcr,<br/>sh, dh, sed, nq, and mh for Maglev hashing.<br/>Forwarding modes NAT, TUN, DR.<br/>Still the engine behind kube-proxy ipvs mode."]
+        XDP["XDP and eBPF<br/>Katran, Meta, open sourced 22 May 2018.<br/>Cloudflare Unimog, published 9 Sep 2020.<br/>Runs before the kernel network stack,<br/>per-CPU maps, no locks. Scales linearly<br/>with NIC receive queues."]
+        Bypass["Userspace kernel bypass<br/>Maglev, DPDK-style rings shared with the NIC.<br/>Measured at about 350 ns per packet and<br/>above 15 Mpps on a 40 Gbps NIC.<br/>More than 5x the throughput of the same<br/>code on the Linux stack."]
+    end
+
+    subgraph Proxy["Userspace L7 proxies"]
+        direction TB
+        NGINX["nginx<br/>First public release 0.1.0, 4 Oct 2004.<br/>1.31.4 as of 19 Aug 2026.<br/>round-robin, least_conn, ip_hash,<br/>hash with ketama consistent, random two,<br/>least_time since 1.31.0, sticky since 1.29.6."]
+        HAP["HAProxy<br/>1.0 released 16 Dec 2001.<br/>3.4 is the current LTS branch.<br/>roundrobin, static-rr, leastconn, first,<br/>source, uri, url_param, hdr, random(N),<br/>rdp-cookie, plus hash-balance-factor<br/>for bounded-load consistent hashing."]
+        ENV["Envoy<br/>Open sourced by Lyft in 2016,<br/>CNCF graduation 28 Nov 2018.<br/>Weighted round robin, weighted least request<br/>with P2C, ring hash, Maglev, random.<br/>Configured entirely over xDS, which is now<br/>the de facto config API for the category."]
+    end
+
+    subgraph Managed["Managed cloud services"]
+        direction TB
+        ALB["AWS ALB, L7, launched Aug 2016<br/>round_robin default, least_outstanding_requests,<br/>weighted_random with anomaly mitigation.<br/>0.0225 USD per hour plus 0.008 USD per LCU."]
+        NLB["AWS NLB, L4, launched Sep 2017<br/>Flow hash on protocol, source IP, source port,<br/>destination IP, destination port, and for TCP<br/>the sequence number. QUIC routing by Server ID<br/>inside the connection ID.<br/>0.0225 USD per hour plus 0.006 USD per NLCU."]
+        GCP["Google Cloud Load Balancing<br/>Passthrough Network Load Balancers run on<br/>Maglev. Application Load Balancers are proxies.<br/>One global anycast VIP fronts backends<br/>in every region."]
+    end
+
+    subgraph Mesh["Mesh and library"]
+        direction TB
+        SIDE["Sidecar proxies<br/>Envoy in Istio, linkerd2-proxy in Linkerd.<br/>Balance every internal hop at request<br/>granularity. Linkerd uses an exponentially<br/>weighted moving average of latency."]
+        AMB["Ambient and per-node<br/>Istio ambient GA in 1.24, 7 Nov 2024.<br/>ztunnel handles L4 and mTLS per node;<br/>waypoint runs Envoy per service for L7.<br/>One proxy per node instead of per pod."]
+        PROXYLESS["Proxyless<br/>gRPC clients consume xDS directly and<br/>balance in-process. No extra hop,<br/>no extra latency, no sidecar CPU,<br/>and no way to police an untrusted client."]
+    end
+
+    Kernel --> Proxy --> Managed
+    Proxy --> Mesh
+
+    style Kernel fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Proxy fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Managed fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Mesh fill:#fff3e0,stroke:#e65100,stroke-width:2px
