@@ -72,7 +72,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | [CDNs: Cloudflare, Akamai caching, edge routing, Anycast](cloud-and-infrastructure/cdns/) | 13 | ✅ Done |
 | [DNS: resolution chain, registrars, root servers](cloud-and-infrastructure/dns/) | 17 | ✅ Done |
 | [Container Orchestration: Kubernetes scheduler, etcd, kubelet](cloud-and-infrastructure/container-orchestration/) | 15 | ✅ Done |
-| Load Balancing: L4 vs L7, health checks, algorithms | | 🗓️ Planned |
+| [Load Balancing: L4 vs L7, health checks, algorithms](cloud-and-infrastructure/load-balancing/) | 16 | ✅ Done |
 
 ### 🗄️ [`databases-and-storage/`](databases-and-storage/) — How data is stored, queried, replicated
 
@@ -107,7 +107,7 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Elasticsearch / Lucene: inverted index, scoring, sharding | | 🗓️ Planned |
+| [Elasticsearch / Lucene: inverted index, scoring, sharding](search-and-data/elasticsearch-and-lucene/) | 17 | ✅ Done |
 | [Recommendation Systems: collaborative filtering, embeddings](search-and-data/recommendation-systems/) | 14 | ✅ Done |
 | [Data Warehouses: columnar storage, MPP, Snowflake/BigQuery](search-and-data/data-warehouses/) | 15 | ✅ Done |
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      49 researches (789 diagrams)
-Planned:   2 researches
+Done:      51 researches (822 diagrams)
+Planned:   0 researches
 Categories: 10
 ```
 
