@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph AWSPath["AWS - request signing, nothing secret on the wire"]
+        direction TB
+        AW1["Client holds an access key ID<br/>and a secret access key, or<br/>temporary credentials from STS"]
+        AW2["Build the canonical request:<br/>method, URI, query string,<br/>canonical headers, signed header list,<br/>hex SHA-256 of the payload"]
+        AW3["Derive the signing key:<br/>kDate = HMAC('AWS4'+secret, 20260831)<br/>kRegion = HMAC(kDate, 'eu-west-1')<br/>kService = HMAC(kRegion, 'ec2')<br/>kSigning = HMAC(kService, 'aws4_request')"]
+        AW4["Sign: AWS4-HMAC-SHA256 over<br/>timestamp + credential scope +<br/>hash of canonical request"]
+        AW5["Send Authorization header.<br/>The secret never leaves the client."]
+        AW6["A stolen signature is bound to<br/>one request, one service, one region,<br/>one day. Nearly worthless."]
+        AW1 --> AW2 --> AW3 --> AW4 --> AW5 --> AW6
+    end
+
+    subgraph AZPath["Azure - OAuth 2.0 bearer token from Entra ID"]
+        direction TB
+        AZ1["Client authenticates to Entra ID<br/>(secret, certificate, managed identity,<br/>or federated credential)"]
+        AZ2["Entra issues a signed JWT.<br/>Signing keys published at the<br/>tenant JWKS endpoint."]
+        AZ3["Client sends<br/>Authorization: Bearer &lt;jwt&gt;"]
+        AZ4["Resource service validates<br/>signature, issuer, audience, expiry,<br/>then reads claims and applies<br/>Azure RBAC role assignments"]
+        AZ5["A stolen token grants everything<br/>it carries until expiry, typically<br/>one hour. Hence conditional access,<br/>token binding, short lifetimes."]
+        AZ1 --> AZ2 --> AZ3 --> AZ4 --> AZ5
+    end
+
+    subgraph GCPPath["Google Cloud - OAuth 2.0 bearer token"]
+        direction TB
+        G1["Service account signs a JWT<br/>with its private key, OR the<br/>metadata server does it for you<br/>on a Compute Engine instance"]
+        G2["Exchange the JWT at the token<br/>endpoint for a short-lived<br/>access token"]
+        G3["Send Authorization: Bearer &lt;token&gt;"]
+        G4["Service checks the token and<br/>evaluates IAM policy bindings<br/>inherited down organisation,<br/>folder, project, resource"]
+        G5["Same exposure profile as Azure.<br/>Workload Identity Federation exists<br/>to avoid long-lived key files."]
+        G1 --> G2 --> G3 --> G4 --> G5
+    end
+
+    Risk["The single global dependency:<br/>if the identity plane cannot answer,<br/>NOTHING else can proceed.<br/>Azure AD, 15 March 2021: one signing<br/>key removed during a rotation broke<br/>token validation worldwide."]
+
+    AWSPath --> Risk
+    AZPath --> Risk
+    GCPPath --> Risk
+
+    style AWSPath fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style AZPath fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style GCPPath fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Risk fill:#ffebee,stroke:#c62828,stroke-width:3px

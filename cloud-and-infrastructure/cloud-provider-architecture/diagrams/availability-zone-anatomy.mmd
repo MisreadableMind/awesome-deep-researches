@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Utility["Independent utility feeds"]
+        S1["Substation A"]
+        S2["Substation B"]
+        S3["Substation C"]
+    end
+
+    subgraph AZA["Availability Zone A"]
+        direction TB
+        DCA1["Data centre A1<br/>halls, racks, 5-15 kW/rack<br/>AI halls up to ~120 kW/rack"]
+        DCA2["Data centre A2"]
+        PWA["Switchgear, UPS,<br/>N+1 generators,<br/>independent fuel"]
+        COA["Chiller plant,<br/>cooling towers,<br/>CRAH units<br/>ASHRAE 18-27 C inlet"]
+    end
+
+    subgraph AZB["Availability Zone B"]
+        DCB1["Data centre B1"]
+        PWB["Independent power train"]
+        COB["Independent cooling plant"]
+    end
+
+    subgraph AZC["Availability Zone C"]
+        DCC1["Data centre C1"]
+        PWC["Independent power train"]
+        COC["Independent cooling plant"]
+    end
+
+    subgraph Transit["Transit centres - internet edge"]
+        T1["Transit centre 1<br/>multiple tier-1 peers"]
+        T2["Transit centre 2<br/>multiple tier-1 peers"]
+    end
+
+    S1 --> PWA
+    S2 --> PWB
+    S3 --> PWC
+    PWA --> DCA1
+    PWA --> DCA2
+    COA --> DCA1
+    PWB --> DCB1
+    COB --> DCB1
+    PWC --> DCC1
+    COC --> DCC1
+
+    DCA1 <-->|"redundant dedicated<br/>metro dark fibre<br/>&lt;100 km, single-digit ms"| DCB1
+    DCB1 <-->|"redundant metro fibre"| DCC1
+    DCA1 <-->|"redundant metro fibre"| DCC1
+
+    DCA1 --> T1
+    DCB1 --> T1
+    DCC1 --> T2
+    DCA1 --> T2
+
+    style AZA fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AZB fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style AZC fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Utility fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Transit fill:#fce4ec,stroke:#880e4f,stroke-width:2px

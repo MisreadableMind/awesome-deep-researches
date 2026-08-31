@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Old["Software virtualisation, roughly 2006-2017"]
+        direction TB
+        OG1["Guest VM"]
+        OG2["Guest VM"]
+        ODom["Privileged domain / host OS<br/>full kernel, device emulation,<br/>software vSwitch, storage driver,<br/>management agents, monitoring"]
+        OHyp["Hypervisor (Xen, Hyper-V, KVM)"]
+        OCPU["Server CPU and memory<br/>20-30% consumed by the host<br/>on I/O heavy workloads"]
+        OG1 --> ODom
+        OG2 --> ODom
+        ODom --> OHyp --> OCPU
+    end
+
+    subgraph New["Hardware offload, 2017 onwards"]
+        direction TB
+        NG1["Guest VM"]
+        NG2["Guest VM"]
+        NHyp["Minimised hypervisor<br/>CPU and memory allocation only<br/>firmware-like, no device emulation"]
+        NCPU["Server CPU and memory<br/>nearly all sold to guests"]
+        NCard["Offload card - separate SoC<br/>own CPU, own DRAM, own OS<br/>no interactive login path"]
+        NNet["Network virtualisation<br/>flow tables, encapsulation,<br/>security groups, rate limits"]
+        NSto["Storage virtualisation<br/>NVMe presentation, remote block<br/>protocol, encryption at rest"]
+        NSec["Root of trust<br/>Nitro Security Chip / Cerberus / Titan<br/>verifies firmware before first instruction"]
+        NG1 --> NHyp
+        NG2 --> NHyp
+        NHyp --> NCPU
+        NG1 -.->|"SR-IOV virtual function"| NCard
+        NG2 -.->|"SR-IOV virtual function"| NCard
+        NCard --> NNet
+        NCard --> NSto
+        NCard --> NSec
+    end
+
+    Old -->|"the transition"| New
+
+    style Old fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style New fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

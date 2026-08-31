@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph CPlane["Control plane - complex, stateful, regional"]
+        direction TB
+        Auth["Authenticate and authorise<br/>IAM, STS, Entra, Cloud IAM"]
+        Quota["Quota and limit checks"]
+        Place["Placement engine<br/>find a host with capacity,<br/>respect spread and affinity"]
+        Work["Workflow orchestration<br/>multi-step, retryable,<br/>idempotent, long running"]
+        Meta["Metadata databases<br/>DynamoDB, Cosmos DB, Spanner<br/>the state of every resource"]
+        Prop["Configuration propagation<br/>push new state to every<br/>host, NIC, switch, load balancer"]
+    end
+
+    subgraph DPlane["Data plane - simple, mostly stateless, local"]
+        direction TB
+        Run["Running instance<br/>guest executes on a core"]
+        Pkt["Packet forwarding<br/>flow table lookup, encapsulate, send"]
+        Blk["Block I/O<br/>read and write a replicated extent"]
+        Obj["Object GET and PUT"]
+        Res["DNS answer, TLS terminate,<br/>health check, cache hit"]
+    end
+
+    Auth --> Quota --> Place --> Work --> Meta --> Prop
+    Prop -->|"installs state<br/>then gets out of the way"| DPlane
+
+    Note1["Control plane failure:<br/>nothing new can be created,<br/>nothing existing changes,<br/>running things keep running"]
+    Note2["Data plane failure:<br/>the thing you are paying for<br/>stops working right now"]
+
+    CPlane -.-> Note1
+    DPlane -.-> Note2
+
+    style CPlane fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style DPlane fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Note1 fill:#fce4ec,stroke:#880e4f
+    style Note2 fill:#ffebee,stroke:#c62828

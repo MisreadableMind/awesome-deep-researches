@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Ladder["The compute pricing ladder - who carries which risk"]
+        direction TB
+        R1["ON-DEMAND<br/>Baseline price, 100%<br/>Customer carries: nothing<br/>Provider carries: all forecast risk<br/>Guarantee: capacity when you ask,<br/>subject to availability"]
+        R2["COMMITTED SPEND<br/>AWS Savings Plans: up to 66% off (Compute),<br/>up to 72% off (EC2 Instance)<br/>1 or 3 year term, $/hour commitment<br/>Customer carries: forecast risk<br/>Provider gains: a contracted demand curve"]
+        R3["RESERVED CAPACITY<br/>Reserved Instances, Azure Reservations,<br/>Google Committed Use Discounts<br/>Customer carries: forecast risk AND<br/>configuration risk (family, region, size)<br/>Provider gains: a placement plan"]
+        R4["SPOT / PREEMPTIBLE<br/>GCP: up to 91% off<br/>Customer carries: interruption risk<br/>Provider gains: paid headroom<br/>Guarantee: none. No SLA."]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph Notice["Interruption notice, by provider"]
+        N1["AWS Spot: 2-minute interruption notice,<br/>plus a rebalance recommendation<br/>issued earlier at elevated risk"]
+        N2["Azure Spot: 30-second eviction notice,<br/>best effort, via Scheduled Events.<br/>Policy: Deallocate or Delete."]
+        N3["Google Spot VMs: preemption notice<br/>configurable to 120 seconds (Preview)<br/>or 0 seconds (default)"]
+    end
+
+    subgraph Price["How the price is set"]
+        P1["AWS: EC2 sets the Spot price and<br/>adjusts it gradually based on the<br/>long-term supply of and demand for<br/>Spot Instances. There is no auction."]
+        P2["Azure: variable by region and SKU.<br/>Customer may set a max price to five<br/>decimal places. Max price -1 means<br/>never evict for price."]
+        P3["Google: Spot prices can change<br/>up to once every day."]
+    end
+
+    R4 --> Notice
+    R4 --> Price
+
+    style R1 fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style R2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style R3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style R4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Notice fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Price fill:#eceff1,stroke:#37474f,stroke-width:2px

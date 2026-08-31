@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph AWS["AWS - regional independence as first principle"]
+        direction TB
+        A1["Regions share almost nothing.<br/>Separate control planes, separate<br/>deployments, separate databases."]
+        A2["VPC is regional. Cross-region needs<br/>peering or Transit Gateway."]
+        A3["Instance maintenance is explicit:<br/>scheduled retirement, customer absorbs it."]
+        A4["Offload: Nitro, fixed-function ASICs.<br/>Lowest unit cost, highest volume."]
+        A5["Weakness: global services concentrate<br/>in us-east-1, which is why us-east-1<br/>events look global."]
+    end
+
+    subgraph Azure["Azure - enterprise identity as first principle"]
+        direction TB
+        Z1["Entra ID predates the compute plane<br/>and is the organising abstraction."]
+        Z2["Region pairs are a first-class concept<br/>with ordered update and recovery priority."]
+        Z3["57 public regions, 39 with zones:<br/>breadth of geography over depth of zones."]
+        Z4["Offload: Azure Boost with a<br/>reprogrammable FPGA datapath.<br/>Flexibility over unit cost."]
+        Z5["Weakness: two control systems,<br/>Entra ID and Azure RBAC, and the<br/>seam between them."]
+    end
+
+    subgraph GCP["Google Cloud - the internal stack, externalised"]
+        direction TB
+        G1["VPC is global. One network,<br/>every region, no peering."]
+        G2["Live migration of running VMs<br/>hides host maintenance entirely."]
+        G3["Spanner gives external consistency<br/>across continents; nothing else has it."]
+        G4["Offload: Titan for identity,<br/>Titanium for I/O. Andromeda for network."]
+        G5["Weakness: global control planes<br/>mean global blast radius, as June 2025<br/>demonstrated across every region at once."]
+    end
+
+    Q["The question that separates them:<br/>where does the provider put the<br/>boundary between blast radius<br/>and operational convenience?"]
+    Q --> AWS
+    Q --> Azure
+    Q --> GCP
+
+    style AWS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Azure fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style GCP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Q fill:#fce4ec,stroke:#880e4f,stroke-width:3px

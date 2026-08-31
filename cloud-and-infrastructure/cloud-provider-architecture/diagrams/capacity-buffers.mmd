@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Lead["Supply side - measured in months and years"]
+        direction TB
+        S1["Site selection<br/>6-18 months<br/>grid capacity, water or air cooling,<br/>fibre routes, permits,<br/>three sites inside 100 km"]
+        S2["Grid interconnection<br/>12-60 months<br/>now the binding constraint<br/>in N. Virginia, Dublin,<br/>Amsterdam, Singapore"]
+        S3["Construction<br/>12-24 months<br/>shell and fit-out"]
+        S4["Hardware lead time<br/>3-12 months,<br/>far longer for accelerators<br/>during a shortage"]
+        S5["Burn-in and qualification<br/>weeks to months<br/>before capacity is sellable"]
+        S1 --> S2 --> S3 --> S4 --> S5
+    end
+
+    subgraph Demand["Demand side - measured in hours"]
+        D1["A product launch, a viral event,<br/>a training run, a competitor outage.<br/>Notice: none."]
+    end
+
+    subgraph Buffers["The three buffers that absorb the gap"]
+        B1["PHYSICAL HEADROOM<br/>Build above forecast.<br/>Cost: depreciation on unsold servers,<br/>3-6 year schedule, revenue zero."]
+        B2["DEMAND SHAPING<br/>Sell commitment at a discount.<br/>Savings Plans, Reservations, CUDs.<br/>The discount is the price of the<br/>forecast information."]
+        B3["INTERRUPTIBLE RESALE<br/>Sell the headroom with no SLA.<br/>Spot / preemptible.<br/>A server earning 30% of list beats<br/>an idle server earning nothing."]
+    end
+
+    subgraph Levers["What the customer sees"]
+        C1["Service quotas<br/>per account, per family, per region.<br/>Capacity policy dressed as a safety rail."]
+        C2["Insufficient capacity errors<br/>no host in THAT zone can take<br/>THAT instance type right now"]
+        C3["Capacity Blocks and reservations<br/>booking a future window,<br/>not renting a present server"]
+    end
+
+    Lead --> Buffers
+    Demand --> Buffers
+    Buffers --> Levers
+
+    style Lead fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Demand fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Buffers fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Levers fill:#fff3e0,stroke:#e65100,stroke-width:2px

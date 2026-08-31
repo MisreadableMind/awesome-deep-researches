@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant CLI as Client (SDK / CLI)
+    participant EP as Regional endpoint<br/>ec2.eu-west-1.amazonaws.com
+    participant IAM as IAM / STS<br/>authorisation
+    participant Q as Quota service
+    participant PL as Placement engine
+    participant WF as Launch workflow
+    participant MD as Metadata store<br/>(control plane database)
+    participant NCP as Network control plane<br/>mapping service
+    participant SCP as Storage control plane
+    participant Host as Target host<br/>offload card
+    participant Guest as Guest OS
+
+    CLI->>CLI: Build canonical request,<br/>sign with SigV4:<br/>kDate=HMAC("AWS4"+secret, 20260831)<br/>kRegion=HMAC(kDate,"eu-west-1")<br/>kService=HMAC(kRegion,"ec2")<br/>kSigning=HMAC(kService,"aws4_request")
+    CLI->>EP: POST / Action=RunInstances<br/>InstanceType=m7i.2xlarge<br/>SubnetId=subnet-0f3a91c2<br/>Authorization: AWS4-HMAC-SHA256 ...
+    EP->>IAM: Authenticate principal,<br/>evaluate policy
+    Note over IAM: Order: explicit deny scan,<br/>then RCPs, SCPs, resource policy,<br/>identity policy, permissions<br/>boundary, session policy
+    IAM-->>EP: Allow
+    EP->>Q: Check vCPU quota for the<br/>Standard instance family in eu-west-1
+    Q-->>EP: 8 vCPUs available under limit
+    EP->>WF: Start launch workflow<br/>idempotency key = ClientToken
+    EP-->>CLI: 200 OK, InstanceId=i-0b7c2e91,<br/>state=pending
+    Note over CLI,EP: The API returned in ~200 ms.<br/>Nothing has booted yet.
+
+    WF->>PL: Find a host: 8 vCPU,<br/>32 GiB, Sapphire Rapids or newer,<br/>in euw1-az2, EBS bandwidth headroom
+    PL->>MD: Read host inventory and leases
+    MD-->>PL: Candidate hosts
+    PL-->>WF: Host h-4419, slot 3
+
+    par Network setup
+        WF->>NCP: Allocate ENI eni-0c4d, private IP 10.0.2.40,<br/>attach security group sg-0a91
+        NCP->>NCP: Write mapping: 10.0.2.40 in vpc-0a1b2c<br/>lives on substrate address of h-4419
+        NCP->>Host: Program flow table entries<br/>and security group rules onto the card
+    and Storage setup
+        WF->>SCP: Create io2 volume vol-08fe,<br/>500 GiB, 20000 IOPS
+        Note over SCP: 20000 IOPS needs >= 20 GiB<br/>at the 1000:1 ratio. 500 GiB is fine.<br/>Throughput = 20000 x 0.256 MiB/s,<br/>capped at the 4000 MiB/s ceiling.
+        SCP->>SCP: Place primary and replica extents<br/>on block servers in euw1-az2
+        SCP->>Host: Present NVMe namespace<br/>on the Nitro Card for EBS
+    and Identity setup
+        WF->>IAM: Mint credentials for the<br/>instance profile role
+        IAM->>Host: Deliver to the card's<br/>instance metadata service
+    end
+
+    WF->>Host: Create domain: 8 vCPUs pinned,<br/>32 GiB physical DRAM mapped
+    Host->>Host: Nitro Security Chip has already<br/>verified firmware at power-on.<br/>Hypervisor allocates CPU and memory only.
+    Host->>Guest: Release vCPU 0 from reset,<br/>UEFI firmware executes
+    Guest->>Guest: Enumerate PCIe: sees an ENA NIC<br/>and NVMe controllers. No paravirtual<br/>drivers. It cannot tell it is a guest.
+    Guest->>Host: DHCP on the ENA interface
+    Host-->>Guest: 10.0.2.40/24, gateway 10.0.2.1,<br/>DNS at the VPC base + 2
+    Guest->>Host: GET 169.254.169.254/latest/api/token<br/>(IMDSv2 PUT, TTL header required)
+    Host-->>Guest: Session token, 6 hour max TTL
+    Guest->>Host: GET .../iam/security-credentials/<br/>with X-aws-ec2-metadata-token
+    Host-->>Guest: AccessKeyId, SecretAccessKey,<br/>SessionToken, Expiration
+    Note over Guest: The instance is now a principal.<br/>The card, not the guest, holds the<br/>relationship to IAM.
+
+    Guest->>Host: First packet to S3 endpoint
+    Host->>Host: Flow table miss, consult mapping,<br/>evaluate sg-0a91, encapsulate,<br/>emit on the substrate
+    Note over CLI,Guest: Wall clock: API response ~200 ms,<br/>network and storage attach in parallel,<br/>guest reaches userspace typically<br/>in tens of seconds depending on the image.

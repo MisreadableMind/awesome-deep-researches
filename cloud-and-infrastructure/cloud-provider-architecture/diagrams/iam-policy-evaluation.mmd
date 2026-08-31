@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start(["Request arrives<br/>principal, action, resource, context"]) --> Default["Default: implicit DENY<br/>root user excepted"]
+    Default --> DenyScan{"Explicit Deny in ANY policy?<br/>SCPs, RCPs, resource-based,<br/>identity-based, permissions<br/>boundaries, session policies"}
+    DenyScan -->|"Yes, even one"| Deny(["FINAL: DENY"])
+    DenyScan -->|No| RCP{"Organizations RCPs<br/>allow the action?"}
+    RCP -->|"No applicable Allow"| Deny
+    RCP -->|"Yes, or no RCP attached"| SCP{"Organizations SCPs<br/>allow the action?"}
+    SCP -->|"No applicable Allow"| Deny
+    SCP -->|"Yes, or no SCP attached"| RBP{"Resource-based policy<br/>grants the principal directly?"}
+    RBP -->|"Yes, to an IAM user<br/>or session ARN"| Allow(["FINAL: ALLOW"])
+    RBP -->|"No, or grants a role ARN"| IDP{"Identity-based policy<br/>allows the action?"}
+    IDP -->|No| Deny
+    IDP -->|Yes| PB{"Permissions boundary<br/>present and allows?"}
+    PB -->|"Present and does not allow"| Deny
+    PB -->|"Absent, or allows"| SP{"Is the principal a<br/>session principal?"}
+    SP -->|"No"| Allow
+    SP -->|"Yes, no session policy passed"| Allow
+    SP -->|"Yes, session policy allows"| Allow
+    SP -->|"Yes, session policy does not allow"| Deny
+
+    Note1["RCPFullAWSAccess is attached<br/>automatically to every entity when<br/>RCPs are enabled and cannot be<br/>detached, so an Allow always exists<br/>unless you add one deliberately."]
+    RCP -.-> Note1
+
+    Note2["Effective permissions:<br/>identity + resource policy = UNION<br/>identity + permissions boundary = INTERSECTION<br/>identity + SCP + RCP = INTERSECTION"]
+    PB -.-> Note2
+
+    style Deny fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Allow fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style DenyScan fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Note1 fill:#eceff1,stroke:#37474f
+    style Note2 fill:#eceff1,stroke:#37474f

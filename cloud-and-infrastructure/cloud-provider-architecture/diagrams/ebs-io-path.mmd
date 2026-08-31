@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant App as Application in guest
+    participant Kern as Guest kernel<br/>NVMe driver
+    participant Card as Nitro Card for EBS<br/>(offload SoC)
+    participant Net as AZ network fabric
+    participant P as Primary block server
+    participant R as Replica block server
+    participant S3 as Regional object store<br/>(snapshots)
+
+    App->>Kern: write(fd, buf, 16384)
+    Kern->>Kern: Build NVMe submission queue entry<br/>opcode 0x01 Write, LBA, length
+    Kern->>Card: Ring doorbell on the PCIe<br/>NVMe controller the card presents
+    Note over Card: The guest believes this is<br/>a local disk. It is a network client.
+    Card->>Card: Look up volume mapping,<br/>apply encryption with the<br/>volume's data key
+    Card->>Net: Remote block write over SRD<br/>(Scalable Reliable Datagram)
+    Note over Net: SRD sprays packets across<br/>many paths, tolerates reorder,<br/>retransmits fast. Built to<br/>kill tail latency, not to be TCP.
+    Net->>P: Write request
+    P->>P: Commit to durable media
+    P->>R: Replicate synchronously
+    R-->>P: Ack
+    P-->>Net: Ack
+    Net-->>Card: Ack
+    Card->>Kern: NVMe completion queue entry
+    Kern->>App: write() returns
+    Note over App,R: Design target for io2 Block Express<br/>on Nitro: average under 500 us<br/>for a 16 KiB I/O.
+
+    rect rgb(252, 228, 236)
+    Note over P,S3: Snapshot path is separate and asynchronous
+    P->>S3: Copy changed blocks to regional object storage
+    Note over S3: Snapshots are regional and survive<br/>the loss of the volume's zone.
+    end
+
+    rect rgb(255, 235, 238)
+    Note over Card,P: Failure case
+    Card->>Net: Write request
+    Net--xP: Primary unreachable
+    Card->>Card: SRD retransmit on an alternate path
+    Note over Card,R: If the primary is genuinely lost,<br/>the volume goes to an error state.<br/>The guest sees I/O errors, not<br/>silent corruption.
+    end
