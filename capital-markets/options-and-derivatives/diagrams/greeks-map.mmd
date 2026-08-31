@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    V["Option value V(S, K, r, q, sigma, T)"]
+
+    V -->|"d/dS"| D["DELTA = 0.532560<br/>Rate of change with spot.<br/>The hedge ratio.<br/>53.26 shares per contract."]
+    V -->|"d/dsigma"| VG["VEGA = 11.399205 per unit vol<br/>= $0.113992 per vol point<br/>= $11.40 per contract per point"]
+    V -->|"d/dt"| TH["THETA = -19.345686 per year<br/>= -$0.053002 per calendar day<br/>= -$5.30 per contract per day"]
+    V -->|"d/dr"| RH["RHO = 4.128894 per unit rate<br/>= $0.041289 per percentage point<br/>= $4.13 per contract per point"]
+
+    D -->|"d/dS again"| G["GAMMA = 0.055476<br/>Rate of change of delta.<br/>Delta at 101 rises to 0.587274."]
+
+    D -->|"d/dsigma"| VN["VANNA<br/>How delta moves with vol.<br/>Drives skew hedging."]
+    D -->|"d/dt"| CH["CHARM<br/>How delta decays with time.<br/>Dominates the last hours<br/>of a 0DTE position."]
+    VG -->|"d/dsigma"| VO["VOLGA / VOMMA<br/>Vega convexity.<br/>Prices the smile's wings."]
+    G -->|"d/dS"| SP["SPEED<br/>Gamma of gamma.<br/>Matters near a barrier."]
+
+    Check["Every Greek is a linearisation.<br/>Delta alone predicts $3.553701 at S=101.<br/>Delta plus half gamma predicts $3.581439.<br/>Exact repricing: $3.581199.<br/>Second order cuts the error<br/>from 2.75 cents to 0.024 cents."]
+
+    G --> Check
+    D --> Check
+
+    style V fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style D fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style G fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style VG fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style TH fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style RH fill:#e0f7fa,stroke:#006064,stroke-width:2px
+    style Check fill:#fce4ec,stroke:#880e4f,stroke-width:3px

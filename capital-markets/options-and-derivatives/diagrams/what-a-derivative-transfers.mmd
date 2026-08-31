@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["What actually moves<br/>when a derivative trades?"]
+
+    subgraph NOT["What does NOT move"]
+        direction TB
+        N1["Ownership of the underlying.<br/>No share, barrel, or bond<br/>changes hands at inception."]
+        N2["The notional amount.<br/>It is a multiplier in a formula,<br/>not a sum anyone pays."]
+        N3["Risk itself.<br/>It is relocated, not destroyed."]
+    end
+
+    subgraph DOES["What DOES move"]
+        direction TB
+        D1["A slice of the underlying's<br/>distribution of future outcomes"]
+        D2["Forward or future:<br/>the whole distribution,<br/>shifted by a strike.<br/>Linear, symmetric."]
+        D3["Option:<br/>one tail only.<br/>Non-linear, asymmetric.<br/>Buyer's loss capped at premium."]
+        D4["Swap:<br/>a stream of differences<br/>between two rates or returns,<br/>on a fixed notional."]
+        D5["Cash, later.<br/>Premium now for options.<br/>Variation margin daily for futures.<br/>Periodic net payments for swaps."]
+    end
+
+    subgraph MECH["And the machinery that makes the loser pay"]
+        direction TB
+        M1["Listed: novation to a CCP,<br/>daily margin, default waterfall"]
+        M2["OTC: ISDA Master,<br/>close-out netting,<br/>Credit Support Annex collateral"]
+    end
+
+    Q --> NOT
+    Q --> DOES
+    DOES --> MECH
+
+    Insight["A derivative transfers a payoff<br/>and a credit problem.<br/>The payoff is the easy half."]
+    MECH --> Insight
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style NOT fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style DOES fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style MECH fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Insight fill:#fce4ec,stroke:#880e4f,stroke-width:3px

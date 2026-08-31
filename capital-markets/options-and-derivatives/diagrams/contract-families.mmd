@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Root["Derivative contract"]
+
+    Root --> Obl{"Obligation<br/>or right?"}
+
+    Obl -->|"Obligation"| Lin["Linear payoff:<br/>value moves one-for-one<br/>with the underlying"]
+    Obl -->|"Right"| Opt["Option<br/>Non-linear payoff<br/>max(S - K, 0) for a call<br/>max(K - S, 0) for a put"]
+
+    Lin --> When{"Settles once<br/>or repeatedly?"}
+
+    When -->|"Once, at maturity"| Once{"Bilateral<br/>or cleared?"}
+    When -->|"Repeatedly"| Swap["Swap<br/>Exchange of two cash-flow<br/>streams on a notional.<br/>Equivalent to a strip of forwards<br/>priced as one contract."]
+
+    Once -->|"Bilateral"| Fwd["Forward<br/>No cash at inception.<br/>Strike set so value = 0.<br/>F = S x e^((r-q)T)<br/>Credit risk runs the full life."]
+    Once -->|"Cleared, daily margin"| Fut["Future<br/>Same terminal payoff.<br/>Marked to market daily.<br/>Variation margin in cash.<br/>Credit risk collapses to one day."]
+
+    Opt --> Style{"Exercise<br/>style"}
+    Style --> Eur["European<br/>Exercise at expiry only.<br/>Closed-form Black-Scholes."]
+    Style --> Amer["American<br/>Exercise any time.<br/>Requires a tree or PDE."]
+    Style --> Berm["Bermudan<br/>Exercise on set dates.<br/>Common in swaptions."]
+
+    Fut --> Note1["Metallgesellschaft 1993:<br/>identical terminal payoff<br/>to a forward, opposite<br/>cash-flow profile.<br/>The cash flow killed it."]
+    Swap --> Note2["Archegos 2021:<br/>total return swap moved<br/>the economics without<br/>moving the ownership<br/>or the disclosure."]
+
+    style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Opt fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Fwd fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Fut fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Swap fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Note1 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Note2 fill:#ffebee,stroke:#b71c1c,stroke-width:2px

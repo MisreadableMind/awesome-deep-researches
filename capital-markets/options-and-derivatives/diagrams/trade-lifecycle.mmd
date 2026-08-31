@@ -1,0 +1,55 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Customer
+    participant B as Broker
+    participant EX as Options exchange
+    participant MM as Market maker
+    participant OP as OPRA
+    participant CM as Clearing member
+    participant OCC as OCC
+    participant DTC as DTC / settlement
+
+    C->>B: Buy 10 XYZ Nov 100 calls, limit 3.05
+    Note over B: Pre-trade checks<br/>SEC Rule 15c3-5 market access<br/>Options approval level<br/>Reg T buying power: 10 x $305.00 = $3,050.00 at the 3.05 limit
+    B->>B: Reject if any check fails
+
+    B->>EX: Route order<br/>must not trade through a better<br/>displayed price on another exchange
+    EX->>MM: Order interacts with the quote
+    MM->>EX: Fill 10 contracts at 3.02
+
+    par Public reporting
+        EX->>OP: Trade report and quote update
+        OP-->>C: Consolidated tape
+    and Clearing submission
+        EX->>OCC: Matched trade, both sides
+    end
+
+    Note over MM: Market maker hedges within seconds<br/>short 10 calls = -533 deltas<br/>buys 533 XYZ against the short call
+
+    OCC->>OCC: Novation<br/>OCC becomes buyer to the seller<br/>and seller to the buyer.<br/>One trade becomes two contracts.
+    OCC->>CM: Position posted to the buyer's clearing member
+    OCC->>CM: Position posted to the seller's clearing member
+
+    Note over OCC: Overnight batch<br/>STANS margin recalculated<br/>Open interest computed<br/>+10 if both sides opening
+
+    OCC->>CM: Margin call, cash or collateral, next morning
+    CM->>OCC: Meet the call
+    OCC->>DTC: Premium settles next business day<br/>10 contracts filled at 3.02 = $3,020.00 debited
+
+    Note over C,DTC: Position now exists.<br/>Marked to market daily until closed,<br/>exercised, or expired.
+
+    alt Customer closes before expiry
+        C->>B: Sell to close
+        B->>EX: Order
+        EX->>OCC: Matched trade
+        OCC->>OCC: Open interest -10
+    else Held to expiry, in the money by $0.01 or more
+        OCC->>OCC: Exercise by exception, unless<br/>the clearing member files<br/>contrary instructions by 4:30pm CT
+        OCC->>CM: Random allocation of assignment<br/>to a short-position member
+        CM->>CM: Allocate to a customer,<br/>randomly or FIFO per disclosed method
+        OCC->>DTC: 1,000 shares delivered at $100.00<br/>= $100,000, settling T+1
+    else Held to expiry, out of the money
+        OCC->>OCC: Contract lapses, open interest -10
+    end

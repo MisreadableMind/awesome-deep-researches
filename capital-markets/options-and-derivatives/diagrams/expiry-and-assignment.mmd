@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant H as Long holder
+    participant B1 as Holder's broker
+    participant CM1 as Holder's clearing member
+    participant OCC as OCC
+    participant CM2 as A short clearing member
+    participant B2 as Writer's broker
+    participant W as Short writer
+
+    Note over H,W: Last trading day. Equity options: the third Friday for monthlies.<br/>Index options may stop trading the preceding Thursday if AM-settled.
+
+    rect rgb(240, 248, 255)
+        Note over H,OCC: Path A - explicit instruction
+        H->>B1: Exercise / do not exercise instruction
+        Note over B1: Broker's internal cut-off is<br/>earlier than the exchange's
+        B1->>CM1: Exercise notice
+        CM1->>OCC: Exercise notice, by 4:30 p.m. Central Time
+    end
+
+    rect rgb(255, 248, 240)
+        Note over OCC: Path B - exercise by exception
+        OCC->>OCC: At settlement, any position $0.01 or more<br/>in the money is exercised automatically
+        Note over CM1,OCC: A clearing member may file contrary<br/>instructions to override in either direction
+    end
+
+    OCC->>OCC: Aggregate all exercise notices per series
+    OCC->>CM2: Allocate assignments RANDOMLY among<br/>clearing members holding short positions
+    CM2->>B2: Assignment received
+    CM2->>CM2: Allocate to customers randomly or FIFO,<br/>per the member's own disclosed method
+    B2->>W: Assignment delivered. No opt-out exists.
+
+    alt Physically settled equity option
+        W->>OCC: Deliver 100 shares per contract
+        OCC->>H: Deliver 100 shares per contract
+        H->>OCC: Pay strike x 100 per contract
+        OCC->>W: Pay strike x 100 per contract
+        Note over W,H: Settles on the standard equity cycle,<br/>T+1 since May 2024
+    else Cash-settled index option
+        Note over OCC: Settlement value computed from the index.<br/>SPX standard expiry uses the Special Opening<br/>Quotation from constituent opening prints.<br/>SPXW settles on the closing index level.
+        OCC->>W: Debit (settlement - strike) x multiplier
+        OCC->>H: Credit the same amount
+    end
+
+    Note over H,W: PIN RISK<br/>Stock closes at $100.02 against a $100 strike.<br/>Two cents in the money, so exercise by exception fires.<br/>A writer of 100 calls delivers 10,000 shares for $1,000,000.<br/>If they were hedged at 50 delta, they are now short 5,000 shares.

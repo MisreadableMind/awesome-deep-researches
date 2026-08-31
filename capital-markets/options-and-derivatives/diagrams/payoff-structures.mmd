@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph P["Primitives - terminal payoff at expiry"]
+        direction TB
+        P1["Long stock: S_T"]
+        P2["Long call K: max(S_T - K, 0)"]
+        P3["Long put K: max(K - S_T, 0)"]
+        P4["Bond: K, paid at T"]
+    end
+
+    subgraph V["Vertical - two strikes, one expiry"]
+        direction TB
+        V1["Bull call spread<br/>+call K1, -call K2, K1 &lt; K2<br/>Base case 100/105: debit $1.8534,<br/>max profit $314.66, max loss $185.34"]
+        V2["Bear put spread<br/>+put K2, -put K1"]
+        V3["Risk reversal<br/>+call K2, -put K1<br/>Synthetic long with a gap"]
+    end
+
+    subgraph S["Straddle family - same expiry"]
+        direction TB
+        S1["Straddle: +call K, +put K<br/>Base case: $3.0211 + $2.6929 = $5.7140<br/>Breakevens 94.29 and 105.71"]
+        S2["Strangle: +call K2, +put K1<br/>Cheaper, wider breakevens"]
+        S3["Butterfly: +call K1, -2 call K2, +call K3<br/>Price / width approximates the<br/>risk-neutral probability of<br/>finishing near K2"]
+        S4["Condor: butterfly with a flat top"]
+    end
+
+    subgraph T["Time - two expiries"]
+        direction TB
+        T1["Calendar spread<br/>-near option, +far option<br/>Long vega, short gamma"]
+        T2["Diagonal<br/>Different strike and expiry"]
+    end
+
+    subgraph H["Hedges"]
+        direction TB
+        H1["Covered call: +stock, -call"]
+        H2["Protective put: +stock, +put"]
+        H3["Collar: +stock, +put K1, -call K2"]
+        H4["Conversion: +stock, +put K, -call K<br/>Riskless. Value = put-call parity."]
+    end
+
+    P --> V
+    P --> S
+    P --> T
+    P --> H
+
+    Key["Every one of these is<br/>addition of the primitives.<br/>The Greeks add too:<br/>portfolio delta is the sum<br/>of position deltas."]
+
+    V --> Key
+    S --> Key
+    T --> Key
+    H --> Key
+
+    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style V fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style T fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style H fill:#e0f7fa,stroke:#006064,stroke-width:2px
+    style Key fill:#fce4ec,stroke:#880e4f,stroke-width:3px

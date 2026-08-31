@@ -1,0 +1,61 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Before["Before novation"]
+        direction LR
+        BA["Buyer"] ---|"one contract<br/>buyer carries seller's credit<br/>for the option's whole life"| BS["Seller"]
+    end
+
+    subgraph After["After novation at OCC"]
+        direction LR
+        AA["Buyer"] -->|"contract 1"| OCC1["OCC"]
+        OCC1 -->|"contract 2"| AS["Seller"]
+    end
+
+    Before -->|"OCC becomes the buyer to<br/>every seller and the seller<br/>to every buyer"| After
+
+    After --> Chain["Consequences"]
+
+    subgraph Chain2["What novation buys"]
+        direction TB
+        Y1["Fungibility: any contract in a<br/>series offsets any other,<br/>because all have the same<br/>counterparty"]
+        Y2["Anonymity: neither side needs<br/>to know or assess the other"]
+        Y3["Multilateral netting: a member's<br/>obligations across all trades<br/>collapse to one number"]
+        Y4["Exit by trading out rather than<br/>by negotiating an unwind"]
+    end
+
+    Chain --> Chain2
+
+    subgraph WF["Default waterfall - the order the losses are absorbed"]
+        direction TB
+        W1["1. The defaulting member's<br/>margin on deposit"]
+        W2["2. The defaulting member's own<br/>contribution to the clearing fund"]
+        W3["3. OCC's own dedicated capital<br/>tranche, sized by its rules"]
+        W4["4. Surviving members' clearing<br/>fund contributions, mutualised"]
+        W5["5. Assessment powers against<br/>surviving members"]
+        W6["6. Recovery and wind-down plan"]
+        W1 --> W2 --> W3 --> W4 --> W5 --> W6
+    end
+
+    Chain2 --> WF
+
+    subgraph Liq["Liquidity, not just solvency"]
+        direction TB
+        L1["A default creates an immediate<br/>need for CASH, not for capital.<br/>Settlement obligations do not wait."]
+        L2["OCC base liquidity resources:<br/>clearing fund cash, committed<br/>bank credit facilities,<br/>committed repo facilities"]
+        L3["Commercial paper program<br/>approved 28 July 2026:<br/>up to $1 billion, maximum<br/>180-day maturities, proceeds<br/>held at the Federal Reserve"]
+        L4["Replaces $250 million from a<br/>single provider, about 19% of<br/>committed facilities.<br/>Initially capped at 5% of<br/>base liquidity resources."]
+    end
+
+    WF --> Liq
+
+    Risk["The structural trade:<br/>bilateral credit risk is replaced by<br/>one concentrated node that must not fail.<br/>The system is safer and its<br/>tail is thinner and further out."]
+
+    Liq --> Risk
+
+    style Before fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style After fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Chain2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style WF fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Liq fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Risk fill:#fce4ec,stroke:#880e4f,stroke-width:3px

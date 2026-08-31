@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph ETD["Exchange-traded and cleared"]
+        direction TB
+        E1["Contract defined by the exchange<br/>Fixed strikes, fixed expiries,<br/>fixed multiplier"]
+        E2["Novated to the CCP<br/>Counterparty identity<br/>becomes irrelevant"]
+        E3["Margined daily by the CCP<br/>SPAN or STANS,<br/>variation margin in cash"]
+        E4["Fungible<br/>Any contract in a series<br/>offsets any other"]
+        E5["Transparent<br/>Quotes and trades on OPRA<br/>Open interest published daily"]
+        E6["Exit by trading out<br/>A closing trade extinguishes<br/>the position"]
+    end
+
+    subgraph HYB["Cleared OTC - the post-2009 hybrid"]
+        direction TB
+        H1["Contract defined by ISDA<br/>definitions plus a<br/>CCP product specification"]
+        H2["Executed bilaterally or on a SEF,<br/>then novated to a CCP"]
+        H3["Margined by the CCP;<br/>initial margin on a<br/>5-day close-out horizon"]
+        H4["Reported to a trade repository"]
+        H5["Exit by compression or<br/>an offsetting cleared trade"]
+    end
+
+    subgraph OTC["Bilateral OTC"]
+        direction TB
+        O1["Contract defined by the parties<br/>ISDA Master + Schedule<br/>+ Confirmation"]
+        O2["Counterparty risk stays<br/>with the counterparty<br/>for the life of the trade"]
+        O3["Collateral under a<br/>Credit Support Annex;<br/>uncleared margin rules since 2016"]
+        O4["Not fungible<br/>Each trade is a distinct<br/>contract with a named party"]
+        O5["Opaque to the public;<br/>reported to a repository,<br/>not to a public tape"]
+        O6["Exit by termination,<br/>assignment (novation to a<br/>third party), or an offsetting trade<br/>that leaves both on the books"]
+    end
+
+    ETD -->|"Mandatory clearing<br/>after Dodd-Frank Title VII<br/>and EMIR"| HYB
+    HYB --> OTC
+
+    Bridge["FLEX options sit across the line:<br/>exchange-listed and OCC-cleared,<br/>but with customer-chosen strike,<br/>expiry, and exercise style."]
+
+    ETD --- Bridge
+    OTC --- Bridge
+
+    style ETD fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style HYB fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style OTC fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Bridge fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
