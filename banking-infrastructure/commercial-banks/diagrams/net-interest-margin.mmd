@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Earn["EARNING ASSETS - 9,500 of the 10,000 balance sheet"]
+        direction TB
+        E1["Loans 6,500 at 6.30%<br/>= 409.5 of interest income"]
+        E2["Securities 2,550 at 3.10%<br/>= 79.1"]
+        E3["Reserves 450 at 4.15% IORB<br/>= 18.7"]
+        ETOT["Total interest income 507.3<br/>Yield on earning assets 5.34%"]
+        E1 --> ETOT
+        E2 --> ETOT
+        E3 --> ETOT
+    end
+
+    subgraph Fund["FUNDING"]
+        direction TB
+        F1["Noninterest-bearing deposits 1,700<br/>at 0.00% = 0<br/>THE FRANCHISE. Free funding<br/>that reprices only when<br/>the customer leaves."]
+        F2["Interest-bearing deposits 6,700<br/>at 2.35% = 157.5"]
+        F3["FHLB advances 500 at 4.50% = 22.5"]
+        F4["Other borrowings 200 at 5.75% = 11.5"]
+        FTOT["Total interest expense 191.5<br/>Cost of funding earning assets 2.02%"]
+        F1 --> FTOT
+        F2 --> FTOT
+        F3 --> FTOT
+        F4 --> FTOT
+    end
+
+    ETOT --> NIM["NET INTEREST INCOME 315.8<br/>NIM = 315.8 / 9,500 = 3.32%"]
+    FTOT --> NIM
+
+    NIM --> Ind["US industry, 2026 Q2:<br/>yield 5.35%, cost 2.03%, NIM 3.32%<br/>Under 100m: 3.99%. 100m to 1bn: 4.02%.<br/>1 to 10bn: 3.93%. 10 to 250bn: 3.95%.<br/>Over 250bn: 2.94%.<br/>A flat band, then one cliff at the top."]
+
+    NIM --> Cycle["NIM BY YEAR<br/>2021: 2.54%<br/>2022: 2.95%<br/>2023: 3.30%<br/>2024: 3.22%<br/>2025: 3.30%<br/>2026 H1: 3.32%"]
+
+    Cycle --> Beta["The 2022 jump is the deposit beta.<br/>Asset yields repriced with the policy rate.<br/>Deposit rates lagged. The gap is the profit,<br/>and it closes as depositors notice."]
+
+    style Earn fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Fund fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style NIM fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Beta fill:#fce4ec,stroke:#880e4f,stroke-width:2px

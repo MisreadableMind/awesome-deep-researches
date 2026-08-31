@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Buy["A BANK BUYS A 10-YEAR AGENCY MBS AT PAR<br/>Rates then rise 400 basis points.<br/>The security is worth 78 cents on the dollar."]
+
+    Buy --> Class{"CLASSIFICATION CHOICE<br/>made at purchase"}
+
+    Class -->|"TRADING"| Tr["Marked to market through<br/>the income statement.<br/>The loss is in earnings this quarter."]
+
+    Class -->|"AVAILABLE FOR SALE"| Afs["Marked to market through<br/>accumulated other comprehensive income.<br/>Book equity falls. Earnings do not."]
+
+    Class -->|"HELD TO MATURITY"| Htm["Carried at amortised cost.<br/>Nothing moves. The loss appears<br/>only in a footnote."]
+
+    Afs --> Opt{"REGULATORY CAPITAL TREATMENT"}
+
+    Opt -->|"Category I and II banks:<br/>AOCI mandatory in CET1"| Inc["AOCI flows into CET1.<br/>Regulatory capital falls with rates."]
+
+    Opt -->|"Category III, Category IV and<br/>all smaller banks: AOCI opt-out"| Exc["AOCI is excluded from CET1.<br/>Regulatory capital does not move.<br/>Economic capital does."]
+
+    Htm --> Taint["THE TAINTING RULE<br/>Selling a meaningful portion of the HTM<br/>portfolio forces reclassification of the<br/>whole portfolio to AFS at fair value.<br/>So the HTM bucket is a one-way door."]
+
+    Exc --> Result
+    Htm --> Result
+
+    Result["THE INDUSTRY POSITION, 2026 Q2<br/>Total unrealised losses: 326.7 bn USD<br/>AFS: 109.8 bn, 2.9% of amortised cost<br/>HTM: 216.9 bn, 10.5% of amortised cost<br/>Against total equity capital of 2.63 trn.<br/>Down 68.6 bn from a year earlier."]
+
+    Result --> Fix["WHAT IS CHANGING<br/>The 19 March 2026 interagency proposal<br/>would require certain large banks to<br/>reflect unrealised gains and losses on<br/>securities in regulatory capital,<br/>with a transition period.<br/>Comments closed 18 June 2026.<br/>Not final as of August 2026."]
+
+    Result --> Read["HOW TO READ ANY BANK<br/>Take HTM amortised cost, subtract HTM<br/>fair value, and compare the difference<br/>to tangible common equity. That single<br/>subtraction would have flagged SVB<br/>fifteen months before it failed."]
+
+    style Buy fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Htm fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Taint fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Result fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Read fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

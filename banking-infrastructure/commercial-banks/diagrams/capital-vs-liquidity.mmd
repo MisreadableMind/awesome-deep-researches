@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Cap["CAPITAL - a solvency question"]
+        direction TB
+        CQ["Question it answers:<br/>if the assets lose value,<br/>is anything left for depositors?"]
+        CW["Lives on the RIGHT side<br/>of the balance sheet.<br/>It is a funding source,<br/>not a pile of money."]
+        CM["Measured as:<br/>CET1 / risk-weighted assets<br/>and tier 1 / total assets"]
+        CF["Fails as:<br/>losses exceed equity.<br/>Assets are worth less<br/>than liabilities."]
+        CT["Time horizon: years"]
+        CQ --> CW --> CM --> CF --> CT
+    end
+
+    subgraph Liq["LIQUIDITY - a timing question"]
+        direction TB
+        LQ["Question it answers:<br/>if depositors want cash today,<br/>can the bank produce it today?"]
+        LW["Lives on the LEFT side<br/>of the balance sheet.<br/>It is a property of assets,<br/>not of funding."]
+        LM["Measured as:<br/>LCR over 30 days,<br/>NSFR over one year"]
+        LF["Fails as:<br/>a solvent bank cannot<br/>convert good assets to cash<br/>fast enough at par."]
+        LT["Time horizon: hours"]
+        LQ --> LW --> LM --> LF --> LT
+    end
+
+    subgraph Cross["WHY THEY ARE NOT SUBSTITUTES"]
+        X1["A bank with 15% CET1 and every<br/>security pledged to the FHLB<br/>fails on a Friday afternoon."]
+        X2["A bank with 100% of assets in<br/>reserves and negative equity is<br/>perfectly liquid and insolvent."]
+        X3["SVB was the first case.<br/>CET1 12.0% at 2022 year-end,<br/>200 bps above its peer group.<br/>Closed 69 days later."]
+    end
+
+    Cap --> Cross
+    Liq --> Cross
+
+    Cross --> Link["THE LINK: a capital scare<br/>causes a liquidity run, and a<br/>liquidity run forces asset sales<br/>that destroy capital.<br/>Each converts into the other."]
+
+    style Cap fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Liq fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Cross fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Link fill:#ffebee,stroke:#c62828,stroke-width:3px

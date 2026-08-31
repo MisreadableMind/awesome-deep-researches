@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Trigger["TRIGGER<br/>a loss disclosure, a rating action,<br/>a capital raise, a peer failure"]
+
+    Trigger --> Calc["EACH UNINSURED DEPOSITOR<br/>FACES THE SAME ARITHMETIC"]
+
+    Calc --> Q1["Cost of leaving if the bank survives:<br/>an afternoon of wire instructions"]
+    Calc --> Q2["Cost of staying if the bank fails:<br/>a receivership certificate,<br/>a haircut, and months of waiting"]
+
+    Q1 --> Dom["Leaving strictly dominates.<br/>The rational move is to run<br/>even if you believe the bank is solvent."]
+    Q2 --> Dom
+
+    Dom --> Speed["WHAT CHANGED THE SPEED"]
+
+    Speed --> S1["Mobile and API-initiated wires.<br/>No branch queue, no business hours."]
+    Speed --> S2["Concentrated, homogeneous depositors.<br/>SVB's clients shared investors,<br/>board members and group chats."]
+    Speed --> S3["Social media as a coordination device.<br/>A run needs common knowledge,<br/>and Twitter supplies it in minutes."]
+
+    S1 --> Result["SVB: over 40 bn USD out on 9 March 2023,<br/>a further 100 bn USD demanded for 10 March.<br/>Close to 80% of deposits demanded<br/>inside 48 hours."]
+    S2 --> Result
+    S3 --> Result
+
+    Result --> Defence["WHAT ACTUALLY SLOWS A RUN"]
+
+    Defence --> D1["DEPOSIT INSURANCE<br/>250,000 USD per depositor,<br/>per bank, per ownership category.<br/>Insured depositors do not run."]
+    Defence --> D2["GRANULARITY<br/>10 million small accounts behave<br/>differently from 1,000 large ones.<br/>The LCR gives stable retail 3%<br/>and uninsured corporate 40%."]
+    Defence --> D3["OPERATIONAL FRICTION<br/>payroll, direct debits, a mortgage<br/>at the same bank. Switching costs<br/>are what deposit stickiness is."]
+    Defence --> D4["PRE-POSITIONED COLLATERAL<br/>at the discount window and the FHLB.<br/>Only useful if it was pledged<br/>before the panic started."]
+
+    Fail["WHAT DOES NOT SLOW A RUN:<br/>a high CET1 ratio.<br/>SVB had 12%."]
+
+    Result --> Fail
+
+    style Trigger fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Dom fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Result fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Defence fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Fail fill:#fce4ec,stroke:#880e4f,stroke-width:3px

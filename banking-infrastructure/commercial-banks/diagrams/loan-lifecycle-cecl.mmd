@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    A["APPLICATION<br/>the five Cs: character, capacity,<br/>capital, collateral, conditions"]
+
+    A --> B["UNDERWRITING<br/>Consumer: FICO, debt-to-income,<br/>loan-to-value, automated decision<br/>Commercial: financial spreads, global<br/>cash flow, debt service coverage ratio,<br/>a risk rating on a 1 to 10 scale"]
+
+    B --> C["APPROVAL AND PRICING<br/>Rate = funding cost + expected loss<br/>+ capital charge + operating cost + margin<br/>Covenants, guarantees, collateral filing"]
+
+    C --> D["ORIGINATION<br/>Loan booked as an asset.<br/>Deposit created as a liability.<br/>Day-one CECL allowance recognised<br/>through the income statement."]
+
+    D --> E["DAY-ONE CECL ALLOWANCE, ASC 326<br/>Lifetime expected credit loss on the<br/>contractual term, using past events,<br/>current conditions and reasonable and<br/>supportable forecasts.<br/>Meridian C and I book: 1,600 x 4.0% lifetime PD<br/>x 35% LGD = 22.4 of allowance on day one."]
+
+    E --> F["WHAT CECL REPLACED<br/>Incurred loss: reserve only when a loss<br/>was probable and estimable.<br/>Same book, loss emergence period of<br/>one year: 1,600 x 0.45% = 7.2.<br/>CECL is roughly three times larger<br/>on a long-dated book, and it books<br/>the loss before the loan is troubled."]
+
+    D --> G["SERVICING AND MONITORING<br/>Payment performance, covenant testing,<br/>annual review, risk rating refresh"]
+
+    G --> H1["PERFORMING<br/>Interest accrues.<br/>Allowance updated each quarter<br/>as forecasts change."]
+    G --> H2["30 TO 89 DAYS PAST DUE<br/>Industry: 71.1 bn USD, 2026 Q2"]
+    G --> H3["NONACCRUAL OR 90+ DAYS<br/>Interest stops accruing.<br/>Industry noncurrent: 129.7 bn USD"]
+    G --> H4["MODIFIED FOR A BORROWER<br/>IN FINANCIAL DIFFICULTY<br/>Industry: 52.3 bn USD"]
+
+    H3 --> I["CHARGE-OFF<br/>The loan leaves the balance sheet.<br/>The allowance absorbs it.<br/>No income statement hit at this point.<br/>Industry net charge-off rate: 0.57%<br/>of loans, annualised, 2026 Q2"]
+
+    I --> J["THE MECHANICAL POINT<br/>Provision expense hits earnings.<br/>Charge-offs hit the allowance.<br/>If provisions equal charge-offs, the<br/>allowance is flat and the reserve was<br/>correctly sized. 2026 Q2: provision 19.3 bn<br/>against charge-offs 19.8 bn.<br/>Allowance 223.9 bn, coverage of<br/>noncurrent loans 172.7%."]
+
+    F -.- E
+
+    style E fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style F fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style I fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style J fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

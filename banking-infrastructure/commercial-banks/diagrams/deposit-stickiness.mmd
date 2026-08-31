@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Sticky["STICKIEST - lowest cost, lowest flight risk"]
+        direction TB
+        S1["Noninterest-bearing operating accounts<br/>with payroll and direct debits attached<br/>LCR outflow: 3% if insured retail,<br/>5% if a fully insured operational deposit"]
+        S2["Insured retail savings and checking<br/>with an established relationship<br/>LCR outflow: 3% stable, 10% other<br/>NSFR ASF factor: 95% and 90%"]
+        S3["Operational wholesale deposits from<br/>cash-management and custody clients<br/>LCR outflow: 25%<br/>Earned by selling a service,<br/>not by paying a rate"]
+    end
+
+    subgraph Mid["MIDDLE"]
+        direction TB
+        M1["Retail time deposits<br/>Contractually locked but repriced<br/>at every maturity"]
+        M2["Reciprocal deposits<br/>Fully insured through a network,<br/>10% LCR outflow if fully covered,<br/>but more expensive than core"]
+    end
+
+    subgraph Hot["HOTTEST - highest cost, highest flight risk"]
+        direction TB
+        H1["Uninsured corporate non-operational<br/>LCR outflow: 40%<br/>The category that killed SVB<br/>at 94% of its deposit base"]
+        H2["Brokered deposits maturing<br/>within 30 days<br/>LCR outflow: 100%<br/>NSFR ASF factor: 0% under 6 months"]
+        H3["Unsecured wholesale funding from<br/>a financial sector entity<br/>LCR outflow: 100%"]
+    end
+
+    Sticky --> Mid --> Hot
+
+    subgraph Reality["WHAT DEPOSIT STICKINESS ACTUALLY IS"]
+        R1["Not loyalty. Switching cost."]
+        R2["The number of automatic payments<br/>that would break, the number of<br/>counterparties that would need<br/>new instructions, the number of<br/>hours it takes to move."]
+        R3["A depositor with one relationship<br/>and a mobile app leaves in 90 seconds.<br/>A treasurer with 400 vendor mandates<br/>takes six weeks."]
+        R4["This is why banks buy fee businesses.<br/>Trust, payroll and cash management are<br/>purchased deposit duration."]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    Hot -.- Reality
+
+    subgraph Beta["THE OTHER HALF: DEPOSIT BETA"]
+        B1["Beta = the share of a policy rate<br/>change that passes into deposit rates"]
+        B2["Low beta widens the margin.<br/>Industry NIM rose from 2.54% in 2021<br/>to 3.30% in 2023 largely on lag."]
+        B3["Beta is low until it is not.<br/>The same account that repriced slowly<br/>on the way up leaves instantly when<br/>a money market fund pays 200 bp more."]
+        B1 --> B2 --> B3
+    end
+
+    Reality --- Beta
+
+    style Sticky fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Mid fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Hot fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Reality fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Beta fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
