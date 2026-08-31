@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    PFMI["CPMI-IOSCO Principles for<br/>Financial Market Infrastructures, 2012<br/>24 principles, the source text"]
+
+    subgraph US["United States"]
+        S17A["Exchange Act Section 17A, 1975<br/>registration, and rules designed to promote<br/>prompt and accurate clearance and settlement"]
+        R22["Rule 17ad-22<br/>implements the PFMI for covered clearing agencies:<br/>e 4 credit, e 6 margin, e 7 liquidity,<br/>e 8 finality, e 12 exchange of value,<br/>e 13 default rules, e 14 segregation,<br/>e 15 general business risk capital"]
+        T8["Dodd-Frank Title VIII<br/>FSOC designates 8 systemically important<br/>financial market utilities, July 2012:<br/>NSCC, DTC, FICC, CME, ICE Clear Credit,<br/>OCC, CLS Bank, CHIPS"]
+        Cyc["Rule 15c6-1 sets the cycle<br/>Rule 15c6-2 forces same-day affirmation<br/>Rule 17Ad-27 forces STP reporting<br/>Reg SHO Rule 204 forces close-out<br/>Rule 15c3-3 governs customer segregation"]
+        S19["Section 19 b filing<br/>every rulebook change published<br/>in the Federal Register, open to comment"]
+    end
+
+    subgraph EU["European Union"]
+        CSDR["CSDR, Regulation 909/2014<br/>authorises CSDs, mandates book entry,<br/>sets the settlement period,<br/>creates settlement discipline"]
+        Refit["CSDR Refit, Regulation 2023/2845<br/>mandatory buy-ins become a last resort<br/>switched on only by implementing act"]
+        EMIR["EMIR, Regulation 648/2012<br/>plus Delegated Regulation 153/2013:<br/>99.5 percent OTC and 99 percent other,<br/>5-day and 2-day liquidation periods,<br/>own resources at least 25 percent of capital"]
+        SFD["Settlement Finality Directive 98/26/EC<br/>protects transfer orders in designated systems<br/>from insolvency unwind"]
+    end
+
+    subgraph Reach["What reaches firms that clear nothing"]
+        B1["Broker-dealers: written agreements or<br/>written policies for same-day allocation,<br/>confirmation and affirmation"]
+        B2["Registered investment advisers:<br/>records of allocations, confirmations<br/>and affirmations under Advisers Act Rule 204-2"]
+        B3["Central matching providers:<br/>annual straight-through processing report<br/>including affirmation rates"]
+    end
+
+    PFMI --> US
+    PFMI --> EU
+    R22 --> S19
+    Cyc --> Reach
+
+    Note["The rules are about resilience, not conduct.<br/>They ask whether the system survives a default,<br/>not whether anyone was treated fairly."]
+    US --> Note
+    EU --> Note
+
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style EU fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Reach fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style PFMI fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

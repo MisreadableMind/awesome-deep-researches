@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Choice["The trade you cannot avoid:<br/>time between trade and settlement<br/>buys netting and credit;<br/>removing it demands full prefunding"]
+
+    subgraph Atomic["Atomic settlement - T+0, trade by trade"]
+        A1["Counterparty risk falls to zero<br/>no novation, no margin, no default fund"]
+        A2["Both legs must be fully funded<br/>at the moment of the trade"]
+        A3["No multilateral netting<br/>the 98 percent payment reduction disappears"]
+        A4["Securities lending and short selling<br/>need pre-positioned inventory"]
+        A5["No batch window to fix errors<br/>every break becomes a failed trade"]
+    end
+
+    subgraph Deferred["Deferred netted settlement - T+1"]
+        D1["Counterparty risk exists and must be<br/>margined, stress tested and mutualised"]
+        D2["Funding needed is roughly 2 percent<br/>of gross traded value"]
+        D3["Netting compresses share movements<br/>and payments by an order of magnitude"]
+        D4["A day of borrow, recall and repair<br/>before anything is final"]
+    end
+
+    subgraph Middle["What is actually being built"]
+        M1["Paxos Securities Settlement Company<br/>SEC temporary registration, May 2026<br/>bilateral DVP on a ledger, T+0 or T+1,<br/>no CCP, no credit, ten participants at first"]
+        M2["ECB Pontes, launching Q3 2026<br/>hash-link between market DLT platforms<br/>and T2, finality in central bank money"]
+        M3["Optional acceleration<br/>choose T+0 for the trades that can fund it,<br/>keep netting for the ones that cannot"]
+    end
+
+    Choice --> Atomic
+    Choice --> Deferred
+    Atomic --> Middle
+    Deferred --> Middle
+
+    style Atomic fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Deferred fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Middle fill:#fff3e0,stroke:#e65100,stroke-width:3px

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Old["T+2, before 28 May 2024"]
+        O1["T: execute"]
+        O2["T+1 morning: allocate"]
+        O3["T+1 afternoon: confirm and affirm"]
+        O4["T+1 evening: FX booked, funding arranged,<br/>stock loan recalled"]
+        O5["T+2: settle"]
+        O1 --> O2 --> O3 --> O4 --> O5
+    end
+
+    subgraph New["T+1, from 28 May 2024"]
+        N1["T: execute"]
+        N2["T, no later than end of trade date:<br/>allocate, confirm, affirm<br/>Rule 15c6-2 sets the deadline, not a clock time"]
+        N3["T night: night cycle allocation at DTC"]
+        N4["T+1: settle"]
+        N1 --> N2 --> N3 --> N4
+    end
+
+    subgraph Casualties["What the compression breaks"]
+        C1["FX for a European buyer of US shares<br/>CLS cutoff is 6:00 p.m. ET on T,<br/>before the affirmation is even done"]
+        C2["Securities lending recalls<br/>one fewer day to get the shares back"]
+        C3["Funds with T+1 shares and<br/>T+2 foreign portfolio holdings"]
+        C4["Manual exception handling<br/>a broken SSI is now a fail, not a phone call"]
+    end
+
+    subgraph Prizes["What the compression buys"]
+        P1["NSCC volatility charge cut by about 41 percent<br/>and more than 3 bn USD of margin returned"]
+        P2["EU CCP simulations show a 42 percent<br/>margin reduction, about 2.4 bn EUR a day"]
+        P3["One fewer day of counterparty exposure<br/>on every open trade in the market"]
+    end
+
+    Old --> New
+    New --> Casualties
+    New --> Prizes
+
+    style Old fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style New fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Casualties fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Prizes fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

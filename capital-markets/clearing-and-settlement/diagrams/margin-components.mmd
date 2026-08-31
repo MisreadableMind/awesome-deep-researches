@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Port["Member's net unsettled portfolio<br/>after CNS netting"]
+
+    subgraph Core["Core components - NSCC Procedure XV"]
+        Vol["Volatility charge<br/>parametric VaR, the larger of an EWMA<br/>and an evenly weighted estimate over<br/>at least 253 days, plus a bid-ask spread charge"]
+        MTM["Mark-to-market charge<br/>contract price minus current market price<br/>on net and fail positions"]
+        Fail["Fail charge<br/>5 to 100 percent of market value<br/>by age of the CNS fail position"]
+        Fam["Family-issued securities charge<br/>at least 80 percent for debt,<br/>100 percent for equity - wrong-way risk"]
+    end
+
+    subgraph Adj["Model correction components"]
+        MRD["Margin requirement differential<br/>EWMA of positive day-over-day changes<br/>over a 100-day lookback"]
+        Cov["Coverage component<br/>EWMA of daily backtesting<br/>coverage deficiency"]
+        Liq["Margin liquidity adjustment<br/>for positions large relative<br/>to traded volume"]
+        BT["Backtesting charge<br/>third largest deficiency in 12 months<br/>if coverage falls below 99 percent"]
+    end
+
+    subgraph Add["Add-ons that bite in a crisis"]
+        ECP["Excess capital premium<br/>when the volatility charge exceeds<br/>net capital, multiplied by the ratio,<br/>capped at 2.0"]
+        Special["Special charge<br/>discretionary, for observed<br/>volatility or illiquidity"]
+        Intra["Intraday mark-to-market and<br/>intraday volatility charges"]
+        Hol["Bank holiday charge<br/>markets open, Fed closed"]
+        SLD["Supplemental liquidity deposit<br/>daily, start-of-day and intraday"]
+    end
+
+    RFD["Required Fund Deposit<br/>first 40 percent in cash,<br/>never less than 250,000 USD<br/>due by 10:00 a.m. each business day"]
+
+    Port --> Core --> RFD
+    Port --> Adj --> RFD
+    Port --> Add --> RFD
+
+    style Core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Adj fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Add fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style RFD fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

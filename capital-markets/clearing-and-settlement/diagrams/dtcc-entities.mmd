@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    DTCC["DTCC<br/>holding company, user owned,<br/>formed 1999"]
+
+    subgraph CCPs["Central counterparties - they take the credit risk"]
+        NSCC["NSCC - 1976<br/>equities, corporate and municipal bonds,<br/>UITs, ETFs, securities financing<br/>CNS netting, trade guaranty,<br/>Clearing Fund is also the default fund"]
+        FICCG["FICC / GSD<br/>US Treasuries cash and repo<br/>Clearing Fund plus proposed<br/>separate Guaranty Fund"]
+        FICCM["FICC / MBSD<br/>agency mortgage-backed securities<br/>TBA netting and pool allocation"]
+    end
+
+    subgraph CSDs["Central securities depository - it holds the assets"]
+        DTC["DTC - 1973<br/>book-entry custody and asset servicing<br/>Cede and Co is the registered holder<br/>DVP Model 2, deferred net settlement<br/>Participants Fund 1.15 bn USD"]
+    end
+
+    subgraph NonRisk["Utilities that take no risk"]
+        ITP["DTCC ITP<br/>CTM, TradeSuite ID, ALERT<br/>matching and affirmation only"]
+        Serv["Asset services<br/>corporate actions, dividends,<br/>proxy, tax"]
+    end
+
+    Ext["Federal Reserve<br/>National Settlement Service<br/>and Fedwire Securities"]
+
+    DTCC --> NSCC
+    DTCC --> FICCG
+    DTCC --> FICCM
+    DTCC --> DTC
+    DTCC --> ITP
+    DTC --> Serv
+
+    NSCC -- "CNS deliveries<br/>free of payment,<br/>NSCC account 888" --> DTC
+    FICCG -- "netted Treasury deliveries" --> Ext
+    FICCM --> DTC
+    DTC -- "net-net funds<br/>via settling banks" --> Ext
+    ITP -- "settlement instructions" --> DTC
+    ITP -- "trades for clearing" --> NSCC
+
+    style CCPs fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style CSDs fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style NonRisk fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

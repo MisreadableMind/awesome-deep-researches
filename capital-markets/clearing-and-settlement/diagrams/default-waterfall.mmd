@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Event["NSCC suspends a Member under Rule 46<br/>and ceases to act under Rule 18<br/>Event Period opens: 10 business days"]
+
+    S1["1. Close out the defaulter's portfolio<br/>hedge, auction or liquidate<br/>the net unsettled positions"]
+    S2["2. The defaulter's own Required Fund Deposit<br/>and any other property it holds at NSCC"]
+    S3["3. Cross-guaranty recoveries<br/>excess resources of the same defaulter<br/>held at DTC, FICC or OCC"]
+    S4["4. Corporate Contribution<br/>50 percent of NSCC's General Business<br/>Risk Capital Requirement,<br/>reduced for 250 business days if used"]
+    S5["5. Loss allocation to surviving Members<br/>pro rata on each Member's average Required<br/>Fund Deposit over the prior 70 business days"]
+    S6["6. Successive rounds<br/>each capped by the sum of Members'<br/>Loss Allocation Caps"]
+    Exit["Withdrawal right<br/>5 business days from the first notice<br/>of a round to cap liability and leave"]
+
+    Event --> S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    S5 -.- Exit
+    S6 -.- Exit
+
+    Off["Off-market transactions<br/>a loss from closing out an off-market trade<br/>is charged entirely to the counterparty<br/>that put it on"]
+    S1 -.- Off
+
+    Fact["NSCC has never invoked its<br/>membership loss allocation procedures"]
+    S5 -.- Fact
+
+    style S2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style S4 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style S5 fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Fact fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

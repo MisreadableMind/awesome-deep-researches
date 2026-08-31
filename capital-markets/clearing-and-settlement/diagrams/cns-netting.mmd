@@ -1,0 +1,31 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Gross["Trade date - gross obligations in XYZ"]
+        G["Member A buys 120,000 and sells 100,000<br/>Member B buys 60,000 and sells 150,000<br/>Member C buys 90,000 and sells 40,000<br/>Member D buys 30,000 and sells 10,000<br/><br/>600,000 share legs across 4 members"]
+    end
+
+    subgraph Step1["Step 1 - net by member, by issue"]
+        N["Member A: long 20,000<br/>Member B: short 90,000<br/>Member C: long 50,000<br/>Member D: long 20,000"]
+    end
+
+    subgraph Step2["Step 2 - net against yesterday's open positions"]
+        O["Today's settling trades are netted with<br/>the closing position carried forward,<br/>so a fail is simply an unclosed position"]
+    end
+
+    subgraph Step3["Step 3 - NSCC stands in the middle"]
+        M["Every long position faces NSCC<br/>Every short position faces NSCC<br/>No member ever faces another member"]
+    end
+
+    subgraph Move["Settlement date - what actually moves"]
+        S["B delivers 90,000 shares<br/>into NSCC's DTC account<br/><br/>NSCC allocates 90,000 shares out:<br/>A 20,000, C 50,000, D 20,000<br/><br/>180,000 share legs instead of 600,000"]
+    end
+
+    Gross --> Step1 --> Step2 --> Step3 --> Move
+
+    Note["Market-wide, the same arithmetic cuts<br/>the value of payments that must be exchanged<br/>by an average of 98 percent"]
+    Move --> Note
+
+    style Gross fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Step3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Move fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

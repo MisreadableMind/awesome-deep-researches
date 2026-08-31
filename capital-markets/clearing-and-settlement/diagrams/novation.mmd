@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Before["Before novation - one contract, two parties"]
+        A1["Member A<br/>buyer"] -- "owes 5,400,000 USD<br/>expects 120,000 shares" --> B1["Member B<br/>seller"]
+        B1 -- "owes 120,000 shares<br/>expects 5,400,000 USD" --> A1
+    end
+
+    subgraph After["After novation - two contracts, three parties"]
+        A2["Member A<br/>buyer"] <--> CCP2["NSCC<br/>buyer to every seller,<br/>seller to every buyer"]
+        CCP2 <--> B2["Member B<br/>seller"]
+    end
+
+    Before --> After
+
+    subgraph Effects["What changes at that instant"]
+        E1["A and B stop knowing each other<br/>counterparty credit risk is replaced,<br/>not removed"]
+        E2["Obligations become fungible<br/>and can be netted across<br/>every counterparty in the same issue"]
+        E3["NSCC's guaranty attaches<br/>on validation or comparison,<br/>per Addendum K"]
+        E4["Risk concentrates in one place<br/>and must be margined,<br/>stress tested and waterfalled"]
+    end
+
+    After --> Effects
+
+    style Before fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style After fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Effects fill:#fff3e0,stroke:#e65100,stroke-width:2px

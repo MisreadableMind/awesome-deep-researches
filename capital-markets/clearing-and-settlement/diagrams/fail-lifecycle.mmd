@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    ISD["Intended settlement date<br/>the seller does not deliver"]
+
+    subgraph US["United States - CNS"]
+        U1["The position simply stays open<br/>and nets against tomorrow's trades"]
+        U2["Fail charge: 5 to 100 percent of market value<br/>by age of the CNS fail position"]
+        U3["Fail to deliver fee: 0.25 USD per item<br/>for 1 to 30 days, 3.00 USD thereafter"]
+        U4["Mark-to-market runs daily,<br/>so the price risk is collateralised"]
+        U5["Reg SHO Rule 204 close-out<br/>short sale fails: start of trading on T+2<br/>long sales and bona fide market making: T+4"]
+        U6["Buy-in intent<br/>the long member jumps the allocation queue,<br/>then buys in if still unfilled"]
+    end
+
+    subgraph EU["European Union - CSDR"]
+        E1["Cash penalties accrue daily<br/>from ISD until settlement"]
+        E2["1.0 bp liquid shares, 0.5 bp illiquid shares,<br/>0.25 bp SME growth market instruments,<br/>0.2 bp corporate debt, 0.1 bp sovereign debt"]
+        E3["Penalties are collected by the CSD<br/>and paid to the injured party"]
+        E4["Mandatory buy-in exists in law<br/>but is a last resort, switched on only by<br/>a Commission implementing act"]
+    end
+
+    ISD --> US
+    ISD --> EU
+
+    Cost["EEA fails ran at 7.14 percent of instructions<br/>per month on average over the year to February 2024,<br/>with cash penalties averaging 127 million EUR a month.<br/>No later window is cited here."]
+    EU --> Cost
+
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style EU fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Cost fill:#ffebee,stroke:#b71c1c,stroke-width:2px
