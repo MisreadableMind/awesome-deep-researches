@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    START["Candidate prices: every price at which<br/>at least one order could execute"]
+
+    START --> STEP1
+
+    subgraph STEP1["Step 1: maximise executable shares"]
+        T["Price | Cum. buy | Cum. sell | Executable = min(buy, sell)<br/>--------------------------------------------------------<br/>190.00 | 610,000 | 180,000 | 180,000<br/>190.01 | 540,000 | 260,000 | 260,000<br/>190.02 | 470,000 | 470,000 | 470,000  (max)<br/>190.03 | 470,000 | 540,000 | 470,000  (max, tie)<br/>190.04 | 390,000 | 620,000 | 390,000<br/>190.05 | 300,000 | 710,000 | 300,000"]
+    end
+
+    STEP1 --> STEP2
+
+    subgraph STEP2["Step 2: minimise imbalance among the tied prices"]
+        T2["190.02: imbalance = 470,000 - 470,000 = 0<br/>190.03: imbalance = 540,000 - 470,000 = 70,000 sell<br/>--------------------------------------------------------<br/>190.02 wins on imbalance"]
+    end
+
+    STEP2 --> STEP3
+
+    subgraph STEP3["Step 3: if still tied, minimise distance<br/>from the inside bid-ask midpoint"]
+        T3["Only reached when two prices execute the same<br/>volume AND carry the same imbalance."]
+    end
+
+    STEP3 --> COLLAR
+
+    subgraph COLLAR["Then apply the collar"]
+        C1["Nasdaq opening and closing cross threshold:<br/>the GREATER of 0.50 dollars or 10% of the<br/>Nasdaq best bid/offer midpoint"]
+        C2["Worked example from Nasdaq's own FAQ:<br/>quote 10.00 x 11.00, midpoint 10.50,<br/>10% of 10.50 = 1.05.<br/>Collar = 8.95 to 12.05.<br/>The band moves as the quote moves."]
+        C3["ETPs use tighter thresholds:<br/>greater of 5% or 0.50 for the opening cross;<br/>3% for ETPs above 50.01 on the closing cross"]
+        C1 --> C2 --> C3
+    end
+
+    COLLAR --> OUT["Cross price = 190.02<br/>Nasdaq Official Closing Price (NOCP) is set.<br/>Executions publish as ONE bulk<br/>ITCH Cross Trade 'Q' message per symbol."]
+
+    style STEP1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style STEP2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style STEP3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style COLLAR fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style OUT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

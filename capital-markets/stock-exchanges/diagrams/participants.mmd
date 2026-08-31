@@ -1,0 +1,64 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Investors["Order originators"]
+        Retail["Retail investors<br/>via Robinhood, Schwab,<br/>Fidelity, Interactive Brokers"]
+        Inst["Institutions<br/>pension funds, mutual funds,<br/>index trackers, hedge funds"]
+    end
+
+    subgraph Brokers["Broker-dealers"]
+        RetB["Retail broker<br/>owes best execution;<br/>routes, does not match"]
+        InstB["Agency broker / algo desk<br/>slices a parent order into<br/>child orders across venues"]
+        SOR["Smart order router<br/>decides venue, size,<br/>order type, and timing"]
+    end
+
+    subgraph Liquidity["Liquidity providers"]
+        Whole["Wholesalers / internalisers<br/>Citadel Securities, Virtu,<br/>Jane Street, Two Sigma"]
+        DMM["NYSE DMMs<br/>Citadel Securities, Virtu<br/>Americas, GTS Securities"]
+        SLP["NYSE Supplemental Liquidity Providers<br/>must quote at the NBBO at least<br/>10% of the trading day"]
+        MM["Registered market makers<br/>on each electronic exchange"]
+    end
+
+    subgraph Venues["Execution venues"]
+        Exch["18 national securities exchanges<br/>reporting equity volume, July 2026"]
+        ATS["34 NMS stock ATSs<br/>dark pools with Form ATS-N on file"]
+        OTC["OTC market makers<br/>reporting through a FINRA TRF"]
+    end
+
+    subgraph Infra["Infrastructure and oversight"]
+        SIP["Two SIPs<br/>CTA/CQ for Tapes A and B,<br/>UTP for Tape C.<br/>Compute the NBBO and LULD bands"]
+        NSCC["NSCC / DTC<br/>novation, netting, settlement T+1"]
+        SEC["SEC<br/>approves every rule change<br/>under Rule 19b-4"]
+        FINRA["FINRA<br/>operates the TRFs,<br/>surveils the members"]
+    end
+
+    Retail --> RetB
+    Inst --> InstB
+    RetB --> SOR
+    InstB --> SOR
+    RetB -.sells order flow.-> Whole
+    SOR --> Exch
+    SOR --> ATS
+    Whole --> OTC
+    Whole --> Exch
+    DMM --> Exch
+    SLP --> Exch
+    MM --> Exch
+
+    Exch --> SIP
+    ATS --> FINRA
+    OTC --> FINRA
+    FINRA --> SIP
+    SIP -.NBBO and price bands.-> Exch
+    SIP -.NBBO.-> ATS
+    Exch --> NSCC
+    ATS --> NSCC
+    OTC --> NSCC
+    SEC -.approves rules.-> Exch
+    SEC -.Reg ATS.-> ATS
+
+    style Investors fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Brokers fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Liquidity fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Venues fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Infra fill:#eceff1,stroke:#37474f,stroke-width:2px

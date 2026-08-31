@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph NYSE["NYSE: DMM plus floor plus parity"]
+        direction TB
+        NY1["ONE Designated Market Maker per listing.<br/>All NYSE listings are covered by<br/>three firms: Citadel Securities,<br/>Virtu Americas, GTS Securities."]
+        NY2["DMM obligations:<br/>maintain a fair and orderly market,<br/>quote continuously, operate manually AND<br/>electronically, facilitate price discovery<br/>at the open, the close, and during imbalances"]
+        NY3["The DMM opens the security.<br/>Orders queue from 06:30 and can be entered<br/>and cancelled until the DMM opens it,<br/>which MAY occur after 09:30."]
+        NY4["Supplemental Liquidity Providers:<br/>proprietary electronic quoting,<br/>must be at the NBBO at least 10% of the<br/>trading day in each assigned security,<br/>rebated when their posted liquidity executes"]
+        NY5["Floor Brokers: physically present,<br/>enter eQuotes and D-Orders,<br/>receive a parity allocation,<br/>D-Orders live until 15:59:50"]
+        NY6["Allocation: Setter Priority first,<br/>then a parity wheel in round lots"]
+        NY1 --> NY2 --> NY3
+        NY4 --> NY6
+        NY5 --> NY6
+    end
+
+    subgraph NDQ["Nasdaq: no privileged participant"]
+        direction TB
+        ND1["MANY registered market makers.<br/>No single firm is responsible<br/>for any single security."]
+        ND2["Obligations are quoting obligations,<br/>supported by the Market Maker Peg order<br/>type that tracks the NBBO to keep a<br/>quote compliant automatically"]
+        ND3["The Opening Cross opens the security<br/>at 09:30:00 by algorithm.<br/>No human decides when it opens."]
+        ND4["Attribution is optional per order:<br/>ITCH 'F' messages carry a 4-byte MPID;<br/>'A' messages are unattributed"]
+        ND5["Allocation: strict price-time priority<br/>at every price level"]
+        ND1 --> ND2 --> ND3 --> ND4 --> ND5
+    end
+
+    Q["Who guarantees a tradable market<br/>when nobody wants to trade?"]
+    Q --> NYSE
+    Q --> NDQ
+
+    R1["NYSE result: an accountable human<br/>backstop at the open, the close, and in<br/>stress. Slower, discretionary, auditable."]
+    R2["Nasdaq result: no backstop, and no<br/>single point of failure either.<br/>Faster, deterministic, anonymous."]
+    NYSE --> R1
+    NDQ --> R2
+
+    style NYSE fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style NDQ fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

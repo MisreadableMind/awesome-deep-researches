@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    R["Retail investor<br/>market order: buy 100 shares"]
+    R -->|"pays 0 commission"| B["Retail broker<br/>Robinhood, Schwab, Fidelity"]
+
+    B -->|"routes the order"| W["Wholesaler / internaliser<br/>Citadel Securities, Virtu,<br/>Jane Street, Two Sigma, UBS"]
+    W -->|"payment for order flow<br/>per share or per contract"| B
+
+    W --> EXEC{"Wholesaler decides"}
+    EXEC -->|"most retail orders"| INT["Internalise as principal.<br/>Fill at or inside the NBBO.<br/>Keep the residual spread<br/>as principal trading revenue."]
+    EXEC -->|"orders it does not want"| RT["Route to an exchange<br/>or an ATS"]
+
+    INT --> TRF["Print to a FINRA TRF.<br/>Tape revenue accrues,<br/>the exchange gets no trade."]
+    TRF --> SIP["The trade appears on the SIP.<br/>The NBBO it referenced was<br/>set by exchange quotes it never touched."]
+
+    subgraph WHY["Why the wholesaler pays"]
+        WHY1["Retail market orders are UNINFORMED.<br/>They do not predict the next price move."]
+        WHY2["Adverse selection on an exchange is high:<br/>the counterparty may know something."]
+        WHY3["A segregated stream of uninformed flow<br/>is worth more than the same volume<br/>drawn at random from a public book."]
+        WHY1 --> WHY2 --> WHY3
+    end
+    W --> WHY
+
+    subgraph OBJ["The structural objection"]
+        O1["Uninformed flow never reaches the<br/>public book, so the public book faces<br/>a MORE informed mix on average."]
+        O2["A wider public spread raises the NBBO<br/>benchmark against which the wholesaler's<br/>price improvement is measured."]
+        O3["Price improvement is measured against a<br/>benchmark the practice itself affects."]
+        O1 --> O2 --> O3
+    end
+    SIP --> OBJ
+
+    subgraph NUM["Robinhood, three months to 30 June 2026"]
+        N1["Options: 342 m USD"]
+        N2["Event contracts: 156 m USD"]
+        N3["Cryptocurrencies: 100 m USD"]
+        N4["Equities: 129 m USD"]
+        N5["Other: 49 m USD"]
+        N6["TOTAL transaction-based: 776 m USD<br/>= 59% of total net revenues of 1,308 m USD"]
+        N1 --- N2 --- N3 --- N4 --- N5 --- N6
+    end
+    B --> NUM
+
+    style WHY fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style OBJ fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style NUM fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style W fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["A trading center is about to execute<br/>a buy at 190.06.<br/>Another venue displays a protected offer at 190.04."]
+
+    Q --> CHK{"Does an exception<br/>in Rule 611(b) apply?"}
+
+    CHK -->|"(b)(1)"| X1["The venue displaying the protected quote was<br/>experiencing a failure, material delay,<br/>or malfunction (self-help)"]
+    CHK -->|"(b)(2)"| X2["Not a 'regular way' contract"]
+    CHK -->|"(b)(3)"| X3["A single-priced opening, reopening,<br/>or closing transaction<br/>-- THIS is why auctions can print<br/>outside the NBBO"]
+    CHK -->|"(b)(4)"| X4["Executed while a protected bid was<br/>priced HIGHER than a protected offer<br/>(a crossed market)"]
+    CHK -->|"(b)(5)"| X5["The order was marked as an<br/>Intermarket Sweep Order"]
+    CHK -->|"(b)(6)"| X6["The venue simultaneously routed ISOs to<br/>execute against the FULL DISPLAYED SIZE of<br/>every protected quote traded through"]
+    CHK -->|"(b)(7)"| X7["Price not based on the quote and material<br/>terms not reasonably determinable at the time<br/>of commitment -- e.g. a VWAP trade"]
+    CHK -->|"(b)(8)"| X8["Within ONE SECOND before execution, the<br/>venue had displayed a quote equal to or<br/>inferior to the trade-through price<br/>-- the flickering-quote exception"]
+    CHK -->|"(b)(9)"| X9["A stopped order: guaranteed price agreed<br/>with a customer order-by-order, executed<br/>better than the NBB (buy) or NBO (sell)"]
+
+    CHK -->|"none apply"| VIOL["Trade-through.<br/>The venue's policies and procedures<br/>were not reasonably designed."]
+
+    NOTE1["What Rule 611 protects:<br/>ONLY the top of each venue's book,<br/>ONLY displayed size,<br/>ONLY automated quotations.<br/>Depth is unprotected.<br/>Non-displayed size is unprotected.<br/>Odd lots are never protected.<br/>Since Nov 2025 the round lot is smaller<br/>in expensive stocks, so fewer orders<br/>are odd lots at all."]
+    NOTE2["What Rule 611 is NOT:<br/>NOT a best execution rule -- that is a<br/>separate FINRA and SEC obligation on the broker.<br/>NOT a per-trade prohibition -- it is a<br/>policies-and-procedures requirement.<br/>NOT a promise of the best price --<br/>only that an order is not traded THROUGH."]
+
+    VIOL --> NOTE1
+    X5 --> NOTE2
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style VIOL fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style NOTE1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style NOTE2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

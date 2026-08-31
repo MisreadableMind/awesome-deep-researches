@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    ROOT["Order"]
+    ROOT --> MKT["MARKET<br/>no price named<br/>walks the book"]
+    ROOT --> LMT["LIMIT<br/>worst price named<br/>rests if unmarketable"]
+
+    LMT --> DISP["Display instruction"]
+    DISP --> D1["Displayed<br/>on the feed, counts toward<br/>the protected quote"]
+    DISP --> D2["Non-displayed<br/>in the book, invisible,<br/>no Rule 611 protection"]
+    DISP --> D3["Reserve / iceberg<br/>MaxFloor sets displayed size,<br/>RandomReserves hides the refresh"]
+
+    LMT --> PEG["Pegged: price is a formula"]
+    PEG --> P1["Primary peg<br/>tracks the same-side NBBO"]
+    PEG --> P2["Market peg<br/>tracks the opposite-side NBBO"]
+    PEG --> P3["Midpoint peg<br/>tracks the NBBO midpoint;<br/>prices in half pennies on odd spreads"]
+    PEG --> P4["Market maker peg<br/>keeps a quote inside the<br/>regulatory quoting obligation"]
+
+    LMT --> COND["Conditional and routing"]
+    COND --> C1["Post-only<br/>never removes liquidity;<br/>reprices or is rejected"]
+    COND --> C2["Intermarket sweep (ISO)<br/>asserts the sender already swept<br/>every better protected quote"]
+    COND --> C3["Discretionary<br/>displays at one price, fires an<br/>IOC into a wider hidden range"]
+    COND --> C4["Minimum quantity<br/>always non-displayed,<br/>never routable"]
+
+    MKT --> STOP["Stop / stop-limit<br/>held off-book until a trigger price prints,<br/>then released as market or limit.<br/>NOT resting liquidity."]
+
+    ROOT --> AUC["Auction-only"]
+    AUC --> AU1["MOO / MOC<br/>market at the auction price"]
+    AUC --> AU2["LOO / LOC<br/>limit at the auction price"]
+    AUC --> AU3["Imbalance-only<br/>limit only; offsets the imbalance,<br/>can never add to it"]
+
+    style ROOT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style MKT fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style LMT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AUC fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style STOP fill:#ffebee,stroke:#c62828,stroke-width:2px
