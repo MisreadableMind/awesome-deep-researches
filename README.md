@@ -62,16 +62,16 @@ The deep-dive documents we wish existed before we started building. Each one goe
 |-------|:-:|--------|
 | [Insurance Underwriting: risk pools, premium pricing](insurance/underwriting/) | 14 | ✅ Done |
 | [Reinsurance: Lloyd's, treaty vs facultative](insurance/reinsurance/) | 16 | ✅ Done |
-| Claims Processing: FNOL, adjustment, subrogation | | 🗓️ Planned |
+| [Claims Processing: FNOL, adjustment, subrogation](insurance/claims-processing/) | 17 | ✅ Done |
 
 ### ☁️ [`cloud-and-infrastructure/`](cloud-and-infrastructure/) — How cloud platforms operate
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| AWS / GCP / Azure Architecture: regions, AZs, control planes | | 🗓️ Planned |
+| [AWS / GCP / Azure Architecture: regions, AZs, control planes](cloud-and-infrastructure/cloud-provider-architecture/) | 16 | ✅ Done |
 | [CDNs: Cloudflare, Akamai caching, edge routing, Anycast](cloud-and-infrastructure/cdns/) | 13 | ✅ Done |
-| DNS: resolution chain, registrars, root servers | | 🗓️ Planned |
-| Container Orchestration: Kubernetes scheduler, etcd, kubelet | | 🗓️ Planned |
+| [DNS: resolution chain, registrars, root servers](cloud-and-infrastructure/dns/) | 17 | ✅ Done |
+| [Container Orchestration: Kubernetes scheduler, etcd, kubelet](cloud-and-infrastructure/container-orchestration/) | 15 | ✅ Done |
 | Load Balancing: L4 vs L7, health checks, algorithms | | 🗓️ Planned |
 
 ### 🗄️ [`databases-and-storage/`](databases-and-storage/) — How data is stored, queried, replicated
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      45 researches (724 diagrams)
-Planned:   6 researches
+Done:      49 researches (789 diagrams)
+Planned:   2 researches
 Categories: 10
 ```
 
