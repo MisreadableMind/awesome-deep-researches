@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Carrier["Employed by the Insurer"]
+        Desk["Desk / inside adjuster<br/>never leaves the office.<br/>Phone, photos, documents.<br/>Highest caseload, lowest cost"]
+        FieldA["Field / outside adjuster<br/>inspects, scopes, writes<br/>the estimate on site"]
+        GA["General adjuster<br/>large and complex property.<br/>Often a former contractor"]
+        SIUI["SIU investigator<br/>often a former<br/>law enforcement officer"]
+        Exam["Claims examiner / supervisor<br/>holds settlement authority<br/>above the adjuster's limit"]
+    end
+
+    subgraph Vendors["Contracted by the Insurer"]
+        IA["Independent adjuster<br/>works for an IA firm,<br/>paid on a fee schedule<br/>tied to gross loss"]
+        TPA["Third-party administrator<br/>runs the whole claim function<br/>for a self-insured or captive"]
+        Appr["Appraiser<br/>auto damage only,<br/>writes the estimate, no coverage call"]
+        Expert["Experts<br/>engineers, origin and cause,<br/>accountants, IME physicians"]
+        Counsel["Panel defence counsel<br/>billed under litigation guidelines,<br/>LEDES e-billing"]
+    end
+
+    subgraph Insured["Retained by the Policyholder"]
+        PA["Public adjuster<br/>paid a percentage of the settlement.<br/>Florida caps it at 20 percent,<br/>10 percent in a declared emergency"]
+        PlCounsel["Plaintiff counsel<br/>contingency fee"]
+        Umpire["Appraisal umpire<br/>breaks a tie between<br/>the two party appraisers"]
+    end
+
+    Carrier -.assigns.-> Vendors
+    Insured -.negotiates against.-> Carrier
+    IA --> FieldA
+    Appr --> Desk
+    PA --> Exam
+    Counsel --> Exam
+    Expert --> GA
+    Umpire --> Exam
+
+    Auth["Settlement authority is a ladder.<br/>Adjuster, supervisor, manager, home office,<br/>reinsurer notification above the treaty threshold."]
+    Exam --> Auth
+
+    style Carrier fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Vendors fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Insured fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Auth fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

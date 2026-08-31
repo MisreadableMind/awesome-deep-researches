@@ -1,0 +1,60 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Signals["Layer 1: Red Flags, Deterministic Rules"]
+        Timing["Timing<br/>loss within days of inception,<br/>coverage increased just before,<br/>reported weeks late"]
+        Docs["Documentation<br/>no police report, handwritten receipts,<br/>duplicate invoices, altered images"]
+        Behav["Behaviour<br/>pressure for a fast cash settlement,<br/>detailed policy knowledge,<br/>refusal to be inspected"]
+        Damage["Physical inconsistency<br/>damage pattern does not match<br/>the described mechanism.<br/>Underride height, crush direction"]
+        Actors["Repeat actors<br/>same tow operator, body shop,<br/>clinic, attorney across claims"]
+    end
+
+    subgraph Models["Layer 2: Analytics"]
+        Sup["Supervised model<br/>gradient boosting trained on<br/>historic SIU dispositions.<br/>Outputs a referral score"]
+        Unsup["Unsupervised anomaly detection<br/>finds patterns nobody labelled,<br/>including new schemes"]
+        Net["Link analysis / social network<br/>connects claims by phone, address,<br/>bank account, VIN, provider.<br/>Rings are graphs, not files"]
+        Text["Text mining on adjuster notes<br/>and recorded statements"]
+        Image["Image forensics<br/>EXIF, duplicate detection,<br/>reverse image search,<br/>generative-image classifiers"]
+    end
+
+    subgraph Data["Layer 3: Shared Industry Data"]
+        CS["ISO ClaimSearch<br/>all-claims database.<br/>Carriers submit, receive<br/>match reports on prior claims"]
+        NICB["NICB<br/>questionable claim referrals,<br/>theft and salvage databases"]
+        MVR["Public and licensed data<br/>MVR, court records, property records,<br/>weather and hail verification"]
+    end
+
+    subgraph Action["Layer 4: Disposition"]
+        Ref["SIU referral<br/>statutorily required in many states.<br/>New York 11 NYCRR 86,<br/>California Ins. Code 1875.20"]
+        Invest["Investigation<br/>examination under oath, surveillance,<br/>engineering, forensic accounting"]
+        Out1["Withdrawn or reduced claim"]
+        Out2["Denial for material<br/>misrepresentation or<br/>breach of a policy condition"]
+        Out3["Referral to the state fraud bureau.<br/>42 states and DC operate one"]
+        Out4["No fraud found. Pay and close.<br/>Most flags are false positives"]
+    end
+
+    Timing --> Sup
+    Docs --> Image
+    Behav --> Text
+    Damage --> Sup
+    Actors --> Net
+
+    Sup --> Ref
+    Unsup --> Ref
+    Net --> Ref
+    Text --> Ref
+    Image --> Ref
+
+    CS --> Sup
+    NICB --> Net
+    MVR --> Sup
+
+    Ref --> Invest
+    Invest --> Out1
+    Invest --> Out2
+    Invest --> Out3
+    Invest --> Out4
+
+    style Signals fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Models fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Data fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Action fill:#fce4ec,stroke:#880e4f,stroke-width:3px

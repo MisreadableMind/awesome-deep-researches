@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    Start["Damaged vehicle inspected<br/>estimate written"] --> Legal{"Statutory test<br/>in the titling state"}
+
+    Legal -->|"Threshold state"| TLT["Repair cost as a percentage of ACV<br/>exceeds the state threshold.<br/>Thresholds run from 50 percent<br/>to 100 percent by state"]
+    Legal -->|"Formula state"| TLF["Total loss formula:<br/>repair cost + salvage value<br/>>= actual cash value"]
+    Legal -->|"No statutory test"| Econ
+
+    TLT -->|Exceeded| Brand["Salvage title required.<br/>Report to NMVTIS"]
+    TLF -->|Met| Brand
+    TLT -->|Not exceeded| Econ
+    TLF -->|Not met| Econ
+
+    Econ{"Economic test:<br/>which costs less?"} --> Repair["Cost to repair<br/>= estimate + expected supplements<br/>+ rental during repair days"]
+    Econ --> Total["Cost to total<br/>= ACV + sales tax + title fees<br/>- salvage proceeds<br/>+ rental during settlement days"]
+
+    Repair --> Compare{"Repair < Total?"}
+    Total --> Compare
+
+    Compare -->|Yes| Fix["Repair. Authorise the shop,<br/>set a supplement reserve"]
+    Compare -->|No| Declare["Declare a total loss"]
+    Brand --> Declare
+
+    Declare --> Value["Value the vehicle<br/>market comparables, adjusted for<br/>mileage, options, condition,<br/>prior damage, and local market"]
+
+    Value --> Owed["Owed to the insured<br/>= ACV + state-mandated sales tax<br/>+ title and registration fees<br/>- deductible"]
+
+    Owed --> Lien["Lienholder paid first<br/>up to the payoff.<br/>Any excess to the owner"]
+    Owed --> Gap["Negative equity is not covered<br/>unless GAP coverage was bought"]
+
+    Declare --> Salvage["Vehicle assigned to a salvage pool.<br/>Proceeds credited against the loss"]
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Econ fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Declare fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Value fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    Start["Claim set up<br/>date of loss known"] --> InForce{"Policy in force<br/>on the date of loss?"}
+
+    InForce -->|No| Deny1["Deny: no coverage.<br/>Check binder, grace period,<br/>reinstatement, cancellation notice validity"]
+    InForce -->|Yes| Insured{"Is the claimant an insured<br/>or a covered party?"}
+
+    Insured -->|No| Third["Third-party claim.<br/>Liability analysis, not<br/>first-party coverage analysis"]
+    Insured -->|Yes| Interest{"Insurable interest in<br/>the damaged property?"}
+
+    Interest -->|No| Deny2["Deny: no insurable interest"]
+    Interest -->|Yes| Peril{"Is the cause of loss<br/>a covered peril?"}
+
+    Peril -->|"Named-peril form:<br/>burden on insured"| Named["Loss must match<br/>an enumerated peril"]
+    Peril -->|"Open-peril form:<br/>burden on insurer"| Open["Covered unless an<br/>exclusion applies"]
+
+    Named --> Excl
+    Open --> Excl{"Does an exclusion,<br/>anti-concurrent-causation clause,<br/>or condition bar it?"}
+
+    Excl -->|Clear bar| Deny3["Deny with the specific<br/>policy language quoted"]
+    Excl -->|Unclear| ROR["Reservation of rights.<br/>Investigate and defend while<br/>preserving the defence"]
+    Excl -->|No| Limits["Apply limits, sublimits,<br/>deductible, coinsurance,<br/>other-insurance clause"]
+
+    ROR --> Conflict{"Does the reservation create<br/>a conflict of interest<br/>with the insured?"}
+    Conflict -->|Yes| Cumis["Independent counsel at<br/>insurer expense.<br/>Cal. Civ. Code 2860 and<br/>state equivalents"]
+    Conflict -->|No| Panel["Panel counsel defends<br/>under the reservation"]
+
+    ROR --> DJ["Optional: declaratory judgment<br/>action to settle coverage<br/>before indemnity is owed"]
+
+    Limits --> Measure{"Measure of loss<br/>stated in the policy"}
+    Measure --> RCV["Replacement cost:<br/>pay ACV first, release<br/>depreciation on completion"]
+    Measure --> ACV["Actual cash value:<br/>replacement cost<br/>less depreciation"]
+    Measure --> Agreed["Agreed or stated value:<br/>fixed at inception"]
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ROR fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Cumis fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Deny1 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Deny2 fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Deny3 fill:#ffebee,stroke:#b71c1c,stroke-width:2px

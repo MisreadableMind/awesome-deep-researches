@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Duties["Two Duties, Different Widths"]
+        Defend["Duty to defend<br/>triggered by the allegations,<br/>not the facts. Broader.<br/>Texas applies the eight corners rule"]
+        Indem["Duty to indemnify<br/>triggered by the facts<br/>actually established. Narrower"]
+    end
+
+    subgraph Third["Third-Party Track"]
+        Suit["Suit served on the insured"]
+        Tender["Insured tenders the defence"]
+        Assign["Panel counsel assigned.<br/>Litigation guidelines, e-billing<br/>in LEDES format, UTBMS task codes"]
+        Limits["Are defence costs inside<br/>or outside the limits?<br/>Eroding-limits policies burn<br/>indemnity to pay lawyers"]
+        Demand["Within-limits demand<br/>with a deadline"]
+        Choice{"Accept the demand?"}
+        Excess["Excess judgment.<br/>Insurer may owe the whole verdict,<br/>not just the limit"]
+        Settle["Settle within limits.<br/>Exposure closed"]
+    end
+
+    subgraph First["First-Party Track"]
+        Denial["Denial or underpayment"]
+        Appraisal["Appraisal clause invoked.<br/>Two appraisers plus an umpire<br/>set the amount of loss, not coverage"]
+        Award["Binding award on amount.<br/>Coverage defences preserved.<br/>States split on whether causation<br/>is in the appraisers' remit"]
+        UCSPA["Unfair Claims Settlement<br/>Practices Act violation alleged"]
+        BF["Bad faith action.<br/>Three state regimes: independent tort,<br/>contract damages only, or a<br/>statutory remedy with fixed penalties"]
+    end
+
+    subgraph Exposure["What Bad Faith Adds"]
+        Contract["Contract damages<br/>the benefit that was owed"]
+        Consequential["Consequential damages<br/>beyond the policy limit"]
+        Fees["Attorney fees and<br/>statutory interest"]
+        Punitive["Punitive damages.<br/>State Farm v. Campbell, 2003,<br/>constrains the ratio to compensatory"]
+    end
+
+    Defend --> Suit
+    Indem --> Suit
+    Suit --> Tender --> Assign --> Limits
+    Limits --> Demand --> Choice
+    Choice -->|No, unreasonably| Excess --> BF
+    Choice -->|Yes| Settle
+
+    Denial --> Appraisal --> Award
+    Denial --> UCSPA --> BF
+
+    BF --> Contract
+    BF --> Consequential
+    BF --> Fees
+    BF --> Punitive
+
+    Rule["The cheapest bad faith control is a documented file.<br/>Timely contact, a reasoned coverage position quoting the policy,<br/>and a settlement evaluation that survives a jury reading it aloud."]
+    BF -.-> Rule
+
+    style Duties fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Third fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style First fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Exposure fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style Rule fill:#fff9c4,stroke:#f57f17,stroke-width:2px

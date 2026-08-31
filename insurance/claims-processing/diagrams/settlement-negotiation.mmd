@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Claimant
+    participant PA as Plaintiff counsel
+    participant Adj as Adjuster
+    participant Sup as Supervisor / authority ladder
+    participant Med as Medicare / lien holders
+
+    C->>PA: Retains counsel<br/>contingency fee, typically one third
+    PA->>Adj: Letter of representation<br/>all contact now runs through counsel
+
+    Note over Adj: Liability first, damages second.<br/>Comparative negligence percentage<br/>is applied to the whole valuation.
+
+    Adj->>Adj: Liability investigation<br/>police report, scene, statements,<br/>event data recorder download
+    Adj->>Sup: Liability assessment<br/>"insured 80 percent at fault"
+
+    PA->>Adj: Demand package<br/>medical records, bills, wage loss,<br/>photographs, narrative report
+
+    Note over Adj: Specials = billed medicals + wage loss<br/>+ out-of-pocket. General damages<br/>= pain, suffering, loss of enjoyment.
+
+    Adj->>Adj: Evaluate<br/>severity model or manual round table.<br/>Range, not a point
+
+    Adj->>Med: Section 111 query file<br/>is the claimant a Medicare beneficiary
+    Med-->>Adj: Beneficiary status returned.<br/>Entitlement and MSP data only,<br/>no dollar amount
+
+    PA->>Adj: Time-limited policy limits demand<br/>often 30 days, statutory in some states
+    Note over Adj,Sup: Refusing a reasonable within-limits demand<br/>exposes the insurer to the entire judgment.<br/>Texas calls this Stowers exposure.
+
+    Adj->>Sup: Request authority above adjuster limit
+    Sup-->>Adj: Authority granted to a number
+
+    Adj->>PA: Offer
+    PA-->>Adj: Counter
+    Adj->>PA: Counter
+
+    alt Agreement reached
+        Adj->>PA: Release and settlement agreement
+        Adj->>Med: Conditional payment request<br/>to the BCRC or the CRC
+        Med-->>Adj: Conditional payment letter.<br/>The amount Medicare must be repaid
+        PA->>Med: Lien resolution, MSA if required
+        Adj->>C: Payment, jointly payable to<br/>claimant and counsel
+        Adj->>Med: Section 111 TPOC report,<br/>quarterly file to CMS
+        Adj->>Adj: Close, book indemnity and DCC
+    else No agreement
+        PA->>Adj: Suit filed
+        Adj->>Sup: Assign panel counsel,<br/>increase reserve to trial value
+    end

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["FNOL submitted in the app"] --> G1{"Gate 1: Coverage<br/>policy in force, peril covered,<br/>no lapse, no prior open claim"}
+
+    G1 -->|Fail| Human["Route to an adjuster"]
+    G1 -->|Pass| G2{"Gate 2: Simplicity<br/>no bodily injury, no third party,<br/>no attorney, single vehicle or<br/>single peril, no litigation history"}
+
+    G2 -->|Fail| Human
+    G2 -->|Pass| Capture["Guided photo capture<br/>the app dictates angles, distance,<br/>lighting. Rejects blurred frames<br/>at capture, not at review"]
+
+    Capture --> CV["Computer vision pipeline"]
+
+    subgraph CVsteps["What the model actually does"]
+        D1["Vehicle or structure identification<br/>VIN decode, make, model, trim,<br/>panel segmentation"]
+        D2["Damage detection per panel<br/>dent, scratch, crease, tear,<br/>missing part, glass"]
+        D3["Severity classification<br/>maps damage to repair<br/>or replace, and to labour hours"]
+        D4["Line item generation<br/>against the same estimating<br/>database a human would use"]
+        D5["Hidden damage inference<br/>learned from historic supplements<br/>on similar impacts"]
+    end
+
+    CV --> D1 --> D2 --> D3 --> D4 --> D5
+
+    D5 --> G3{"Gate 3: Confidence<br/>model confidence above threshold,<br/>estimate below the STP dollar cap,<br/>no total loss indicator"}
+
+    G3 -->|Fail| Human
+    G3 -->|Pass| G4{"Gate 4: Fraud<br/>image forensics clean,<br/>ISO ClaimSearch no match,<br/>fraud score below threshold"}
+
+    G4 -->|Fail| SIU["SIU referral"]
+    G4 -->|Pass| Offer["Estimate and payment offer<br/>presented to the insured"]
+
+    Offer --> Accept{"Insured accepts?"}
+    Accept -->|Yes| Pay["Payment issued<br/>digital, minutes not days.<br/>Claim closed"]
+    Accept -->|No| Human
+
+    Audit["Every STP claim is sampled after the fact.<br/>The control is not the gate, it is the audit<br/>that measures leakage against the gate."]
+    Pay -.-> Audit
+
+    style CVsteps fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Pay fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Human fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SIU fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Audit fill:#fff9c4,stroke:#f57f17,stroke-width:2px

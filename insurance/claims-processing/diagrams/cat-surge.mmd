@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Pre["Before Landfall: T minus 96 to 0 hours"]
+        Fore["Forecast and exposure overlay<br/>policies in the cone,<br/>total insured value at risk"]
+        Stage["Stage resources outside the cone<br/>IA rosters activated, mobile claim<br/>units, satellite uplinks, fuel"]
+        Lic["Emergency adjuster licences<br/>states issue temporary credentials<br/>so out-of-state adjusters can work"]
+        Comms["Pre-event messaging<br/>how to file, what is covered,<br/>advance payment availability"]
+    end
+
+    subgraph Day["Days 0 to 7: Triage Without Access"]
+        Sat["Aerial and satellite imagery<br/>flown within days.<br/>Damage classified before<br/>a human reaches the street"]
+        Auto["Automatic CAT coding<br/>every claim geocoded and tagged<br/>to the event for reinsurance<br/>and reporting"]
+        Adv["Advance payments<br/>additional living expenses and<br/>contents advances issued on<br/>the policy, before inspection"]
+        Tarp["Emergency mitigation<br/>tarps, board-up, water extraction.<br/>The insured has a duty to mitigate"]
+    end
+
+    subgraph Weeks["Weeks 1 to 12: The Surge"]
+        Cap["Capacity arithmetic<br/>claims / (adjusters x claims per day)<br/>= days to clear the inspection queue"]
+        Desk["Desk-first model<br/>photo and virtual inspection for<br/>anything under a severity threshold"]
+        Field["Field for structural,<br/>large loss and disputed files"]
+        Vendor["Vendor scarcity<br/>contractors, materials and rental<br/>housing all price up at once.<br/>Demand surge inflates every estimate"]
+        Price["Off-cycle price list updates<br/>reflect the local spike"]
+    end
+
+    subgraph Tail["Months 3 to 60: The Tail"]
+        PA2["Public adjusters and<br/>assignment-of-benefits contractors<br/>arrive in volume"]
+        Sup["Supplements<br/>hidden damage found once<br/>work begins"]
+        Lit2["Litigation<br/>the last 5 percent of claims<br/>consume a disproportionate<br/>share of LAE"]
+        Reop["Reopens as deadlines<br/>are extended by bulletin"]
+    end
+
+    Fore --> Stage --> Lic --> Comms
+    Comms --> Sat --> Auto --> Adv --> Tarp
+    Tarp --> Cap --> Desk --> Field
+    Cap --> Vendor --> Price
+    Field --> PA2 --> Sup --> Lit2 --> Reop
+
+    Def["A catastrophe is a defined term, not a description.<br/>PCS designates an event at 25 million dollars or more<br/>in direct insured losses affecting many policyholders<br/>and insurers. The code drives reinsurance recovery."]
+    Auto -.-> Def
+
+    style Pre fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Day fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Weeks fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Tail fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Def fill:#fff9c4,stroke:#f57f17,stroke-width:2px

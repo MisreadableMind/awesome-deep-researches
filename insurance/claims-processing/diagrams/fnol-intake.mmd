@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Channels["Intake Channels"]
+        Phone["Call centre<br/>highest cost per contact,<br/>richest first pass"]
+        App["Mobile app / web portal<br/>guided photo capture,<br/>GPS and EXIF captured"]
+        Agent["Agent or broker<br/>ACORD 1 / 2 / 3 loss notice"]
+        Telem["Telematics / IoT<br/>crash pulse, water sensor,<br/>automatic collision notification"]
+        Repair["Repair network<br/>shop opens the claim<br/>at the estimate"]
+        Provider["Medical provider<br/>X12 837 claim submission"]
+        Third["Third-party claimant<br/>no policy, no duty to cooperate"]
+    end
+
+    subgraph Capture["Data Captured at FNOL"]
+        Who["Identity<br/>reporter, insured, claimants,<br/>relationship to the policy"]
+        When["Date and time of loss<br/>drives policy-in-force test<br/>and every statutory clock"]
+        Where["Location<br/>geocoded, matched to<br/>CAT event and jurisdiction"]
+        What["Cause of loss code<br/>plus free-text narrative"]
+        Sev["Severity signals<br/>injuries, drivability, habitability,<br/>tow, airbag deployment"]
+        Ev["Evidence<br/>photos, police report number,<br/>witnesses, VIN, point of impact"]
+    end
+
+    subgraph Derive["Derived at Setup"]
+        Num["Claim number"]
+        Feat["Features<br/>one per claimant x coverage"]
+        Res["Formula reserve<br/>posted on the spot"]
+        Score["Severity, fraud and<br/>litigation propensity scores"]
+        Route["Routing decision"]
+    end
+
+    Phone --> Who
+    App --> Ev
+    Agent --> What
+    Telem --> Sev
+    Repair --> Ev
+    Provider --> What
+    Third --> Who
+
+    Who --> Num
+    When --> Num
+    Where --> Score
+    What --> Feat
+    Sev --> Score
+    Ev --> Score
+
+    Num --> Feat --> Res
+    Score --> Route
+    Res --> Route
+
+    style Channels fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Capture fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Derive fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
