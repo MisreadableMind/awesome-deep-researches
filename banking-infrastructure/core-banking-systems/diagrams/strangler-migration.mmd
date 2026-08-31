@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Phase1["Phase 1 - facade in place, nothing moved"]
+        C1["Channels"] --> F1["Routing facade<br/>one API vocabulary"]
+        F1 --> L1["Legacy core<br/>100% of accounts"]
+    end
+
+    subgraph Phase2["Phase 2 - one product moved"]
+        C2["Channels"] --> F2["Routing facade<br/>routing table keyed by<br/>account -> system of record"]
+        F2 -->|"product = SAV-*"| N2["New core<br/>savings only"]
+        F2 -->|"everything else"| L2["Legacy core"]
+        N2 <--> Recon2["Daily reconciliation<br/>both cores summarise<br/>into ONE general ledger"]
+        L2 <--> Recon2
+    end
+
+    subgraph Phase3["Phase 3 - majority moved"]
+        C3["Channels"] --> F3["Routing facade"]
+        F3 -->|"most products"| N3["New core"]
+        F3 -->|"legacy back book"| L3["Legacy core<br/>runs off"]
+    end
+
+    subgraph Phase4["Phase 4 - legacy deleted"]
+        C4["Channels"] --> F4["Facade retained<br/>or removed"]
+        F4 --> N4["New core<br/>100%"]
+    end
+
+    Phase1 --> Phase2 --> Phase3 --> Phase4
+
+    subgraph Rules["Rules that make it safe"]
+        R1["One system of record<br/>per account, always"]
+        R2["Seam is a partition of accounts,<br/>never a partition of functions"]
+        R3["One general ledger<br/>consumes both cores"]
+        R4["Routing table is data,<br/>changeable without a release"]
+        R5["Every phase is reversible<br/>until the legacy path is deleted"]
+    end
+
+    style Phase1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Phase2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Phase3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Phase4 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Rules fill:#fce4ec,stroke:#880e4f,stroke-width:2px

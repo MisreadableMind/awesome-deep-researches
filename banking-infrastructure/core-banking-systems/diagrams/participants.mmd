@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Bank["The bank"]
+        Ops["Operations<br/>runs the daily batch,<br/>clears exceptions"]
+        Fin["Finance and control<br/>owns the chart of accounts,<br/>signs the daily proof"]
+        Risk["Risk and compliance<br/>owns limits, holds,<br/>regulatory reports"]
+        Prod["Product management<br/>sets rates, fees,<br/>parameters"]
+        IT["Bank IT<br/>integration, channels,<br/>change release"]
+    end
+
+    subgraph Vendor["Core vendor"]
+        Dev["Product engineering<br/>ships releases 1-2x a year"]
+        Impl["Implementation and<br/>professional services"]
+        Bureau["Service bureau operations<br/>runs the batch for the bank"]
+    end
+
+    subgraph Third["Third parties"]
+        SI["Systems integrator<br/>Accenture, Infosys, TCS, Capgemini"]
+        Cloud["Cloud or hosting provider"]
+        Overlay["Overlay vendors<br/>digital banking, cards,<br/>payments, reporting"]
+    end
+
+    subgraph Outside["Outside the bank"]
+        Reg["Regulator and examiner<br/>OCC, FDIC, Fed, PRA, ECB"]
+        Aud["External auditor"]
+        Rail["Payment rails and networks"]
+        Cust["Customer"]
+    end
+
+    Cust --> IT
+    IT --> Bureau
+    Prod --> Bureau
+    Ops --> Bureau
+    Dev --> Bureau
+    Impl --> IT
+    SI --> IT
+    Cloud --> Bureau
+    Overlay <--> IT
+    Bureau <--> Rail
+    Fin --> Reg
+    Risk --> Reg
+    Aud --> Fin
+    Reg -.examines.-> Vendor
+
+    style Bank fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Vendor fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Third fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Outside fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

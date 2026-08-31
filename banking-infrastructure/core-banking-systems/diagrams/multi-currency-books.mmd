@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Books["Currency books - each balances alone"]
+        USD["USD book<br/>sum(DR) = sum(CR) in USD"]
+        EUR["EUR book<br/>sum(DR) = sum(CR) in EUR"]
+        JPY["JPY book<br/>0 minor units<br/>sum(DR) = sum(CR) in JPY"]
+        KWD["KWD book<br/>3 minor units"]
+    end
+
+    subgraph Pos["Position accounts - one pair per currency"]
+        P1["FX position, dealt currency<br/>holds the net long/short<br/>in EUR, JPY, KWD"]
+        P2["Position equivalent, base currency<br/>holds the base-currency cost<br/>of that position"]
+    end
+
+    subgraph Reval["End-of-day revaluation"]
+        R1["Read closing rate<br/>per currency pair"]
+        R2["Restate position at<br/>the closing rate"]
+        R3["Difference vs position equivalent<br/>posts to FX revaluation<br/>profit and loss"]
+    end
+
+    subgraph Cons["Consolidation - IAS 21"]
+        C1["Functional currency per entity"]
+        C2["Presentation currency for the group"]
+        C3["Translation differences to<br/>other comprehensive income"]
+    end
+
+    subgraph Entities["Multi-entity - one platform, many books"]
+        E1["Entity UK<br/>own chart of accounts,<br/>own calendar and cut-off,<br/>PRA reporting"]
+        E2["Entity DE<br/>own chart of accounts,<br/>ECB and Bundesbank reporting,<br/>AnaCredit"]
+        E3["Entity SG<br/>MAS reporting,<br/>local data residency rules"]
+    end
+
+    EUR --> P1
+    JPY --> P1
+    KWD --> P1
+    P1 --> P2
+    USD --> P2
+    P1 --> R1 --> R2 --> R3
+    R3 --> C1 --> C2 --> C3
+    Books --> E1
+    Books --> E2
+    Books --> E3
+
+    style Books fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Pos fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Reval fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Cons fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Entities fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

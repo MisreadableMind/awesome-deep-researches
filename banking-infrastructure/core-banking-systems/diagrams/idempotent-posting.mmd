@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Rail as Payment rail
+    participant Eng as Payment engine
+    participant Core as Core ledger
+    participant Recon as Reconciliation
+
+    Rail->>Eng: pacs.008 credit transfer<br/>EndToEndId E9999...0001<br/>amount 250.00 USD
+    Eng->>Eng: Derive idempotency key<br/>from scheme identifier<br/>key = SCHEME:E9999...0001
+
+    Eng->>Core: POST /postings<br/>Idempotency-Key: SCHEME:E9999...0001
+
+    rect rgb(227, 242, 253)
+        Note over Core: ONE database transaction
+        Core->>Core: INSERT INTO idempotency_keys<br/>(key) VALUES (...)<br/>UNIQUE constraint
+        alt Key is new
+            Core->>Core: Write journal entries<br/>DR GL 21400  250.00<br/>CR 0044-021-8822-01  250.00
+            Core->>Core: Update balance
+            Core->>Core: Store the response body<br/>against the key
+            Core->>Core: COMMIT
+        else Key already exists
+            Core->>Core: ROLLBACK the insert
+            Core->>Core: Read the stored response
+        end
+    end
+
+    Core-->>Eng: 201 Created, journal_id 20260819-...<br/>or 200 OK with the identical body
+
+    Note over Eng,Core: A retry returns the same journal_id.<br/>No second entry exists.
+
+    alt Response lost in transit
+        Eng->>Core: Retry, same Idempotency-Key
+        Core-->>Eng: Same journal_id, no new effect
+    end
+
+    alt Timeout with unknown outcome
+        Eng->>Core: GET /postings?external_ref=E9999...0001
+        Core-->>Eng: Found or not found, definitive
+    end
+
+    Note over Recon: End of day
+    Rail->>Recon: Scheme settlement report
+    Core->>Recon: Ledger movements on GL 21400
+    Recon->>Recon: Match by end-to-end identifier<br/>Unmatched items age in suspense<br/>and are reported daily

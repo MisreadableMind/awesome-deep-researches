@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    A["June 2014<br/>TSB divested from Lloyds Banking Group.<br/>Continues to use the LBG IT platform<br/>under an outsourcing agreement<br/>with an option to July 2024"]
+    B["July 2015<br/>Sabadell acquires TSB.<br/>Deal rationale includes returns from<br/>migrating TSB to Sabadell's Proteo platform.<br/>Target: end of 2017"]
+    C["2015-2017<br/>SABIS, a Sabadell subsidiary, designs,<br/>builds and tests Proteo4UK:<br/>a new UK build, not the proven Spanish one"]
+    D["March 2016<br/>Integrated Master Plan adopts the<br/>end-2017 target despite already<br/>running months late"]
+    E["20 Sept 2017<br/>Board told migration cannot complete<br/>in November 2017.<br/>Programme resolves to re-plan."]
+    F["29 Sept 2017<br/>Nine days later, and before re-planning<br/>concludes, TSB publicly announces<br/>migration in Q1 2018"]
+    G["End Feb 2018<br/>A decision taken outside the appropriate<br/>governance forum reduces the scope of<br/>Active-Active non-functional testing<br/>on the digital channels' data centres"]
+    H["Testing environments<br/>Most non-functional testing runs in the<br/>PRODUCTION environment because no<br/>pre-production environment exists"]
+    I["April 2018<br/>Functional and non-functional testing run<br/>in parallel to meet the date.<br/>No clean migration acceptance cycle<br/>was ever achieved."]
+    J["20-22 April 2018<br/>Main Migration Event.<br/>Corporate systems, customer services<br/>and customer data move to Proteo4UK"]
+    K["22 April 2018 onward<br/>Data centre component configuration<br/>fault takes internet and mobile<br/>banking down for periods"]
+    L["23 April 2018<br/>Digital failure cascades to telephony.<br/>69,000 calls by 14:00.<br/>IVR configuration leaves only about 25%<br/>of planned telephone line capacity."]
+    M["Branch queues build.<br/>Data breaches: some customers see<br/>other customers' account detail.<br/>Payment, CASS, Bacs, CHAPS and<br/>Faster Payments issues follow."]
+    N["10 December 2018<br/>TSB returns to business as usual.<br/>Roughly 33 weeks after cutover."]
+    O["Outcome<br/>225,492 complaints between 22 Apr 2018<br/>and 7 Apr 2019, about 4.3% of a<br/>5.2 million customer base.<br/>32,705,762 GBP paid in redress."]
+    P["20 December 2022<br/>FCA fines TSB 29.75 m GBP,<br/>reduced from 42.50 m for settlement.<br/>With the PRA penalty the total<br/>reported is 48.65 m GBP."]
+
+    A --> B --> C --> D --> E --> F --> G
+    G --> I
+    H --> I
+    I --> J --> K --> L --> M --> N --> O --> P
+
+    style G fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style H fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style I fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style J fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style P fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

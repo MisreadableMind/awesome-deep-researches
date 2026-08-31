@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Online["Online path - milliseconds"]
+        Term["Channels: branch, ATM,<br/>digital, card platform"]
+        MQ["IBM MQ<br/>message queueing"]
+        CICS["CICS transaction monitor<br/>first released 8 July 1969<br/>thousands of transactions/sec"]
+        Prog["COBOL programs<br/>fixed decimal arithmetic,<br/>copybook record layouts"]
+    end
+
+    subgraph Data["Data layer"]
+        DB2["Db2 for z/OS<br/>relational, since 1983"]
+        VSAM["VSAM datasets<br/>keyed sequential files"]
+        IMS["IMS DB<br/>hierarchical, since 1968"]
+    end
+
+    subgraph Batch["Batch path - the nightly window"]
+        JCL["JCL job streams"]
+        Sched2["Workload scheduler<br/>Control-M, IWS, or vendor"]
+        Sort["DFSORT / Syncsort<br/>posting order, summarisation"]
+        BatchProg["COBOL batch programs<br/>sequential passes over<br/>the account master"]
+    end
+
+    subgraph Sec["Platform services"]
+        RACF["RACF security"]
+        Sysplex["Parallel Sysplex<br/>coupling facility,<br/>data sharing across LPARs"]
+        GDPS["GDPS / cross-site mirroring"]
+    end
+
+    Term --> MQ --> CICS --> Prog
+    Prog <--> DB2
+    Prog <--> VSAM
+    Prog <--> IMS
+    Sched2 --> JCL --> BatchProg
+    BatchProg --> Sort
+    BatchProg <--> DB2
+    BatchProg <--> VSAM
+    RACF -.authorises.-> CICS
+    RACF -.authorises.-> BatchProg
+    Sysplex -.-> DB2
+    GDPS -.-> Data
+
+    style Online fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Data fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Batch fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Sec fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Truth["Ledger balance - the accounting truth"]
+        L["1,203.40 USD<br/>sum of all posted journal entries<br/>changes only when a journal posts"]
+    end
+
+    subgraph Encumbrance["Encumbrances - no journal entry exists"]
+        H1["Card authorisation hold<br/>47.85, expires +7 days"]
+        H2["Uncollected funds hold<br/>Reg CC: first 275 USD next day,<br/>large deposits over 6,725 USD<br/>may be held longer"]
+        H3["Legal hold<br/>garnishment, court order"]
+        H4["Sanctions block<br/>no release without authority"]
+        M1["Memo posted debit<br/>ATM withdrawal during<br/>the batch window"]
+    end
+
+    subgraph Avail["Available balance - what the customer can spend"]
+        A["available = ledger<br/>+ released credits<br/>- holds<br/>- memo debits<br/>+ overdraft line<br/><br/>= 1,155.55 USD"]
+    end
+
+    subgraph Shadow["Shadow balance - a copy outside the core"]
+        S1["Held by the card platform,<br/>the instant payments gateway,<br/>or a caching layer"]
+        S2["Refreshed on a schedule<br/>or on every posting event"]
+        S3["Diverges when refresh fails.<br/>Divergence is the single<br/>largest source of<br/>instant payment incidents."]
+    end
+
+    L --> A
+    Encumbrance --> A
+    A --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 -.reconciled against.-> L
+
+    style Truth fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Encumbrance fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Avail fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Shadow fill:#fce4ec,stroke:#880e4f,stroke-width:2px

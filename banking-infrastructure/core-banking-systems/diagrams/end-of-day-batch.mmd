@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TD
+    Start(["Cut-off, typically 18:00 to 22:00 local"]) --> Freeze["Freeze the accounting day<br/>new items assigned to next day"]
+    Freeze --> Capture["Capture external files"]
+
+    Capture --> ACH["ACH received file<br/>NACHA fixed 94-byte records"]
+    Capture --> Card["Card network clearing file"]
+    Capture --> Check["Cheque presentment,<br/>image cash letters"]
+    Capture --> Wire["Wire and instant payment<br/>positions"]
+
+    ACH --> Sort
+    Card --> Sort
+    Check --> Sort
+    Wire --> Sort
+
+    Sort["Sort into posting order<br/>credits, then debits by category,<br/>then by the bank's documented rule"] --> Apply["Apply items to accounts"]
+    Apply --> OD{"Balance goes<br/>negative?"}
+    OD -->|Yes, no overdraft line| Decision["Pay or return decision<br/>per account policy"]
+    OD -->|No| Fees
+    Decision --> Fees["Assess fees<br/>NSF, overdraft, per-item"]
+    Fees --> Accrue["Interest accrual<br/>every interest-bearing account"]
+    Accrue --> Cap{"Capitalisation<br/>cycle day?"}
+    Cap -->|Yes| Post["Post accrued interest<br/>to customer accounts"]
+    Cap -->|No| Cycle
+    Post --> Cycle{"Statement<br/>cycle day?"}
+    Cycle -->|Yes| Stmt["Generate statements<br/>and disclosures"]
+    Cycle -->|No| Events
+    Stmt --> Events["Time-driven events<br/>maturity, dormancy, escheatment,<br/>standing orders, loan amortisation"]
+    Events --> Summ["Summarise subledger<br/>into GL control accounts"]
+    Summ --> Proof{"GL proof:<br/>subledger totals =<br/>control accounts?"}
+    Proof -->|Out of balance| Halt["Halt. Operations investigates.<br/>Date roll blocked."]
+    Proof -->|Balanced| Extract["Extracts: data warehouse,<br/>regulatory reporting, analytics,<br/>fraud models, print"]
+    Extract --> Roll["Date roll:<br/>close day D, open day D+1"]
+    Roll --> Open(["Reopen for update"])
+    Halt -.corrected, re-run.-> Proof
+
+    style Start fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Proof fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Halt fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Roll fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
