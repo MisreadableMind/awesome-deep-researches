@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["Bank funds 30-year assets<br/>with liabilities payable on<br/>demand at par"]
+
+    Start --> Two{"Two self-fulfilling<br/>equilibria exist"}
+
+    Two -->|"Depositors expect<br/>others to stay"| Good["GOOD EQUILIBRIUM<br/>Only genuine liquidity needs withdraw.<br/>Bank meets them from cash flow.<br/>Assets held to maturity."]
+
+    Two -->|"Depositors expect<br/>others to run"| Bad["BAD EQUILIBRIUM<br/>Withdrawing first is rational<br/>even with no need for cash.<br/>Sequential service rewards speed."]
+
+    Bad --> Fire["Assets sold at fire-sale prices.<br/>A solvent bank becomes insolvent<br/>because it was expected to."]
+
+    Good --> Ins["DEPOSIT INSURANCE<br/>breaks the queue"]
+    Bad --> Ins
+
+    Ins --> Why["Paid last equals paid first.<br/>The incentive to run disappears<br/>for insured balances.<br/>The bad equilibrium stops existing."]
+
+    Why --> Cost["The guarantee usually costs nothing,<br/>because it removes the event<br/>that would trigger payment."]
+
+    Why --> Resid["RESIDUAL RUN RISK<br/>lives entirely in the uninsured tail"]
+
+    Resid --> SVB["SVB, 9 March 2023:<br/>94 percent of domestic deposits uninsured.<br/>42 bn USD out in one day.<br/>100 bn USD more expected the next.<br/>Roughly 85 percent of the deposit base."]
+
+    Resid --> Comp["For comparison, 2008:<br/>Wachovia about 10 bn USD over 8 days,<br/>Washington Mutual 19 bn USD over 16 days"]
+
+    style Good fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Bad fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Fire fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Ins fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Resid fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style SVB fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Loop["The moral hazard mechanism"]
+        direction TB
+        M1["Deposit insurance removes<br/>the depositor's reason to monitor"]
+        M2["Funding cost stops responding<br/>to the bank's risk taking"]
+        M3["Equity holders keep the upside;<br/>the fund absorbs the downside<br/>below zero equity"]
+        M4["Value-maximising strategy for a thin<br/>bank is maximum tolerated risk"]
+        M1 --> M2 --> M3 --> M4
+        M4 -.->|"exercised in the<br/>1980s thrift crisis"| M1
+    end
+
+    subgraph Brakes["The six counterweights"]
+        direction TB
+        B1["Risk-based pricing<br/>12 CFR 327: seven financial ratios<br/>plus weighted CAMELS, 5 to 32 bps"]
+        B2["Capital requirements<br/>equity is the deductible"]
+        B3["Prompt corrective action<br/>FDI Act s.38: close the bank while<br/>tangible equity is still positive"]
+        B4["Brokered deposit limits<br/>FDI Act s.29: no brokered funding<br/>for an undercapitalised bank"]
+        B5["Supervision and examination<br/>a government examiner replaces<br/>the depositor as monitor"]
+        B6["Least-cost test<br/>12 USC 1823(c)(4): uninsured depositors<br/>keep their exposure by default"]
+    end
+
+    Loop --> Brakes
+
+    Brakes --> Result["Net effect: the put option is shortened<br/>and priced, but never eliminated"]
+
+    Result --> Tension["Tension: the same uninsured exposure that<br/>preserves discipline is the exposure that<br/>ran 42 bn USD out of SVB in one day"]
+
+    style Loop fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Brakes fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tension fill:#fff3e0,stroke:#e65100,stroke-width:3px

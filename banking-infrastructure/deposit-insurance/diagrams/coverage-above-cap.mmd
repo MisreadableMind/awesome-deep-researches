@@ -1,0 +1,27 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Dep["A depositor with 8 million USD<br/>and a 250,000 USD limit"]
+
+    Dep --> M1["MECHANISM 1<br/>Ownership categories at one bank<br/>12 CFR part 330"]
+    Dep --> M2["MECHANISM 2<br/>Reciprocal deposit network<br/>FDI Act s.29(i), 12 CFR 337.6(e)"]
+    Dep --> M3["MECHANISM 3<br/>Broker-dealer or fintech sweep<br/>pass-through under 12 CFR 330.5 and 330.7"]
+
+    M1 --> M1a["Single, joint, retirement, trust,<br/>business entity, government.<br/>Trust category alone gives<br/>250,000 x up to 5 beneficiaries<br/>= 1.25 m USD per grantor"]
+    M1a --> M1b["Cost: zero.<br/>Limit: family and entity structure.<br/>Risk: the bank's records must be<br/>clear and unambiguous."]
+
+    M2 --> M2a["The customer's own bank places the<br/>deposit through a network in slices<br/>of 250,000 USD or less at other member<br/>banks, and receives an equal amount back.<br/>One account, one statement,<br/>one relationship."]
+    M2a --> M2b["Statutory exception, not a loophole.<br/>Added by EGRRCPA s.202, 24 May 2018.<br/>Reciprocal deposits within the cap<br/>are NOT brokered deposits."]
+    M2b --> M2c["Cap before 11 Jul 2026:<br/>lesser of 5 bn USD or 20 percent<br/>of total liabilities"]
+    M2c --> M2d["Cap after the 21st Century ROAD to<br/>Housing Act s.902, effective 11 Jul 2026:<br/>50 percent of liabilities up to 1 bn USD<br/>+ 40 percent of the 1 to 10 bn USD slice<br/>+ 30 percent of the 10 to 96.333 bn USD slice<br/>maximum 30 bn USD"]
+    M2d --> M2e["Market at 31 Mar 2026:<br/>2,089 institutions held 462.8 bn USD<br/>of reciprocal deposits.<br/>331 held 91.9 bn USD of<br/>brokered reciprocal deposits."]
+
+    M3 --> M3a["A non-bank sweeps customer cash to<br/>a panel of program banks in<br/>sub-limit slices.<br/>Example: 32 program banks<br/>x 250,000 USD = 8 m USD advertised"]
+    M3a --> M3b["Coverage depends entirely on<br/>PASS-THROUGH conditions:<br/>1. fiduciary capacity disclosed in the<br/>   BANK's deposit account records<br/>2. beneficial interests ascertainable<br/>   from records kept in good faith<br/>3. every tier of a multi-tier chain<br/>   disclosed at some prior level"]
+    M3b --> M3c["FAILURE MODE<br/>If the intermediary's ledger does not<br/>reconcile to the bank's, coverage does<br/>not repair it, and there is no bank<br/>failure to trigger a claim anyway.<br/>Synapse, 2024."]
+    M3c --> M3d["FDIC proposed rule, 17 Sep 2024:<br/>daily reconciliation, beneficial owner<br/>and ownership category records in a<br/>prescribed file format, direct and<br/>continuous access surviving the third<br/>party's insolvency, annual certification,<br/>annual independent validation"]
+
+    style M1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style M3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style M3c fill:#ffebee,stroke:#c62828,stroke-width:3px

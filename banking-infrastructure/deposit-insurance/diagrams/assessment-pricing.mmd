@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Inputs["Inputs from the quarterly Call Report and the examination"]
+        direction TB
+        I1["Leverage ratio 9.50 percent"]
+        I2["Net income before taxes / total assets 1.20 percent"]
+        I3["Nonperforming loans / gross assets 0.60 percent"]
+        I4["Other real estate owned / gross assets 0.05 percent"]
+        I5["Brokered deposit ratio 4.00 percent"]
+        I6["One year asset growth 6.00 percent"]
+        I7["Loan mix index 8.00"]
+        I8["CAMELS components, weighted:<br/>capital 25, asset quality 20, management 25,<br/>earnings 10, liquidity 10, sensitivity 10<br/>weighted average 2.00"]
+    end
+
+    Inputs --> Mult["Multiply each measure by its<br/>pricing multiplier, 12 CFR 327.16(a)"]
+
+    Mult --> Calc["-1.264 x 9.50 = -12.008<br/>-0.720 x 1.20 = -0.864<br/>0.942 x 0.60 = +0.565<br/>0.533 x 0.05 = +0.027<br/>0.264 x 4.00 = +1.056<br/>0.061 x 6.00 = +0.366<br/>0.081 x 8.00 = +0.648<br/>1.519 x 2.00 = +3.038"]
+
+    Calc --> Uniform["Add the uniform amount for the<br/>schedule in effect: 9.352 under<br/>12 CFR 327.10(b)"]
+
+    Uniform --> Raw["Formula result: 2.180 basis points"]
+
+    Raw --> Floor{"Apply the schedule floor and cap<br/>for the CAMELS composite rating"}
+
+    Floor -->|"CAMELS 1 or 2 small bank:<br/>5 to 18 bps"| Initial["INITIAL BASE ASSESSMENT RATE<br/>5 basis points<br/>the floor binds"]
+
+    Initial --> Adj["Apply the three adjustments"]
+
+    Adj --> A1["Unsecured debt adjustment<br/>lowers the rate, but never below<br/>50 percent of the initial base rate"]
+    Adj --> A2["Depository institution debt adjustment<br/>50 bps on holdings of another insured<br/>institution's long-term unsecured debt<br/>above 3 percent of tier 1 capital"]
+    Adj --> A3["Brokered deposit adjustment<br/>up to 10 bps for a large institution<br/>that is not well capitalised or not<br/>CAMELS 1 or 2, with brokered deposits<br/>above 10 percent of domestic deposits"]
+
+    A1 --> Total["TOTAL BASE ASSESSMENT RATE<br/>5 basis points"]
+    A2 --> Total
+    A3 --> Total
+
+    Total --> Base["Multiply by the assessment base:<br/>average consolidated total assets<br/>minus average tangible equity<br/>800 m USD - 80 m USD = 720 m USD"]
+
+    Base --> Bill["ANNUAL ASSESSMENT 360,000 USD<br/>billed quarterly at 90,000 USD"]
+
+    Bill --> Sens["Sensitivity: raise the weighted CAMELS<br/>from 2.00 to 3.50 and drop the leverage<br/>ratio from 9.50 to 7.00 percent, and the<br/>formula gives 7.619 bps.<br/>The same bank now pays 548,600 USD a year.<br/>If the COMPOSITE rating also falls to 3,<br/>the 8 bps floor binds and the bill is 576,000 USD."]
+
+    style Initial fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Total fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Bill fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Sens fill:#fff3e0,stroke:#e65100,stroke-width:2px

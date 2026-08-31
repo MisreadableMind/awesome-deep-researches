@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Assets["Receivership realisations under<br/>the winning bid<br/>Meridian: 276 m USD from the acquirer<br/>+ 48 m USD from the retained<br/>construction and development pool<br/>+ 6.3 m USD deposit premium<br/>= 330.3 m USD"]
+
+    Assets --> P1["1. ADMINISTRATIVE EXPENSES<br/>of the receiver<br/>Meridian: 9 m USD"]
+
+    P1 --> P2["2. DEPOSIT LIABILITIES<br/>domestic deposits, all pari passu:<br/>- the FDIC's subrogated claim for<br/>  insured amounts it paid out<br/>- uninsured domestic depositors<br/>Meridian: 381 m USD of claims<br/>against 321.3 m USD available<br/>= 84.3 cents on the dollar"]
+
+    P2 --> P3["3. GENERAL AND SENIOR LIABILITIES<br/>trade creditors, lessors,<br/>foreign branch deposits not payable<br/>in the United States"]
+
+    P3 --> P4["4. SUBORDINATED OBLIGATIONS"]
+
+    P4 --> P5["5. SHAREHOLDERS<br/>residual, almost always zero"]
+
+    P2 --> Key1["CONSEQUENCE ONE<br/>The FDIC and the uninsured depositor<br/>sit in the same class and receive the<br/>same recovery rate. The insurer's<br/>interests and the uninsured depositor's<br/>interests are aligned by statute."]
+
+    P2 --> Key2["CONSEQUENCE TWO<br/>Uninsured depositors rank AHEAD of<br/>the bank's bondholders and trade<br/>creditors. Depositor preference means<br/>an uninsured deposit is a senior claim,<br/>not an unsecured one."]
+
+    P3 --> Key3["CONSEQUENCE THREE<br/>Deposits in foreign branches that are<br/>not also payable in the United States<br/>rank with general creditors, below<br/>domestic depositors."]
+
+    P2 --> Cert["Uninsured depositors receive a<br/>RECEIVERSHIP CERTIFICATE and are paid<br/>DIVIDENDS as assets are sold,<br/>over months to years"]
+
+    Cert --> Adv["ADVANCE DIVIDEND<br/>where the FDIC is confident of recovery<br/>it pays part immediately.<br/>First National Bank of Lindsay:<br/>50 percent paid on 21 Oct 2024,<br/>three days after the closing"]
+
+    Assets --> Cross["CROSS-GUARANTEE, FDI Act s.5(e)<br/>added by FIRREA 1989.<br/>Commonly controlled insured institutions<br/>are liable for the FDIC's loss on an<br/>affiliate. A holding company cannot let<br/>one charter fail and keep the others clean."]
+
+    style P2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Key2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cross fill:#fff3e0,stroke:#e65100,stroke-width:2px

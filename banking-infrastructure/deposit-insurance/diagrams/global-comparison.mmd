@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph US["UNITED STATES - FDIC"]
+        direction TB
+        US1["250,000 USD per depositor,<br/>per bank, per ownership category"]
+        US2["PRE-FUNDED<br/>161.1 bn USD, 100 percent retained earnings"]
+        US3["Priced on ASSETS<br/>average consolidated total assets<br/>minus average tangible equity"]
+        US4["Target: 1.35 percent statutory minimum,<br/>2 percent Board target,<br/>measured against INSURED DEPOSITS"]
+        US5["The insurer is also the RECEIVER.<br/>Weekend sale is the default outcome."]
+        US6["Payout in practice: next business day,<br/>usually as a transfer to an acquirer"]
+    end
+
+    subgraph CU["UNITED STATES - NCUA"]
+        direction TB
+        CU1["250,000 USD per member,<br/>per credit union, per category"]
+        CU2["PRE-FUNDED<br/>24.1 bn USD at 31 Dec 2025, of which<br/>76.9 percent is a REFUNDABLE 1 percent<br/>deposit that credit unions carry as an asset"]
+        CU3["No ongoing premium when the equity<br/>ratio is at or above the normal<br/>operating level; excess is distributed"]
+        CU4["Floor 1.20 percent, normal operating<br/>level 1.33 percent, measured against<br/>INSURED SHARES, semiannually"]
+        CU5["NCUA is insurer, supervisor<br/>and liquidating agent"]
+    end
+
+    subgraph EU["EUROPEAN UNION - DGSD3"]
+        direction TB
+        EU1["100,000 EUR per depositor per<br/>credit institution.<br/>Directive (EU) 2026/804,<br/>adopted 30 March 2026"]
+        EU2["NATIONAL schemes, not one fund.<br/>No European Deposit Insurance Scheme<br/>despite a 2015 proposal."]
+        EU3["PRE-FUNDED to 0.8 percent of<br/>COVERED DEPOSITS, risk-based<br/>contributions under Article 13"]
+        EU4["Temporary high balances harmonised at<br/>500,000 EUR for six months, and up to<br/>2,500,000 EUR for private residential<br/>property transactions"]
+        EU5["Scheme and resolution authority are<br/>usually SEPARATE bodies.<br/>DGS funds may finance transfers<br/>and preventive measures."]
+        EU6["Payout within 7 working days,<br/>up to 20 for high balances;<br/>credit transfer by default above 10,000 EUR"]
+    end
+
+    subgraph UK["UNITED KINGDOM - FSCS"]
+        direction TB
+        UK1["120,000 GBP per eligible person<br/>per banking LICENCE, not per brand.<br/>Raised from 85,000 GBP<br/>on 1 December 2025"]
+        UK2["EX-POST FUNDED.<br/>No standing deposit fund.<br/>A levy on authorised firms is raised<br/>after the failure."]
+        UK3["Funding classes including Deposits,<br/>plus a deposit acceptors' contribution class<br/>levied only when the retail pool is triggered"]
+        UK4["Temporary high balances<br/>1.4 m GBP for six months"]
+        UK5["Covers deposits, insurance, investments<br/>and pensions in ONE scheme.<br/>Resolution sits with the Bank of England."]
+        UK6["Payout within 7 working days"]
+    end
+
+    US --> Trade["THE SHARED TRADE-OFF<br/>Pre-funding costs idle money every year<br/>and avoids charging survivors in a crisis.<br/>Ex-post funding costs nothing in calm years<br/>and bills the weakest banks at the worst moment.<br/>Neither model survives a large failure<br/>without a state liquidity backstop."]
+    CU --> Trade
+    EU --> Trade
+    UK --> Trade
+
+    style US fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CU fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style EU fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style UK fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Trade fill:#eceff1,stroke:#37474f,stroke-width:3px

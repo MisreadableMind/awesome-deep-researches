@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Trigger["Systemic risk determination,<br/>12 March 2023, for Silicon Valley Bank<br/>and Signature Bank"]
+
+    Trigger --> Duty["12 USC 1823(c)(4)(G)(ii) requires the FDIC<br/>to recover the resulting loss through one<br/>or more special assessments, considering<br/>which institutions benefited"]
+
+    Duty --> Loss["Isolate the loss attributable to<br/>PROTECTING UNINSURED DEPOSITORS,<br/>not the total cost of the failures"]
+
+    Loss --> Est["Estimate has moved:<br/>15.8 bn USD at the proposal<br/>16.3 bn USD at the final rule<br/>16.7 bn USD currently,<br/>adjusted as receiverships sell assets"]
+
+    Est --> Base["ASSESSMENT BASE<br/>estimated uninsured deposits reported<br/>on the 31 December 2022 Call Report,<br/>less the first 5 bn USD,<br/>computed at the banking organisation level"]
+
+    Base --> Why["Chosen retroactively on purpose.<br/>A bank cannot lower its bill by<br/>changing its funding mix afterwards."]
+
+    Base --> Rate["RATE<br/>about 13.4 basis points annual,<br/>about 3.36 bps per quarter,<br/>over eight quarterly assessment periods<br/>from Q1 2024, first payable 28 June 2024"]
+
+    Rate --> Cut["Rate cut to 2.97 bps for the eighth<br/>quarter, payable 30 March 2026.<br/>December 2025 interim final rule<br/>amended the collection."]
+
+    Base --> Who["INCIDENCE<br/>141 insured depository institutions across<br/>110 banking organisations.<br/>At adoption: 48 organisations above 50 bn USD,<br/>66 between 5 and 50 bn USD,<br/>ZERO below 5 bn USD."]
+
+    Who --> Share["Banks above 50 bn USD were estimated<br/>to pay more than 95 percent of the total"]
+
+    Cut --> Effect["ACCOUNTING EFFECT<br/>Because the loss is recovered, the SVB and<br/>Signature failures left the fund's net worth<br/>and the reserve ratio structurally unchanged."]
+
+    Effect --> Contrast["CONTRAST<br/>First Republic cost about 13 bn USD and was a<br/>LEAST-COST resolution, so no special assessment<br/>applied. That loss reduced the fund permanently.<br/>The bank with the smallest headlines cost the most."]
+
+    style Base fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Who fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Contrast fill:#ffebee,stroke:#c62828,stroke-width:3px
