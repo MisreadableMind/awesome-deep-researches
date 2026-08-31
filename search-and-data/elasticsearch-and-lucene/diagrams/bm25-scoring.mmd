@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Inputs["Three numbers, and nothing else"]
+        TF["tf - how often the term occurs<br/>in this document's field.<br/>Read from the .doc file."]
+        DF["df - how many documents in<br/>this shard contain the term.<br/>Read from the .tim file."]
+        DL["dl - the field's length in tokens.<br/>Read from the .nvd file,<br/>one byte per document."]
+    end
+
+    subgraph Idf["Rarity term"]
+        I1["idf = ln(1 + (N - df + 0.5) / (df + 0.5))"]
+        I2["N = docCount for the field<br/>in this shard, not the cluster.<br/>This is why scores differ<br/>across shards."]
+    end
+
+    subgraph Sat["Saturation term"]
+        S1["tf / (tf + k1 x ((1 - b) + b x dl / avgdl))"]
+        S2["k1 = 1.2 controls saturation.<br/>b = 0.75 controls length penalty.<br/>b = 0 ignores length entirely."]
+        S3["Bounded by 1. The tenth occurrence<br/>of a word adds almost nothing.<br/>Classic TF-IDF used sqrt(tf),<br/>which never stops growing."]
+    end
+
+    subgraph Norm["The one-byte compromise"]
+        N1["dl is encoded with SmallFloat.intToByte4:<br/>values below 24 exactly,<br/>then 4 significant bits."]
+        N2["A 41-token field and a 40-token field<br/>decode to the same 40.<br/>Maximum relative error about 6%."]
+    end
+
+    OUT["score(q, d) = sum over terms of idf x saturation<br/>No query normalisation. No coordination factor.<br/>Both were removed in Lucene 7."]
+
+    TF --> S1
+    DF --> I1
+    DL --> N1 --> S1
+    I1 --> OUT
+    S1 --> OUT
+
+    style Inputs fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Idf fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Sat fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Norm fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style OUT fill:#eceff1,stroke:#37474f,stroke-width:3px

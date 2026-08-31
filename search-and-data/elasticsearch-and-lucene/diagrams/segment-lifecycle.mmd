@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Write["Write path"]
+        BUF["In-memory indexing buffer.<br/>indices.memory.index_buffer_size,<br/>10% of heap by default,<br/>shared across all shards on the node."]
+        FLUSH["Buffer full or refresh due:<br/>write a new segment.<br/>Immutable from this instant."]
+    end
+
+    subgraph Live["Segments on disk"]
+        S1["_0  seg 12,000 docs<br/>0 deleted"]
+        S2["_1  seg 9,400 docs<br/>1,100 deleted"]
+        S3["_2  seg 240 docs<br/>0 deleted"]
+        S4["_3  seg 180 docs<br/>0 deleted"]
+    end
+
+    subgraph Delete["Deletes are tombstones, not edits"]
+        DEL["DELETE _doc/42 sets bit 42<br/>to 0 in the .liv bitset.<br/>The term still sits in .tim.<br/>The posting still sits in .doc.<br/>docFreq is still counted."]
+        UPD["An UPDATE is a delete plus an<br/>insert. The old version stays<br/>on disk until a merge rewrites<br/>the segment."]
+    end
+
+    subgraph Merge["TieredMergePolicy"]
+        MP["Budget: segments_per_tier = 8.<br/>max_merge_at_once = 16.<br/>floor_segment = 16 MB, so anything<br/>smaller is treated as 16 MB.<br/>max_merged_segment = 5 GB,<br/>100 GB for time-based indices."]
+        SCORE["Score each candidate merge by<br/>skew and size. Prefer merges<br/>that reclaim deleted documents.<br/>deletes_pct_allowed = 20%."]
+        OUT["One new segment written.<br/>Inputs deleted only after the<br/>next commit references the output."]
+    end
+
+    COST["A merge rewrites every byte it reads.<br/>Merging four 1 GB segments writes<br/>4 GB and reads 4 GB.<br/>This is the dominant background<br/>I/O cost of any write-heavy index."]
+
+    BUF --> FLUSH --> Live
+    DEL --> Live
+    UPD --> DEL
+    Live --> MP --> SCORE --> OUT
+    OUT --> Live
+    OUT --> COST
+
+    style Write fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Live fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Delete fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Merge fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style COST fill:#eceff1,stroke:#37474f,stroke-width:2px

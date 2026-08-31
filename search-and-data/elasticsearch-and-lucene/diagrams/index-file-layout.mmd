@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Commit["Commit point - the only thing a reader trusts"]
+        SEG["segments_N<br/>lists every live segment,<br/>its generation and its files"]
+        LOCK["write.lock<br/>one IndexWriter per directory"]
+    end
+
+    subgraph Segment["One segment - written once, never modified"]
+        SI[".si<br/>segment metadata,<br/>doc count, codec, file list"]
+        FNM[".fnm<br/>field infos: name, number,<br/>index options, doc values type"]
+    end
+
+    subgraph Inverted["Inverted index"]
+        TIM[".tim<br/>term dictionary,<br/>blocks of 25 to 48 entries"]
+        TIP[".tip<br/>term index, one trie per field,<br/>prefix to on-disk block"]
+        TMD[".tmd<br/>per-field stats: numTerms,<br/>sumDocFreq, minTerm, maxTerm"]
+        DOC[".doc<br/>doc IDs and freqs,<br/>bit-packed blocks of 256"]
+        POS[".pos<br/>term positions"]
+        PAY[".pay<br/>payloads and character offsets"]
+    end
+
+    subgraph Column["Columnar and auxiliary"]
+        DVD[".dvd .dvm<br/>doc values: data and metadata,<br/>skip index written inline in .dvd"]
+        NVD[".nvd .nvm<br/>norms, one byte per doc per field"]
+        KDD[".kdd .kdi .kdm<br/>BKD point tree for numerics,<br/>dates and geo"]
+        VEC[".vec .vem .veq .vex<br/>raw vectors, metadata,<br/>quantized vectors, HNSW graph"]
+    end
+
+    subgraph Row["Row-oriented"]
+        FDT[".fdt .fdx .fdm<br/>stored fields including _source,<br/>chunked and compressed"]
+        TVX[".tvx .tvd<br/>term vectors, optional"]
+    end
+
+    subgraph Mutable["The only mutable per-segment state"]
+        LIV[".liv<br/>live docs bitset.<br/>Rewritten whole on each<br/>delete generation."]
+    end
+
+    CFS["Small segments are packed<br/>into .cfs plus .cfe,<br/>one virtual file, to keep<br/>the open file count down"]
+
+    SEG --> Segment
+    Segment --> Inverted
+    Segment --> Column
+    Segment --> Row
+    Segment --> Mutable
+    Segment -.if small.-> CFS
+
+    style Commit fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Segment fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Inverted fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Column fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Row fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Mutable fill:#ffebee,stroke:#b71c1c,stroke-width:2px

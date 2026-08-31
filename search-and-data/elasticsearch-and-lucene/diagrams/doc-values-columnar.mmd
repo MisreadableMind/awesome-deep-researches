@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Problem["The problem the inverted index cannot solve"]
+        P1["Inverted index answers:<br/>which documents contain 'blue'?"]
+        P2["Aggregation asks the opposite:<br/>for these 40,000 documents,<br/>what colour is each one?"]
+        P3["Walking the term dictionary to<br/>answer that is O(terms), not O(docs).<br/>Wrong data structure."]
+    end
+
+    subgraph DV["Doc values - the same data, transposed"]
+        D1["Written at index time into<br/>.dvd data and .dvm metadata,<br/>one column per field per segment.<br/>Skip index interleaved into .dvd."]
+        D2["NUMERIC: delta, table, GCD,<br/>monotonic or constant compression,<br/>bit-packed in blocks of 16,384."]
+        D3["SORTED / SORTED_SET:<br/>terms deduplicated into an ordinal<br/>table, LZ4 blocks of 64 terms,<br/>reverse index every 1,024."]
+        D4["Documents without a value are<br/>skipped with a SPARSE, DENSE or ALL<br/>strategy per 65,536-doc block."]
+    end
+
+    subgraph Aggs["What aggregations actually do"]
+        A1["terms agg on a keyword field<br/>reads ordinals, not strings"]
+        A2["Global ordinals map per-segment<br/>ordinals to a shard-wide space.<br/>Built lazily on first use,<br/>thrown away on refresh."]
+        A3["Counting is then an increment<br/>into an array indexed by ordinal.<br/>No string comparison happens."]
+    end
+
+    subgraph Cost["What it costs"]
+        C1["Disk: a second copy of every<br/>aggregatable field."]
+        C2["Off-heap: doc values are mmapped,<br/>so the OS page cache pays,<br/>not the JVM heap."]
+        C3["Turn it off with doc_values: false<br/>and the field can be searched<br/>but never sorted, aggregated<br/>or used in a script."]
+    end
+
+    FD["fielddata: true on a text field<br/>rebuilds the same structure on the heap<br/>at query time. It is the historical<br/>cause of most OutOfMemoryErrors<br/>in Elasticsearch and stays off by default."]
+
+    Problem --> DV
+    DV --> Aggs
+    Aggs --> Cost
+    Cost --> FD
+
+    style Problem fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style DV fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Aggs fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cost fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FD fill:#eceff1,stroke:#37474f,stroke-width:2px

@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Term["Term metadata, stored in .tim"]
+        TM["docFreq, totalTermFreq,<br/>DocFPDelta, PosFPDelta, PayFPDelta.<br/>If docFreq = 1 the doc ID is<br/>inlined as SingletonDocID<br/>and no .doc entry is written."]
+    end
+
+    subgraph DocFile[".doc - the postings list for one term"]
+        L1["Level 1 skip entry,<br/>written every 32 packed blocks<br/>= 8192 documents.<br/>DocDelta, DocFPDelta,<br/>impacts, PosFPDelta, PayFPDelta"]
+        L0["Level 0 skip entry,<br/>written before every block.<br/>Skip0NumBytes, DocDelta,<br/>DocFPDelta, PackedBlockLength,<br/>ImpactLength, Impacts"]
+        BLK["Packed block: 256 doc-ID deltas<br/>bit-packed at a uniform width,<br/>plus 256 frequencies<br/>with PForDelta patching"]
+        TAIL["Tail block: fewer than 256 docs<br/>left, written as VInts.<br/>Delta doubled, low bit set<br/>means freq = 1."]
+    end
+
+    subgraph Math["Why 256 deltas cost so little"]
+        M1["Doc IDs 10, 22, 37, 51, ...<br/>ascending and unique"]
+        M2["Store gaps: 10, 12, 15, 14, ...<br/>Max gap in this block = 15."]
+        M3["15 needs 4 bits.<br/>256 docs x 4 bits = 128 bytes,<br/>against 1024 bytes for raw int32."]
+    end
+
+    Impacts["Impacts are (freq, norm) pairs<br/>that dominate the block.<br/>WAND and MAXSCORE use them to<br/>skip whole blocks that cannot<br/>beat the current top-k threshold."]
+
+    TM --> L1
+    L1 --> L0 --> BLK
+    BLK --> TAIL
+    M1 --> M2 --> M3
+    L0 -.carries.-> Impacts
+    L1 -.carries.-> Impacts
+
+    style Term fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DocFile fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Math fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Impacts fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

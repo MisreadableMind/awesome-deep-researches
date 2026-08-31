@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant CN as Coordinating node
+    participant S0 as Shard 0 copy
+    participant S1 as Shard 1 copy
+    participant S5 as Shard 5 copy
+
+    C->>CN: GET /logs-2026.08/_search<br/>from=0 size=10, sort by _score
+
+    Note over CN: Can-match pre-filter runs first when the<br/>request touches more than 128 shards.<br/>Range and min/max checks per shard,<br/>no scoring, cheap rejection.
+
+    CN->>S0: Query phase, size 10
+    CN->>S1: Query phase, size 10
+    CN->>S5: Query phase, size 10
+
+    Note over S0,S5: Each shard scores locally with its OWN<br/>docCount and docFreq. Six shards means<br/>six different idf values for the same term.
+
+    S0-->>CN: 10 doc IDs plus scores, no _source
+    S1-->>CN: 10 doc IDs plus scores
+    S5-->>CN: 10 doc IDs plus scores
+
+    Note over CN: Merge 6 x 10 = 60 entries in a priority<br/>queue, keep the global top 10.<br/>batched_reduce_size = 512 caps how many<br/>shard results are held before partial reduce.
+
+    CN->>S1: Fetch phase, GET these 7 doc IDs
+    CN->>S5: Fetch phase, GET these 3 doc IDs
+    S1-->>CN: _source and stored fields
+    S5-->>CN: _source and stored fields
+    CN-->>C: 10 hits
+
+    Note over C,S5: Deep pagination: from=9990 size=10.<br/>Every shard must build a priority queue of<br/>10,000 entries, so the coordinating node<br/>merges 60,000 to return 10.<br/>Cost is O(shards x (from + size)), not O(size).
+
+    Note over C,CN: search_after with a point-in-time carries<br/>the last sort key forward instead.<br/>Each page costs O(shards x size), flat,<br/>and the PIT freezes the segment set<br/>so results cannot shift under the reader.

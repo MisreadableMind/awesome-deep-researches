@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant P as Primary shard
+    participant TL as Translog
+    participant B as Lucene buffer
+    participant FS as OS page cache
+    participant D as Disk
+    participant R as Replica shard
+
+    C->>P: PUT /orders/_doc/42
+    P->>P: Assign _primary_term and _seq_no
+    P->>B: Add document to indexing buffer
+    P->>TL: Append operation to translog
+    P->>R: Replicate operation
+    R->>R: Same buffer plus translog append
+    R-->>P: Acknowledged
+
+    Note over P,TL: durability = request, the default.<br/>fsync the translog before answering.
+    P->>D: fsync translog
+    D-->>P: ok
+    P-->>C: 201 Created, _seq_no 8817
+
+    Note over B,FS: Refresh, every 1s by default,<br/>5s on Serverless. Skipped entirely if<br/>the shard has served no search for 30s.
+    B->>FS: Write a new segment
+    FS->>P: Reopen the DirectoryReader
+    Note over P: The document is now searchable.<br/>Nothing has been fsynced but the translog.
+
+    Note over TL,D: Flush, when the translog passes 10 GB<br/>or one minute since the last flush.
+    P->>D: Lucene commit: fsync segments, write segments_N
+    P->>TL: Trim translog up to the commit's local checkpoint
+
+    Note over P,D: Crash here and recovery replays the<br/>translog from the last commit's<br/>local checkpoint forward.<br/>Nothing acknowledged is lost.

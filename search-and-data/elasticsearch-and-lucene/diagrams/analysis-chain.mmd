@@ -1,0 +1,37 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph IndexSide["Index time - runs once per document"]
+        IS["Source value<br/>&lt;p&gt;Quick BROWN foxes&lt;/p&gt;"]
+        IC["Character filters, zero or more,<br/>applied in order.<br/>html_strip, mapping, pattern_replace"]
+        IT["Tokenizer, exactly one.<br/>standard, whitespace, keyword,<br/>pattern, ngram, edge_ngram, icu"]
+        IF["Token filters, zero or more,<br/>applied in order.<br/>lowercase, stop, stemmer,<br/>synonym, asciifolding, shingle"]
+        IO["Terms written to the segment<br/>quick@0 brown@1 fox@2"]
+    end
+
+    subgraph QuerySide["Query time - runs once per query string"]
+        QS["Query string<br/>Quick Fox"]
+        QC["Same character filters"]
+        QT["Same tokenizer"]
+        QF["Same token filters,<br/>unless search_analyzer overrides"]
+        QO["Query terms<br/>quick, fox"]
+    end
+
+    Match["Terms match only as byte-for-byte<br/>equal UTF-8 strings.<br/>No fuzzy reconciliation happens here."]
+
+    Mismatch["Disagreement is silent.<br/>Index stems, query does not:<br/>zero hits, no error, no warning."]
+
+    Precedence["Search analyzer precedence<br/>1. analyzer on the query<br/>2. search_analyzer on the field<br/>3. analysis.analyzer.default_search<br/>4. analyzer on the field<br/>5. standard"]
+
+    IS --> IC --> IT --> IF --> IO
+    QS --> QC --> QT --> QF --> QO
+    IO --> Match
+    QO --> Match
+    Match --> Mismatch
+    QF -.governed by.-> Precedence
+
+    style IndexSide fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style QuerySide fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Match fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Mismatch fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    style Precedence fill:#eceff1,stroke:#37474f,stroke-width:2px

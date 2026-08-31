@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    DOC["PUT /orders/_doc/ORD-88213<br/>optional ?routing=customer-4471"]
+
+    R1["effectiveRouting = routing value,<br/>or the document _id if none given"]
+    R2["hash = Murmur3HashFunction.hash(effectiveRouting)<br/>32-bit murmur3, seed 0, over UTF-8 bytes"]
+
+    subgraph Modern["Elasticsearch 9.4 and later"]
+        M1["shard_num = floorMod(hash, number_of_shards)"]
+    end
+
+    subgraph Legacy["Indices created before 9.4"]
+        L1["shard_num = floorMod(hash, routing_num_shards)<br/>/ routing_factor"]
+        L2["routing_factor = routing_num_shards<br/>/ number_of_shards.<br/>Lets _split multiply shard count<br/>by a factor of 2 without rehashing."]
+    end
+
+    subgraph Place["Where that shard lives"]
+        S0["shard 0 primary on node-a<br/>replica on node-b"]
+        S1["shard 1 primary on node-b<br/>replica on node-c"]
+        S2["shard 2 primary on node-c<br/>replica on node-a"]
+    end
+
+    subgraph Rules["The constraints this creates"]
+        C1["number_of_shards is fixed at<br/>creation. Changing it changes the<br/>modulus and invalidates every<br/>existing placement."]
+        C2["_split multiplies, _shrink divides,<br/>and both rewrite the whole index."]
+        C3["Custom routing concentrates a tenant<br/>on one shard. Fast for reads,<br/>and a hotspot when one tenant is<br/>1,000 times the size of the median."]
+        C4["routing_partition_size spreads<br/>one routing value over a<br/>contiguous range of shards<br/>to cap that hotspot."]
+    end
+
+    DOC --> R1 --> R2
+    R2 --> M1
+    R2 --> L1 --> L2
+    M1 --> Place
+    L2 --> Place
+    Place --> Rules
+
+    style Modern fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Legacy fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Place fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Rules fill:#fff3e0,stroke:#e65100,stroke-width:2px
