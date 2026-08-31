@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Sub["An underwriter is offered a risk.<br/>Does the reinsurance already exist,<br/>or must it be bought for this one risk?"]
+
+    Sub --> Test{"Does the risk fall<br/>inside the treaty?"}
+
+    Test -->|"Yes: class, territory,<br/>size and exclusions<br/>all match"| T["TREATY<br/>Automatic. The reinsurer is bound<br/>before it knows the risk exists."]
+    Test -->|"No: over the limit,<br/>an excluded class,<br/>or a peculiar hazard"| F["FACULTATIVE<br/>Offered and accepted risk by risk.<br/>The reinsurer can decline."]
+
+    subgraph TreatyDetail["Treaty mechanics"]
+        direction TB
+        TD1["One contract covers a defined class<br/>for a defined period, usually 12 months<br/>from 1 January, 1 April, 1 June or 1 July"]
+        TD2["Obligatory both ways. The cedant<br/>must cede everything qualifying;<br/>the reinsurer must accept it."]
+        TD3["Reporting is by bordereau or by<br/>quarterly statement of account.<br/>No individual acceptance."]
+        TD4["Reinsurer underwrites the cedant:<br/>its appetite, its controls, its claims<br/>handling, its reserving history"]
+        TD5["Cheap per unit. A large programme<br/>is placed in weeks, not per risk."]
+    end
+
+    subgraph FacDetail["Facultative mechanics"]
+        direction TB
+        FD1["One certificate per risk, with a term<br/>matching the underlying policy"]
+        FD2["Voluntary both ways. The cedant<br/>chooses what to offer; the reinsurer<br/>chooses what to write."]
+        FD3["Full underwriting information passes:<br/>surveys, engineering reports,<br/>construction and occupancy detail"]
+        FD4["Expensive per unit. Brokerage,<br/>underwriting time and documentation<br/>all sit on a single risk."]
+        FD5["Used for: limits above treaty capacity,<br/>excluded occupancies, single-location<br/>accumulations, and to protect the<br/>treaty's loss record"]
+    end
+
+    subgraph Interaction["How they interact"]
+        direction TB
+        I1["Facultative usually inures to the<br/>benefit of the treaty: it is deducted<br/>before the treaty attaches"]
+        I2["That ordering matters. Placed the other<br/>way, the cedant pays twice for the<br/>same protection and the treaty<br/>reinsurer subsidises the fac market."]
+        I3["A net retained lines clause stops<br/>the cedant from recovering more<br/>than it actually retained"]
+        I4["Facultative obligatory sits between:<br/>the cedant chooses what to cede,<br/>the reinsurer must accept it.<br/>Priced for that adverse selection."]
+    end
+
+    T --> TreatyDetail
+    F --> FacDetail
+    TreatyDetail --> Interaction
+    FacDetail --> Interaction
+
+    style Sub fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style T fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style F fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style TreatyDetail fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style FacDetail fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Interaction fill:#fce4ec,stroke:#880e4f,stroke-width:2px

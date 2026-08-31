@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant CD as Cedant<br/>Gulfstream Property
+    participant BR as Broker<br/>reinsurance placement team
+    participant LD as Lead underwriter<br/>syndicate or company
+    participant FM as Following market<br/>18 further reinsurers
+    participant BU as Bureau<br/>Velonetic / Xchanging
+
+    Note over CD,BR: June, five months before inception
+    CD->>BR: Exposure data: 200,000 policies,<br/>80bn USD total insured value,<br/>10 years of loss experience
+    BR->>BR: Run the account through two or three<br/>vendor cat models. Produce the<br/>occurrence exceedance probability curve<br/>and the layer loss costs.
+    BR->>CD: Structure options. Retention 150m,<br/>five layers, 2.45bn USD of limit
+    CD->>BR: Approve the structure. Go to market.
+
+    Note over BR,LD: The quote
+    BR->>LD: Submission pack: modelled output,<br/>loss history, contract wording,<br/>the Market Reform Contract slip
+    LD->>LD: Re-model on its own view of risk.<br/>Reject the broker's number if it disagrees.
+    LD->>BR: Quote: Layer 1 at 22.0% rate on line,<br/>one reinstatement at 100%,<br/>72-hour hours clause
+    BR->>CD: Present quotes from three potential leaders
+    CD->>BR: Accept. Firm order terms are now fixed.
+
+    Note over BR,FM: The subscription
+    BR->>LD: Leader writes its line first<br/>and signs the slip
+    LD->>BR: Written line: 15%
+    loop Each following reinsurer in turn
+        BR->>FM: Show the slip with the leader's<br/>line and terms already on it
+        FM->>BR: Write a line at the leader's terms,<br/>or decline. No renegotiation.
+    end
+    Note over BR,FM: Written lines total 128% of the layer.<br/>The order is oversubscribed.
+
+    BR->>BR: Sign down. Every written line is<br/>scaled by 100/128 = 0.781.<br/>The leader's 15% becomes 11.72%.
+    BR->>CD: Signed lines confirmed.<br/>Order 100% placed.
+
+    Note over BR,BU: After placement
+    BR->>BU: Submit the contract for central<br/>processing, premium accounting<br/>and claims collection
+    CD->>BR: Pay premium
+    BR->>FM: Distribute premium net of brokerage,<br/>typically 1% to 10% depending on class
+    Note over CD,BU: One contract, 19 counterparties,<br/>19 several liabilities.<br/>If one fails, the others owe nothing extra.

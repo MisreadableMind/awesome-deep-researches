@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Book["Three risks on the same book<br/>Risk A: 400,000 USD sum insured<br/>Risk B: 3,000,000 USD sum insured<br/>Risk C: 5,000,000 USD sum insured"]
+
+    subgraph QS["25% quota share"]
+        direction TB
+        Q1["Risk A: cede 100,000, retain 300,000"]
+        Q2["Risk B: cede 750,000, retain 2,250,000"]
+        Q3["Risk C: cede 1,250,000, retain 3,750,000"]
+        Q4["Retained exposure on the largest risk:<br/>3,750,000 USD. The concentration<br/>problem is untouched."]
+        Q5["Premium ceded: 25% of everything.<br/>The cedant gives away a quarter of<br/>its profitable small business to<br/>get relief on the large."]
+    end
+
+    subgraph SS["9-line surplus, 500,000 USD retention"]
+        direction TB
+        S1["Risk A: 400,000 is below retention.<br/>Cede nothing. Retain 100%."]
+        S2["Risk B: retain 500,000 (16.67%),<br/>cede 2,500,000 (83.33%).<br/>5 of 9 lines used."]
+        S3["Risk C: retain 500,000 (10%),<br/>cede 4,500,000 (90%).<br/>All 9 lines used. Capacity exhausted."]
+        S4["Retained exposure on every risk:<br/>500,000 USD maximum.<br/>The portfolio is levelled."]
+        S5["Premium ceded follows the same<br/>percentages, risk by risk.<br/>Small profitable business stays home."]
+    end
+
+    subgraph Loss["A 600,000 USD loss on Risk B"]
+        direction TB
+        L1["Quota share: cedant 450,000,<br/>reinsurer 150,000"]
+        L2["Surplus: cedant 100,000,<br/>reinsurer 500,000"]
+    end
+
+    subgraph Trade["The trade"]
+        direction TB
+        T1["Quota share is simple, cheap to<br/>administer, and gives the reinsurer<br/>the whole book including the good bits.<br/>Commission is the negotiation."]
+        T2["Surplus needs a bordereau: a risk-by-risk<br/>schedule of every cession. More work,<br/>and it hands the reinsurer only the<br/>large risks, which are the volatile ones."]
+        T3["Reinsurers price surplus for that<br/>selection. Commission runs lower<br/>than on quota share of the same book."]
+    end
+
+    Book --> QS
+    Book --> SS
+    QS --> Loss
+    SS --> Loss
+    Loss --> Trade
+
+    style Book fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style QS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Loss fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Trade fill:#fce4ec,stroke:#880e4f,stroke-width:3px

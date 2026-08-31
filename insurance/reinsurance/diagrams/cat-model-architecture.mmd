@@ -1,0 +1,66 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Why["Catastrophe risk has no credible loss history.<br/>A 1-in-250 year hurricane has not happened<br/>in the data. The model manufactures the<br/>experience that experience cannot supply."]
+
+    subgraph M1["Module 1: Stochastic event set"]
+        direction TB
+        A1["Tens of thousands of simulated events,<br/>each with a rate of occurrence"]
+        A2["Built from meteorological and<br/>seismological physics, not from<br/>the historical catalogue alone"]
+        A3["A hurricane event carries track,<br/>central pressure, radius of maximum<br/>winds, forward speed and landfall point"]
+    end
+
+    subgraph M2["Module 2: Hazard"]
+        direction TB
+        B1["Converts each event into a local<br/>intensity at every location"]
+        B2["Peak 3-second gust for wind.<br/>Spectral acceleration for earthquake.<br/>Flood depth in centimetres."]
+        B3["Applies terrain roughness, soil type,<br/>elevation and local amplification"]
+    end
+
+    subgraph M3["Module 3: Vulnerability"]
+        direction TB
+        C1["Maps local intensity to a mean<br/>damage ratio and its distribution"]
+        C2["Keyed to construction, occupancy,<br/>year built, height, roof geometry,<br/>roof-to-wall connection"]
+        C3["Calibrated on claims data from<br/>real events. This is the module<br/>vendors compete hardest on and<br/>disclose least about."]
+        C4["Secondary uncertainty: two identical<br/>buildings in the same wind field<br/>do not suffer the same damage"]
+    end
+
+    subgraph M4["Module 4: Financial"]
+        direction TB
+        D1["Applies the policy terms:<br/>deductible, limit, sublimit,<br/>coinsurance, demand surge"]
+        D2["Then applies the reinsurance terms<br/>in the correct inuring order"]
+        D3["Produces ground-up, gross, and<br/>net loss for every event"]
+    end
+
+    subgraph Out["Outputs the market actually trades on"]
+        direction TB
+        O1["Event loss table: one row per event,<br/>with mean loss, standard deviation<br/>and annual rate"]
+        O2["Average annual loss: the sum of<br/>event loss times event rate.<br/>This is the technical premium."]
+        O3["Occurrence exceedance probability curve:<br/>the loss at each return period.<br/>1-in-100 and 1-in-250 are the two<br/>numbers regulators and rating<br/>agencies actually test."]
+        O4["Aggregate exceedance probability curve<br/>for annual accumulation covers"]
+        O5["Tail value at risk: the average loss<br/>beyond a return period, not the loss at it"]
+    end
+
+    subgraph Vend["The vendors and the disagreement"]
+        direction TB
+        V1["Verisk Extreme Event Solutions,<br/>formerly AIR Worldwide, acquired<br/>by Verisk in 2002. Touchstone platform."]
+        V2["Moody's RMS. Risk Modeler on the<br/>Intelligent Risk Platform."]
+        V3["CoreLogic and Karen Clark & Company"]
+        V4["Oasis Loss Modelling Framework:<br/>open source, not-for-profit,<br/>over 90 models from more than<br/>18 suppliers as of 2026"]
+        V5["Two vendors can differ by 30% or more<br/>on the same portfolio. Underwriters<br/>run both and apply their own<br/>view of risk on top."]
+    end
+
+    Why --> M1 --> M2 --> M3 --> M4 --> Out --> Vend
+
+    Limit["What the model does not know:<br/>replacement cost inflation after an event,<br/>litigation and assignment of benefits,<br/>building code enforcement in practice,<br/>and any peril whose physics is changing<br/>faster than the calibration data."]
+
+    Vend --> Limit
+
+    style Why fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style M1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style M3 fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style M4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Out fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Vend fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Limit fill:#ffebee,stroke:#b71c1c,stroke-width:3px

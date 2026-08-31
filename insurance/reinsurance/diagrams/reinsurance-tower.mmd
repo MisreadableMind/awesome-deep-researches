@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart BT
+    R["RETENTION<br/>0 to 150,000,000 USD<br/>Paid by the cedant.<br/>Set so that a full retention plus<br/>reinstatement premiums costs less<br/>than 50% of one year's earnings."]
+
+    L1["LAYER 1<br/>250,000,000 xs 150,000,000<br/>Exhausts at 400,000,000<br/>Rate on line 22.0%, premium 55,000,000<br/>Payback 4.5 years<br/>1 reinstatement at 100%<br/>Traditional reinsurers, high loss cost"]
+
+    L2["LAYER 2<br/>400,000,000 xs 400,000,000<br/>Exhausts at 800,000,000<br/>Rate on line 12.0%, premium 48,000,000<br/>Payback 8.3 years<br/>1 reinstatement at 100%<br/>Traditional plus collateralised"]
+
+    L3["LAYER 3<br/>600,000,000 xs 800,000,000<br/>Exhausts at 1,400,000,000<br/>Rate on line 6.5%, premium 39,000,000<br/>Payback 15.4 years<br/>1 reinstatement at 100%<br/>Where ILS capacity starts to bite"]
+
+    L4["LAYER 4<br/>700,000,000 xs 1,400,000,000<br/>Exhausts at 2,100,000,000<br/>Rate on line 3.2%, premium 22,400,000<br/>Payback 31 years<br/>Cat bond and ILS fund territory"]
+
+    L5["LAYER 5<br/>500,000,000 xs 2,100,000,000<br/>Exhausts at 2,600,000,000<br/>Rate on line 1.8%, premium 9,000,000<br/>Payback 56 years<br/>Almost entirely capital markets"]
+
+    U["UNCOVERED<br/>Above 2,600,000,000 USD<br/>The company is gone.<br/>The top of the tower is a solvency<br/>decision, not a pricing one."]
+
+    R --> L1 --> L2 --> L3 --> L4 --> L5 --> U
+
+    subgraph Calib["What sets the top and the bottom"]
+        direction TB
+        C1["Bottom: earnings tolerance.<br/>Below the attachment the loss is<br/>a bad quarter, not a bad company."]
+        C2["Top: the modelled 1-in-250 year<br/>occurrence exceedance probability<br/>loss, 3,400,000,000 USD gross,<br/>2,550,000,000 net of quota share"]
+        C3["Rating agency and regulator both<br/>test the net 1-in-100 and 1-in-250<br/>against capital. The tower is<br/>reverse-engineered from that test."]
+    end
+
+    subgraph Econ["Programme arithmetic"]
+        direction TB
+        M1["Limit purchased: 2,450,000,000 USD"]
+        M2["Total premium: 173,400,000 USD"]
+        M3["Blended rate on line: 7.08%"]
+        M4["Cost as a share of the<br/>1,200,000,000 USD gross premium: 14.5%"]
+    end
+
+    L5 -.-> Calib
+    L5 -.-> Econ
+
+    style R fill:#ffebee,stroke:#b71c1c,stroke-width:3px
+    style L1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L2 fill:#fff8e1,stroke:#f9a825,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style L4 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L5 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style U fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Calib fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Econ fill:#fce4ec,stroke:#880e4f,stroke-width:2px
