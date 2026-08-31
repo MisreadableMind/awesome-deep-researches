@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Start["ETF market price vs<br/>real-time basket value"]
+
+    Start --> Prem{"Premium or<br/>discount?"}
+
+    Prem -->|"ETF above basket value<br/>PREMIUM"| P1["Buyers exhausted the offer.<br/>Market maker is short ETF shares."]
+    P1 --> P2["AP sells ETF short at the premium,<br/>hedges with futures at once,<br/>then buys the basket market-on-close"]
+    P2 --> P3["AP delivers the basket to the fund,<br/>receives one creation unit at NAV"]
+    P3 --> P4["New shares delivered against the short.<br/>Supply of ETF shares RISES."]
+    P4 --> P5["Selling pressure from the new supply<br/>pushes the ETF price DOWN toward NAV"]
+
+    Prem -->|"ETF below basket value<br/>DISCOUNT"| D1["Sellers exhausted the bid.<br/>Market maker is long ETF shares."]
+    D1 --> D2["AP buys ETF shares cheap and<br/>sells the basket short market-on-close"]
+    D2 --> D3["AP surrenders one creation unit,<br/>receives the basket at NAV"]
+    D3 --> D4["Received securities cover the short.<br/>Supply of ETF shares FALLS."]
+    D4 --> D5["Buying pressure from the removed supply<br/>pushes the ETF price UP toward NAV"]
+
+    Prem -->|"Gap smaller than<br/>the cost stack"| N1["AP does nothing.<br/>The gap persists.<br/>This is the no-arbitrage band."]
+
+    P5 --> Band
+    D5 --> Band
+    N1 --> Band
+
+    Band["NO-ARBITRAGE BAND WIDTH<br/>= creation fee + basket execution cost<br/>+ hedge slippage + financing + capital charge<br/><br/>SPY-class fund: under 1 bp<br/>US small cap: 5 to 15 bp<br/>High yield bond: 25 to 100 bp<br/>Frontier equity: 100 bp and wider"]
+
+    Band --> Loop["THE LOOP REQUIRES FIVE THINGS<br/>TO BE TRUE AT ONCE.<br/>Remove any one and the band<br/>widens by what the missing piece was worth."]
+
+    Loop --> R1["1. The AP can PRICE the basket"]
+    Loop --> R2["2. The AP can TRADE the basket"]
+    Loop --> R3["3. The AP can DELIVER the basket"]
+    Loop --> R4["4. The AP has BALANCE SHEET to commit"]
+    Loop --> R5["5. The ETF itself keeps TRADING"]
+
+    R1 --> F1["FAILS WHEN<br/>Underlying market is closed<br/>Constituents are halted<br/>NAV uses evaluated prices<br/>that are hours stale"]
+    R2 --> F2["FAILS WHEN<br/>Local market shut or capital controls<br/>Short-sale bans on constituents<br/>Bond dealers stop quoting<br/>Creation suspended by the fund"]
+    R3 --> F3["FAILS WHEN<br/>Settlement cycles mismatch<br/>Registration or omnibus limits<br/>Foreign ownership caps hit<br/>Odd lots below minimum piece size"]
+    R4 --> F4["FAILS WHEN<br/>Quarter-end balance sheet limits<br/>Risk limits cut in a drawdown<br/>Repo funding for the basket dries up"]
+    R5 --> F5["FAILS WHEN<br/>LULD pause cascade<br/>Reopening auction with a thin book<br/>Exchange outage"]
+
+    F1 --> Out1["SYMPTOM<br/>Premium or discount to a<br/>NAV that is itself wrong.<br/>March 2020 bond ETFs."]
+    F2 --> Out2["SYMPTOM<br/>The fund becomes closed-end.<br/>Persistent premium.<br/>Russia funds, February 2022."]
+    F3 --> Out3["SYMPTOM<br/>Structural premium ceiling.<br/>Creation halted, fund trades<br/>as a scarce asset."]
+    F4 --> Out4["SYMPTOM<br/>Band widens quietly.<br/>No headline, worse execution."]
+    F5 --> Out5["SYMPTOM<br/>Price detaches from basket.<br/>24 August 2015."]
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Band fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Loop fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style P4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style D4 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style N1 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Out1 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Out2 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Out3 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style Out4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Out5 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Fund as Index fund<br/>lender
+    participant Agent as Lending agent<br/>often adviser-affiliated
+    participant Borrower as Borrower<br/>prime broker, market maker,<br/>hedge fund
+    participant Cash as Cash collateral<br/>reinvestment pool
+    participant Board as Fund board
+
+    Board->>Fund: Approves the lending programme,<br/>agent, revenue split and collateral policy
+    Fund->>Agent: Delegates loan placement.<br/>Ceiling: 33 1/3 percent of total assets<br/>on loan under SEC staff positions.
+    Agent->>Borrower: Offers securities at a negotiated rate.<br/>General collateral: a few basis points.<br/>Hard to borrow: hundreds of basis points.
+    Borrower->>Agent: Posts collateral at 102 percent of<br/>market value for US securities,<br/>105 percent for foreign
+    Agent->>Fund: Securities delivered out.<br/>Fund retains economic ownership:<br/>price exposure and a substitute payment<br/>in place of dividends.
+    Note over Fund,Borrower: The fund LOSES the vote<br/>while the security is on loan.
+
+    loop Every business day
+        Agent->>Borrower: Mark to market. Call or return collateral<br/>to restore the 102 or 105 percent level.
+    end
+
+    alt Cash collateral
+        Agent->>Cash: Reinvest in a government money fund<br/>or short-duration cash pool
+        Cash-->>Agent: Investment return
+        Agent->>Borrower: Pay the rebate rate
+        Note over Cash: THE RISK LIVES HERE.<br/>2008 losses came from cash pools,<br/>not from borrower default.
+    else Non-cash collateral
+        Note over Agent: Government securities or a bank<br/>letter of credit. Borrower pays a fee.<br/>No reinvestment risk.
+    end
+
+    Agent->>Fund: Gross lending revenue
+    Agent->>Agent: Retains its contractual share
+    Fund->>Fund: Net revenue accrues to NAV,<br/>reducing tracking difference
+
+    alt Proxy vote on a material matter
+        Fund->>Agent: Recall instruction
+        Agent->>Borrower: Recall. Standard settlement applies.
+        Borrower-->>Fund: Securities returned before record date
+    end
+
+    alt Borrower default
+        Agent->>Agent: Liquidate collateral, repurchase<br/>the securities in the market
+        Note over Agent: Most agents indemnify the fund<br/>against a shortfall on borrower default.<br/>Indemnity does NOT cover<br/>cash collateral losses.
+    end

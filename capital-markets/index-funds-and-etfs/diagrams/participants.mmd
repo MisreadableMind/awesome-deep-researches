@@ -1,0 +1,59 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Idx["Index Layer"]
+        Provider["Index provider<br/>S&P DJI, FTSE Russell, MSCI,<br/>Bloomberg, Solactive, CRSP<br/>decides what the fund holds"]
+        Committee["Index committee or rulebook<br/>eligibility, weighting, reconstitution"]
+    end
+
+    subgraph Sponsor["Fund Layer"]
+        Adviser["Investment adviser / sponsor<br/>BlackRock, Vanguard, State Street,<br/>Invesco, Charles Schwab"]
+        Board["Board of directors<br/>approves basket policies,<br/>lending, valuation"]
+        Fund["The ETF<br/>registered open-end company<br/>holds the securities"]
+        Distributor["Distributor / principal underwriter<br/>signs the AP agreements"]
+    end
+
+    subgraph Ops["Service Layer"]
+        Custodian["Custodian<br/>holds the securities,<br/>receives in-kind deliveries"]
+        Admin["Fund administrator<br/>strikes NAV at 4:00 pm ET,<br/>publishes the PCF"]
+        TA["Transfer agent<br/>books creation units,<br/>maintains the share register"]
+        LendAgent["Securities lending agent<br/>often affiliated with the adviser"]
+    end
+
+    subgraph Market["Trading Layer"]
+        AP["Authorised participant<br/>clearing member of NSCC<br/>with a signed AP agreement<br/>typically 5 to 40 per fund"]
+        LMM["Lead market maker<br/>exchange-assigned quoting obligation"]
+        MM["Other market makers and<br/>electronic liquidity providers"]
+        Exchange["Listing exchange<br/>NYSE Arca, Nasdaq, Cboe BZX"]
+        Investor["End investors<br/>retail, advisers, institutions"]
+    end
+
+    subgraph Clear["Clearing and Settlement"]
+        NSCC["NSCC<br/>novates and nets creation orders,<br/>distributes the PCF"]
+        DTC["DTC<br/>book-entry delivery of<br/>the basket and the shares"]
+    end
+
+    Committee --> Provider
+    Provider -->|"licence fee, bps on AUM"| Adviser
+    Adviser --> Fund
+    Board -.oversees.-> Fund
+    Fund --> Distributor
+    Fund <--> Custodian
+    Fund <--> Admin
+    Fund <--> TA
+    Fund <--> LendAgent
+    Distributor -->|"AP agreement"| AP
+    Admin -->|"portfolio composition file, nightly"| NSCC
+    NSCC --> AP
+    AP <-->|"basket in, shares out"| DTC
+    DTC <--> Custodian
+    AP <--> MM
+    LMM --> Exchange
+    MM --> Exchange
+    Exchange <--> Investor
+
+    style Idx fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Sponsor fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Ops fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Market fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Clear fill:#fce4ec,stroke:#880e4f,stroke-width:2px

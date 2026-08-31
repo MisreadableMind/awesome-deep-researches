@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant Admin as Fund administrator
+    participant NSCC as NSCC<br/>ETF services
+    participant AP as Authorised participant<br/>NSCC clearing member
+    participant Mkt as Equity market
+    participant Dist as Distributor /<br/>transfer agent
+    participant Cust as Fund custodian
+    participant DTC as DTC
+
+    Note over Admin,DTC: T minus 1, evening. The basket is published.
+    Admin->>Admin: Strike 4:00 pm NAV. Apply index changes,<br/>corporate actions, accrued income.
+    Admin->>NSCC: Portfolio composition file for T:<br/>CUSIP list, share quantity per creation unit,<br/>estimated cash component, creation unit size,<br/>dividend equivalent, total basket value
+    NSCC->>AP: PCF distributed to all APs and market makers<br/>before the next open
+
+    Note over Admin,DTC: T, 09:30 to 16:00. The AP works its book.
+    AP->>Mkt: Sells 50,000 ETF shares short at 500.35<br/>filling a client's buy order
+    AP->>Mkt: Buys the 503-name basket, market-on-close<br/>so its execution matches the NAV strike
+    Mkt-->>AP: Basket acquired, 25,006,000 USD
+
+    Note over Admin,DTC: T, before the order cut-off.
+    AP->>Dist: Creation order: 1 creation unit,<br/>in-kind, standard basket,<br/>submitted before 16:00 ET cut-off
+    Dist-->>AP: Order acknowledged and assigned an order number
+    Dist->>Admin: Order forwarded
+
+    Note over Admin,DTC: T, after the close. NAV decides the price.
+    Admin->>Admin: NAV per share struck at 500.12<br/>Creation unit value 25,006,000 USD
+    Admin->>Dist: Final cash balancing amount computed:<br/>creation unit value minus delivered basket value,<br/>plus the creation fee
+
+    Note over Admin,DTC: T plus 1. Settlement.
+    AP->>DTC: Deliver 503 line items per the PCF
+    DTC->>Cust: Securities credited to the fund's account
+    AP->>Dist: Wire the cash balancing amount<br/>plus the fixed creation fee
+    Dist->>DTC: Instruct issuance of 50,000 new ETF shares
+    DTC-->>AP: 50,000 shares credited to the AP's account
+    AP->>Mkt: Shares delivered against the earlier short sale.<br/>Position flat.
+
+    Note over Admin,DTC: Redemption runs the same sequence in reverse.
+    alt AP redeems instead
+        AP->>Dist: Redemption order: 1 creation unit
+        Dist->>Cust: Deliver the redemption basket to the AP
+        Cust-->>AP: 503 line items, selected under the<br/>custom basket policy
+        AP->>DTC: Surrender 50,000 ETF shares for cancellation
+        Note over Cust: Under IRC 852(b)(6) the fund<br/>recognises NO gain on the securities<br/>it hands over.
+    end
+
+    alt A name cannot be delivered
+        AP->>Dist: Deposits cash in lieu for that line,<br/>plus a collateral buffer of 105 to 115 percent
+        Dist->>Cust: Fund buys the missing name in the market.<br/>The AP bears the price difference.
+    end

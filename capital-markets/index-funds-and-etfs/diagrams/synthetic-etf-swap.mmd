@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Phys["PHYSICAL REPLICATION"]
+        PH1["Fund holds the actual index constituents"]
+        PH2["Full replication: every name at index weight<br/>Sampling: a matched subset"]
+        PH3["Tracking difference = fees + trading costs<br/>+ withholding tax - lending revenue"]
+        PH4["Counterparty risk: none from the index exposure"]
+        PH1 --> PH2 --> PH3 --> PH4
+    end
+
+    subgraph Unf["UNFUNDED SWAP MODEL"]
+        U1["Fund uses cash to buy a<br/>SUBSTITUTE BASKET it holds outright"]
+        U2["Total return swap with a bank:<br/>fund PAYS the substitute basket's return,<br/>RECEIVES the index total return<br/>minus a swap spread"]
+        U3["Fund owns the substitute basket.<br/>Exposure to the bank is only the<br/>mark-to-market on the swap."]
+        U4["Swap reset when exposure reaches<br/>an internal trigger, typically 0 to 2 percent"]
+        U1 --> U2 --> U3 --> U4
+    end
+
+    subgraph Fund2["FUNDED SWAP MODEL"]
+        F1["Fund pays cash to the counterparty"]
+        F2["Counterparty posts COLLATERAL into<br/>a segregated account, by pledge<br/>or by transfer of title"]
+        F3["Counterparty pays the index total return"]
+        F4["Fund's claim is on the collateral,<br/>not on the substitute basket"]
+        F1 --> F2 --> F3 --> F4
+    end
+
+    Limits["REGULATORY LIMITS, UCITS<br/>Counterparty exposure from OTC derivatives:<br/>10 percent of net assets for a credit institution,<br/>5 percent otherwise, Directive 2009/65/EC Art 52.<br/>ESMA/2014/937 on collateral: highly liquid,<br/>valued daily, maximum 20 percent to a single issuer,<br/>documented haircut policy, no re-use of<br/>non-cash collateral."]
+
+    Why["WHY SYNTHETIC PERSISTS<br/>A physically replicating Irish UCITS pays<br/>15 percent US withholding on S&P 500 dividends.<br/>At a 1.3 percent yield that is 19.5 bp a year.<br/>A swap on a qualified index under<br/>Treasury reg 1.871-15(l) can avoid the<br/>section 871(m) dividend equivalent charge,<br/>so the synthetic fund captures the gross return."]
+
+    Risk["WHAT YOU TRADE FOR IT<br/>Counterparty default risk.<br/>Collateral liquidation risk.<br/>Opacity: the substitute basket often<br/>has nothing to do with the index.<br/>Swap spread can be repriced.<br/>Tax treatment can change by rule."]
+
+    Unf --> Limits
+    Fund2 --> Limits
+    Limits --> Why
+    Why --> Risk
+
+    style Phys fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Unf fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Fund2 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Limits fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style Risk fill:#fce4ec,stroke:#880e4f,stroke-width:3px

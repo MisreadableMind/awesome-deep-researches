@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Night["T minus 1, 16:00 to 23:00 ET"]
+        Close["Official closing prices<br/>from the primary listing venue"]
+        NAVcalc["NAV computation<br/>total assets minus liabilities<br/>divided by shares outstanding<br/>rounded to 0.01"]
+        PCFbuild["PCF construction<br/>apply index changes effective T,<br/>corporate actions, accruals"]
+        Close --> NAVcalc --> PCFbuild
+    end
+
+    subgraph Dist["T minus 1, evening to T, 09:00"]
+        NSCCfile["NSCC ETF services<br/>receives and validates the PCF"]
+        Website["Fund website posts<br/>full portfolio holdings<br/>Rule 6c-11 condition"]
+        Vendors["Data vendors compute<br/>the intraday indicative value<br/>disseminated every 15 seconds"]
+        PCFbuild --> NSCCfile
+        PCFbuild --> Website
+        NSCCfile --> Vendors
+    end
+
+    subgraph Day["T, 09:30 to 16:00 ET"]
+        Auction["Opening auction<br/>on the listing exchange"]
+        Continuous["Continuous trading<br/>lead market maker quotes<br/>under exchange obligation"]
+        LULD["LULD bands monitored<br/>Tier 1 above USD 3: 5 percent<br/>Tier 2 above USD 3: 10 percent<br/>doubled in the last 25 minutes"]
+        MOC["Closing auction<br/>where APs execute basket hedges"]
+        Auction --> Continuous --> LULD --> MOC
+    end
+
+    subgraph Orders["T, up to the cut-off"]
+        Cutoff["Order cut-off<br/>16:00 ET domestic equity<br/>earlier for foreign holdings"]
+        Portal["AP submits via the distributor's<br/>order portal or NSCC"]
+        Ack["Acknowledgement with order number.<br/>Price is NOT yet known."]
+        Cutoff --> Portal --> Ack
+    end
+
+    subgraph Settle["T plus 1"]
+        CNS["NSCC continuous net settlement<br/>novates and nets the securities legs"]
+        DTCmove["DTC book-entry movement<br/>basket in, shares out"]
+        Cash["Cash balancing amount wired,<br/>plus the fixed transaction fee"]
+        Collat["Cash in lieu lines collateralised<br/>at 105 to 115 percent"]
+        CNS --> DTCmove --> Cash --> Collat
+    end
+
+    Night --> Dist --> Day
+    Day --> Orders --> Settle
+
+    style Night fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Dist fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Day fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Orders fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Settle fill:#fce4ec,stroke:#880e4f,stroke-width:2px

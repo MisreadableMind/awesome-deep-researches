@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph FC["6 MAY 2010: THE FLASH CRASH"]
+        FC1["14:32 ET: an algorithm begins selling<br/>75,000 E-Mini S&P 500 contracts,<br/>about USD 4.1 bn, targeting 9 percent of<br/>trailing-minute volume with no price<br/>or time limit"]
+        FC2["14:45:28 ET: CME Stop Logic pauses<br/>the E-Mini for 5 seconds.<br/>ETF market makers lose their PRIMARY HEDGE."]
+        FC3["Market makers cannot price or hedge<br/>the basket. They withdraw.<br/>STUB QUOTES at 0.01 are all that remain."]
+        FC4["DJIA falls 998.5 points intraday,<br/>a 1,010.14 point swing"]
+        FC5["Exchanges break trades executed more than<br/>60 percent away from the 14:40 reference.<br/>Over 20,000 trades in more than 300 securities.<br/>ETPs were about 70 percent of the securities<br/>with broken trades."]
+        FC6["BROKEN LINK: the hedge.<br/>No futures, no basket pricing,<br/>no market maker."]
+        FC1 --> FC2 --> FC3 --> FC4 --> FC5 --> FC6
+    end
+
+    subgraph A15["24 AUGUST 2015: THE OPEN"]
+        A1["Overnight fall in China. US futures<br/>limit down before the open."]
+        A2["NYSE invokes Rule 48, suspending the<br/>requirement for designated market makers<br/>to publish pre-opening price indications"]
+        A3["At 09:30 a large share of S&P 500<br/>constituents has not opened.<br/>NO BASKET VALUE EXISTS."]
+        A4["ETF market makers quote defensively<br/>or not at all"]
+        A5["LULD bands trigger. The SEC's research note<br/>counted 1,278 trading pauses across<br/>471 securities that day, with exchange-traded<br/>products roughly 80 percent of them."]
+        A6["PAUSE LOOP: gap, halt, reopen into a<br/>thin auction at a worse reference price,<br/>gap again. Some large equity ETFs traded<br/>more than 30 percent below NAV in the<br/>first 30 minutes and recovered by midday."]
+        A7["BROKEN LINK: the basket price.<br/>Constituents had no prices to aggregate."]
+        A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7
+    end
+
+    subgraph M20["MARCH 2020: THE BOND FUNDS"]
+        M1["Dealers withdraw from corporate<br/>bond market making"]
+        M2["Evaluated NAV prices lag executable<br/>bids by hours or days"]
+        M3["Investment-grade corporate bond ETFs<br/>trade around 5 percent below NAV;<br/>some municipal funds wider"]
+        M4["Bonds that DID trade printed closer to<br/>the ETF price than to the stale NAV"]
+        M5["Fed announces SMCCF 23 March,<br/>extends to high-yield ETFs 9 April,<br/>first ETF purchases 12 May.<br/>Discounts had largely closed before then."]
+        M6["BROKEN LINK: none of the ETF's.<br/>The NAV was the stale number."]
+        M1 --> M2 --> M3 --> M4 --> M5 --> M6
+    end
+
+    FC6 --> Fixes
+    A7 --> Fixes
+    M6 --> Fixes
+
+    Fixes["WHAT CHANGED AFTERWARDS<br/>2010: single-stock circuit breakers from June 2010,<br/>then the Limit Up-Limit Down plan from 2013.<br/>Stub quotes eliminated by market maker<br/>quoting obligations.<br/>2015: NYSE retires Rule 48 and adopts mandatory<br/>pre-opening indications; LULD amended to remove<br/>the doubled bands in the first 15 minutes;<br/>clearly erroneous trade rules tightened.<br/>2020: portfolio trading of bond baskets becomes<br/>standard practice; Rule 6c-11 custom baskets<br/>already in force since December 2019."]
+
+    style FC fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style A15 fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style M20 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Fixes fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px

@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Setup["STARTING POINT<br/>A USD 10 bn index equity fund.<br/>Unrealised appreciation: USD 2.5 bn,<br/>25 percent of net assets.<br/>Shareholders withdraw USD 1 bn."]
+
+    Setup --> MF["PATH A: MUTUAL FUND<br/>redeems in cash"]
+    Setup --> ETF["PATH B: ETF<br/>redeems in kind"]
+
+    MF --> MF1["Fund sells 10 percent of every<br/>position to raise USD 1 bn"]
+    MF1 --> MF2["Realised gain<br/>= 10 percent x USD 2.5 bn<br/>= USD 250 m<br/>PRO RATA CEILING. Selling the<br/>highest-basis lots realises less."]
+    MF2 --> MF3["Section 852 requires distribution<br/>of realised net capital gain<br/>to remaining shareholders"]
+    MF3 --> MF4["USD 250 m distributed across a<br/>remaining base of USD 9 bn<br/>= 2.78 percent of NAV"]
+    MF4 --> MF5["Tax at 23.8 percent<br/>20 percent long-term rate plus<br/>3.8 percent net investment income tax<br/>= USD 59.5 m"]
+    MF5 --> MF6["BORNE BY PEOPLE WHO<br/>DID NOT SELL ANYTHING.<br/>0.66 percent of their assets,<br/>22 times a 0.03 percent expense ratio."]
+
+    ETF --> E1["AP presents 20 creation units<br/>of 50,000 shares = 1,000,000 shares"]
+    E1 --> E2["Fund delivers securities.<br/>Custom basket policy selects<br/>the LOWEST COST BASIS lots."]
+    E2 --> E3["IRC 852(b)(6): section 311(b)<br/>does not apply.<br/>Fund recognises ZERO gain."]
+    E3 --> E4["AP surrendered ETF shares it bought<br/>minutes earlier, so its own gain<br/>is near zero, and it takes a<br/>FAIR MARKET VALUE basis in the securities"]
+    E4 --> E5["THE LOW BASIS IS GONE FROM THE SYSTEM.<br/>Not deferred. Extinguished at fund level."]
+    E5 --> E6["Distribution to remaining<br/>shareholders: USD 0"]
+
+    MF6 --> Compare
+    E6 --> Compare
+    Compare["WHAT REMAINS<br/>The ETF shareholder's own basis is unchanged.<br/>Tax is owed on their own sale.<br/>The advantage is real and it is NOT a loophole:<br/>it moves the tax from people who did not<br/>transact to the person who did."]
+
+    style Setup fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style MF6 fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style E5 fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Compare fill:#fff3e0,stroke:#e65100,stroke-width:2px

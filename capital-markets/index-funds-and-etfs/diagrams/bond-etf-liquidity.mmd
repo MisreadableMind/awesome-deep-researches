@@ -1,0 +1,44 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph L1["LAYER 1: the underlying bonds"]
+        B1["Over the counter, dealer-intermediated.<br/>A single issuer may have 30 outstanding bonds.<br/>Minimum piece size 1,000 to 250,000 face.<br/>Many CUSIPs do not trade for days."]
+        B2["Price discovery: dealer runs, TRACE prints,<br/>and evaluated prices from a pricing vendor<br/>built from a matrix model, not a trade."]
+    end
+
+    subgraph L2["LAYER 2: the fund"]
+        F1["Holds a sampled subset, not the index.<br/>Broad investment-grade indices contain<br/>thousands of constituents."]
+        F2["NAV struck from EVALUATED prices,<br/>often at a 15:00 ET bond market snapshot,<br/>not from executable bids."]
+        F3["Creation and redemption baskets are<br/>CUSTOM by necessity: a few hundred lines,<br/>plus cash in lieu for the rest."]
+    end
+
+    subgraph L3["LAYER 3: the ETF on the exchange"]
+        E1["Continuous two-sided market.<br/>Executable size, live prices,<br/>penny spreads on the largest funds."]
+        E2["Trades on expectations, not on the<br/>last evaluated print of its holdings."]
+    end
+
+    L1 --> L2 --> L3
+
+    subgraph Stress["WHAT HAPPENS UNDER STRESS"]
+        S1["Bond dealers widen or withdraw.<br/>Evaluated prices lag executable bids<br/>by hours or days."]
+        S2["ETF price falls to where bonds can<br/>ACTUALLY be sold. NAV still reflects<br/>where they could have been sold."]
+        S3["Result: a large apparent DISCOUNT.<br/>March 2020: investment-grade corporate<br/>bond ETFs traded around 5 percent below<br/>NAV at the worst point; some municipal<br/>funds traded wider."]
+        S4["The ETF was not broken.<br/>The NAV was late.<br/>When bonds did trade, they printed<br/>closer to the ETF price than to NAV."]
+        S1 --> S2 --> S3 --> S4
+    end
+
+    L3 --> Stress
+
+    subgraph Fix["WHAT THE MECHANISM ACTUALLY DOES"]
+        X1["Secondary trading NETS most flow.<br/>In 2025, 79 percent of domestic high-yield<br/>bond ETF activity and 97 percent of<br/>emerging market bond ETF activity<br/>occurred in the SECONDARY market."]
+        X2["Only the residual reaches the bonds.<br/>The ETF absorbs turnover the underlying<br/>market never sees."]
+        X3["Redemption in kind hands the AP the<br/>bonds. The fund is not forced to sell<br/>into a bid that is not there."]
+    end
+
+    Stress --> Fix
+
+    style L1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style L2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style L3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Stress fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style Fix fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

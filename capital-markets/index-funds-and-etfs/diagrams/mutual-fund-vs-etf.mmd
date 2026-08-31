@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph MF["MUTUAL FUND: the fund is your counterparty"]
+        direction TB
+        MFInv["Investor sends USD 10,000<br/>at 11:04 am"]
+        MFOrder["Order queues at the<br/>transfer agent, unpriced"]
+        MFNAV["4:00 pm ET: NAV struck<br/>Rule 22c-1 forward pricing"]
+        MFFund["Fund issues new shares<br/>and receives cash"]
+        MFTrade["Portfolio manager invests<br/>the cash, paying commissions<br/>and market impact"]
+        MFCost["Cost is borne by ALL<br/>existing shareholders"]
+        MFInv --> MFOrder --> MFNAV --> MFFund --> MFTrade --> MFCost
+    end
+
+    subgraph ETF["ETF: another investor is your counterparty"]
+        direction TB
+        ETFInv["Investor buys 20 shares<br/>at 11:04 am on an exchange"]
+        ETFSeller["A seller, or a market maker,<br/>delivers the shares"]
+        ETFNone["Fund is NOT a party.<br/>No cash reaches the fund.<br/>No securities are traded."]
+        ETFSpread["Cost is the bid-ask spread<br/>plus commission, borne by<br/>the person who traded"]
+        ETFInv --> ETFSeller --> ETFNone --> ETFSpread
+    end
+
+    subgraph PM["ETF PRIMARY MARKET: only when net demand shifts"]
+        direction TB
+        PMMM["Market maker's inventory<br/>runs short after many buys"]
+        PMAP["Authorised participant assembles<br/>the published basket"]
+        PMCreate["Delivers basket, receives<br/>one creation unit at NAV"]
+        PMNew["Fund's share count rises.<br/>No portfolio trading needed."]
+        PMMM --> PMAP --> PMCreate --> PMNew
+    end
+
+    Split["In 2025, 88 percent of US ETF activity<br/>stayed in the secondary market.<br/>Only 12 percent reached the fund."]
+    ETF --> Split
+    Split -.->|"the residual 12 percent"| PM
+
+    style MF fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style ETF fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PM fill:#f3e5f5,stroke:#4a148c,stroke-width:3px

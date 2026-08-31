@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Universe["Starting universe<br/>all listed securities in a market"]
+
+    Universe --> Elig["ELIGIBILITY SCREENS"]
+    Elig --> E1["Domicile and primary listing<br/>S&P 500: US company,<br/>primary listing on NYSE, Nasdaq or Cboe"]
+    Elig --> E2["Size<br/>S&P 500: unadjusted market cap<br/>at or above USD 22.7 bn"]
+    Elig --> E3["Liquidity<br/>annual dollar volume traded to<br/>float-adjusted market cap above 0.75;<br/>at least 250,000 shares in each of<br/>the prior six months"]
+    Elig --> E4["Profitability<br/>positive GAAP net income from continuing<br/>operations in the most recent quarter<br/>AND summed over the last four quarters"]
+    Elig --> E5["Seasoning<br/>at least 12 months of trading<br/>since the IPO"]
+
+    E1 --> Select
+    E2 --> Select
+    E3 --> Select
+    E4 --> Select
+    E5 --> Select
+
+    Select{"SELECTION<br/>mechanical or discretionary?"}
+    Select -->|"Committee<br/>S&P Dow Jones Indices"| Disc["Index Committee chooses among<br/>eligible candidates for sector balance<br/>and index representativeness.<br/>Timing is discretionary."]
+    Select -->|"Rulebook<br/>FTSE Russell, CRSP"| Mech["Rank by total market cap on rank day.<br/>Top 1,000 form the Russell 1000.<br/>No human judgment on membership."]
+
+    Disc --> Weight
+    Mech --> Weight
+
+    Weight{"WEIGHTING SCHEME"}
+    Weight --> W1["Float-adjusted market cap<br/>weight = price x shares x IWF<br/>divided by index total.<br/>S&P 500, MSCI, FTSE, CRSP"]
+    Weight --> W2["Full market cap<br/>ignores insider and strategic holdings"]
+    Weight --> W3["Price-weighted<br/>weight proportional to share price.<br/>Dow Jones Industrial Average, Nikkei 225"]
+    Weight --> W4["Equal weight<br/>1/N, rebalanced quarterly.<br/>High turnover, small-cap tilt"]
+    Weight --> W5["Fundamental or factor<br/>weights on sales, book value, dividends,<br/>volatility or momentum scores"]
+
+    W1 --> Cap
+    W2 --> Cap
+    W3 --> Cap
+    W4 --> Cap
+    W5 --> Cap
+
+    Cap["CAPPING CONSTRAINTS<br/>UCITS 5/10/40 rule, relaxed to 20/35<br/>for index-tracking UCITS.<br/>US RIC test under IRC 851(b)(3):<br/>at each quarter end, 50 percent of assets<br/>in positions each under 5 percent,<br/>and no position above 25 percent.<br/>Nasdaq-100: special rebalance if names<br/>above 4.5 percent exceed 48 percent in total."]
+
+    Cap --> Maint["MAINTENANCE<br/>Reconstitution changes membership.<br/>Rebalancing changes weights.<br/>Share and float updates.<br/>Corporate action treatment.<br/>Divisor adjustment to prevent<br/>discontinuity in the index level."]
+
+    style Universe fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Select fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style Weight fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Cap fill:#fff3e0,stroke:#e65100,stroke-width:3px
