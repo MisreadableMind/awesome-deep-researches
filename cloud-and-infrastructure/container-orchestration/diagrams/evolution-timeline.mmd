@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Kernel primitives<br/>2002-2013"]
+        direction TB
+        E1A["2002: mount namespace,<br/>Linux 2.4.19.<br/>CLONE_NEWNS"]
+        E1B["2006: UTS and IPC namespaces,<br/>Linux 2.6.19"]
+        E1C["2008: PID and network namespaces,<br/>Linux 2.6.24.<br/>cgroups v1 merged the same release,<br/>written at Google as 'process containers'"]
+        E1D["2013: user namespaces complete,<br/>Linux 3.8.<br/>Unprivileged containers become possible"]
+    end
+
+    subgraph Era2["Packaging and the format war<br/>2013-2017"]
+        direction TB
+        E2A["Mar 2013: Docker released.<br/>Wraps LXC, then replaces it<br/>with libcontainer in Mar 2014"]
+        E2B["Jun 2014: Kubernetes announced.<br/>Borg's model, rewritten in Go,<br/>open from the first commit"]
+        E2C["Jul 2015: Kubernetes 1.0.<br/>CNCF formed, Kubernetes seeded.<br/>OCI founded a month earlier"]
+        E2D["2015-2017: Swarm, Mesos/Marathon,<br/>and Kubernetes compete.<br/>Docker EE ships Kubernetes, Oct 2017"]
+    end
+
+    subgraph Era3["Consolidation<br/>2016-2022"]
+        direction TB
+        E3A["Dec 2016: CRI lands in 1.5.<br/>The runtime becomes pluggable"]
+        E3B["Mar 2018: Kubernetes is the first<br/>CNCF project to graduate"]
+        E3C["2018-2020: CSI and CNI displace<br/>in-tree volume and network code"]
+        E3D["May 2022: dockershim removed in 1.24.<br/>containerd and CRI-O are the runtimes"]
+    end
+
+    subgraph Era4["Maturity and the accelerator era<br/>2023-2026"]
+        direction TB
+        E4A["Oct 2023: Gateway API v1.0.<br/>Ingress stops being extended"]
+        E4B["2025: nftables kube-proxy stable.<br/>Sidecar containers stable in v1.33"]
+        E4C["v1.34, Aug 2025: Dynamic Resource<br/>Allocation graduates to stable"]
+        E4D["v1.35, Dec 2025: in-place pod<br/>resize graduates to stable"]
+        E4E["v1.37 'Garhwal', 26 Aug 2026.<br/>67 enhancements: 16 stable,<br/>23 beta, 27 alpha"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4
+
+    style Era1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Era2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era4 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

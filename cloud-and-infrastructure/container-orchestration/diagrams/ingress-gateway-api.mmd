@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Old["Ingress - networking.k8s.io/v1, GA in 1.19, feature-frozen"]
+        direction TB
+        ING["Ingress<br/>host + path -> Service + port<br/>plus TLS secret names"]
+        ANN["Everything else is an annotation:<br/>nginx.ingress.kubernetes.io/rewrite-target<br/>nginx.ingress.kubernetes.io/canary-weight<br/>alb.ingress.kubernetes.io/scheme<br/>traefik.ingress.kubernetes.io/router.middlewares<br/><br/>Not portable. Not validated. Not typed.<br/>A string field is the extension mechanism."]
+        ROLE["One object, one RBAC scope.<br/>The app team that edits paths can also<br/>edit the TLS config and the hostname."]
+        ING --> ANN
+        ING --> ROLE
+    end
+
+    subgraph New["Gateway API - gateway.networking.k8s.io, v1.0 Oct 2023, v1.6.0 Jun 2026"]
+        direction TB
+
+        subgraph R1["Infrastructure provider"]
+            GC["GatewayClass<br/>names a controller.<br/>Cluster-scoped.<br/>Like a StorageClass"]
+        end
+
+        subgraph R2["Cluster operator"]
+            GW["Gateway<br/>listeners: port, protocol, hostname,<br/>TLS certificateRefs.<br/>allowedRoutes: which namespaces<br/>may attach, by label"]
+        end
+
+        subgraph R3["Application developer"]
+            HR["HTTPRoute (v1, GA)<br/>matches: path, header, method, query<br/>filters: RequestHeaderModifier,<br/>RequestRedirect, URLRewrite,<br/>RequestMirror, CORS<br/>backendRefs with WEIGHTS"]
+            GR["GRPCRoute (v1, GA)<br/>method and service matching"]
+            TR["TCPRoute, UDPRoute<br/>GA in v1.6.0, June 2026"]
+        end
+
+        GC --> GW --> HR
+        GW --> GR
+        GW --> TR
+    end
+
+    subgraph Cross["ReferenceGrant - the cross-namespace consent object"]
+        RG["A Route in namespace A may only<br/>target a Service in namespace B if<br/>namespace B contains a ReferenceGrant<br/>permitting it. Consent is explicit,<br/>and it is granted by the OWNER."]
+    end
+
+    HR -.-> RG
+
+    subgraph Why["Why the migration is not optional"]
+        W1["ingress-nginx: best-effort maintenance<br/>ended March 2026. No further releases,<br/>no bugfixes, no security patches."]
+        W2["CVE-2025-1974, CVSS 9.8:<br/>unauthenticated pod-network access to the<br/>admission controller yielded config injection<br/>and RCE. Fixed in 1.12.1 and 1.11.5.<br/>The project cites this class of problem<br/>as part of the reason to stop."]
+        W1 --> W2
+    end
+
+    Old -->|"replaced by"| New
+    New -.-> Why
+
+    style Old fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style New fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Cross fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Why fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    REQ["HTTPS request<br/>POST /apis/apps/v1/namespaces/prod/deployments<br/>Content-Type: application/json"]
+
+    subgraph Chain["kube-apiserver handler chain"]
+        direction TB
+        AUTHN["1. Authentication<br/>Client cert CN and O, bearer token,<br/>OIDC id_token, TokenReview webhook.<br/>Output: username + groups + extra.<br/>Failure: 401 Unauthorized"]
+        APF["2. Priority and Fairness<br/>FlowSchema matches request to a<br/>PriorityLevelConfiguration.<br/>Queue or reject.<br/>Failure: 429 Too Many Requests"]
+        AUTHZ["3. Authorization<br/>Node, RBAC, Webhook, ABAC in order.<br/>First ALLOW wins; no DENY in RBAC.<br/>Failure: 403 Forbidden"]
+        MUT["4. Mutating admission<br/>Built-in plugins, then<br/>MutatingAdmissionWebhooks by order,<br/>then reinvocation if any mutated.<br/>Can rewrite the object"]
+        SCHEMA["5. Schema validation<br/>OpenAPI v3 structural schema,<br/>defaulting, field pruning of<br/>unknown fields.<br/>Failure: 422 Unprocessable Entity"]
+        VAL["6. Validating admission<br/>ValidatingAdmissionPolicy (CEL,<br/>in-process) and<br/>ValidatingAdmissionWebhooks,<br/>all in parallel. Cannot mutate"]
+        CONV["7. Storage conversion<br/>Convert external version to the<br/>internal hub type, then to the<br/>configured storage version.<br/>Encode as protobuf"]
+        ETCDW["8. Write<br/>etcd Txn with a compare on<br/>mod_revision for create-if-absent<br/>or optimistic update.<br/>Failure: 409 Conflict"]
+    end
+
+    RESP["201 Created<br/>Object with metadata.uid,<br/>metadata.resourceVersion,<br/>metadata.generation = 1,<br/>metadata.managedFields"]
+
+    WATCH["Watch fan-out<br/>The write becomes an event in<br/>the watch cache, delivered to<br/>every watcher whose selector matches"]
+
+    REQ --> AUTHN --> APF --> AUTHZ --> MUT --> SCHEMA --> VAL --> CONV --> ETCDW --> RESP
+    ETCDW --> WATCH
+
+    style Chain fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style REQ fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style RESP fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style WATCH fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

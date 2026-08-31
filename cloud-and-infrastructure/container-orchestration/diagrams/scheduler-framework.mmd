@@ -1,0 +1,57 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    PE["preEnqueue - the gate on entry to activeQ<br/>A pod that fails it is parked in unschedulablePods<br/>and is never sorted or filtered.<br/>This is where the gang-scheduling PodGroup<br/>barrier waits for minCount members"]
+    Q["Scheduling queue<br/>activeQ (heap, by priority then timestamp)<br/>backoffQ (failed, 1s initial, 10s max)<br/>unschedulablePods (waiting for a cluster event)<br/>queueingHint decides which events wake a pod"]
+
+    subgraph Cycle["Scheduling cycle - one pod at a time, synchronous"]
+        direction TB
+        QS["queueSort<br/>PrioritySort: higher spec.priority first,<br/>then earlier creation timestamp"]
+        PF["preFilter<br/>Compute once, reuse for all nodes.<br/>NodeResourcesFit, NodePorts,<br/>PodTopologySpread, InterPodAffinity,<br/>VolumeBinding"]
+        F["filter - the PREDICATES<br/>Run per node, in parallel (parallelism 16).<br/>A node that fails ANY filter is out.<br/>Output: feasible node set"]
+        POF["postFilter - only if zero feasible<br/>DefaultPreemption: find a node where<br/>evicting lower-priority pods would fit,<br/>set status.nominatedNodeName"]
+        PS["preScore<br/>TaintToleration, PodTopologySpread,<br/>InterPodAffinity"]
+        SC["score - the PRIORITIES<br/>Each plugin returns a raw score,<br/>normalizeScore rescales it to 0..100.<br/>Weighted sum by plugin weight.<br/>Highest total wins, ties broken at random"]
+        RES["reserve<br/>VolumeBinding reserves the PV.<br/>Cache updated optimistically"]
+        PER["permit<br/>Allow, deny, or WAIT.<br/>waitOnPermit holds a gang here until<br/>every member has been assigned a node"]
+    end
+
+    subgraph Bind["Binding cycle - asynchronous, does not block the next pod"]
+        PB["preBind<br/>VolumeBinding: actually bind the PVC<br/>to a PV and wait for provisioning"]
+        B["bind<br/>DefaultBinder: POST /api/v1/namespaces/<br/>NS/pods/NAME/binding {target: node}"]
+        POB["postBind<br/>informational"]
+    end
+
+    subgraph Filters["Real filter plugins - what each rejects"]
+        direction TB
+        FF1["NodeResourcesFit: sum of REQUESTS of<br/>existing pods + this pod > allocatable"]
+        FF2["NodeAffinity: requiredDuringScheduling<br/>IgnoredDuringExecution not satisfied"]
+        FF3["TaintToleration: node has a NoSchedule<br/>or NoExecute taint the pod does not tolerate"]
+        FF4["NodeName / NodeUnschedulable:<br/>spec.nodeName mismatch, or node cordoned"]
+        FF5["NodePorts: requested hostPort already<br/>taken on that node"]
+        FF6["VolumeBinding / VolumeZone /<br/>NodeVolumeLimits: PV topology mismatch,<br/>or attach limit reached"]
+        FF7["PodTopologySpread: placing here would<br/>exceed maxSkew with whenUnsatisfiable:<br/>DoNotSchedule"]
+        FF8["InterPodAffinity: required anti-affinity<br/>conflict with a pod already on the node"]
+    end
+
+    subgraph Scorers["Real score plugins"]
+        direction TB
+        SS1["NodeResourcesFit: LeastAllocated (default),<br/>MostAllocated, or RequestedToCapacityRatio"]
+        SS2["NodeResourcesBalancedAllocation:<br/>prefers nodes where CPU and memory<br/>utilisation are close together"]
+        SS3["ImageLocality: prefers nodes that<br/>already hold the image layers"]
+        SS4["InterPodAffinity / PodTopologySpread /<br/>NodeAffinity / TaintToleration:<br/>preferred variants"]
+    end
+
+    PE --> Q --> QS --> PF --> F
+    F -->|"feasible set non-empty"| PS --> SC --> RES --> PER --> PB --> B --> POB
+    F -->|"feasible set empty"| POF
+    POF -->|"preemption victims found"| Q
+    POF -->|"no victims"| UNSCH["Pod stays Pending.<br/>Event: FailedScheduling<br/>'0/47 nodes are available:<br/>12 Insufficient cpu,<br/>35 node(s) had taint...'"]
+    F -.-> Filters
+    SC -.-> Scorers
+
+    style Cycle fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Bind fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Filters fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Scorers fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style UNSCH fill:#ffebee,stroke:#c62828,stroke-width:2px

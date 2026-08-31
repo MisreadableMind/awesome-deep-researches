@@ -1,0 +1,65 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant CI as CI pipeline
+    participant API as kube-apiserver
+    participant ETCD as etcd
+    participant DC as Deployment ctrl
+    participant RC as ReplicaSet ctrl
+    participant SCH as Scheduler
+    participant KL as kubelet on node-19
+    participant CRI as containerd
+    participant CNI as Calico
+    participant EP as EndpointSlice ctrl
+    participant KP as kube-proxy (47 nodes)
+
+    CI->>API: PATCH deployments/web<br/>image: registry/web:1.14.2
+    Note over API: authn: CN=ci-deployer, O=deployers<br/>APF: FlowSchema global-default<br/>authz: RBAC clusterrole deployer<br/>admission: LimitRanger sets no defaults,<br/>ResourceQuota checks prod quota
+    API->>ETCD: Txn: compare mod_revision == 4412899,<br/>put /registry/deployments/prod/web
+    ETCD-->>API: revision 4412907
+    API-->>CI: 200 OK, resourceVersion 4412907,<br/>generation 8
+
+    API-->>DC: watch: MODIFIED deployments/prod/web
+    DC->>DC: hash pod template -> pod-template-hash 7d4b9c<br/>no matching ReplicaSet exists
+    DC->>API: CREATE replicasets/web-7d4b9c, replicas 0
+    DC->>API: PATCH replicasets/web-7d4b9c replicas 0->1
+    Note over DC: maxSurge 25% of 4 = 1 (rounds up)<br/>maxUnavailable 25% of 4 = 1 (rounds down)<br/>Window: min 3 available, max 5 total
+
+    API-->>RC: watch: replicaset needs 1 pod
+    RC->>API: CREATE pods/web-7d4b9c-x9k2p<br/>spec.nodeName: "" (empty)
+
+    API-->>SCH: watch: unscheduled pod
+    Note over SCH: preFilter: pod requests 250m CPU, 256Mi<br/>filter: 47 nodes -> 31 feasible<br/>(9 fail NodeResourcesFit,<br/>5 fail TaintToleration,<br/>2 fail PodTopologySpread maxSkew 1)<br/>score: node-19 wins on<br/>LeastAllocated + ImageLocality
+    SCH->>API: POST pods/web-7d4b9c-x9k2p/binding<br/>target: node-19
+
+    API-->>KL: watch: pod with spec.nodeName=node-19
+    KL->>CRI: RunPodSandbox<br/>-> pause container, new netns
+    CRI->>CNI: exec /opt/cni/bin/calico<br/>CNI_COMMAND=ADD<br/>CNI_NETNS=/proc/48211/ns/net
+    CNI-->>CRI: ips: [10.244.19.7/32],<br/>routes: [0.0.0.0/0 via 169.254.1.1]
+    KL->>CRI: PullImage registry/web:1.14.2<br/>(3 of 5 layers already present)
+    KL->>CRI: CreateContainer + StartContainer<br/>cpu.weight from 250m request,<br/>cpu.max "50000 100000" from 500m limit,<br/>memory.max 536870912 from 512Mi limit
+    Note over KL: QoS class: Burstable<br/>(requests != limits)<br/>oom_score_adj computed from<br/>256Mi request against node memory
+
+    loop every 10s, up to failureThreshold 3
+        KL->>KL: readinessProbe GET :8080/ready
+    end
+    KL->>API: PATCH pods/web-7d4b9c-x9k2p/status<br/>conditions: Ready=True<br/>podIP: 10.244.19.7
+
+    API-->>EP: watch: pod became ready
+    EP->>API: PATCH endpointslices/web-abcde<br/>add {addresses:[10.244.19.7],<br/>conditions:{ready:true,serving:true},<br/>nodeName:node-19, zone:us-east-1c}
+
+    API-->>KP: watch: endpointslice changed
+    Note over KP: minSyncPeriod 1s batches this<br/>with any other changes.<br/>Rules rewritten on all 47 nodes.<br/>10.96.71.40:80 now has 5 backends.
+
+    DC->>API: PATCH replicasets/web-5f8a2e replicas 4->3
+    RC->>API: DELETE pods/web-5f8a2e-mm4tq
+    par Two things happen at once
+        EP->>API: remove old endpoint from slice
+        KP->>KP: reprogram 47 nodes (seconds)
+    and
+        KL->>KL: preStop hook: sleep 5<br/>then SIGTERM, wait 30s, SIGKILL
+    end
+    Note over EP,KL: The preStop sleep is what stops<br/>in-flight requests hitting a closed listener.
+
+    Note over DC: Repeat until new RS is at 4 and old is at 0.<br/>Then status: Progressing=True<br/>reason=NewReplicaSetAvailable,<br/>observedGeneration=8

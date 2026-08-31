@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Host["One Linux kernel, one scheduler, one page cache"]
+        direction TB
+
+        subgraph NS["Namespaces: what the process can SEE<br/>clone(2) flags, /proc/[pid]/ns/*"]
+            direction LR
+            N1["mnt CLONE_NEWNS<br/>mount points<br/>Linux 2.4.19"]
+            N2["pid CLONE_NEWPID<br/>process IDs<br/>Linux 2.6.24"]
+            N3["net CLONE_NEWNET<br/>interfaces, routes,<br/>ports, conntrack<br/>Linux 2.6.24"]
+            N4["ipc CLONE_NEWIPC<br/>SysV IPC, mqueues<br/>Linux 2.6.19"]
+            N5["uts CLONE_NEWUTS<br/>hostname, domain<br/>Linux 2.6.19"]
+            N6["user CLONE_NEWUSER<br/>uid/gid mapping,<br/>capabilities<br/>Linux 3.8"]
+            N7["cgroup CLONE_NEWCGROUP<br/>cgroup root<br/>Linux 4.6"]
+            N8["time CLONE_NEWTIME<br/>boot/monotonic clock<br/>Linux 5.6"]
+        end
+
+        subgraph CG["cgroup v2: what the process can USE<br/>single unified hierarchy, /sys/fs/cgroup"]
+            direction LR
+            C1["cpu.weight<br/>proportional share,<br/>from requests"]
+            C2["cpu.max<br/>'QUOTA PERIOD',<br/>default period 100000 us,<br/>from limits"]
+            C3["memory.max<br/>hard cap, OOM kill<br/>on breach"]
+            C4["memory.high / .low / .min<br/>reclaim pressure and<br/>protection"]
+            C5["pids.max, io.max,<br/>cpuset.cpus"]
+        end
+
+        subgraph FS["Union filesystem: what the process sees as /<br/>overlayfs, merged in Linux 3.18"]
+            direction LR
+            F1["lowerdir<br/>image layers,<br/>read-only, shared<br/>across containers"]
+            F2["upperdir<br/>container writable layer,<br/>copy-up on first write"]
+            F3["workdir<br/>overlayfs scratch"]
+            F4["merged<br/>the mount the process<br/>pivot_root()s into"]
+        end
+
+        subgraph SEC["Attenuation: what the process may ASK FOR"]
+            direction LR
+            S1["capabilities<br/>drop all but a<br/>small allow-list"]
+            S2["seccomp-bpf<br/>syscall filter,<br/>RuntimeDefault"]
+            S3["LSM<br/>AppArmor or SELinux<br/>label"]
+            S4["no_new_privs<br/>blocks setuid<br/>escalation"]
+        end
+    end
+
+    NS --> Proc["The container:<br/>one or more ordinary processes"]
+    CG --> Proc
+    FS --> Proc
+    SEC --> Proc
+
+    style Host fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style NS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style CG fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style SEC fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
