@@ -1,0 +1,46 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph In["Inputs, continuously"]
+        I1["Own book state per venue<br/>from the proprietary depth feed"]
+        I2["Reference instrument<br/>index future, ETF, correlated name,<br/>arriving by microwave from Chicago"]
+        I3["Current inventory per instrument<br/>and aggregate factor exposure"]
+        I4["Realised and implied volatility"]
+        I5["Queue position: where in the FIFO<br/>each resting order sits"]
+    end
+
+    subgraph Price["Compute the quote"]
+        P1["FAIR VALUE<br/>Blend the venue's own midpoint with<br/>the reference instrument, weighted by<br/>how recently each updated."]
+        P2["HALF SPREAD<br/>Must cover: expected adverse selection<br/>(the cost of being sniped), inventory<br/>risk over the expected holding period,<br/>and the taker fee if forced to unwind<br/>aggressively. Rebates reduce it."]
+        P3["INVENTORY SKEW<br/>Long inventory: shift BOTH quotes down.<br/>The bid becomes less attractive to hit<br/>and the offer becomes more attractive<br/>to lift. The book does the unwinding."]
+        P4["SIZE<br/>Display enough to earn priority,<br/>not enough to be a target.<br/>Reserve quantity behind it."]
+        P1 --> P2 --> P3 --> P4
+    end
+
+    subgraph Act["Act"]
+        A1{"Is the resting quote<br/>still within tolerance<br/>of the computed quote?"}
+        A2["YES: leave it.<br/>Cancelling and replacing forfeits<br/>time priority and goes to the back<br/>of the queue. Queue position is<br/>an asset with a real option value."]
+        A3["NO, and the market moved AGAINST it:<br/>cancel immediately. This is the cancel<br/>that races the sniper's take."]
+        A4["NO, and the market moved WITH it:<br/>replace at the better price and accept<br/>the loss of queue position."]
+        A1 -->|within| A2
+        A1 -->|stale| A3
+        A1 -->|improved| A4
+    end
+
+    subgraph Risk["Continuous risk"]
+        R1["Per-instrument position limit"]
+        R2["Aggregate factor exposure limit"]
+        R3["Loss limit: on breach, pull every<br/>quote in the affected group"]
+        R4["Message rate limit, to stay under<br/>the venue's order-to-trade ratio"]
+        R5["SEC Rule 15c3-5 pre-trade checks,<br/>on the critical path, every order"]
+    end
+
+    In --> Price --> Act
+    Act --> Risk
+    Risk -.can veto.-> Act
+    Act -.fills change inventory.-> I3
+
+    style In fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Price fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Act fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Risk fill:#ffebee,stroke:#c62828,stroke-width:2px

@@ -1,0 +1,34 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Budget["The tick-to-trade budget, by implementation"]
+        direction TB
+        SW["PURE SOFTWARE, kernel path<br/>-----------------------------<br/>Interrupt and context switch<br/>Two memory copies<br/>Scheduler wake<br/>Parse, book, decide<br/>Syscall to send<br/>-----------------------------<br/>Tens of microseconds.<br/>Worse: the tail is unbounded."]
+        SWB["SOFTWARE with kernel bypass<br/>-----------------------------<br/>Poll a user-space ring<br/>Parse at fixed offsets<br/>Book update: a few cache lines<br/>Branch on pre-computed thresholds<br/>Patch a pre-built order template<br/>-----------------------------<br/>Low single-digit microseconds,<br/>with a tail set by cache behaviour."]
+        HY["HYBRID: FPGA fast path,<br/>CPU slow path<br/>-----------------------------<br/>FPGA holds pre-armed conditions<br/>written by the CPU in advance.<br/>On a match it emits a pre-built order.<br/>The CPU re-arms for the next event.<br/>-----------------------------<br/>Hundreds of nanoseconds."]
+        FP["FULL FPGA, on the NIC<br/>-----------------------------<br/>Parse, compare and emit are<br/>separate simultaneous circuits.<br/>The order begins transmitting<br/>before the input frame has<br/>finished arriving.<br/>-----------------------------<br/>Tens to low hundreds of nanoseconds."]
+        SW --> SWB --> HY --> FP
+    end
+
+    subgraph Fixed["Costs nobody can remove"]
+        F1["Serialisation of the inbound frame:<br/>67.2 ns for 64 bytes at 10 Gb/s,<br/>26.9 ns at 25 Gb/s,<br/>6.7 ns at 100 Gb/s."]
+        F2["Serialisation of the outbound order,<br/>same arithmetic."]
+        F3["Transceiver and PHY on both cards."]
+        F4["The equalised cross connect to the<br/>exchange switch, set by the farthest<br/>cabinet in the hall."]
+        F5["Pre-trade risk checks required by<br/>SEC Rule 15c3-5. Must complete before<br/>the frame leaves. Non-negotiable."]
+    end
+
+    subgraph Scale["What the numbers are compared against"]
+        C1["SEC, June 2026: latency 'is measured in<br/>single-digit microseconds, and sometimes<br/>even in units of hundreds of nanoseconds.'"]
+        C2["FCA: the modal race is decided by<br/>5 to 10 microseconds. Full FTSE 350 sample:<br/>mean gap 79 us, median 46 us,<br/>90th percentile ~200 us."]
+        C3["Arista 7130: 4 ns Layer 1 port to port,<br/>39 ns FPGA multiplexing."]
+        C4["Nasdaq: sub-50 us colocated round trip;<br/>40 us system throughput on the record."]
+        C5["MiFID II RTS 25: an HFT firm's clock may<br/>diverge from UTC by at most 100 us,<br/>with 1 us timestamp granularity."]
+    end
+
+    Budget --> Fixed
+    Fixed --> Scale
+
+    style Budget fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Fixed fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Scale fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px

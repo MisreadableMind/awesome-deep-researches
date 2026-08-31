@@ -1,0 +1,32 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph IEXd["IEX: symmetric inbound delay, approved 17 June 2016"]
+        I1["Participant sends an order<br/>to the POP at NY5, Secaucus"]
+        I2["COIL: a box holding ~38 miles<br/>of compactly coiled optical fibre.<br/>61.2 km x 4.90 us/km = 299.5 us,<br/>plus distance and networking<br/>= 350 microseconds total"]
+        I3["Matching engine"]
+        I4["OTHER VENUES' MARKET DATA<br/>arrives here WITHOUT<br/>traversing the coil"]
+        I5["In those 350 microseconds the<br/>exchange has already repriced its<br/>discretionary and pegged orders.<br/>The arriving take finds a fresh quote."]
+        I1 --> I2 --> I3
+        I4 --> I3
+        I3 --> I5
+    end
+
+    subgraph Hist["What changed since"]
+        H1["Feb 2021: outbound coil removed,<br/>SR-IEX-2020-18. Outbound falls<br/>from 350 to 37 microseconds."]
+        H2["2024: system migrates Weehawken (NJ2)<br/>to Secaucus (NY6), adjacent to the POP.<br/>Outbound latency becomes negligible;<br/>rule references deleted.<br/>The INBOUND COIL IS LENGTHENED to<br/>hold 350 microseconds constant."]
+        H3["Routed orders take the delay TWICE:<br/>once inbound to the routing logic,<br/>once from routing logic to the book.<br/>IEX slows its own affiliate."]
+    end
+
+    subgraph Others["The three that followed"]
+        O1["NYSE AMERICAN, 2017 to 2019<br/>SYMMETRIC 350 us Delay Mechanism.<br/>Applied to: inbound from members,<br/>outbound to members, outbound routes<br/>to away markets, inbound from away<br/>markets, and its OWN proprietary feeds.<br/>NOT applied to: inbound data feeds,<br/>book processing, or outbound to the SIP.<br/>Approved 16 May 2017.<br/>DECOMMISSIONED November 2019."]
+        O2["CBOE EDGA 'LP2', proposed 2019<br/>ASYMMETRIC 4 millisecond delay on<br/>incoming executable orders that would<br/>REMOVE liquidity. Market data, in and<br/>out, undelayed. If the resting order<br/>was cancelled first, the delayed order<br/>was released early.<br/>DISAPPROVED 21 February 2020,<br/>published 27 February."]
+        O3["TSX ALPHA, Canada<br/>Asymmetric randomised delay on<br/>marketable orders in a taker-maker<br/>(inverted) fee market. Cited in the<br/>EDGA record on both sides:<br/>studies claiming higher transaction costs,<br/>and a Canadian regulator review finding<br/>no adverse effect."]
+    end
+
+    IEXd --> Hist
+    IEXd -.model for.-> Others
+
+    style IEXd fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Hist fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Others fill:#fff3e0,stroke:#e65100,stroke-width:2px

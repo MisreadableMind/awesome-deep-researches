@@ -1,0 +1,62 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Setup["The dormant landmine, 2003 to 2005"]
+        S1["2003: Knight stops using 'Power Peg',<br/>an order routing function.<br/>The code is NOT deleted.<br/>It remains present and callable."]
+        S2["2005: Knight moves the cumulative<br/>quantity function, which counted<br/>filled shares and told Power Peg to<br/>STOP sending child orders, to an<br/>earlier point in the SMARS sequence."]
+        S3["Power Peg is NOT retested after<br/>the move. Nobody checks whether it<br/>still works if called.<br/>It does not. It now sends child orders<br/>forever."]
+        S1 --> S2 --> S3
+    end
+
+    subgraph Deploy["The deployment, 27 July to 1 August 2012"]
+        D1["NYSE launches its Retail Liquidity<br/>Program on 1 August 2012.<br/>Knight writes new RLP code for SMARS."]
+        D2["The new RLP code REPURPOSES the flag<br/>that used to activate Power Peg.<br/>Knight intends to delete Power Peg<br/>so the flag now means RLP."]
+        D3["From 27 July the code is deployed in<br/>stages across SMARS servers.<br/>A technician does not copy it to<br/>ONE of the EIGHT servers."]
+        D4["No second technician reviews the<br/>deployment. Knight has NO WRITTEN<br/>PROCEDURE requiring such a review."]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph Warn["The warning, 08:01 ET on 1 August"]
+        W1["Pre-market RLP-eligible orders reach<br/>SMARS. An internal system generates<br/>automated 'BNET reject' emails<br/>referencing SMARS and the error<br/>'Power Peg disabled'."]
+        W2["97 of these emails are sent to a group<br/>of Knight personnel BEFORE the 09:30 open."]
+        W3["Knight did not design these messages<br/>to be system alerts and personnel<br/>generally did not read them.<br/>They are not acted on before the open,<br/>nor used to diagnose after it."]
+        W1 --> W2 --> W3
+    end
+
+    subgraph Event["09:30 to approximately 10:15 ET"]
+        E1["212 parent orders arrive carrying<br/>the repurposed flag."]
+        E2["Seven servers run the new RLP code<br/>and handle them correctly."]
+        E3["The eighth server triggers the<br/>defective Power Peg code. Because the<br/>cumulative quantity function was moved,<br/>it sends child orders continuously,<br/>in rapid sequence, without regard to<br/>fills already received."]
+        E4["MILLIONS of child orders.<br/>4 million executions in 154 stocks.<br/>Over 397 million shares in ~45 minutes."]
+        E5["Net LONG ~3.5 billion USD in 80 stocks.<br/>Net SHORT ~3.15 billion USD in 74 stocks.<br/>For 75 stocks Knight was over 20% of<br/>volume with price moves over 5%;<br/>for 37 of those, over 50% of volume<br/>and price moves over 10%."]
+        E1 --> E2
+        E1 --> E3 --> E4 --> E5
+    end
+
+    subgraph Fail["Why nothing stopped it"]
+        F1["NO OUTPUT CONTROL on SMARS.<br/>Nothing compared orders leaving SMARS<br/>with orders that entered it."]
+        F2["NO PROCEDURE to halt SMARS in<br/>response to its own aberrant activity."]
+        F3["THE PRICE COLLAR DID NOT APPLY.<br/>The 9.5% limit-price cap was computed<br/>against the NBBO at parent receipt<br/>and did not apply to pre-open orders<br/>intended for the opening auction."]
+        F4["THE 33 ACCOUNT had a 2 million USD<br/>gross position limit and was NOT LINKED<br/>to any automated control. It held<br/>positions from multiple sources, so<br/>staff could not identify the source."]
+        F5["PMON was POST-EXECUTION monitoring.<br/>It did not stop order entry, generated<br/>no automated alerts, did not display<br/>the limits, and produced inaccurate<br/>reports under the day's volume."]
+    end
+
+    subgraph Worse["The response made it worse"]
+        X1["Staff uninstalled the new RLP code<br/>from the SEVEN servers where it had<br/>deployed correctly."]
+        X2["This caused those seven servers to<br/>ALSO activate Power Peg on incoming<br/>parent orders, reproducing the failure<br/>eightfold."]
+        X3["Knight had no incident response<br/>supervisory procedures and relied on<br/>its technology team to debug in a<br/>live trading environment."]
+        X1 --> X2
+    end
+
+    Setup --> Deploy --> Warn --> Event --> Fail --> Worse
+
+    OUT["OUTCOME<br/>-------------------------------------<br/>Loss: more than 460 million USD.<br/>Rate: ~10.2 million USD per minute.<br/>Volume: ~147,000 shares per second.<br/>Executions: ~1,480 per second.<br/>-------------------------------------<br/>SEC Release 34-70694, 16 Oct 2013:<br/>willful violation of Exchange Act<br/>s.15(c)(3) and Rule 15c3-5, plus<br/>Reg SHO Rules 200(g) and 203(b).<br/>Censure, cease and desist,<br/>12 million USD civil penalty.<br/>-------------------------------------<br/>Knight Capital Group combined with<br/>GETCO on 1 July 2013 to form KCG."]
+    Worse --> OUT
+
+    style Setup fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Deploy fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Warn fill:#fffde7,stroke:#f9a825,stroke-width:2px
+    style Event fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style Fail fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Worse fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style OUT fill:#e3f2fd,stroke:#1565c0,stroke-width:3px

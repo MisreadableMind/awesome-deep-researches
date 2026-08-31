@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Trade["One 100-share execution on a maker-taker venue"]
+        T1["TAKER sends a marketable order.<br/>Pays 0.0030 USD/share = 30.0 cents.<br/>At the Rule 610(c) cap of 0.3 cents."]
+        T2["MAKER's resting order is hit.<br/>Receives up to 0.00305 USD/share<br/>= 30.5 cents at the top tier."]
+        T3["EXCHANGE nets MINUS 0.5 cents<br/>on this pair at the top tier."]
+        T1 --> T3
+        T3 --> T2
+    end
+
+    subgraph Recover["Where the exchange recovers it"]
+        R1["SIP REVENUE SHARE<br/>Half of consolidated tape revenue is<br/>allocated to exchanges by the percentage<br/>of time they quote at the NBBO.<br/>Paying for quote presence buys tape share."]
+        R2["PROPRIETARY DEPTH FEEDS<br/>sold to the same firms"]
+        R3["COLOCATION AND CONNECTIVITY<br/>NYSE Option A: 10,000 USD initial<br/>plus 16,500 USD monthly for a 2 kW bundle"]
+        R4["LOWER FEE TIERS<br/>Most members do not reach the top<br/>rebate tier and are net contributors"]
+    end
+
+    subgraph Distort["The four distortions"]
+        D1["THE TICK CONSTRAINT<br/>At a one-cent tick, a 0.305-cent rebate<br/>is 30.5% of the minimum increment.<br/>The rebate becomes a sub-tick price<br/>the quote cannot express. This is why<br/>the SEC paired a half-penny tick with a<br/>10-mil fee cap in September 2024."]
+        D2["THE ROUTING CONFLICT<br/>A broker choosing a venue faces a fee<br/>it pays and a rebate it may keep.<br/>The venue that is best for the broker<br/>and the venue that is best for the client<br/>need not be the same venue."]
+        D3["THE INVERTED VENUE<br/>Taker-maker pricing pays the taker and<br/>charges the maker. It exists to attract<br/>liquidity-removing flow, and it makes<br/>queue position at an inverted venue<br/>worth less than at a maker-taker venue."]
+        D4["THE QUOTE IS NOT THE PRICE<br/>The displayed price plus or minus the<br/>fee is the economic price. Two venues<br/>quoting the same number are not offering<br/>the same trade."]
+    end
+
+    Trade --> Recover
+    Trade --> Distort
+
+    subgraph Reform["Reform, and its four postponements"]
+        F1["18 Sept 2024: SEC adopts a 10-mil access<br/>fee cap and a half-penny tick for<br/>tick-constrained stocks.<br/>Release 34-101070, 89 FR 81620."]
+        F2["Sept and Oct 2024: petitions for review filed<br/>in the D.C. Circuit, consolidated as<br/>Cboe Global Markets v. SEC, No. 24-1350.<br/>12 Dec 2024: SEC grants a PARTIAL STAY of<br/>Rules 600(b)(89)(i)(F), 610(c) and 612<br/>pending judicial review. Release 34-101899."]
+        F3["14 Oct 2025: the D.C. Circuit DENIES<br/>the petition for review. The rule survives."]
+        F4["31 Oct 2025: temporary exemptive relief,<br/>Release 34-104172, 90 FR 51418.<br/>Implementation moves to November 2026.<br/>26 Feb 2026: MEMX asks for more time,<br/>noticed 20 Mar 2026, Release 34-105058.<br/>11 June 2026: relief EXTENDED AGAIN to the<br/>first business day of November 2027.<br/>Release 34-105656, 91 FR 36022."]
+        F5["THE REST OF THE AGENDA<br/>17 June 2025: SEC withdraws its proposed<br/>ban on volume-based transaction pricing<br/>for agency orders (88 FR 76282).<br/>17 June 2026: SEC proposes rescinding<br/>Rule 611 outright, Release 34-105655."]
+        F1 --> F2 --> F3 --> F4 --> F5
+    end
+
+    Distort --> Reform
+
+    style Trade fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Recover fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Distort fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Reform fill:#fff3e0,stroke:#e65100,stroke-width:2px

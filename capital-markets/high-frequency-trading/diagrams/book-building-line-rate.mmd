@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Wire["Ingress from the multicast group"]
+        W1["10 Gb or 40 Gb fibre.<br/>MoldUDP64 datagram carrying<br/>a sequence number and<br/>1..N ITCH messages."]
+        W2["Hardware timestamp at the first bit.<br/>This is t0 for every measurement."]
+    end
+
+    subgraph Seq["Sequence and gap handling"]
+        S1["Check the MoldUDP64 sequence number<br/>against the expected next value."]
+        S2{"Gap?"}
+        S3["In sequence: continue at line rate."]
+        S4["Gap: switch to the B-side feed.<br/>Two identical multicast streams are<br/>published over disjoint paths; the<br/>consumer arbitrates between them."]
+        S5["Both sides gapped: request<br/>retransmission over the recovery<br/>channel. The strategy is now blind<br/>for this instrument and must stop quoting."]
+        S1 --> S2
+        S2 -->|no| S3
+        S2 -->|yes| S4 --> S5
+    end
+
+    subgraph Parse["Parse, at fixed offsets"]
+        P1["Byte 0: message type.<br/>Selects the decode lane."]
+        P2["Bytes 1-2: Stock Locate.<br/>Same offset in EVERY message type.<br/>Used as a direct array index.<br/>Non-subscribed locates are dropped here."]
+        P3["Timestamp: 6 bytes,<br/>nanoseconds since midnight."]
+        P4["Type-specific fields at fixed offsets.<br/>Big-endian integers. Prices carry<br/>4 implied decimals."]
+    end
+
+    subgraph Book["Apply to the book"]
+        B1["ADD: insert order reference number<br/>into the hash table, append to the<br/>tail of the price level FIFO,<br/>bump the level aggregate."]
+        B2["EXECUTE / CANCEL: look up the order<br/>reference number, decrement quantity,<br/>bump the aggregate."]
+        B3["DELETE: unlink from the level,<br/>free the node, and if the level is<br/>empty unlink the level."]
+        B4["REPLACE: delete old reference,<br/>add new reference. Side, symbol and<br/>MPID are NOT repeated in the message."]
+        B5["Recompute the cached best bid and<br/>best offer only if the touched level<br/>was or is now the top."]
+    end
+
+    subgraph Out["Publish internally"]
+        O1["Normalised book delta on a<br/>shared-memory ring to the strategy,<br/>or straight into the FPGA compare stage."]
+    end
+
+    Wire --> Seq --> Parse --> Book --> Out
+
+    CONSTRAINT["THE LINE-RATE CONSTRAINT<br/>--------------------------------------------<br/>A 64-byte frame at 10 Gb/s occupies 67.2 ns of wire<br/>including preamble and inter-frame gap.<br/>At 25 Gb/s: 26.9 ns. At 100 Gb/s: 6.7 ns.<br/>--------------------------------------------<br/>If the handler cannot finish one message before<br/>the next arrives, it queues. A queue is unbounded<br/>latency, and unbounded latency during a burst is<br/>exactly when the strategy needed the data.<br/>--------------------------------------------<br/>This is why book building moved into hardware:<br/>not for the mean case, for the burst."]
+    Book --> CONSTRAINT
+
+    style Wire fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Seq fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Parse fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Book fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Out fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style CONSTRAINT fill:#fffde7,stroke:#f9a825,stroke-width:2px

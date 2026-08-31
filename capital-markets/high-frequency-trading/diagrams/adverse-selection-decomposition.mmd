@@ -1,0 +1,41 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Spread["Decomposing the spread the market maker must charge"]
+        S1["ORDER PROCESSING COST<br/>Exchange fees, clearing, technology<br/>amortised per share.<br/>Small and shrinking."]
+        S2["INVENTORY COST<br/>Compensation for holding a position<br/>over the expected unwind horizon.<br/>Scales with volatility x sqrt(time)."]
+        S3["ADVERSE SELECTION COST<br/>Compensation for being filled by<br/>someone who knows more.<br/>Two distinct sources below."]
+        S1 --> TOTAL
+        S2 --> TOTAL
+        S3 --> TOTAL
+        TOTAL["THE QUOTED HALF SPREAD"]
+    end
+
+    subgraph Sources["Two sources of adverse selection"]
+        AS1["CLASSICAL, Glosten-Milgrom 1985.<br/>A trader has private information about<br/>fundamental value and trades on it.<br/>Being faster does NOT help: the<br/>information is genuinely private."]
+        AS2["MECHANICAL, the latency race.<br/>A public signal moved. Everyone sees it.<br/>The question is only who acts first.<br/>Being faster DOES help, and that is<br/>precisely why it is an arms race."]
+        AS1 --> S3
+        AS2 --> S3
+    end
+
+    subgraph Measured["What the FCA measured on the LSE"]
+        M1["Price impact from trading in races<br/>is about 31% of ALL price impact."]
+        M2["Race trading accounts for about 33%<br/>of the effective spread."]
+        M3["Latency-arbitrage tax: 0.42 bps of<br/>total volume, 0.53 bps of non-race volume,<br/>against a value-weighted effective spread<br/>of just over 3 bps."]
+        M4["Implied reduction in the cost of<br/>liquidity if latency arbitrage were<br/>eliminated: 17%."]
+    end
+
+    subgraph Response["How the market maker responds"]
+        R1["Widen the quote.<br/>Charge everyone for the sniper."]
+        R2["Quote smaller size.<br/>Cap the loss per race."]
+        R3["Buy speed.<br/>Win more cancels. This is the<br/>investment that dissipates the prize."]
+        R4["Skew on inventory.<br/>Move both quotes to attract the<br/>offsetting trade."]
+    end
+
+    S3 --> Measured --> Response
+    R3 -.feeds back into.-> AS2
+
+    style Spread fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Sources fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Measured fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Response fill:#f3e5f5,stroke:#4a148c,stroke-width:2px

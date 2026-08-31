@@ -1,0 +1,47 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Prop["Proprietary trading firms"]
+        MM["Electronic market makers<br/>Citadel Securities, Virtu, Jane Street,<br/>Hudson River Trading, IMC, Optiver,<br/>Flow Traders, DRW, Jump, Tower"]
+        Snipe["Liquidity takers in races<br/>the same firms, different desks.<br/>FCA section 5.2: top 3 firms win 54%<br/>of races AND lose 63% of them"]
+        Stat["Statistical arbitrage<br/>longer horizons, more capital,<br/>less speed-sensitive"]
+    end
+
+    subgraph Infra["Latency infrastructure vendors"]
+        MW["Microwave and millimetre wave<br/>McKay Brothers, Quincy Data,<br/>Anova, New Line Networks.<br/>~8 million USD capital per link"]
+        Fibre["Latency-optimised fibre<br/>Spread Networks (2010),<br/>Hibernia Express (transatlantic),<br/>hollow-core deployments"]
+        HW["Silicon and boards<br/>AMD/Xilinx FPGAs, Arista 7130<br/>(4 ns Layer 1, 39 ns mux),<br/>kernel-bypass NICs and the user-space<br/>stacks that drive them: Onload, VMA"]
+        Feed["Feed handler and OMS vendors<br/>Exegy, Enyx, Redline,<br/>plus in-house stacks"]
+    end
+
+    subgraph Venue["Trading venues"]
+        Ex["National securities exchanges<br/>sell colocation, cross connects,<br/>proprietary depth feeds, and<br/>a place in the queue"]
+        ATS["ATSs and wholesalers<br/>internalise retail flow,<br/>see the other side of the trade"]
+        DC["Data centre operators<br/>Equinix NY4/NY5/NY6 Secaucus,<br/>NYSE Mahwah, Nasdaq Carteret,<br/>CME Aurora, LD4 Slough"]
+    end
+
+    subgraph Counter["Who is on the other side"]
+        Inst["Institutional order flow<br/>pension funds, asset managers,<br/>working parent orders through<br/>execution algorithms"]
+        Retail["Retail flow<br/>mostly internalised off-exchange,<br/>never reaches the lit book"]
+        Other["Other HFT firms<br/>the losing side of every race"]
+    end
+
+    subgraph Reg["Regulators and utilities"]
+        SEC["SEC, CFTC, FINRA<br/>Rule 15c3-5, Reg SCI, Reg NMS,<br/>CEA anti-spoofing"]
+        ESMA["ESMA and national authorities<br/>MiFID II Art 17 and 48,<br/>RTS 6, RTS 9, RTS 25"]
+        SIP["SIPs and plan processors<br/>the official but slower price"]
+    end
+
+    Prop --> Infra
+    Prop --> Venue
+    Venue --> Counter
+    Reg -.binds.-> Prop
+    Reg -.binds.-> Venue
+    Infra -.sells latency to.-> Prop
+    Ex -.sells colocation to.-> Prop
+
+    style Prop fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Infra fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Venue fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Counter fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Reg fill:#eceff1,stroke:#37474f,stroke-width:2px

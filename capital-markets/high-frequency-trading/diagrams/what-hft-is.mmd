@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph IS["What HFT IS: a technology class, not a strategy"]
+        I1["Latency-minimising infrastructure<br/>colocation, proximity hosting,<br/>or high-speed direct electronic access<br/>MiFID II Art 4(1)(40)(a)"]
+        I2["No human in the loop per order<br/>the system decides initiation,<br/>generation, routing, execution<br/>Art 4(1)(40)(b)"]
+        I3["High message intraday rate<br/>2 msg/s per instrument or<br/>4 msg/s across instruments<br/>Reg (EU) 2017/565 Art 19"]
+        I4["Proprietary capital<br/>flat or hedged overnight,<br/>holding periods measured in<br/>microseconds to minutes"]
+    end
+
+    subgraph NOT["What HFT is NOT"]
+        N1["NOT a strategy.<br/>Market making, stat arb, index arb<br/>and latency arbitrage are<br/>four different businesses<br/>that share one technology stack."]
+        N2["NOT the same as algorithmic trading.<br/>A VWAP schedule for a pension fund<br/>is algorithmic and slow.<br/>It is the customer, not the competitor."]
+        N3["NOT front-running.<br/>Front-running requires a client order<br/>and a duty. A proprietary firm<br/>inferring a large buyer from public<br/>prints owes that buyer nothing."]
+        N4["NOT profitable because it is fast.<br/>Speed does not create the spread.<br/>It reduces the probability of being<br/>picked off while quoting it."]
+        N5["NOT a defined offence.<br/>'Quote stuffing' appears in no<br/>US rule. Spoofing does:<br/>7 U.S.C. 6c(a)(5)(C)."]
+    end
+
+    subgraph DEF["The one binding definition"]
+        D1["MiFID II Directive 2014/65/EU<br/>Article 4(1)(40).<br/>All three limbs must hold.<br/>Consequence: authorisation is required<br/>even for a pure proprietary firm<br/>otherwise exempt under Art 2(1)(d)."]
+    end
+
+    IS --> DEF
+    NOT -.contrast.-> IS
+
+    style IS fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style NOT fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style DEF fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
