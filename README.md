@@ -37,11 +37,11 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Stock Exchanges: NYSE, NASDAQ order matching & order books | | 🗓️ Planned |
-| FIX Protocol & Trading Infrastructure | | 🗓️ Planned |
-| Clearing & Settlement: DTCC, CCP, T+1 | | 🗓️ Planned |
+| [Stock Exchanges: NYSE, NASDAQ order matching & order books](capital-markets/stock-exchanges/) | 16 | ✅ Done |
+| [FIX Protocol & Trading Infrastructure](capital-markets/fix-protocol/) | 16 | ✅ Done |
+| [Clearing & Settlement: DTCC, CCP, T+1](capital-markets/clearing-and-settlement/) | 19 | ✅ Done |
 | [Bond Markets: government, corporate, yield curves](capital-markets/bond-markets/) | 14 | ✅ Done |
-| Options & Derivatives: pricing, Greeks, exchange mechanics | | 🗓️ Planned |
+| [Options & Derivatives: pricing, Greeks, exchange mechanics](capital-markets/options-and-derivatives/) | 21 | ✅ Done |
 | High-Frequency Trading: co-location, market making, latency | | 🗓️ Planned |
 | Index Funds & ETFs: creation/redemption, tracking | | 🗓️ Planned |
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      33 researches (520 diagrams)
-Planned:   18 researches
+Done:      37 researches (592 diagrams)
+Planned:   14 researches
 Categories: 10
 ```
 
