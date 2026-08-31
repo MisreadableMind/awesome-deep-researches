@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant C as Client<br/>buy-side EMS
+    participant B as Broker<br/>OMS plus SOR
+    participant R as Pre-trade risk<br/>SEC Rule 15c3-5
+    participant V as Venue<br/>matching engine
+    participant D as Drop copy<br/>session
+
+    C->>B: NewOrderSingle 35=D<br/>11=ORD-000417 ClOrdID<br/>55=AAPL 54=1 38=10000<br/>40=2 44=187.45 59=0
+
+    B->>C: ExecutionReport 35=8<br/>150=A PendingNew, 39=A<br/>37=BRX-8891204 OrderID assigned
+    Note over C,B: Optional. Many brokers skip<br/>PendingNew and go straight to New.
+
+    B->>R: credit, fat finger, restricted list,<br/>short sale locate, capital check
+    alt Risk rejects
+        R-->>B: blocked
+        B->>C: ExecutionReport 35=8<br/>150=8 Rejected, 39=8<br/>103=OrdRejReason, 58=Text
+        Note over C: Terminal. No further reports<br/>for this ClOrdID.
+    end
+
+    R->>V: order routed, venue protocol<br/>FIX or native binary
+    V->>B: acknowledged, resting on the book
+    B->>C: ExecutionReport 35=8<br/>150=0 New, 39=0<br/>151=10000 LeavesQty, 14=0 CumQty
+    B->>D: same report, copied
+    Note over C: Now the order exists.<br/>Only now is cancel meaningful.
+
+    V->>B: partial match 2500 at 187.44
+    B->>C: ExecutionReport 35=8<br/>150=F Trade, 39=1 PartiallyFilled<br/>32=2500 LastQty, 31=187.44 LastPx<br/>151=7500 14=2500 6=187.44
+    B->>D: copied
+
+    V->>B: partial match 4000 at 187.45
+    B->>C: 150=F, 39=1<br/>32=4000 31=187.45<br/>151=3500 14=6500 6=187.446154
+    B->>D: copied
+
+    V->>B: final match 3500 at 187.45
+    B->>C: ExecutionReport 35=8<br/>150=F Trade, 39=2 Filled<br/>32=3500 31=187.45<br/>151=0 14=10000 6=187.4475
+    B->>D: copied
+
+    Note over C,B: LeavesQty hits zero. OrdStatus is Filled.<br/>Every print is at or below the 187.45 limit,<br/>which is the only way a limit buy can fill.<br/>Notional 1,874,475.00 USD.
+
+    C->>B: AllocationInstruction 35=J<br/>split across three sub-accounts
+    B->>C: AllocationInstructionAck 35=P
+    B->>C: Confirmation 35=AK per allocation

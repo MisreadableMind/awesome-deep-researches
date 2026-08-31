@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant B as Buy side<br/>expects inbound 34=7
+    participant N as Network
+    participant S as Sell side<br/>outbound store
+
+    Note over B,S: Normal flow
+
+    S->>N: 34=5 ExecutionReport
+    N->>B: 34=5 delivered, expect next 6
+    S->>N: 34=6 ExecutionReport
+    N->>B: 34=6 delivered, expect next 7
+
+    Note over N: Transport hiccup.<br/>Messages 7 through 15 are lost.
+
+    S-->>N: 34=7 .. 34=15
+    S->>N: 34=16 ExecutionReport
+    N->>B: 34=16 arrives
+
+    Note over B: Inbound 16 is higher than the<br/>expected 7. A gap exists.<br/>Do not process 16. Queue it.
+
+    B->>S: ResendRequest 35=2<br/>BeginSeqNo 7=7<br/>EndSeqNo 16=0 meaning "to infinity"
+
+    Note over S: Three legal replies per message,<br/>chosen message by message.
+
+    alt Branch 1: every skipped message still matters
+        S->>B: 34=7 through 34=15 replayed in order<br/>43=Y PossDupFlag on each<br/>122 OrigSendingTime = original send time<br/>52 SendingTime = the time of the resend
+        Note over B: Application must be idempotent.<br/>A duplicated fill booked twice<br/>is a real position error.<br/>Counter reaches 15. Gap closed.<br/>Process the queued 16, resume at 17.
+    else Branch 2: 7 through 11 are stale or administrative
+        S->>B: SequenceReset 35=4<br/>123=Y GapFillFlag<br/>36=12 NewSeqNo<br/>43=Y PossDupFlag
+        Note over B: Skips 7 through 11 without replaying.<br/>Used for heartbeats and dead quotes.<br/>12 through 15 are still owed.
+        S->>B: 34=12 through 34=15 replayed<br/>43=Y PossDupFlag on each,<br/>or a second gap fill to 36=16
+        Note over B: Counter reaches 15. Gap closed.<br/>Process the queued 16, resume at 17.
+    else Branch 3: the outbound store is unrecoverable
+        S->>B: SequenceReset 35=4<br/>123=N or absent<br/>36=17 NewSeqNo
+        Note over B: Reset mode. Forces the counter to 17<br/>with no claim that 7 through 16 were sent.<br/>The queued 16 is dropped without being<br/>applied, because 17 is now expected.<br/>That data loss is why reset is a last resort.
+    end
+
+    Note over B,S: Each branch closes the gap on its own terms.<br/>A shared tail would be wrong: after branch 3<br/>an inbound 34=16 is LOWER than expected,<br/>which is the fatal case below.
+
+    Note over B,S: The one unrecoverable case:<br/>an inbound sequence number LOWER than expected<br/>with 43=Y absent. The spec says log an error,<br/>send Logout and disconnect. It does not say guess.

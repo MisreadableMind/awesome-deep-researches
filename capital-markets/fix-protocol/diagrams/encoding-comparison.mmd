@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Sem["FIX semantics<br/>the field dictionary, the message set,<br/>the state machine, the code lists.<br/>This is what FIX actually is."]
+
+    Sem --> TV
+    Sem --> XML
+    Sem --> FAST
+    Sem --> SBE
+    Sem --> JSON
+
+    subgraph TV["tag=value, 1992"]
+        TV1["ASCII, self-describing<br/>8=FIX.4.4 SOH 9=189 SOH 35=D SOH"]
+        TV2["Order entry to brokers,<br/>most equity venues,<br/>every OMS-to-EMS link"]
+        TV3["212 bytes for the worked order<br/>Parse cost: walk every byte<br/>looking for 0x01, atoi each field"]
+    end
+
+    subgraph XML["FIXML, 1999 onwards"]
+        X1["XML schema, element and attribute<br/>&lt;Order ID='ORD-417' Side='1' Px='187.45'/&gt;"]
+        X2["Clearing, give-up, position keeping.<br/>CME Clearing and options clearing<br/>run on it."]
+        X3["314 bytes for the worked order<br/>against 212 in tag=value.<br/>Nobody puts it on a latency path."]
+    end
+
+    subgraph FAST["FAST, mid-2000s to 2009"]
+        F1["Stop-bit encoded fields plus a<br/>presence map bitmap.<br/>Operators: constant, default, copy,<br/>increment, delta, tail."]
+        F2["Multicast market data.<br/>NYSE Arca, CME, Nasdaq OMX,<br/>Eurex, Moscow Exchange."]
+        F3["Optimises bandwidth, not CPU.<br/>Decoding is stateful, which is<br/>exactly what a low-latency<br/>reader does not want."]
+    end
+
+    subgraph SBE["SBE 1.0, final Feb 2017"]
+        S1["Fixed offsets, native binary types,<br/>little-endian by convention.<br/>Header: blockLength, templateId,<br/>schemaId, version."]
+        S2["CME iLink and MDP 3.0, and<br/>a growing share of futures<br/>and FX venues."]
+        S3["About 25 ns to encode or decode a<br/>market data message against about<br/>1000 ns for Protocol Buffers"]
+    end
+
+    subgraph JSON["JSON encoding, 2010s"]
+        J1["Field names or tag numbers<br/>as JSON keys"]
+        J2["Web front ends, WebSocket links,<br/>vendor APIs, test harnesses"]
+        J3["Largest of the five.<br/>Chosen for developer time,<br/>never for wire time."]
+    end
+
+    Note["The trade is always the same.<br/>Self-describing text costs bytes and cycles<br/>and buys you a schema you never have to ship.<br/>Fixed-offset binary costs a schema<br/>and buys you the cycles back."]
+
+    TV -.-> Note
+    SBE -.-> Note
+
+    style Sem fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style TV fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style XML fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style FAST fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style SBE fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style JSON fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Note fill:#fffde7,stroke:#f57f17,stroke-width:2px

@@ -1,0 +1,49 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+graph LR
+    subgraph Era1["Origins<br/>1992-1996"]
+        direction TB
+        E1A["1992: Robert Lamoureux at Fidelity<br/>and Chris Morstatt at Salomon Brothers<br/>author the first spec to replace<br/>order calls with machine-readable data"]
+        E1B["FIX 2.7 and 3.0 add message types<br/>while the session and application<br/>layers stay welded together"]
+        E1C["1996: FIX 4.0, the first version<br/>deployed broadly across US equities"]
+    end
+
+    subgraph Era2["The Equity Standard<br/>1998-2003"]
+        direction TB
+        E2A["1998: FIX 4.1"]
+        E2B["2000: FIX 4.2 adds the fields<br/>that make electronic execution<br/>reporting workable"]
+        E2C["2001: FIX 4.3 extends beyond<br/>equities into fixed income and FX"]
+        E2D["2003: FIX 4.4 adds confirmation,<br/>trade capture and position messages.<br/>Still the most deployed version."]
+    end
+
+    subgraph Era3["Layer Separation<br/>2006-2011"]
+        direction TB
+        E3A["2006: FIX 5.0 splits the<br/>application layer from the session"]
+        E3B["2006: FIXT 1.1 becomes the<br/>standalone session layer, versioned<br/>independently of the message set"]
+        E3C["2008 and 2009: FIX 5.0 SP1<br/>and SP2 close the gaps"]
+        E3D["ApplVerID tag 1128 lets one<br/>session carry several app versions"]
+    end
+
+    subgraph Era4["Binary and Latency<br/>2005-2021"]
+        direction TB
+        E4A["2005-2009: FAST compresses<br/>market data for multicast;<br/>FAST 1.2 extension in Feb 2009"]
+        E4B["Feb 2017: Simple Binary Encoding 1.0<br/>promoted to final standard;<br/>errata Jul 2018 and Nov 2020"]
+        E4C["Aug 2018 to date: SBE 2.0<br/>RC1, RC2 and RC3.<br/>Still a release candidate."]
+        E4D["Apr 2021: FIXP 1.0 approved<br/>as a technical standard"]
+    end
+
+    subgraph Era5["Continuous Release<br/>2018-2026"]
+        direction TB
+        E5A["Dec 2018: FIX Orchestra 1.0 draft<br/>standard, machine-readable rules of<br/>engagement. Technical standard Feb 2021."]
+        E5B["FIX Latest replaces numbered<br/>releases with Extension Packs"]
+        E5C["Jul 2026: FIX Latest EP309<br/>published"]
+        E5D["27 Aug 2026: FIXimate retires,<br/>Orchimate becomes the<br/>reference browser"]
+    end
+
+    Era1 --> Era2 --> Era3 --> Era4 --> Era5
+
+    style Era1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Era2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Era3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Era4 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Era5 fill:#fce4ec,stroke:#880e4f,stroke-width:3px

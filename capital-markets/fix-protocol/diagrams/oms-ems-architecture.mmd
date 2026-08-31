@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph OMS["Order management system - owns the RECORD"]
+        direction TB
+        O1["Model portfolio and target weights"]
+        O2["Pre-trade compliance<br/>mandate limits, restricted lists,<br/>concentration, UCITS ratios"]
+        O3["Order staging<br/>the parent order lives here"]
+        O4["Allocation and average pricing<br/>across funds and sub-accounts"]
+        O5["Position, cash, and P and L<br/>the book of record"]
+        O6["Regulatory reporting feed<br/>MiFIR RTS 22, CAT, EMIR"]
+    end
+
+    subgraph EMS["Execution management system - owns the DECISION"]
+        direction TB
+        E1["Live market data and depth"]
+        E2["Broker algo wheel and<br/>venue analytics"]
+        E3["Child order slicing<br/>the working order lives here"]
+        E4["Real-time TCA against<br/>arrival price and VWAP"]
+        E5["Direct market access sessions"]
+    end
+
+    OMS <-->|"FIX 35=D down, 35=8 up<br/>the integration everyone underestimates"| EMS
+
+    EMS -->|"FIX or native binary"| Brokers["Broker algos<br/>and care desks"]
+    EMS -->|"sponsored or direct access"| Venues["Exchanges, MTFs,<br/>dark pools"]
+    Brokers --> Venues
+
+    Venues -->|"fills"| EMS
+    EMS -->|"fills roll up to the parent"| OMS
+    OMS --> Post["Allocation, confirmation,<br/>settlement, accounting"]
+
+    subgraph OEMS["The convergence, 2015 onwards"]
+        C1["One vendor, one order object,<br/>no reconciliation between two<br/>views of the same order"]
+        C2["Charles River, Aladdin, Bloomberg,<br/>SS and C Eze, FactSet"]
+        C3["Sold as OEMS. The buy-side<br/>argument is simple: two systems<br/>means two order states, and two<br/>order states means a break."]
+    end
+
+    OMS -.-> OEMS
+    EMS -.-> OEMS
+
+    subgraph Split["Why the split existed"]
+        S1["OMS grew out of portfolio accounting<br/>in the 1990s. Its unit of work is<br/>the day and the fund."]
+        S2["EMS grew out of trading screens<br/>in the 2000s. Its unit of work is<br/>the millisecond and the venue."]
+        S3["Different latency, different users,<br/>different release cadence.<br/>Merging them is an organisational<br/>problem wearing a technical costume."]
+    end
+
+    style OMS fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style EMS fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style OEMS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Split fill:#eceff1,stroke:#37474f,stroke-width:2px

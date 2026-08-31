@@ -1,0 +1,54 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+stateDiagram-v2
+    [*] --> PendingNew: 39=A<br/>broker has the order,<br/>venue has not confirmed
+
+    PendingNew --> New: 39=0 &nbsp; ExecType 150=0
+    PendingNew --> Rejected: 39=8 &nbsp; ExecType 150=8
+    [*] --> New: brokers that skip PendingNew
+
+    New --> PartiallyFilled: 39=1 &nbsp; ExecType 150=F<br/>32 LastQty and 31 LastPx carry the fill
+    New --> Filled: 39=2 &nbsp; ExecType 150=F<br/>filled in one print
+    New --> PendingCancel: 39=6 &nbsp; ExecType 150=6
+    New --> PendingReplace: 39=E &nbsp; ExecType 150=E
+    New --> Expired: 39=C &nbsp; ExecType 150=C
+    New --> DoneForDay: 39=3 &nbsp; ExecType 150=3
+    New --> Stopped: 39=7 &nbsp; ExecType 150=7
+
+    PartiallyFilled --> PartiallyFilled: another fill<br/>150=F, CumQty rises,<br/>LeavesQty falls
+    PartiallyFilled --> Filled: 39=2 when LeavesQty reaches 0
+    PartiallyFilled --> PendingCancel: 39=6
+    PartiallyFilled --> PendingReplace: 39=E
+    PartiallyFilled --> Canceled: 39=4, CumQty preserved
+    PartiallyFilled --> Expired: 39=C
+    PartiallyFilled --> DoneForDay: 39=3
+
+    PendingCancel --> Canceled: 39=4 &nbsp; ExecType 150=4
+    PendingCancel --> New: OrderCancelReject 35=9<br/>39 reverts to the real state
+    PendingCancel --> PartiallyFilled: a fill lands during the pending window
+    PendingCancel --> Filled: the order fills before the cancel arrives
+
+    PendingReplace --> Replaced: 39=0 or 39=1 &nbsp; ExecType 150=5<br/>new ClOrdID takes over
+    PendingReplace --> New: OrderCancelReject 35=9
+    Replaced --> New: the replacement order<br/>continues under a new 11=ClOrdID
+
+    Filled --> [*]
+    Canceled --> [*]
+    Rejected --> [*]
+    Expired --> [*]
+    DoneForDay --> [*]
+
+    note right of PendingCancel
+        Pending states are requests, not
+        outcomes. The venue owns the book.
+        A cancel that loses the race to a
+        fill is rejected, and that is
+        correct behaviour, not a bug.
+    end note
+
+    note right of Filled
+        ExecType 150 describes THIS report.
+        OrdStatus 39 describes the ORDER.
+        Confusing the two is the single
+        most common integration defect.
+    end note

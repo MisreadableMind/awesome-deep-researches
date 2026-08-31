@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Msg["One FIX 4.4 NewOrderSingle, 20 fields, 212 bytes on the wire"]
+        direction TB
+
+        subgraph Head["Standard header - order of the first three tags is fixed"]
+            H1["8=FIX.4.4 SOH<br/>BeginString. Always first. Never anything else."]
+            H2["9=189 SOH<br/>BodyLength. Always second.<br/>Counts bytes from the first byte of tag 35<br/>up to but not including the first byte of tag 10."]
+            H3["35=D SOH<br/>MsgType. Always third. D is NewOrderSingle."]
+            H4["49=BUYSIDE1 SOH  56=BROKERX SOH<br/>SenderCompID and TargetCompID.<br/>These two plus BeginString name the session."]
+            H5["34=1215 SOH<br/>MsgSeqNum. Monotonic per session per direction."]
+            H6["52=20260831-13:45:07.238 SOH<br/>SendingTime, UTC, always UTC"]
+        end
+
+        subgraph Body["Message body - order is free except inside repeating groups"]
+            B1["11=ORD-20260831-000417  ClOrdID, the client's handle"]
+            B2["1=ACCT-9931  Account &nbsp;&nbsp; 21=1  HandlInst automated"]
+            B3["55=AAPL  Symbol &nbsp;&nbsp; 48=US0378331005  SecurityID<br/>22=4  IDSource is ISIN"]
+            B4["54=1  Side buy &nbsp;&nbsp; 38=10000  OrderQty"]
+            B5["40=2  OrdType limit &nbsp;&nbsp; 44=187.45  Price"]
+            B6["59=0  TimeInForce day<br/>60=20260831-13:45:07.235  TransactTime"]
+        end
+
+        subgraph Trail["Standard trailer - always last"]
+            T1["10=230 SOH<br/>CheckSum. Sum of every preceding byte, mod 256,<br/>rendered as exactly three ASCII digits."]
+        end
+
+        Head --> Body --> Trail
+    end
+
+    Note1["SOH is ASCII 0x01, one byte,<br/>not printable, not a pipe.<br/>Pipes appear only in logs and documents."]
+    Note2["Self-describing: a parser that has never<br/>seen tag 9999 skips it and carries on.<br/>That property is the reason FIX survived<br/>thirty-four years of asset-class sprawl."]
+    Note3["Cost of the property: every field is<br/>ASCII, every price is a string, and the<br/>parser walks the message byte by byte<br/>looking for 0x01."]
+
+    Msg -.-> Note1
+    Msg -.-> Note2
+    Msg -.-> Note3
+
+    style Head fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Body fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Trail fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Note1 fill:#fce4ec,stroke:#880e4f
+    style Note2 fill:#fce4ec,stroke:#880e4f
+    style Note3 fill:#eceff1,stroke:#37474f

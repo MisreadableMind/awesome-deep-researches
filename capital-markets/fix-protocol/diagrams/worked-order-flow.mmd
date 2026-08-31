@@ -1,0 +1,45 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph S1["12:59:58 UTC - session comes up"]
+        A1["8=FIX.4.4 | 9=106 | 35=A | 49=BUYSIDE1 | 56=BROKERX<br/>34=1 | 52=20260831-12:59:58.004<br/>98=0 | 108=30 | 141=Y | 553=BUYSIDE1_UAT | 10=091"]
+        A2["Broker echoes Logon with 108=30.<br/>Both sides now owe a message<br/>every 30 seconds."]
+    end
+
+    subgraph S2["13:45:07.238 - the order, 212 bytes"]
+        B1["8=FIX.4.4 | 9=189 | 35=D | 49=BUYSIDE1 | 56=BROKERX<br/>34=1215 | 52=20260831-13:45:07.238<br/>11=ORD-20260831-000417 | 1=ACCT-9931 | 21=1<br/>55=AAPL | 48=US0378331005 | 22=4<br/>54=1 | 60=20260831-13:45:07.235<br/>38=10000 | 40=2 | 44=187.45 | 59=0 | 10=230"]
+        B2["BodyLength 189 counts from the<br/>3 of 35=D to the SOH before 10=.<br/>CheckSum 230 is the byte sum mod 256."]
+    end
+
+    subgraph S3["13:45:07.301 - acknowledgement, 262 bytes"]
+        C1["8=FIX.4.4 | 9=239 | 35=8 | 34=3382<br/>37=BRX-8891204 | 11=ORD-20260831-000417<br/>17=BRX-EXEC-55120001 | 150=0 New | 39=0 New<br/>151=10000 | 14=0 | 6=0 | 10=118"]
+        C2["OrderID 37 is the broker's handle and<br/>never changes. ClOrdID 11 is the client's<br/>and changes on every amendment."]
+    end
+
+    subgraph S4["13:45:09 to 13:47 - three fills"]
+        D1["150=F 39=1<br/>32=2500 31=187.44<br/>14=2500 151=7500 6=187.440000"]
+        D2["150=F 39=1<br/>32=4000 31=187.45<br/>14=6500 151=3500 6=187.446154"]
+        D3["150=F 39=2 Filled<br/>32=3500 31=187.45<br/>14=10000 151=0 6=187.447500"]
+    end
+
+    subgraph S5["Arithmetic the client must reproduce exactly"]
+        E1["CumQty 14 = sum of LastQty 32<br/>2500 + 4000 + 3500 = 10000"]
+        E2["LeavesQty 151 = OrderQty 38 - CumQty 14<br/>10000 - 10000 = 0"]
+        E3["AvgPx 6 = notional / CumQty<br/>1,874,475.00 / 10000 = 187.447500"]
+        E4["Terminal when 151 reaches 0<br/>with 39=2. No further reports."]
+    end
+
+    subgraph S6["Post trade"]
+        F1["35=J AllocationInstruction<br/>4000 / 3500 / 2500 across<br/>three sub-accounts"]
+        F2["35=P AllocationInstructionAck<br/>then 35=AK Confirmation per account"]
+        F3["Drop copy session carried every<br/>35=8 in parallel to compliance<br/>and the risk desk"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+
+    style S1 fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style S2 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style S3 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style S4 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style S5 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style S6 fill:#fce4ec,stroke:#880e4f,stroke-width:2px

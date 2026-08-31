@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Book["Venue matching engine<br/>the only place the book is real"]
+
+    Book --> Native
+    Book --> FIXMD
+
+    subgraph Native["Native binary multicast - what fast firms consume"]
+        N1["Nasdaq TotalView-ITCH 5.0<br/>Add Order = 36 bytes:<br/>type 1, locate 2, tracking 2,<br/>timestamp 6, order ref 8, side 1,<br/>shares 4, stock 8, price 4"]
+        N2["Order Executed = 31 bytes<br/>Order Delete = 19 bytes<br/>Timestamps in nanoseconds since midnight"]
+        N3["Transport: MoldUDP64 multicast,<br/>or SoupBinTCP for a unicast copy.<br/>GLIMPSE gives a snapshot to<br/>rebuild the book on join."]
+        N4["CME MDP 3.0: SBE over UDP multicast,<br/>incremental channel plus a<br/>recovery snapshot channel"]
+        N5["Consumer rebuilds the full order book<br/>from every add, execute, cancel, delete.<br/>The exchange sends events, not a book."]
+    end
+
+    subgraph FIXMD["FIX market data - what everyone else consumes"]
+        F1["MarketDataRequest 35=V<br/>263 SubscriptionRequestType<br/>264 MarketDepth<br/>265 MDUpdateType<br/>267/269 the entry types wanted"]
+        F2["MarketDataSnapshotFullRefresh 35=W<br/>the whole book, resent"]
+        F3["MarketDataIncrementalRefresh 35=X<br/>268 NoMDEntries group<br/>279 MDUpdateAction 0 new 1 change 2 delete<br/>269 MDEntryType 0 bid 1 offer 2 trade<br/>270 MDEntryPx 271 MDEntrySize"]
+        F4["MarketDataRequestReject 35=Y"]
+        F5["Request and response, over TCP,<br/>per client. The venue pays for<br/>every subscriber separately."]
+    end
+
+    Native --> C1["Market makers, HFT,<br/>execution algos,<br/>anyone who prices in microseconds"]
+    FIXMD --> C2["OMS blotters, risk screens,<br/>retail platforms, RFQ desks,<br/>anyone who prices in seconds"]
+
+    subgraph Why["Why the split exists"]
+        W1["Multicast sends one packet to<br/>every subscriber. TCP sends one copy<br/>per subscriber. The CTA consolidated<br/>quote feed is sized at 2,700,000 messages<br/>per 100 ms, which is 27 million a second.<br/>At that rate the copy count is the system."]
+        W2["Fixed-offset binary is read with<br/>a pointer cast. Tag=value is read<br/>with a scan and a parse."]
+        W3["FIX market data survives where the<br/>consumer wants one connection for<br/>orders and prices and does not care<br/>about the last 200 microseconds."]
+    end
+
+    C1 -.-> Why
+    C2 -.-> Why
+
+    style Book fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Native fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    style FIXMD fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Why fill:#eceff1,stroke:#37474f,stroke-width:2px
