@@ -1,0 +1,58 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Trigger["A solvent institution cannot<br/>fund itself at any market price.<br/>Bagehot, Lombard Street, 1873."]
+
+    Trigger --> Rule
+
+    subgraph Rule["Bagehot's two rules, in his words"]
+        direction TB
+        B1["'That these loans should only be made<br/>at a very high rate of interest.<br/>This will operate as a heavy fine<br/>on unreasonable timidity.'"]
+        B2["'That at this rate these advances<br/>should be made on all good banking<br/>securities, and as largely as<br/>the public ask for them.'"]
+        B3["The modern shorthand:<br/>lend freely, at a penalty rate,<br/>against good collateral."]
+    end
+
+    Rule --> Step1
+
+    subgraph Step1["Rung 1 - the market"]
+        direction TB
+        S1A["Interbank borrowing, repo,<br/>brokered deposits, FHLB advances"]
+        S1B["Cheapest and least informative.<br/>Works until counterparties<br/>stop answering."]
+    end
+
+    Step1 --> Step2
+
+    subgraph Step2["Rung 2 - the standing facilities"]
+        direction TB
+        S2A["Standing repo at 3.75 percent.<br/>Twice daily, uncapped,<br/>Treasuries and agency collateral only."]
+        S2B["No stigma, because it settles<br/>like a market trade and the<br/>counterparty list is public."]
+    end
+
+    Step2 --> Step3
+
+    subgraph Step3["Rung 3 - the discount window"]
+        direction TB
+        S3A["Primary credit at 3.75 percent,<br/>up to 90 days, for institutions<br/>in generally sound condition"]
+        S3B["Secondary credit at 4.25 percent<br/>for everyone else. Seasonal credit at a<br/>market-average rate for agricultural banks."]
+        S3C["Collateral is far broader:<br/>whole loans, municipal bonds,<br/>anything the Reserve Bank will margin"]
+        S3D["Stigma is the binding problem.<br/>Peak use 152,853 million USD<br/>on 15 March 2023, then collapse."]
+    end
+
+    Step3 --> Step4
+
+    subgraph Step4["Rung 4 - Section 13(3) emergency authority"]
+        direction TB
+        S4A["Requires 'unusual and exigent<br/>circumstances', five governors,<br/>and since Dodd-Frank the prior<br/>approval of the Treasury Secretary"]
+        S4B["Must be a broad-based programme.<br/>Lending to a single named firm<br/>was removed in 2010."]
+        S4C["Used in 2008 for AIG and Bear Stearns,<br/>in 2020 for CPFF, PDCF, MMLF, PMCCF,<br/>SMCCF, TALF, MSLP, MLF and PPPLF,<br/>and in 2023 for the BTFP."]
+        S4D["BTFP valued collateral at par,<br/>not market. That was a subsidy,<br/>not a Bagehot loan.<br/>Peak 167,768 million USD, 24 Jan 2024."]
+    end
+
+    Step4 --> End["Beyond this rung there is no<br/>central bank tool left.<br/>Recapitalisation is a fiscal act<br/>and requires a legislature."]
+
+    style Trigger fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Rule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Step1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Step2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style Step3 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Step4 fill:#ffebee,stroke:#c62828,stroke-width:3px

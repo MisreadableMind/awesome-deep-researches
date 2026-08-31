@@ -1,0 +1,65 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    Start["FOMC changes the target range<br/>and the Board changes IORB.<br/>One administered rate moves."]
+
+    Start --> Money["Overnight money market<br/>EFFR, SOFR, OBFR reprice<br/>within one business day"]
+
+    Money --> C1
+    Money --> C2
+    Money --> C3
+    Money --> C4
+    Money --> C5
+    Money --> C6
+
+    subgraph C1["1. Interest rate channel"]
+        direction TB
+        A1["Expectations of future short rates<br/>reprice the whole curve"]
+        A2["Mortgage, auto, and corporate<br/>borrowing costs follow"]
+        A3["Investment and durable consumption<br/>respond with a lag of<br/>roughly four to eight quarters"]
+    end
+
+    subgraph C2["2. Credit and bank lending channel"]
+        direction TB
+        B1["Deposit betas lag policy,<br/>so bank margins widen on the way up<br/>and compress on the way down"]
+        B2["Loan officers tighten standards.<br/>The Senior Loan Officer survey<br/>is the observable version."]
+        B3["Small firms without bond market<br/>access absorb the tightening first"]
+    end
+
+    subgraph C3["3. Asset price and wealth channel"]
+        direction TB
+        D1["Discount rates rise, so<br/>equity and property valuations fall"]
+        D2["Household net worth falls<br/>and consumption follows,<br/>concentrated at the top of<br/>the wealth distribution"]
+    end
+
+    subgraph C4["4. Exchange rate channel"]
+        direction TB
+        E1["Higher domestic rates attract<br/>capital and lift the currency"]
+        E2["Imports cheapen, exports<br/>lose competitiveness"]
+        E3["The dominant channel for small<br/>open economies. Weak for the US."]
+    end
+
+    subgraph C5["5. Expectations channel"]
+        direction TB
+        F1["If the target is credible,<br/>wage and price setters behave<br/>as though inflation returns to 2 percent"]
+        F2["Disinflation then costs less output.<br/>If credibility breaks, it costs much more."]
+        F3["This is what forward guidance<br/>and the 2 percent goal are for."]
+    end
+
+    subgraph C6["6. Risk taking channel"]
+        direction TB
+        G1["Low rates push investors with<br/>fixed nominal targets into<br/>longer duration and lower credit"]
+        G2["Leverage builds where the<br/>regulator is not looking"]
+        G3["The channel that makes financial<br/>stability part of the price<br/>stability problem"]
+    end
+
+    C1 --> Real["Output gap and inflation<br/>Lags of 12 to 24 months.<br/>The policy that acts today<br/>is aimed at 2028."]
+    C2 --> Real
+    C3 --> Real
+    C4 --> Real
+    C5 --> Real
+    C6 --> Real
+
+    style Start fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Money fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Real fill:#fff3e0,stroke:#e65100,stroke-width:3px

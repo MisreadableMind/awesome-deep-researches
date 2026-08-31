@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant MMF as Money market fund<br/>no reserve account
+    participant Dlr as Primary dealer<br/>or SRP bank
+    participant Desk as NY Fed Trading Desk<br/>FedTrade Plus
+    participant BNY as BNY tri-party platform<br/>custodian and valuation agent
+    participant SOMA as System Open Market Account
+
+    Note over Desk: Morning standing repo<br/>08:15 to 08:30 ET
+
+    Dlr->>Desk: One proposition per security type,<br/>max 40 billion USD, 1 million increments
+    Note over Desk: Full allotment at 3.75 percent.<br/>No aggregate cap since 11 Dec 2025.
+    Desk-->>Dlr: Award notified at operation close
+    Desk->>BNY: Deliver funds, best effort<br/>within thirty minutes
+    Dlr->>BNY: Deliver Treasuries, agency debt,<br/>or agency MBS as collateral
+    BNY->>BNY: Value collateral, apply margin,<br/>settle on its own books
+    Note over Dlr: Dealer now holds reserves.<br/>System reserves rose by the award.
+
+    Note over Desk: Afternoon standing repo<br/>13:30 to 13:45 ET, same terms
+
+    Note over Desk: Overnight reverse repo<br/>12:45 to 13:15 ET
+
+    MMF->>Desk: One proposition, max 160 billion USD,<br/>at a rate no higher than 3.50 percent
+    Note over Desk: Awards limited only by Treasuries<br/>in SOMA available for the purpose
+    Desk->>SOMA: Pledge Treasury collateral
+    SOMA-->>MMF: Treasury security delivered<br/>via BNY tri-party
+    MMF->>BNY: Cash delivered by 16:30 ET
+    BNY->>Desk: Cash reaches the New York Fed
+    Note over SOMA: Reserves fall, ON RRP liability rises.<br/>Total assets unchanged.
+
+    Note over MMF,SOMA: Next morning both legs unwind.<br/>Repo: Desk sells the security back.<br/>Reverse repo: Desk buys it back and pays 3.50 percent.
+
+    Note over Desk: On 28 August 2026 ON RRP take-up was<br/>175 million USD and standing repo was near zero.<br/>Both facilities work by existing, not by being used.

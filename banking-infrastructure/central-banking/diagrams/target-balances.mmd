@@ -1,0 +1,33 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+sequenceDiagram
+    autonumber
+    participant IT as Italian firm
+    participant BI as Italian bank<br/>account at Banca d'Italia
+    participant BdI as Banca d'Italia
+    participant ECB as ECB<br/>the single netting point
+    participant BBk as Deutsche Bundesbank
+    participant DB as German bank<br/>account at Bundesbank
+    participant DE as German firm
+
+    IT->>BI: Pay 10 million euro<br/>for German machinery
+    BI->>BdI: Debit my reserve account
+    BdI->>BdI: Reserves at Banca d'Italia fall 10 million
+    BdI->>ECB: T2 payment message, RTGS,<br/>settled in central bank money
+    ECB->>BBk: Credit Bundesbank
+    BBk->>BBk: Reserves at Bundesbank rise 10 million
+    BBk->>DB: Credit the German bank's reserve account
+    DB->>DE: Credit the exporter's deposit
+
+    Note over BdI,BBk: Now the two national balance sheets<br/>no longer add up on their own.
+
+    BdI->>ECB: Records a 10 million euro<br/>intra-Eurosystem liability
+    BBk->>ECB: Records a 10 million euro<br/>intra-Eurosystem claim
+
+    Note over ECB: At the end of every day all bilateral<br/>positions across T2, T2S and TIPS<br/>are netted into one balance with the ECB.
+
+    Note over BdI,BBk: That single number is the TARGET balance.<br/>It is the accumulated net flow, not a loan<br/>anyone negotiated and not a debt anyone can call.
+
+    Note over ECB: TARGET balances grew for two reasons:<br/>capital flight during the 2010 to 2012 crisis,<br/>and asset purchases settling through banks<br/>concentrated in a few financial centres.
+
+    Note over IT,DE: There is no settlement date and no maturity.<br/>A balance only unwinds when the flows reverse.

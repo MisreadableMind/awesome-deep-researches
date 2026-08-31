@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Tier1["Tier 1 - central bank money<br/>a liability of the state"]
+        direction TB
+        T1A["Reserve balances<br/>2.92 trillion USD<br/>Held only by institutions with<br/>a Federal Reserve master account"]
+        T1B["Federal Reserve notes<br/>2.43 trillion USD<br/>Held by anyone.<br/>The only retail form"]
+        T1C["Settles finally. There is no<br/>higher instrument to settle in.<br/>Cannot default in its own unit."]
+    end
+
+    subgraph Tier2["Tier 2 - commercial bank money<br/>a liability of a private firm"]
+        direction TB
+        T2A["Deposits at commercial banks<br/>19.49 trillion USD<br/>19 August 2026, H.8,<br/>not seasonally adjusted"]
+        T2B["What households and firms<br/>call 'money'. A promise to pay<br/>tier 1 on demand."]
+        T2C["Can default. That is what<br/>deposit insurance, capital rules,<br/>and the discount window exist for."]
+    end
+
+    subgraph Tier3["Tier 3 - near money"]
+        direction TB
+        T3A["Money market fund shares,<br/>Treasury bills, repo claims,<br/>stablecoins"]
+        T3B["Convertible into tier 2<br/>at par in normal conditions.<br/>Not in a run."]
+    end
+
+    Tier1 -->|"backs and settles"| Tier2
+    Tier2 -->|"backs"| Tier3
+
+    subgraph Wrong["The misconception this kills"]
+        direction TB
+        W1["'Banks lend out reserves.'<br/>They cannot. A reserve balance<br/>can only move to another<br/>reserve account."]
+        W2["A loan creates a deposit<br/>on both sides of the bank's<br/>balance sheet. No reserve<br/>is consumed by the act of lending."]
+        W3["19.49 trillion of deposits<br/>sit on 2.92 trillion of reserves.<br/>The ratio is an outcome,<br/>not a constraint."]
+        W4["Reserve requirements have been<br/>zero since 26 March 2020.<br/>The multiplier has no binding<br/>numerator left."]
+    end
+
+    Tier2 -.->|"the arrow that does not exist"| Wrong
+
+    style Tier1 fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Tier2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Tier3 fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Wrong fill:#ffebee,stroke:#c62828,stroke-width:2px

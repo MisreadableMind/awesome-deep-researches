@@ -1,0 +1,36 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart LR
+    subgraph Assets["ASSETS - what the Fed owns<br/>26 August 2026, H.4.1 Table 5"]
+        direction TB
+        A1["US Treasury securities<br/>4,546,169 million USD<br/>bills, notes, bonds, TIPS,<br/>held outright in SOMA"]
+        A2["Agency MBS<br/>1,913,585 million USD<br/>Fannie, Freddie, Ginnie<br/>guaranteed pools"]
+        A3["Repurchase agreements<br/>3 million USD<br/>the standing repo facility<br/>is idle on a normal day"]
+        A4["Loans<br/>primary credit 4,890 million USD<br/>the discount window,<br/>near its structural floor"]
+        A5["Gold certificates, SDRs,<br/>premises, FX holdings,<br/>Central Bank Liquidity Swaps"]
+    end
+
+    subgraph Liabs["LIABILITIES - what the Fed owes<br/>same date, Wednesday levels"]
+        direction TB
+        L1["Federal Reserve notes<br/>2,426,366 million USD<br/>currency in circulation adds<br/>53,354 of Treasury coin"]
+        L2["Reserve balances<br/>2,916,824 million USD<br/>the settlement asset.<br/>Paid 3.65 percent IORB"]
+        L3["Reverse repurchase agreements<br/>356,158 million USD<br/>mostly foreign official accounts,<br/>ON RRP take-up near zero"]
+        L4["Treasury General Account<br/>959,435 million USD<br/>the government's checking account.<br/>Pays no interest"]
+        L5["Capital, other liabilities,<br/>deferred asset of 233,518 million USD<br/>carried as negative earnings<br/>remittances due to Treasury"]
+    end
+
+    Assets ---|"Total assets<br/>6,730,912 million USD"| Liabs
+
+    subgraph Rule["The identity that governs everything"]
+        direction TB
+        R1["Reserves = Assets - notes - TGA<br/>- reverse repos - other deposits<br/>- capital and other liabilities"]
+        R2["The Fed controls assets.<br/>It does not control currency demand<br/>or the Treasury's cash balance."]
+        R3["Those uncontrolled items are<br/>autonomous factors. They move<br/>reserves without any policy decision."]
+        R4["A 100 billion USD tax date<br/>drains 100 billion USD of reserves<br/>on the same day, with no vote taken."]
+    end
+
+    Liabs --> Rule
+
+    style Assets fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Liabs fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Rule fill:#fff3e0,stroke:#e65100,stroke-width:2px

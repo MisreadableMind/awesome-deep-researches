@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    Q["EO 14178: a CBDC is a form of digital<br/>money or monetary value, denominated in<br/>the national unit of account, that is a<br/>direct liability of the central bank.<br/>It says nothing about who holds it."]
+
+    Q --> Split
+
+    subgraph Split["The first fork: who is it for"]
+        direction TB
+        S1["Retail CBDC<br/>households and merchants hold it.<br/>Competes with deposits and cash."]
+        S2["Wholesale CBDC<br/>banks hold it. This already exists<br/>and is called a reserve balance.<br/>The new part is tokenised settlement."]
+    end
+
+    Split --> Arch
+
+    subgraph Arch["The second fork: who holds the account"]
+        direction TB
+        A1["Direct model<br/>The central bank holds every retail<br/>account. Maximum control,<br/>and it must run a consumer helpdesk<br/>for 340 million people."]
+        A2["Two-tier or intermediated model<br/>The central bank issues, and licensed<br/>intermediaries onboard, authenticate,<br/>and service. Every live design<br/>chose this."]
+        A3["Synthetic model<br/>Private issuers hold full reserves<br/>at the central bank against tokens.<br/>Not a CBDC. Closer to a<br/>narrow-bank stablecoin."]
+    end
+
+    Arch --> Ctrl
+
+    subgraph Ctrl["The design levers that decide the outcome"]
+        direction TB
+        C1["Remuneration.<br/>Pay interest and it competes<br/>directly with bank deposits.<br/>Pay none and it competes with cash."]
+        C2["Holding limits.<br/>The digital euro's answer to<br/>disintermediation risk. A cap is<br/>the only thing standing between<br/>a CBDC and a digital bank run."]
+        C3["Offline capability.<br/>Required for it to substitute<br/>for cash and to survive a<br/>network outage."]
+        C4["Privacy.<br/>The political variable.<br/>Offline holdings can be near-anonymous,<br/>online ones cannot be, under AML law."]
+    end
+
+    Ctrl --> Live
+
+    subgraph Live["Where the world actually is, August 2026"]
+        direction TB
+        L1["Live retail: Bahamas Sand Dollar 2020,<br/>Nigeria eNaira 2021, Jamaica JAM-DEX 2022.<br/>All three have negligible usage."]
+        L2["Large pilot: China's e-CNY,<br/>two-tier, operated through commercial<br/>banks, running since 2019"]
+        L3["Euro area: preparation phase closed<br/>October 2025. 36 payment service<br/>providers selected in 2026 for a<br/>12-month pilot from H2 2027.<br/>Possible first issuance 2029."]
+        L4["United States: prohibited.<br/>Executive Order 14178 of 23 January 2025<br/>bars agencies from establishing,<br/>issuing, or promoting a CBDC."]
+    end
+
+    Live --> Lesson["The pattern in the live cases:<br/>a CBDC solves a problem that instant<br/>payment rails have usually already solved.<br/>Where Pix or UPI exists, the marginal<br/>value of a retail CBDC is small."]
+
+    style Q fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Split fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Arch fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Ctrl fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style Live fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style Lesson fill:#ffebee,stroke:#c62828,stroke-width:2px

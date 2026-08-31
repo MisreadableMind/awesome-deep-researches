@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e3f2fd', 'primaryBorderColor': '#1565c0', 'lineColor': '#37474f'}}}%%
+
+flowchart TB
+    subgraph Corridor["CORRIDOR - scarce reserves<br/>US before 2008, ECB before 2015"]
+        direction TB
+        CA["Ceiling: the lending facility<br/>Banks borrow here rather than<br/>pay more in the market"]
+        CB["Target: set by rationing quantity<br/>The Desk adds or drains reserves<br/>every morning to hit the rate"]
+        CC["Floor: the deposit facility<br/>Banks lend here rather than<br/>accept less in the market"]
+        CD["Requires: reserves so scarce that<br/>the demand curve is steep.<br/>US excess reserves ran near<br/>2 billion USD in 2006."]
+        CE["Cost: the Desk must forecast<br/>currency, the Treasury's balance,<br/>and float, to within a few billion,<br/>every single day"]
+    end
+
+    subgraph Floor["FLOOR - ample reserves<br/>US since 2008, ECB since 2024"]
+        direction TB
+        FA["Ceiling: standing repo, 3.75 percent<br/>Uncapped full allotment since<br/>11 December 2025"]
+        FB["Administered floor: IORB, 3.65 percent<br/>No bank lends below what the<br/>Fed pays it to do nothing"]
+        FC["Sub-floor: ON RRP, 3.50 percent<br/>For money funds and GSEs<br/>that cannot earn IORB"]
+        FD["Requires: reserves so abundant<br/>that the demand curve is flat.<br/>2.92 trillion USD in August 2026."]
+        FE["Cost: the central bank pays<br/>interest on 2.92 trillion USD<br/>of liabilities it created"]
+    end
+
+    subgraph Verdict["What actually separates them"]
+        direction TB
+        V1["A corridor sets the price by<br/>controlling the quantity."]
+        V2["A floor sets the price directly<br/>and lets the quantity be<br/>whatever the market wants."]
+        V3["A floor keeps rate control at any<br/>balance sheet size. That is why every<br/>large central bank moved to one after 2008."]
+        V4["A floor only works while reserves<br/>stay ample. September 2019 is<br/>what happens when they do not."]
+    end
+
+    Corridor -->|"2008 breaks the corridor"| Floor
+    Floor --> Verdict
+
+    style Corridor fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Floor fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style Verdict fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
