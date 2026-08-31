@@ -26,8 +26,8 @@ The deep-dive documents we wish existed before we started building. Each one goe
 
 | Topic | 📊 | Status |
 |-------|:-:|--------|
-| Commercial Banks: fractional reserve, balance sheets, lending | | 🗓️ Planned |
-| Central Banking & Monetary Policy: Fed, ECB, rate mechanics | | 🗓️ Planned |
+| [Commercial Banks: fractional reserve, balance sheets, lending](banking-infrastructure/commercial-banks/) | 20 | ✅ Done |
+| [Central Banking & Monetary Policy: Fed, ECB, rate mechanics](banking-infrastructure/central-banking/) | 16 | ✅ Done |
 | Core Banking Systems: Temenos, FIS, Mambu ledger architecture | | 🗓️ Planned |
 | [KYC / AML Systems: identity verification, transaction monitoring](banking-infrastructure/kyc-aml-systems/) | 14 | ✅ Done |
 | Credit Scoring: FICO, credit bureaus, scoring models | | 🗓️ Planned |
@@ -42,8 +42,8 @@ The deep-dive documents we wish existed before we started building. Each one goe
 | [Clearing & Settlement: DTCC, CCP, T+1](capital-markets/clearing-and-settlement/) | 19 | ✅ Done |
 | [Bond Markets: government, corporate, yield curves](capital-markets/bond-markets/) | 14 | ✅ Done |
 | [Options & Derivatives: pricing, Greeks, exchange mechanics](capital-markets/options-and-derivatives/) | 21 | ✅ Done |
-| High-Frequency Trading: co-location, market making, latency | | 🗓️ Planned |
-| Index Funds & ETFs: creation/redemption, tracking | | 🗓️ Planned |
+| [High-Frequency Trading: co-location, market making, latency](capital-markets/high-frequency-trading/) | 16 | ✅ Done |
+| [Index Funds & ETFs: creation/redemption, tracking](capital-markets/index-funds-and-etfs/) | 16 | ✅ Done |
 
 ### ⛓️ [`crypto-and-blockchain/`](crypto-and-blockchain/) — How decentralized systems work
 
@@ -196,8 +196,8 @@ Each research should be:
 ## 📊 Progress
 
 ```
-Done:      37 researches (592 diagrams)
-Planned:   14 researches
+Done:      41 researches (660 diagrams)
+Planned:   10 researches
 Categories: 10
 ```
 
